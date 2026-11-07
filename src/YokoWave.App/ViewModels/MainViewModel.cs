@@ -1,8 +1,11 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Windows.Input;
+using System.Text.Json;
 using YokoWave.Core;
+using YokoWave.Core.Localization;
 
 namespace YokoWave.App.ViewModels;
 
@@ -16,7 +19,9 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private bool _scanBusy;
     private bool _disposed;
     private string _page = "workspace";
-    private string _status = "工作区已就绪，连接模拟设备开始探索。";
+    private LocalizedMessage _status = new("Status.NoDevice", []);
+    private bool _settingsLoaded;
+    private LanguageOption? _selectedLanguage;
     private bool _isError;
     private DeviceItem? _selectedDevice;
     private PresetItem? _selectedPreset;
@@ -27,12 +32,12 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private double _sessionMinutes = 10;
     private bool _offsetChannelB = true;
     private bool _linkMode;
-    private string _editorName = "我的新波形";
+    private string _editorName = "";
     private WaveShape _editorShape = WaveShape.Sine;
     private double _editorPeriod = 4;
     private double _editorFrequency = 20;
     private string _editorPoints = "0, 0.2, 0.8, 1, 0.8, 0.2, 0";
-    private string _editorDescription = "为自己的节奏命名";
+    private string _editorDescription = "";
     private Guid? _editingId;
     private string _transferJson = "";
     private readonly List<SessionRecord> _records = [];
@@ -41,46 +46,52 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public ObservableCollection<PresetItem> Presets { get; } = [];
     public ObservableCollection<SessionItem> Sessions { get; } = [];
     public ObservableCollection<ActivityItem> Activities { get; } = [];
-    public IReadOnlyList<WaveShape> Shapes { get; } = Enum.GetValues<WaveShape>();
+    public IReadOnlyList<ShapeItem> Shapes { get; } = Enum.GetValues<WaveShape>().Select(s => new ShapeItem(s)).ToArray();
+    public IReadOnlyList<LanguageOption> Languages { get; } =
+        [new("en", L10n.Current.English["Language.en"]), new("zh-CN", L10n.Current.English["Language.zh-CN"])];
+    public LanguageOption? SelectedLanguage
+    {
+        get => _selectedLanguage;
+        set
+        {
+            if (value is null || !Set(ref _selectedLanguage, value)) return;
+            L10n.Current.SetLanguage(value.Code);
+            if (_settingsLoaded) _ = GuardAsync(() => SaveAsync());
+        }
+    }
     public bool IsWorkspace => _page == "workspace";
     public bool IsWaves => _page == "waves";
     public bool IsHistory => _page == "history";
     public bool IsSettings => _page == "settings";
-    public string PageTitle => _page switch { "waves" => "波形资料库", "history" => "会话记录", "settings" => "偏好设置", _ => "设备工作台" };
-    public string PageSubtitle => _page switch
-    {
-        "waves" => "把每一种节奏，变成你的专属波形。",
-        "history" => "每一次连接与律动，都有迹可循。",
-        "settings" => "让工作区以你熟悉的方式运转。",
-        _ => "连接设备，找到属于你的节奏。"
-    };
+    public string PageTitle => _page switch { "waves" => L10n.Get("Page.Waves"), "history" => L10n.Get("Page.History"), "settings" => L10n.Get("Page.Settings"), _ => L10n.Get("Page.Devices") };
     public bool IsScanning { get => _scanBusy; private set { Set(ref _scanBusy, value); Raise(nameof(ScanLabel)); } }
-    public string ScanLabel => IsScanning ? "正在发现…" : "＋  发现设备";
-    public string Status { get => _status; private set => Set(ref _status, value); }
+    public string ScanLabel => L10n.Get(IsScanning ? "Device.Scanning" : "Device.Scan");
+    public string Status => _status.Value;
     public bool IsError { get => _isError; private set => Set(ref _isError, value); }
     public bool IsRunning => _engine.IsRunning;
     public bool CanEditRouting => !IsRunning;
     public int ConnectedCount => Devices.Count(d => d.IsConnected);
     public string ConnectedSummary => $"{ConnectedCount:00} / {Devices.Count:00}";
-    public string SessionState => IsRunning ? "正在输出" : "待机就绪";
-    public string PlaybackLabel => IsRunning ? "■  停止会话" : "▶  开始会话";
+    public string SessionState => IsRunning ? L10n.Get("Session.Running") : L10n.Get("Session.Idle");
+    public string PlaybackLabel => IsRunning ? L10n.Get("Session.Stop") : L10n.Get("Session.Start");
     public string Elapsed => FormatDuration(_engine.Elapsed);
     public string Remaining => FormatDuration(TimeSpan.FromSeconds(Math.Max(0, SessionMinutes * 60 - _engine.Elapsed.TotalSeconds)));
     public double Playhead => IsRunning ? _engine.Elapsed.TotalSeconds / 12 % 1 : 0;
     public string TransportName => _controller.TransportName;
     public string StoragePath => _store.FilePath;
     public int SessionCount => Sessions.Count;
-    public string TotalTime => $"{_records.Sum(r => r.DurationSeconds) / 60:0.#} min";
-    public string SelectedName => SelectedDevice?.Name ?? "选择你的设备";
-    public string SelectedKind => SelectedDevice?.Kind ?? "连接后即可调节双通道与输出上限";
-    public string SelectedId => SelectedDevice?.Id ?? "尚未选择";
+    public string TotalTime => L10n.Format("History.TotalFormat", _records.Sum(r => r.DurationSeconds) / 60);
+    public string SelectedName => SelectedDevice?.Name ?? L10n.Get("Device.None");
+    public string SelectedKind => SelectedDevice?.Kind ?? L10n.Get("Device.ConnectHelp");
+    public string SelectedId => SelectedDevice?.Id ?? L10n.Get("Device.NoneId");
     public bool HasSelection => SelectedDevice is not null;
     public bool SelectedConnected => SelectedDevice?.IsConnected == true;
     public bool HasChannelB => SelectedDevice?.Device.Kind == DeviceKind.DualChannel;
     public string SelectedBattery => SelectedDevice?.Battery ?? "—";
+    public string SelectedBatteryLabel => L10n.Format("Device.Battery", SelectedBattery);
     public string SelectedSignal => SelectedDevice?.Signal ?? "—";
-    public string RoutingSummary => LinkMode ? $"联动 {Devices.Count(d => d.IsConnected && d.IsIncluded)} 台设备" : "仅控制当前设备";
-    public string PresetSummary => SelectedPreset?.Detail ?? "选择波形";
+    public string RoutingSummary => LinkMode ? L10n.Format("Device.LinkedCount", Devices.Count(d => d.IsConnected && d.IsIncluded)) : L10n.Get("Device.CurrentOnly");
+    public string PresetSummary => SelectedPreset?.Detail ?? L10n.Get("Wave.Select");
 
     public DeviceItem? SelectedDevice
     {
@@ -91,7 +102,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             Set(ref _selectedDevice, value);
             if (value is not null) value.IsSelected = true;
             foreach (var property in new[] { nameof(SelectedName), nameof(SelectedKind), nameof(SelectedId), nameof(HasSelection),
-                nameof(SelectedConnected), nameof(HasChannelB), nameof(SelectedBattery), nameof(SelectedSignal) }) Raise(property);
+                nameof(SelectedConnected), nameof(HasChannelB), nameof(SelectedBattery), nameof(SelectedBatteryLabel), nameof(SelectedSignal) }) Raise(property);
         }
     }
     public PresetItem? SelectedPreset
@@ -101,7 +112,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         {
             if (!Set(ref _selectedPreset, value)) return;
             Raise(nameof(PresetSummary));
-            if (IsRunning) _ = GuardAsync(() => StopAsync("切换波形"));
+            if (IsRunning) _ = GuardAsync(() => StopAsync("Reason.WaveChanged"));
         }
     }
     public double ChannelA { get => _channelA; set { Set(ref _channelA, Math.Clamp(value, 0, SafetyLimit)); _engine.ChannelA = _channelA; } }
@@ -122,12 +133,13 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public double SessionMinutes { get => _sessionMinutes; set => Set(ref _sessionMinutes, Math.Clamp(value, 1, 120)); }
     public bool OffsetChannelB { get => _offsetChannelB; set { Set(ref _offsetChannelB, value); _engine.OffsetChannelB = value; } }
     public bool LinkMode { get => _linkMode; set { Set(ref _linkMode, value); Raise(nameof(RoutingSummary)); } }
-    public string EditorName { get => _editorName; set => Set(ref _editorName, value); }
-    public WaveShape EditorShape { get => _editorShape; set { Set(ref _editorShape, value); Raise(nameof(EditorPreview)); } }
+    public string EditorName { get => _editorName; set { Set(ref _editorName, value); Raise(nameof(EditorPreview)); } }
+    public WaveShape EditorShape { get => _editorShape; set { Set(ref _editorShape, value); Raise(nameof(SelectedShape)); Raise(nameof(EditorPreview)); } }
+    public ShapeItem? SelectedShape { get => Shapes.FirstOrDefault(s => s.Shape == EditorShape); set { if (value is not null) EditorShape = value.Shape; } }
     public double EditorPeriod { get => _editorPeriod; set { Set(ref _editorPeriod, value); Raise(nameof(EditorPreview)); } }
     public double EditorFrequency { get => _editorFrequency; set { Set(ref _editorFrequency, value); Raise(nameof(EditorPreview)); } }
     public string EditorPoints { get => _editorPoints; set { Set(ref _editorPoints, value); Raise(nameof(EditorPreview)); } }
-    public string EditorDescription { get => _editorDescription; set => Set(ref _editorDescription, value); }
+    public string EditorDescription { get => _editorDescription; set { Set(ref _editorDescription, value); Raise(nameof(EditorPreview)); } }
     public string TransferJson { get => _transferJson; set => Set(ref _transferJson, value); }
     public WaveformPreset? EditorPreview
     {
@@ -158,6 +170,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     {
         _controller = controller;
         _store = store;
+        _selectedLanguage = Languages.First(l => l.Code == L10n.Current.Language);
+        L10n.Current.PropertyChanged += OnLanguageChanged;
         _engine = new(controller);
         _controller.Changed += OnDeviceChanged;
         _engine.Completed += OnSessionCompleted;
@@ -167,20 +181,21 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         SettingsCommand = new AsyncCommand(() => NavigateAsync("settings"), ShowError);
         ScanCommand = new AsyncCommand(ScanAsync, ShowError);
         PlaybackCommand = new AsyncCommand(TogglePlaybackAsync, ShowError);
-        EmergencyStopCommand = new AsyncCommand(() => StopAsync("全部停止"), ShowError);
+        EmergencyStopCommand = new AsyncCommand(() => StopAsync("Reason.AllStopped"), ShowError);
         SaveWaveCommand = new AsyncCommand(SaveWaveAsync, ShowError);
         NewWaveCommand = new ActionCommand(NewWave);
         EditWaveCommand = new ActionCommand(EditWave);
         DeleteWaveCommand = new AsyncCommand(DeleteWaveAsync, ShowError);
-        ExportCommand = new ActionCommand(() => { TransferJson = WorkspaceStore.ExportPresets(Presets.Select(p => p.Preset)); Notify("已生成全部波形的 JSON，可复制或导出文件。"); });
+        ExportCommand = new ActionCommand(() => { TransferJson = WorkspaceStore.ExportPresets(Presets.Select(p => p.Preset)); Notify("Status.Generated"); });
         ImportCommand = new AsyncCommand(() => ImportAsync(TransferJson), ShowError);
-        SaveSettingsCommand = new AsyncCommand(async () => { await SaveAsync(); Notify("偏好设置已保存。"); }, ShowError);
+        SaveSettingsCommand = new AsyncCommand(async () => { await SaveAsync(); Notify("Status.SettingsSaved"); }, ShowError);
         UseWaveCommand = new AsyncCommand(() => NavigateAsync("workspace"), ShowError);
     }
 
     public async Task InitializeAsync()
     {
         var data = await _store.LoadAsync();
+        SelectedLanguage = Languages.First(l => l.Code == JsonLocalizer.NormalizeLanguage(data.Settings.Language ?? JsonLocalizer.SystemLanguage));
         DefaultLimit = data.Settings.DefaultLimit;
         SessionMinutes = data.Settings.SessionMinutes;
         OffsetChannelB = data.Settings.OffsetChannelB;
@@ -188,9 +203,10 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         foreach (var preset in data.Presets.Where(p => !WaveformPreset.BuiltIn.Any(b => b.Id == p.Id))) Presets.Add(new(preset));
         foreach (var record in data.Sessions.OrderByDescending(r => r.StartedAt)) { _records.Add(record); Sessions.Add(new(record)); }
         SelectedPreset = Presets.First();
+        _settingsLoaded = true;
         Raise(nameof(SessionCount)); Raise(nameof(TotalTime));
         await ScanAsync();
-        if (_store.LoadWarning is { } warning) ShowError(new IOException(warning));
+        if (_store.LoadWarning is not null) ShowError(new LocalizedIOException("Error.CorruptWorkspace"));
     }
 
     public async Task ScanAsync()
@@ -208,7 +224,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
                 Devices.Add(device);
             }
             if (SelectedDevice is null && Devices.Count > 0) SelectedDevice = Devices[0];
-            Notify($"发现 {found.Count} 台本地模拟设备。未扫描真实蓝牙设备。");
+            Notify("Status.Discovered", found.Count);
             Raise(nameof(ConnectedSummary));
         }
         finally { IsScanning = false; }
@@ -217,7 +233,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public async Task SelectDeviceAsync(DeviceItem device)
     {
         if (SelectedDevice == device) return;
-        await StopAsync("切换设备", false);
+        await StopAsync("Reason.DeviceChanged", false);
         SelectedDevice = device;
         SafetyLimit = _controller.Connections.TryGetValue(device.Id, out var connection) ? connection.Limit : DefaultLimit;
         ChannelA = ChannelB = 0;
@@ -225,17 +241,17 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
     public async Task ToggleConnectionAsync(DeviceItem device)
     {
-        await StopAsync("连接变更", false);
+        await StopAsync("Reason.ConnectionChanged", false);
         if (device.IsConnected)
         {
             await _controller.DisconnectAsync(device.Id);
-            Notify($"{device.Name} 已断开连接。");
+            Notify("Status.Disconnected", device.Name);
         }
         else
         {
             await _controller.ConnectAsync(device.Device, DefaultLimit);
             await SelectDeviceAsync(device);
-            Notify($"{device.Name} 已连接，输出归零。");
+            Notify("Status.Connected", device.Name);
         }
         RefreshDevices();
     }
@@ -243,15 +259,15 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public async Task TogglePlaybackAsync()
     {
         if (IsRunning) { await StopAsync(); return; }
-        if (SelectedPreset is null) throw new InvalidOperationException("请先选择波形。");
+        if (SelectedPreset is null) throw new LocalizedOperationException("Error.SelectWave");
         var targets = LinkMode ? Devices.Where(d => d.IsConnected && d.IsIncluded).Select(d => d.Id).ToArray()
             : SelectedDevice is { IsConnected: true } device ? [device.Id] : Array.Empty<string>();
         if (ChannelA <= 0 && (!HasChannelB || ChannelB <= 0))
-            throw new InvalidOperationException("先调节通道强度，再开始会话。");
+            throw new LocalizedOperationException("Error.SetLevel");
         await _engine.StartAsync(targets, SelectedPreset.Preset, TimeSpan.FromMinutes(SessionMinutes));
         _clock.Restart();
         RefreshPlayback();
-        Notify($"会话开始 · {SelectedPreset.Name} · {targets.Length} 台模拟设备。");
+        Notify("Status.Started", SelectedPreset, targets.Length);
     }
 
     public async Task TickAsync()
@@ -263,27 +279,26 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         finally { _tickBusy = false; }
     }
 
-    public async Task StopAsync(string reason = "手动停止", bool notify = true)
+    public async Task StopAsync(string reason = "Reason.Manual", bool notify = true)
     {
         await _engine.StopAsync(reason);
         _clock.Stop();
         RefreshPlayback();
-        if (notify) Notify("全部设备输出已归零。");
+        if (notify) Notify("Status.Stopped");
     }
 
     public async Task NavigateAsync(string page)
     {
-        await StopAsync("离开工作台", false);
+        await StopAsync("Reason.PageChanged", false);
         _page = page;
-        foreach (var property in new[] { nameof(IsWorkspace), nameof(IsWaves), nameof(IsHistory), nameof(IsSettings), nameof(PageTitle), nameof(PageSubtitle) }) Raise(property);
+        foreach (var property in new[] { nameof(IsWorkspace), nameof(IsWaves), nameof(IsHistory), nameof(IsSettings), nameof(PageTitle) }) Raise(property);
     }
 
     public void NewWave()
     {
         _editingId = null;
-        EditorName = "我的新波形"; EditorDescription = "为自己的节奏命名";
+        EditorName = ""; EditorDescription = "";
         EditorShape = WaveShape.Sine; EditorPeriod = 4; EditorFrequency = 20;
-        Notify("新波形编辑器已就绪。");
     }
 
     public void EditWave()
@@ -291,11 +306,11 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         if (SelectedPreset is null) return;
         var preset = SelectedPreset.Preset;
         _editingId = SelectedPreset.IsBuiltIn ? null : preset.Id;
-        EditorName = SelectedPreset.IsBuiltIn ? preset.Name + " · 副本" : preset.Name;
+        EditorName = SelectedPreset.IsBuiltIn ? L10n.Format("Wave.CopyName", preset.Name) : preset.Name;
         EditorDescription = preset.Description; EditorShape = preset.Shape;
         EditorPeriod = preset.PeriodSeconds; EditorFrequency = preset.Frequency;
         EditorPoints = string.Join(", ", preset.Points?.Select(p => p.ToString("0.###", CultureInfo.InvariantCulture)) ?? ["0", "1", "0"]);
-        Notify(SelectedPreset.IsBuiltIn ? "内置波形将另存为副本。" : "正在编辑所选波形。");
+        Notify(SelectedPreset.IsBuiltIn ? "Status.CopyBuiltIn" : "Status.Editing");
     }
 
     public async Task SaveWaveAsync()
@@ -307,7 +322,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         var old = Presets.FirstOrDefault(p => p.Preset.Id == preset.Id);
         if (old is not null) Presets.Remove(old);
         var item = new PresetItem(preset); Presets.Add(item); SelectedPreset = item; _editingId = preset.Id;
-        Notify($"波形「{preset.Name}」已保存。");
+        Notify("Status.WaveSaved", preset.Name);
     }
 
     private WaveformPreset BuildEditorPreset()
@@ -321,10 +336,10 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public async Task DeleteWaveAsync()
     {
         if (SelectedPreset is null) return;
-        if (SelectedPreset.IsBuiltIn) throw new InvalidOperationException("内置波形不能删除，可以创建副本。");
+        if (SelectedPreset.IsBuiltIn) throw new LocalizedOperationException("Error.DeleteBuiltIn");
         var selected = SelectedPreset;
         await SaveAsync(Presets.Where(p => p != selected).Select(p => p.Preset));
-        SelectedPreset = Presets[0]; Presets.Remove(selected); NewWave(); Notify("所选波形已删除。");
+        SelectedPreset = Presets[0]; Presets.Remove(selected); NewWave(); Notify("Status.WaveDeleted");
     }
 
     public async Task ImportAsync(string json)
@@ -334,12 +349,12 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         var added = imported.Where(p => !known.Contains(p.Id)).ToArray();
         await SaveAsync(Presets.Select(p => p.Preset).Concat(added));
         foreach (var preset in added) Presets.Add(new(preset));
-        Notify($"已导入 {added.Length} 个波形，跳过 {imported.Count - added.Length} 个重复项。");
+        Notify("Status.Imported", added.Length, imported.Count - added.Length);
     }
 
     public Task SaveAsync(IEnumerable<WaveformPreset>? presets = null) => _store.SaveAsync(new(1,
         (presets ?? Presets.Select(p => p.Preset)).Where(p => !WaveformPreset.BuiltIn.Any(b => b.Id == p.Id)).ToList(),
-        _records.Take(500).ToList(), new(DefaultLimit, SessionMinutes, OffsetChannelB)));
+        _records.Take(500).ToList(), new(DefaultLimit, SessionMinutes, OffsetChannelB, SelectedLanguage?.Code)));
 
     private void OnDeviceChanged(object? sender, EventArgs e) => RefreshDevices();
     private void OnSessionCompleted(object? sender, SessionRecord record)
@@ -349,7 +364,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         while (_records.Count > 500) _records.RemoveAt(_records.Count - 1);
         Raise(nameof(SessionCount)); Raise(nameof(TotalTime));
         _ = GuardAsync(() => SaveAsync());
-        Notify($"会话已保存 · {record.Reason}。");
+        Notify("Status.SessionSaved", new StoredReason(record.Reason));
     }
 
     private void RefreshDevices()
@@ -370,12 +385,40 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         RefreshDevices();
     }
 
-    public void ShowError(Exception exception) { Status = exception.Message; IsError = true; Log(exception.Message); }
-    public void Notify(string text) { Status = text; IsError = false; Log(text); }
-    private void Log(string text)
+    public void ShowError(Exception exception)
+    {
+        _status = exception switch
+        {
+            ILocalizedError error => error.LocalizedMessage,
+            JsonException => new("Error.InvalidJson", []),
+            FormatException or OverflowException => new("Error.InvalidNumber", []),
+            _ => new(exception.Message, [], true)
+        };
+        IsError = true; Raise(nameof(Status)); Log(_status);
+    }
+    public void Notify(string key, params object?[] arguments)
+    {
+        _status = new(key, arguments); IsError = false; Raise(nameof(Status)); Log(_status);
+    }
+    private void Log(LocalizedMessage text)
     {
         Activities.Insert(0, new(DateTime.Now.ToString("HH:mm:ss"), text));
         while (Activities.Count > 20) Activities.RemoveAt(Activities.Count - 1);
+    }
+    private void OnLanguageChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(JsonLocalizer.Language)) return;
+        _selectedLanguage = Languages.First(l => l.Code == L10n.Current.Language);
+        Raise(nameof(SelectedLanguage));
+        foreach (var item in Devices) item.RefreshLocalization();
+        foreach (var item in Presets) item.RefreshLocalization();
+        foreach (var item in Shapes) item.RefreshLocalization();
+        foreach (var item in Sessions) item.RefreshLocalization();
+        foreach (var item in Activities) item.RefreshLocalization();
+        foreach (var name in new[] { nameof(PageTitle), nameof(ScanLabel), nameof(Status), nameof(SessionState),
+            nameof(PlaybackLabel), nameof(TotalTime), nameof(SelectedName), nameof(SelectedKind), nameof(SelectedId),
+            nameof(SelectedBatteryLabel), nameof(RoutingSummary), nameof(PresetSummary), nameof(TransportName) }) Raise(name);
+        Raise(nameof(SelectedPreset));
     }
     private async Task GuardAsync(Func<Task> action) { try { await action(); } catch (Exception e) { ShowError(e); } }
     private static string FormatDuration(TimeSpan time) => time.ToString(time.TotalHours >= 1 ? @"h\:mm\:ss" : @"mm\:ss");
@@ -386,13 +429,14 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         _disposed = true;
         try
         {
-            await StopAsync("关闭应用", false);
+            await StopAsync("Reason.Close", false);
             await SaveAsync();
         }
         finally
         {
             _controller.Changed -= OnDeviceChanged;
             _engine.Completed -= OnSessionCompleted;
+            L10n.Current.PropertyChanged -= OnLanguageChanged;
             await _controller.DisposeAsync();
         }
     }

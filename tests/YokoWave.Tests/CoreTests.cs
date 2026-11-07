@@ -61,7 +61,7 @@ public sealed class CoreTests
         await controller.ConnectAsync(Device("two"), ct: TestContext.Current.CancellationToken);
         await controller.SendAsync("two", new(25, 15, 20), TestContext.Current.CancellationToken);
         transport.FailId = "one";
-        await Assert.ThrowsAsync<AggregateException>(() => controller.StopAllAsync(TestContext.Current.CancellationToken));
+        await Assert.ThrowsAnyAsync<AggregateException>(() => controller.StopAllAsync(TestContext.Current.CancellationToken));
         Assert.Equal(0, transport.Latest["two"].ChannelA);
         transport.FailId = null;
         await controller.DisposeAsync();
@@ -87,7 +87,7 @@ public sealed class CoreTests
         Assert.NotNull(completed);
         Assert.Equal(4, completed.DurationSeconds);
         Assert.Equal(2, completed.DeviceCount);
-        Assert.Equal("定时结束", completed.Reason);
+        Assert.Equal("Reason.Timer", completed.Reason);
         await engine.AdvanceAsync(TimeSpan.FromSeconds(6));
         Assert.All(transport.Latest.Values, frame => Assert.Equal(0, frame.ChannelA));
     }
@@ -135,7 +135,7 @@ public sealed class CoreTests
         await File.WriteAllTextAsync(store.FilePath, "broken", TestContext.Current.CancellationToken);
         Assert.Empty((await store.LoadAsync()).Presets);
         Assert.NotNull(store.LoadWarning);
-        await Assert.ThrowsAsync<IOException>(() => store.SaveAsync(WorkspaceData.Empty));
+        await Assert.ThrowsAnyAsync<IOException>(() => store.SaveAsync(WorkspaceData.Empty));
         Assert.Equal("broken", await File.ReadAllTextAsync(store.FilePath, TestContext.Current.CancellationToken));
     }
 
@@ -143,9 +143,9 @@ public sealed class CoreTests
     public void WaveImportRejectsInvalidRangesAndDuplicateIdentifiers()
     {
         var preset = WaveformPreset.BuiltIn[0];
-        Assert.Throws<ArgumentException>(() => WorkspaceStore.ImportPresets(WorkspaceStore.ExportPresets([preset, preset])));
-        Assert.Throws<ArgumentException>(() => WorkspaceStore.ImportPresets(WorkspaceStore.ExportPresets([preset with { PeriodSeconds = 0 }])));
-        Assert.Throws<ArgumentException>(() => WorkspaceStore.ImportPresets(WorkspaceStore.ExportPresets([preset with { Shape = WaveShape.Custom, Points = [0, 2] }])));
+        Assert.ThrowsAny<ArgumentException>(() => WorkspaceStore.ImportPresets(WorkspaceStore.ExportPresets([preset, preset])));
+        Assert.ThrowsAny<ArgumentException>(() => WorkspaceStore.ImportPresets(WorkspaceStore.ExportPresets([preset with { PeriodSeconds = 0 }])));
+        Assert.ThrowsAny<ArgumentException>(() => WorkspaceStore.ImportPresets(WorkspaceStore.ExportPresets([preset with { Shape = WaveShape.Custom, Points = [0, 2] }])));
         Assert.Throws<JsonException>(() => WorkspaceStore.ImportPresets("not json"));
         Assert.Single(WorkspaceStore.ImportPresets(WorkspaceStore.ExportPresets([preset])));
     }

@@ -13,6 +13,11 @@ public sealed partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        if (ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime && ApplicationLifetime is not ISingleViewApplicationLifetime)
+        {
+            base.OnFrameworkInitializationCompleted();
+            return;
+        }
         var dataDirectory = Environment.GetEnvironmentVariable("YOKOWAVE_DATA_DIR")
             ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "YokoWave");
         var viewModel = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(dataDirectory));

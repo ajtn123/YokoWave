@@ -1,3 +1,4 @@
+using YokoWave.Core.Localization;
 namespace YokoWave.Core;
 
 public sealed class DeviceConnection(DeviceDescriptor device, double limit)
@@ -77,7 +78,7 @@ public sealed class DeviceController(IDeviceTransport transport) : IAsyncDisposa
         }
         finally { _gate.Release(); }
         Changed?.Invoke(this, EventArgs.Empty);
-        if (errors.Count > 0) throw new AggregateException("部分设备未确认停止。", errors);
+        if (errors.Count > 0) throw new LocalizedAggregateException("Error.StopUnconfirmed", errors);
     }
 
     public async Task DisconnectAsync(string id, CancellationToken ct = default)
@@ -97,7 +98,7 @@ public sealed class DeviceController(IDeviceTransport transport) : IAsyncDisposa
     }
 
     private DeviceConnection Get(string id) => _connections.TryGetValue(id, out var item)
-        ? item : throw new InvalidOperationException("设备尚未连接。");
+        ? item : throw new LocalizedOperationException("Error.NotConnected");
     private static double Clamp(double value) => double.IsFinite(value) ? Math.Clamp(value, 0, 100) : 0;
 
     public async ValueTask DisposeAsync()
@@ -116,6 +117,6 @@ public sealed class DeviceController(IDeviceTransport transport) : IAsyncDisposa
             catch (Exception e) { errors.Add(e); }
             _gate.Dispose();
         }
-        if (errors.Count > 0) throw new AggregateException("设备清理发生错误。", errors);
+        if (errors.Count > 0) throw new LocalizedAggregateException("Error.Cleanup", errors);
     }
 }

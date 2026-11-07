@@ -13,6 +13,7 @@ using YokoWave.App.ViewModels;
 using YokoWave.App.Views;
 using YokoWave.App.Controls;
 using YokoWave.Core;
+using YokoWave.Core.Localization;
 using Xunit;
 
 [assembly: AvaloniaTestApplication(typeof(YokoWave.Tests.TestAppBuilder))]
@@ -31,6 +32,71 @@ public static class TestAppBuilder
 
 public sealed class UiTests
 {
+    [AvaloniaFact]
+    public async Task LanguagePickerRefreshesExistingUiAndPersistsSelection()
+    {
+        using var folder = new TestFolder();
+        var originalLanguage = L10n.Current.Language;
+        try
+        {
+            await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path));
+            var window = new MainWindow { DataContext = vm };
+            window.Show();
+            var view = Assert.IsType<MainView>(window.Content);
+            await WaitForAsync(() => vm.Devices.Count == 5 && !vm.IsScanning);
+            await vm.ToggleConnectionAsync(vm.Devices[0]);
+            vm.ChannelA = 20;
+            await vm.TogglePlaybackAsync();
+            await vm.StopAsync();
+            var selectedDevice = vm.SelectedDevice;
+            var selectedPreset = vm.SelectedPreset;
+            vm.EditorName = "用户名称 / User name";
+            vm.EditorDescription = "用户描述 / User description";
+            await vm.NavigateAsync("settings");
+            var picker = view.FindControl<ComboBox>("LanguagePicker")!;
+            picker.SelectedItem = vm.Languages.First(l => l.Code == "en");
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("Settings", view.FindControl<TextBlock>("PageTitleText")!.Text);
+            Assert.Equal("■  Stop all", view.FindControl<Button>("StopAllButton")!.Content);
+            Assert.Equal("YokoWave", window.Title);
+            Assert.Same(L10n.Current.Culture.NumberFormat, view.FindControl<NumericUpDown>("DurationInput")!.NumberFormat);
+            Assert.Equal("Sine wave", selectedPreset!.Name);
+            Assert.Contains("Manual stop", vm.Sessions[0].Detail);
+            vm.ShowError(new LocalizedArgumentException("Error.Period"));
+            Assert.Contains("Period", vm.Status);
+            Capture(window, "settings-en.png");
+
+            picker.SelectedItem = vm.Languages.First(l => l.Code == "zh-CN");
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("偏好设置", view.FindControl<TextBlock>("PageTitleText")!.Text);
+            Assert.Equal("■  全部停止", view.FindControl<Button>("StopAllButton")!.Content);
+            Assert.Equal("YokoWave · 波枢", window.Title);
+            Assert.Same(L10n.Current.Culture.NumberFormat, view.FindControl<NumericUpDown>("DurationInput")!.NumberFormat);
+            Assert.Equal("正弦波", selectedPreset.Name);
+            Assert.Equal("正弦", vm.SelectedShape!.Label);
+            Assert.Contains("周期", vm.Status);
+            Assert.Contains("手动停止", vm.Sessions[0].Detail);
+            Assert.Same(selectedDevice, vm.SelectedDevice);
+            Assert.Same(selectedPreset, vm.SelectedPreset);
+            Assert.Equal("用户名称 / User name", vm.EditorName);
+            Assert.Equal("用户描述 / User description", vm.EditorDescription);
+            Assert.Equal(1, vm.ConnectedCount);
+            Assert.Equal(20, vm.ChannelA);
+            Capture(window, "settings-zh-CN.png");
+            await vm.SaveAsync();
+            Assert.Equal("zh-CN", (await new WorkspaceStore(folder.Path).LoadAsync()).Settings.Language);
+            window.Close();
+            await WaitForAsync(() => !window.IsVisible);
+
+            L10n.Current.SetLanguage("en");
+            await using var restored = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path));
+            await restored.InitializeAsync();
+            Assert.Equal("zh-CN", restored.SelectedLanguage!.Code);
+            Assert.Equal("zh-CN", L10n.Current.Language);
+        }
+        finally { L10n.Current.SetLanguage(originalLanguage); }
+    }
+
     [AvaloniaFact]
     public async Task NativeWindowShortcutAndCloseStopAndPersistTheSession()
     {
@@ -108,7 +174,7 @@ public sealed class UiTests
         await WaitForAsync(() => vm.Devices.Count == 5 && !vm.IsScanning);
         Assert.Equal(10, vm.SessionMinutes);
         Dispatcher.UIThread.RunJobs();
-        var connect = view.GetVisualDescendants().OfType<Button>().First(b => b.Content as string == "连接");
+        var connect = view.GetVisualDescendants().OfType<Button>().First(b => b.Content as string == L10n.Get("Device.Connect"));
         Click(window, connect);
         await WaitForAsync(() => vm.ConnectedCount == 1);
         var slider = view.FindControl<Slider>("ChannelASlider")!;
@@ -128,12 +194,14 @@ public sealed class UiTests
         Assert.Single(vm.Sessions);
 
         await vm.NavigateAsync("waves");
-        vm.EditorName = "夜间节奏";
+        vm.EditorName = "自定义波形";
+        Dispatcher.UIThread.RunJobs();
+        Assert.NotNull(view.FindControl<WaveformPlot>("EditorPreviewPlot")!.Preset);
         vm.EditorShape = WaveShape.Custom;
         vm.EditorPoints = "0, 0.4, 1, 0.5, 0";
         Click(window, view.FindControl<Button>("SaveWaveButton")!);
         await WaitForAsync(() => vm.Presets.Count == 5);
-        Assert.Equal("夜间节奏", vm.SelectedPreset!.Name);
+        Assert.Equal("自定义波形", vm.SelectedPreset!.Name);
         Capture(window, "waveforms.png");
         window.Close();
     }

@@ -1,5 +1,6 @@
 using System.Windows.Input;
 using YokoWave.Core;
+using YokoWave.Core.Localization;
 
 namespace YokoWave.App.ViewModels;
 
@@ -24,10 +25,12 @@ public sealed class DeviceItem : ObservableObject
     public bool IsSelected { get => _selected; set => Set(ref _selected, value); }
     public bool IsIncluded { get => _included; set => Set(ref _included, value); }
     public bool CanEditRouting { get => _canEditRouting; set => Set(ref _canEditRouting, value); }
-    public string Status => IsConnected ? "已连接" : "可连接 · 模拟";
-    public string ConnectionAction => IsConnected ? "断开" : "连接";
-    public double OutputA { get => _outputA; set => Set(ref _outputA, value); }
-    public double OutputB { get => _outputB; set => Set(ref _outputB, value); }
+    public string Status => L10n.Get(IsConnected ? "Device.Connected" : "Device.Available");
+    public string ConnectionAction => L10n.Get(IsConnected ? "Device.Disconnect" : "Device.Connect");
+    public double OutputA { get => _outputA; set { Set(ref _outputA, value); Raise(nameof(OutputALabel)); } }
+    public double OutputB { get => _outputB; set { Set(ref _outputB, value); Raise(nameof(OutputBLabel)); } }
+    public string OutputALabel => L10n.Format("Device.Output", OutputA);
+    public string OutputBLabel => L10n.Format("Device.Output", OutputB);
     public ICommand SelectCommand { get; }
     public ICommand ConnectCommand { get; }
 
@@ -39,27 +42,60 @@ public sealed class DeviceItem : ObservableObject
         SelectCommand = new AsyncCommand(() => select(this), onError);
         ConnectCommand = new AsyncCommand(() => connect(this), onError);
     }
+
+    public void RefreshLocalization()
+    {
+        foreach (var property in new[] { nameof(Kind), nameof(Status), nameof(ConnectionAction), nameof(OutputALabel), nameof(OutputBLabel) }) Raise(property);
+    }
 }
 
 public sealed class PresetItem(WaveformPreset preset) : ObservableObject
 {
-    public WaveformPreset Preset { get; } = preset;
-    public string Name => Preset.Name;
-    public string Description => Preset.Description;
-    public string Detail => $"{Preset.PeriodSeconds:0.#}s 周期   ·   {Preset.Frequency:0} Hz";
-    public string ShapeLabel => Preset.Shape switch
-    { WaveShape.Sine => "正弦", WaveShape.Triangle => "三角", WaveShape.Pulse => "脉冲", WaveShape.Ramp => "阶梯", _ => "自定义" };
-    public bool IsBuiltIn => WaveformPreset.BuiltIn.Any(p => p.Id == Preset.Id);
-    public string Origin => IsBuiltIn ? "内置波形" : "我的波形";
+    public WaveformPreset Preset => IsBuiltIn ? preset with { Name = Name, Description = Description } : preset;
+    public string Name => IsBuiltIn ? L10n.Get($"Wave.{preset.Shape}.Name") : preset.Name;
+    public string Description => IsBuiltIn ? L10n.Get($"Wave.{preset.Shape}.Description") : preset.Description;
+    public string Detail => L10n.Format("Wave.Detail", preset.PeriodSeconds, preset.Frequency);
+    public string ShapeLabel => L10n.Get($"Shape.{preset.Shape}");
+    public bool IsBuiltIn => WaveformPreset.BuiltIn.Any(p => p.Id == preset.Id);
+    public string Origin => L10n.Get(IsBuiltIn ? "Wave.BuiltIn" : "Wave.CustomOrigin");
     public override string ToString() => Name;
+    public void RefreshLocalization()
+    {
+        foreach (var property in new[] { nameof(Preset), nameof(Name), nameof(Description), nameof(Detail), nameof(ShapeLabel), nameof(Origin) }) Raise(property);
+    }
 }
 
-public sealed record SessionItem(SessionRecord Record)
+public sealed class SessionItem(SessionRecord record) : ObservableObject
 {
-    public string Name => Record.WaveformName;
-    public string Date => Record.StartedAt.ToLocalTime().ToString("MM.dd  HH:mm");
+    public SessionRecord Record { get; } = record;
+    public string Name => WaveformPreset.BuiltIn.FirstOrDefault(p => p.Id == Record.WaveformId) is { } builtIn
+        ? L10n.Get($"Wave.{builtIn.Shape}.Name") : Record.WaveformName;
+    public string Date => Record.StartedAt.ToLocalTime().ToString(L10n.Get("History.DateFormat"), L10n.Current.Culture);
     public string Duration => TimeSpan.FromSeconds(Record.DurationSeconds).ToString(Record.DurationSeconds >= 3600 ? @"h\:mm\:ss" : @"mm\:ss");
-    public string Detail => $"{Record.DeviceCount} 台设备 · A {Record.PeakA:0}% / B {Record.PeakB:0}% · {Record.Reason}";
+    public string Detail => L10n.Format("History.Detail", Record.DeviceCount, Record.PeakA, Record.PeakB, new StoredReason(Record.Reason));
+    public void RefreshLocalization()
+    {
+        Raise(nameof(Name)); Raise(nameof(Date)); Raise(nameof(Detail));
+    }
 }
 
-public sealed record ActivityItem(string Time, string Text);
+public sealed class ActivityItem(string time, LocalizedMessage message) : ObservableObject
+{
+    public string Time => time;
+    public string Text => message.Value;
+    public void RefreshLocalization() => Raise(nameof(Text));
+}
+
+public sealed record StoredReason(string Code)
+{
+    public override string ToString() => L10n.Current.TranslateStored(Code, "Reason.");
+}
+
+public sealed class ShapeItem(WaveShape shape) : ObservableObject
+{
+    public WaveShape Shape { get; } = shape;
+    public string Label => L10n.Get($"Shape.{Shape}");
+    public void RefreshLocalization() => Raise(nameof(Label));
+}
+
+public sealed record LanguageOption(string Code, string DisplayName);

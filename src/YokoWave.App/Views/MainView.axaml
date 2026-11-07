@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="using:YokoWave.App.Localization"
              xmlns:vm="using:YokoWave.App.ViewModels"
              xmlns:controls="using:YokoWave.App.Controls"
              x:Class="YokoWave.App.Views.MainView"
@@ -15,22 +16,17 @@
             </Border>
             <TextBlock Text="YokoWave" FontWeight="Bold" FontSize="19" VerticalAlignment="Center" LetterSpacing="-0.6" />
           </StackPanel>
-          <TextBlock Text="YOUR RHYTHM, CONNECTED." FontSize="8" LetterSpacing="1.3" Foreground="{DynamicResource TextMutedBrush}" Margin="0,4,0,0" />
         </StackPanel>
         <StackPanel Grid.Row="1">
-          <TextBlock Text="工作空间" Classes="eyebrow" Margin="16,0,0,12" />
-          <Button Classes="nav" Classes.active="{Binding IsWorkspace}" Command="{Binding WorkspaceCommand}" Content="▦    设备工作台" />
-          <Button Classes="nav" Classes.active="{Binding IsWaves}" Command="{Binding WavesCommand}" Content="∿    波形资料库" />
-          <Button Classes="nav" Classes.active="{Binding IsHistory}" Command="{Binding HistoryCommand}" Content="◷    会话记录" />
+          <Button Classes="nav" Classes.active="{Binding IsWorkspace}" Command="{Binding WorkspaceCommand}" Content="{l:Loc Nav.Devices}" />
+          <Button Classes="nav" Classes.active="{Binding IsWaves}" Command="{Binding WavesCommand}" Content="{l:Loc Nav.Waves}" />
+          <Button Classes="nav" Classes.active="{Binding IsHistory}" Command="{Binding HistoryCommand}" Content="{l:Loc Nav.History}" />
           <Border Height="1" Background="{DynamicResource BorderBrush}" Margin="12,24" />
-          <Button Classes="nav" Classes.active="{Binding IsSettings}" Command="{Binding SettingsCommand}" Content="⚙    偏好设置" />
+          <Button Classes="nav" Classes.active="{Binding IsSettings}" Command="{Binding SettingsCommand}" Content="{l:Loc Nav.Settings}" />
         </StackPanel>
         <StackPanel Grid.Row="2" Spacing="14">
           <Border Background="{DynamicResource AccentSoftBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10" Padding="13">
-            <StackPanel Spacing="8">
-              <TextBlock Text="●  本地模拟模式" Foreground="{DynamicResource AccentTextBrush}" FontSize="11" FontWeight="SemiBold" />
-              <TextBlock Text="无需硬件，探索完整的&#10;多设备与波形工作流。" FontSize="10" LineHeight="18" Foreground="{DynamicResource TextSecondaryBrush}" />
-            </StackPanel>
+            <TextBlock Text="{l:Loc Mode.Sidebar}" Foreground="{DynamicResource AccentTextBrush}" FontSize="11" FontWeight="SemiBold" />
           </Border>
           <TextBlock Text="YokoWave  /  0.1.0" Foreground="{DynamicResource TextMutedBrush}" FontSize="10" Margin="12,0" />
         </StackPanel>
@@ -41,22 +37,20 @@
       <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="30,23">
         <Grid ColumnDefinitions="*,Auto">
           <StackPanel Spacing="6">
-            <TextBlock Text="YOKOWAVE  /  WORKSPACE" Classes="eyebrow" FontSize="9" />
-            <TextBlock Text="{Binding PageTitle}" FontSize="24" FontWeight="SemiBold" />
-            <TextBlock Text="{Binding PageSubtitle}" Classes="muted" FontSize="12" />
+            <TextBlock x:Name="PageTitleText" Text="{Binding PageTitle}" FontSize="24" FontWeight="SemiBold" />
             <StackPanel x:Name="CompactNav" IsVisible="False" Orientation="Horizontal" Spacing="6" Margin="0,10,0,0">
-              <Button Classes="small" Content="工作台" Command="{Binding WorkspaceCommand}" />
-              <Button Classes="small" Content="波形" Command="{Binding WavesCommand}" />
-              <Button Classes="small" Content="记录" Command="{Binding HistoryCommand}" />
-              <Button Classes="small" Content="设置" Command="{Binding SettingsCommand}" />
+              <Button Classes="small" Content="{l:Loc Nav.CompactDevices}" Command="{Binding WorkspaceCommand}" />
+              <Button Classes="small" Content="{l:Loc Nav.CompactWaves}" Command="{Binding WavesCommand}" />
+              <Button Classes="small" Content="{l:Loc Nav.CompactHistory}" Command="{Binding HistoryCommand}" />
+              <Button Classes="small" Content="{l:Loc Nav.CompactSettings}" Command="{Binding SettingsCommand}" />
             </StackPanel>
           </StackPanel>
           <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
             <Border x:Name="ModeBadge" Background="{DynamicResource AccentSoftBrush}" CornerRadius="20" Padding="12,7" VerticalAlignment="Center">
-              <TextBlock Text="●  本地模拟" Foreground="{DynamicResource AccentTextBrush}" FontSize="11" />
+              <TextBlock Text="{l:Loc Mode.Badge}" Foreground="{DynamicResource AccentTextBrush}" FontSize="11" />
             </Border>
-            <Button x:Name="StopAllButton" Classes="danger" Content="■  全部停止" Command="{Binding EmergencyStopCommand}"
-                    ToolTip.Tip="所有设备输出归零 · Esc" AutomationProperties.Name="全部停止" />
+            <Button x:Name="StopAllButton" Classes="danger" Content="{l:Loc Action.StopAll}" Command="{Binding EmergencyStopCommand}"
+                    ToolTip.Tip="{l:Loc Action.StopAllTip}" AutomationProperties.Name="{l:Loc Action.StopAllName}" />
           </StackPanel>
         </Grid>
       </Border>
@@ -69,7 +63,7 @@
               <Border Classes="card" Padding="18,15">
                 <Grid ColumnDefinitions="*,Auto">
                   <StackPanel Spacing="8">
-                    <TextBlock Text="已连接 / 已发现" Classes="muted" FontSize="11" />
+                    <TextBlock Text="{l:Loc Device.Count}" Classes="muted" FontSize="11" />
                     <TextBlock Text="{Binding ConnectedSummary}" FontSize="26" FontWeight="SemiBold" />
                   </StackPanel>
                   <TextBlock Grid.Column="1" Text="⌁" FontSize="31" Foreground="{DynamicResource AccentTextBrush}" VerticalAlignment="Center" />
@@ -77,7 +71,7 @@
               </Border>
               <Border Grid.Column="2" Classes="card" Padding="18,15">
                 <StackPanel Spacing="8">
-                  <TextBlock Text="当前会话" Classes="muted" FontSize="11" />
+                  <TextBlock Text="{l:Loc Session.Current}" Classes="muted" FontSize="11" />
                   <StackPanel Orientation="Horizontal" Spacing="10">
                     <TextBlock Text="{Binding Elapsed}" FontSize="26" FontWeight="SemiBold" />
                     <TextBlock Text="{Binding SessionState}" Foreground="{DynamicResource ChannelBBrush}" FontSize="10" VerticalAlignment="Center" />
@@ -86,7 +80,7 @@
               </Border>
               <Border Grid.Column="4" Classes="card" Padding="18,15">
                 <StackPanel Spacing="8">
-                  <TextBlock Text="当前波形" Classes="muted" FontSize="11" />
+                  <TextBlock Text="{l:Loc Wave.Current}" Classes="muted" FontSize="11" />
                   <TextBlock Text="{Binding SelectedPreset.Name}" FontSize="21" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
               </Border>
@@ -95,7 +89,7 @@
             <Grid x:Name="WorkspaceGrid" ColumnDefinitions="264,22,*" RowDefinitions="Auto">
               <StackPanel x:Name="DevicePane" Spacing="18">
                 <Grid ColumnDefinitions="*,Auto" Margin="0,2,0,0">
-                  <TextBlock Text="我的设备" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+                  <TextBlock Text="{l:Loc Device.List}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
                   <Button Grid.Column="1" x:Name="ScanButton" Classes="small" Content="{Binding ScanLabel}" Command="{Binding ScanCommand}" />
                 </Grid>
                 <ItemsControl ItemsSource="{Binding Devices}">
@@ -113,7 +107,7 @@
                             </Grid>
                           </Button>
                           <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="4,7,4,2">
-                            <CheckBox IsChecked="{Binding IsIncluded}" IsEnabled="{Binding CanEditRouting}" ToolTip.Tip="加入下次联动会话" MinHeight="26" />
+                            <CheckBox IsChecked="{Binding IsIncluded}" IsEnabled="{Binding CanEditRouting}" ToolTip.Tip="{l:Loc Device.Include}" MinHeight="26" />
                             <TextBlock Grid.Column="1" Text="{Binding Status}" FontSize="10" Classes="muted" VerticalAlignment="Center" />
                             <Button Grid.Column="2" Classes="small" Command="{Binding ConnectCommand}" Content="{Binding ConnectionAction}" />
                           </Grid>
@@ -124,9 +118,9 @@
                 </ItemsControl>
                 <Border Background="{DynamicResource RaisedBrush}" CornerRadius="10" Padding="14">
                   <StackPanel Spacing="9">
-                    <TextBlock Text="多设备联动" FontWeight="SemiBold" FontSize="12" />
-                    <ToggleSwitch x:Name="LinkModeToggle" IsChecked="{Binding LinkMode}" IsEnabled="{Binding CanEditRouting}" OnContent="同步输出" OffContent="独立控制" FontSize="11" />
-                    <TextBlock Text="勾选设备后开启联动。每台设备仍遵循自己的输出上限。" FontSize="10" Classes="muted" TextWrapping="Wrap" LineHeight="17" />
+                    <TextBlock Text="{l:Loc Device.Group}" FontWeight="SemiBold" FontSize="12" />
+                    <ToggleSwitch x:Name="LinkModeToggle" IsChecked="{Binding LinkMode}" IsEnabled="{Binding CanEditRouting}" OnContent="{l:Loc Device.Synchronized}" OffContent="{l:Loc Device.Independent}" FontSize="11" />
+                    <TextBlock Text="{l:Loc Device.GroupHelp}" FontSize="10" Classes="muted" TextWrapping="Wrap" LineHeight="17" />
                   </StackPanel>
                 </Border>
               </StackPanel>
@@ -135,14 +129,13 @@
                 <Border Classes="card" Padding="22,18">
                   <Grid ColumnDefinitions="*,Auto">
                     <StackPanel Spacing="8">
-                      <TextBlock Text="DEVICE CONTROL" Classes="eyebrow" FontSize="9" />
                       <TextBlock Text="{Binding SelectedName}" Classes="title" />
                       <TextBlock Text="{Binding SelectedKind}" Classes="muted" FontSize="11" />
                     </StackPanel>
                     <StackPanel Grid.Column="1" Spacing="9" VerticalAlignment="Center">
-                      <TextBlock Text="{Binding SelectedBattery, StringFormat='电量  {0}'}" Foreground="{DynamicResource AccentTextBrush}" FontSize="11" HorizontalAlignment="Right" />
+                      <TextBlock Text="{Binding SelectedBatteryLabel}" Foreground="{DynamicResource AccentTextBrush}" FontSize="11" HorizontalAlignment="Right" />
                       <TextBlock Text="{Binding SelectedSignal}" Classes="muted" FontSize="10" HorizontalAlignment="Right" />
-                      <TextBlock Text="模拟读数" Classes="muted" FontSize="9" HorizontalAlignment="Right" />
+                      <TextBlock Text="{l:Loc Device.Readings}" Classes="muted" FontSize="9" HorizontalAlignment="Right" />
                     </StackPanel>
                   </Grid>
                 </Border>
@@ -151,8 +144,8 @@
                   <StackPanel Spacing="16">
                     <Grid ColumnDefinitions="*,Auto">
                       <StackPanel Spacing="6">
-                        <TextBlock Text="波形预览" FontSize="14" FontWeight="SemiBold" />
-                        <TextBlock Text="12 秒预览 · 归一化输出" Classes="muted" FontSize="10" />
+                        <TextBlock Text="{l:Loc Wave.Preview}" FontSize="14" FontWeight="SemiBold" />
+                        <TextBlock Text="{l:Loc Wave.PreviewHelp}" Classes="muted" FontSize="10" />
                       </StackPanel>
                       <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="14" VerticalAlignment="Top">
                         <TextBlock Text="● A" Foreground="{DynamicResource AccentTextBrush}" FontSize="11" />
@@ -178,7 +171,7 @@
                       <ComboBox x:Name="PresetPicker" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" HorizontalAlignment="Stretch" IsEnabled="{Binding CanEditRouting}">
                         <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PresetItem"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
                       </ComboBox>
-                      <Button Grid.Column="1" Content="管理波形 ↗" Classes="small" Background="{DynamicResource TransparentBrush}" Command="{Binding WavesCommand}" Margin="8,0,0,0" />
+                      <Button Grid.Column="1" Content="{l:Loc Wave.Manage}" Classes="small" Background="{DynamicResource TransparentBrush}" Command="{Binding WavesCommand}" Margin="8,0,0,0" />
                     </Grid>
                   </StackPanel>
                 </Border>
@@ -187,21 +180,21 @@
                   <Border Classes="card" Padding="18">
                     <StackPanel Spacing="8">
                       <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Text="通道 A" Foreground="{DynamicResource AccentTextBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <TextBlock Text="{l:Loc Channel.A}" Foreground="{DynamicResource AccentTextBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
                         <TextBlock Grid.Column="1" Text="{Binding ChannelA, StringFormat='{}{0:0}%'}" FontSize="26" FontWeight="SemiBold" />
                       </Grid>
                       <Slider x:Name="ChannelASlider" Minimum="0" Maximum="{Binding SafetyLimit}" Value="{Binding ChannelA}" TickFrequency="1" IsSnapToTickEnabled="True" IsEnabled="{Binding SelectedConnected}" />
-                      <TextBlock Text="{Binding SelectedDevice.OutputA, StringFormat='实时输出  {0:0.0}%'}" Classes="muted" FontSize="10" />
+                      <TextBlock Text="{Binding SelectedDevice.OutputALabel}" Classes="muted" FontSize="10" />
                     </StackPanel>
                   </Border>
                   <Border Grid.Column="2" Classes="card" Padding="18">
                     <StackPanel Spacing="8" IsEnabled="{Binding HasChannelB}">
                       <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Text="通道 B" Foreground="{DynamicResource ChannelBBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <TextBlock Text="{l:Loc Channel.B}" Foreground="{DynamicResource ChannelBBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
                         <TextBlock Grid.Column="1" Text="{Binding ChannelB, StringFormat='{}{0:0}%'}" FontSize="26" FontWeight="SemiBold" />
                       </Grid>
                       <Slider x:Name="ChannelBSlider" Minimum="0" Maximum="{Binding SafetyLimit}" Value="{Binding ChannelB}" TickFrequency="1" IsSnapToTickEnabled="True" IsEnabled="{Binding SelectedConnected}" />
-                      <TextBlock Text="{Binding SelectedDevice.OutputB, StringFormat='实时输出  {0:0.0}%'}" Classes="muted" FontSize="10" />
+                      <TextBlock Text="{Binding SelectedDevice.OutputBLabel}" Classes="muted" FontSize="10" />
                     </StackPanel>
                   </Border>
                 </Grid>
@@ -209,25 +202,25 @@
                 <Border Classes="card" Padding="20,16">
                   <StackPanel Spacing="12">
                     <Grid ColumnDefinitions="*,Auto">
-                      <TextBlock Text="输出上限" FontWeight="SemiBold" FontSize="12" />
+                      <TextBlock Text="{l:Loc Device.Limit}" FontWeight="SemiBold" FontSize="12" />
                       <TextBlock Grid.Column="1" Text="{Binding SafetyLimit, StringFormat='{}{0:0}%'}" Foreground="{DynamicResource AccentTextBrush}" FontSize="12" />
                     </Grid>
                     <Slider x:Name="LimitSlider" Minimum="0" Maximum="100" Value="{Binding SafetyLimit}" TickFrequency="5" IsSnapToTickEnabled="True" IsEnabled="{Binding SelectedConnected}" />
                     <Grid ColumnDefinitions="*,Auto">
                       <TextBlock Text="{Binding RoutingSummary}" Classes="muted" FontSize="10" VerticalAlignment="Center" />
-                      <CheckBox Grid.Column="1" IsChecked="{Binding OffsetChannelB}" IsEnabled="{Binding CanEditRouting}" Content="B 通道错相" FontSize="10" MinHeight="24" />
+                      <CheckBox Grid.Column="1" IsChecked="{Binding OffsetChannelB}" IsEnabled="{Binding CanEditRouting}" Content="{l:Loc Channel.Offset}" FontSize="10" MinHeight="24" />
                     </Grid>
                     <Grid ColumnDefinitions="*,14,*">
                       <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                        <TextBlock Text="定时" FontSize="11" Classes="muted" VerticalAlignment="Center" />
+                        <TextBlock Text="{l:Loc Session.Timer}" FontSize="11" Classes="muted" VerticalAlignment="Center" />
                         <NumericUpDown x:Name="DurationInput" Value="{Binding SessionMinutes}" Minimum="1" Maximum="120" Increment="1" FormatString="0" Width="120" IsEnabled="{Binding CanEditRouting}" />
-                        <TextBlock Text="分钟" FontSize="10" Classes="muted" VerticalAlignment="Center" />
+                        <TextBlock Text="{l:Loc Unit.Minutes}" FontSize="10" Classes="muted" VerticalAlignment="Center" />
                       </StackPanel>
                       <Button Grid.Column="2" x:Name="PlaybackButton" Classes="primary" Command="{Binding PlaybackCommand}" Content="{Binding PlaybackLabel}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
                     </Grid>
                   </StackPanel>
                 </Border>
-                <TextBlock Text="本地模拟设备不会发送蓝牙指令。开始会话前需连接设备并调节通道强度。" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" TextWrapping="Wrap" LineHeight="17" />
+                <TextBlock Text="{l:Loc Device.SimulationHelp}" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" TextWrapping="Wrap" LineHeight="17" />
               </StackPanel>
             </Grid>
           </StackPanel>
@@ -236,10 +229,9 @@
           <StackPanel IsVisible="{Binding IsWaves}" Spacing="22">
             <Grid ColumnDefinitions="*,Auto">
               <StackPanel Spacing="6">
-                <TextBlock Text="每个节奏，都有自己的形状。" Classes="title" />
-                <TextBlock Text="选择波形即可预览。内置波形可复制，自定义波形支持编辑与 JSON 交换。" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                <TextBlock Text="{l:Loc Wave.LibraryHelp}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
               </StackPanel>
-              <Button Grid.Column="1" Classes="primary" Command="{Binding NewWaveCommand}" Content="＋ 新建波形" VerticalAlignment="Center" />
+              <Button Grid.Column="1" Classes="primary" Command="{Binding NewWaveCommand}" Content="{l:Loc Wave.New}" VerticalAlignment="Center" />
             </Grid>
             <ListBox x:Name="WaveList" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" Background="{DynamicResource TransparentBrush}" BorderThickness="0" Padding="0" ScrollViewer.VerticalScrollBarVisibility="Disabled">
               <ListBox.ItemsPanel><ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate></ListBox.ItemsPanel>
@@ -261,52 +253,54 @@
               </ListBox.ItemTemplate>
             </ListBox>
             <StackPanel Orientation="Horizontal" Spacing="10">
-              <Button Classes="primary" Content="使用所选波形 ↗" Command="{Binding UseWaveCommand}" />
-              <Button Content="编辑 / 创建副本" Command="{Binding EditWaveCommand}" />
-              <Button Content="删除所选" Command="{Binding DeleteWaveCommand}" />
+              <Button Classes="primary" Content="{l:Loc Wave.Use}" Command="{Binding UseWaveCommand}" />
+              <Button Content="{l:Loc Wave.Edit}" Command="{Binding EditWaveCommand}" />
+              <Button Content="{l:Loc Wave.Delete}" Command="{Binding DeleteWaveCommand}" />
             </StackPanel>
             <Border Classes="card" Padding="24">
               <StackPanel Spacing="16">
-                <TextBlock Text="波形编辑器" FontSize="16" FontWeight="SemiBold" />
+                <TextBlock Text="{l:Loc Wave.Editor}" FontSize="16" FontWeight="SemiBold" />
                 <Grid ColumnDefinitions="*,18,*" RowDefinitions="Auto,12,Auto,12,Auto">
                   <StackPanel Spacing="7">
-                    <TextBlock Text="名称" Classes="muted" FontSize="11" />
+                    <TextBlock Text="{l:Loc Wave.Name}" Classes="muted" FontSize="11" />
                     <TextBox x:Name="WaveNameInput" Text="{Binding EditorName}" MaxLength="60" />
                   </StackPanel>
                   <StackPanel Grid.Column="2" Spacing="7">
-                    <TextBlock Text="形状 · Sine / Triangle / Pulse / Ramp / Custom" Classes="muted" FontSize="10" />
-                    <ComboBox x:Name="ShapePicker" ItemsSource="{Binding Shapes}" SelectedItem="{Binding EditorShape}" HorizontalAlignment="Stretch" />
+                    <TextBlock Text="{l:Loc Wave.Shape}" Classes="muted" FontSize="10" />
+                    <ComboBox x:Name="ShapePicker" ItemsSource="{Binding Shapes}" SelectedItem="{Binding SelectedShape}" HorizontalAlignment="Stretch">
+                      <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:ShapeItem"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+                    </ComboBox>
                   </StackPanel>
                   <StackPanel Grid.Row="2" Spacing="7">
-                    <TextBlock Text="周期 / 秒" Classes="muted" FontSize="11" />
+                    <TextBlock Text="{l:Loc Wave.Period}" Classes="muted" FontSize="11" />
                     <NumericUpDown Value="{Binding EditorPeriod}" Minimum="0.2" Maximum="60" Increment="0.2" FormatString="0.0" />
                   </StackPanel>
                   <StackPanel Grid.Row="2" Grid.Column="2" Spacing="7">
-                    <TextBlock Text="频率 / Hz" Classes="muted" FontSize="11" />
+                    <TextBlock Text="{l:Loc Wave.Frequency}" Classes="muted" FontSize="11" />
                     <NumericUpDown Value="{Binding EditorFrequency}" Minimum="1" Maximum="100" Increment="1" FormatString="0" />
                   </StackPanel>
                   <StackPanel Grid.Row="4" Grid.ColumnSpan="3" Spacing="7">
-                    <TextBlock Text="自定义采样点 · Custom 形状使用，0–1 之间，以逗号分隔" Classes="muted" FontSize="11" />
+                    <TextBlock Text="{l:Loc Wave.PointsHelp}" Classes="muted" FontSize="11" />
                     <TextBox Text="{Binding EditorPoints}" />
                   </StackPanel>
                 </Grid>
-                <TextBox Text="{Binding EditorDescription}" PlaceholderText="波形描述" MaxLength="300" />
-                <TextBlock Text="编辑预览 · 有效参数时显示" Classes="muted" FontSize="10" />
-                <controls:WaveformPlot Preset="{Binding EditorPreview}" ShowGrid="False" Height="65" AmplitudeA="85" AmplitudeB="0" />
-                <Button x:Name="SaveWaveButton" Classes="primary" Command="{Binding SaveWaveCommand}" Content="保存波形" />
+                <TextBox Text="{Binding EditorDescription}" PlaceholderText="{l:Loc Wave.DescriptionPlaceholder}" MaxLength="300" />
+                <TextBlock Text="{l:Loc Wave.EditorPreview}" Classes="muted" FontSize="10" />
+                <controls:WaveformPlot x:Name="EditorPreviewPlot" Preset="{Binding EditorPreview}" ShowGrid="False" Height="65" AmplitudeA="85" AmplitudeB="0" />
+                <Button x:Name="SaveWaveButton" Classes="primary" Command="{Binding SaveWaveCommand}" Content="{l:Loc Wave.Save}" />
               </StackPanel>
             </Border>
             <Border Classes="card" Padding="24">
               <StackPanel Spacing="14">
-                <TextBlock Text="导入与导出" FontSize="16" FontWeight="SemiBold" />
-                <TextBlock Text="支持 JSON 文件或直接粘贴。相同标识的波形会跳过，内置波形始终保留。" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                <TextBlock Text="{l:Loc Transfer.Title}" FontSize="16" FontWeight="SemiBold" />
+                <TextBlock Text="{l:Loc Transfer.Help}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
                 <StackPanel Orientation="Horizontal" Spacing="10">
-                  <Button Content="生成 JSON" Command="{Binding ExportCommand}" />
-                  <Button Content="导入粘贴内容" Command="{Binding ImportCommand}" />
-                  <Button x:Name="ImportFileButton" Content="打开文件…" Click="ImportFileClick" />
-                  <Button x:Name="ExportFileButton" Content="保存到文件…" Click="ExportFileClick" />
+                  <Button Content="{l:Loc Transfer.Generate}" Command="{Binding ExportCommand}" />
+                  <Button Content="{l:Loc Transfer.ImportText}" Command="{Binding ImportCommand}" />
+                  <Button x:Name="ImportFileButton" Content="{l:Loc Transfer.Open}" Click="ImportFileClick" />
+                  <Button x:Name="ExportFileButton" Content="{l:Loc Transfer.Save}" Click="ExportFileClick" />
                 </StackPanel>
-                <TextBox Text="{Binding TransferJson}" AcceptsReturn="True" TextWrapping="Wrap" Height="150" FontFamily="Cascadia Code, monospace" FontSize="11" PlaceholderText="在这里粘贴波形 JSON，或点击生成 JSON" />
+                <TextBox Text="{Binding TransferJson}" AcceptsReturn="True" TextWrapping="Wrap" Height="150" FontFamily="Cascadia Code, monospace" FontSize="11" PlaceholderText="{l:Loc Transfer.Placeholder}" />
               </StackPanel>
             </Border>
           </StackPanel>
@@ -315,14 +309,14 @@
           <StackPanel IsVisible="{Binding IsHistory}" Spacing="22">
             <Grid ColumnDefinitions="*,16,*">
               <Border Classes="card" Padding="24">
-                <StackPanel Spacing="10"><TextBlock Text="已完成会话" Classes="muted" /><TextBlock Text="{Binding SessionCount}" FontSize="34" Foreground="{DynamicResource AccentTextBrush}" /></StackPanel>
+                <StackPanel Spacing="10"><TextBlock Text="{l:Loc History.Completed}" Classes="muted" /><TextBlock Text="{Binding SessionCount}" FontSize="34" Foreground="{DynamicResource AccentTextBrush}" /></StackPanel>
               </Border>
               <Border Grid.Column="2" Classes="card" Padding="24">
-                <StackPanel Spacing="10"><TextBlock Text="累计体验时间" Classes="muted" /><TextBlock Text="{Binding TotalTime}" FontSize="34" Foreground="{DynamicResource ChannelBBrush}" /></StackPanel>
+                <StackPanel Spacing="10"><TextBlock Text="{l:Loc History.Total}" Classes="muted" /><TextBlock Text="{Binding TotalTime}" FontSize="34" Foreground="{DynamicResource ChannelBBrush}" /></StackPanel>
               </Border>
             </Grid>
-            <TextBlock Text="最近会话" Classes="title" />
-            <TextBlock Text="会话结束后自动保存。记录保存在本机，最多保留 500 条。" Classes="muted" FontSize="11" />
+            <TextBlock Text="{l:Loc History.Recent}" Classes="title" />
+            <TextBlock Text="{l:Loc History.Help}" Classes="muted" FontSize="11" />
             <ItemsControl ItemsSource="{Binding Sessions}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:SessionItem">
@@ -336,7 +330,7 @@
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
-            <TextBlock Text="工作区动态" FontSize="16" FontWeight="SemiBold" Margin="0,12,0,0" />
+            <TextBlock Text="{l:Loc History.Activity}" FontSize="16" FontWeight="SemiBold" Margin="0,12,0,0" />
             <ItemsControl ItemsSource="{Binding Activities}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:ActivityItem">
@@ -353,43 +347,50 @@
           <StackPanel IsVisible="{Binding IsSettings}" Spacing="22" MaxWidth="820" HorizontalAlignment="Left">
             <Border Classes="card" Padding="26">
               <StackPanel Spacing="12">
-                <TextBlock Text="跟随系统外观" Classes="title" />
-                <TextBlock Text="明暗主题与强调色跟随系统设置，在支持的平台上自动更新。" Classes="muted" TextWrapping="Wrap" LineHeight="23" />
+                <TextBlock Text="{l:Loc Settings.Language}" Classes="title" />
+                <ComboBox x:Name="LanguagePicker" ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}" MinWidth="220">
+                  <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:LanguageOption"><TextBlock Text="{Binding DisplayName}" /></DataTemplate></ComboBox.ItemTemplate>
+                </ComboBox>
+              </StackPanel>
+            </Border>
+            <Border Classes="card" Padding="26">
+              <StackPanel Spacing="12">
+                <TextBlock Text="{l:Loc Settings.Appearance}" Classes="title" />
+                <TextBlock Text="{l:Loc Settings.AppearanceHelp}" Classes="muted" TextWrapping="Wrap" LineHeight="23" />
               </StackPanel>
             </Border>
             <Border Classes="card" Padding="26">
               <StackPanel Spacing="18">
-                <TextBlock Text="连接与输出" Classes="title" />
-                <TextBlock Text="当前驱动：本地模拟" Foreground="{DynamicResource AccentTextBrush}" />
-                <TextBlock Text="这个版本提供可运行的本地设备模拟器。真实蓝牙扫描、GATT 协议和硬件输出尚未接入；界面中的设备、电量和信号均为模拟数据。" Classes="muted" TextWrapping="Wrap" LineHeight="23" />
-                <TextBlock Text="新连接设备的默认输出上限" FontSize="12" />
+                <TextBlock Text="{l:Loc Settings.Output}" Classes="title" />
+                <TextBlock Text="{l:Loc Settings.Driver}" Foreground="{DynamicResource AccentTextBrush}" />
+                <TextBlock Text="{l:Loc Settings.SimulationHelp}" Classes="muted" TextWrapping="Wrap" LineHeight="23" />
+                <TextBlock Text="{l:Loc Settings.DefaultLimit}" FontSize="12" />
                 <Grid ColumnDefinitions="*,60">
                   <Slider Value="{Binding DefaultLimit}" Minimum="0" Maximum="100" TickFrequency="5" IsSnapToTickEnabled="True" />
                   <TextBlock Grid.Column="1" Text="{Binding DefaultLimit, StringFormat='{}{0:0}%'}" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{DynamicResource AccentTextBrush}" />
                 </Grid>
-                <CheckBox Content="B 通道使用半周期错相" IsChecked="{Binding OffsetChannelB}" />
-                <Button Classes="primary" Command="{Binding SaveSettingsCommand}" Content="保存偏好设置" />
+                <CheckBox Content="{l:Loc Settings.Offset}" IsChecked="{Binding OffsetChannelB}" />
+                <Button Classes="primary" Command="{Binding SaveSettingsCommand}" Content="{l:Loc Settings.Save}" />
               </StackPanel>
             </Border>
             <Border Classes="card" Padding="26">
               <StackPanel Spacing="14">
-                <TextBlock Text="本地与私密" Classes="title" />
-                <TextBlock Text="自定义波形、偏好和会话记录仅存储在本机。不会上传账户信息，也不连接原应用服务。" Classes="muted" TextWrapping="Wrap" LineHeight="23" />
-                <TextBlock Text="数据位置" FontSize="11" />
+                <TextBlock Text="{l:Loc Settings.Storage}" Classes="title" />
+                <TextBlock Text="{l:Loc Settings.StorageHelp}" Classes="muted" TextWrapping="Wrap" LineHeight="23" />
+                <TextBlock Text="{l:Loc Settings.DataPath}" FontSize="11" />
                 <SelectableTextBlock Text="{Binding StoragePath}" FontSize="11" Foreground="{DynamicResource ChannelBBrush}" TextWrapping="Wrap" />
-                <TextBlock Text="启动与重连时输出归零；切换设备、切换页面、定时结束及关闭应用时停止会话。Esc 可随时停止全部输出。" Classes="muted" TextWrapping="Wrap" LineHeight="23" />
+                <TextBlock Text="{l:Loc Settings.StopHelp}" Classes="muted" TextWrapping="Wrap" LineHeight="23" />
               </StackPanel>
             </Border>
-            <TextBlock Text="YokoWave · 波枢  0.1.0&#10;.NET 10  +  Avalonia 12&#10;Windows / macOS / Linux" Foreground="{DynamicResource TextMutedBrush}" FontSize="12" LineHeight="24" Margin="6" />
+            <TextBlock Text="{l:Loc App.Version}" Foreground="{DynamicResource TextMutedBrush}" FontSize="12" Margin="6" />
           </StackPanel>
         </Grid>
       </ScrollViewer>
 
       <Border Grid.Row="2" Background="{DynamicResource SidebarBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="24,12">
-        <Grid ColumnDefinitions="Auto,*,Auto">
+        <Grid ColumnDefinitions="Auto,*">
           <TextBlock Text="●" Foreground="{DynamicResource AccentTextBrush}" FontSize="10" VerticalAlignment="Center" Margin="0,0,10,0" />
           <TextBlock Grid.Column="1" x:Name="StatusText" Classes="muted" Classes.error="{Binding IsError}" Text="{Binding Status}" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" />
-          <TextBlock Grid.Column="2" Text="LOCAL FIRST" Classes="eyebrow" FontSize="8" VerticalAlignment="Center" Margin="14,0,0,0" />
         </Grid>
       </Border>
     </Grid>

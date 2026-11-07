@@ -1,3 +1,4 @@
+using YokoWave.Core.Localization;
 using Avalonia.Controls;
 using Avalonia.Input;
 using YokoWave.App.ViewModels;
@@ -15,7 +16,7 @@ public sealed partial class MainWindow : Window
             if (e.Key == Key.Escape && DataContext is MainViewModel vm)
             {
                 e.Handled = true;
-                try { await vm.StopAsync("快捷键停止"); }
+                try { await vm.StopAsync("Reason.Shortcut"); }
                 catch (Exception error) { vm.ShowError(error); }
             }
         };

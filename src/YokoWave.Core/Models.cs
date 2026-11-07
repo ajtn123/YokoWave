@@ -1,3 +1,4 @@
+using YokoWave.Core.Localization;
 namespace YokoWave.Core;
 
 public enum DeviceKind { DualChannel, Vibration, Pump, Linear }
@@ -7,10 +8,10 @@ public sealed record DeviceDescriptor(string Id, string Name, DeviceKind Kind, i
 {
     public string KindLabel => Kind switch
     {
-        DeviceKind.DualChannel => "双通道设备",
-        DeviceKind.Vibration => "振动设备",
-        DeviceKind.Pump => "气泵设备",
-        _ => "线性设备"
+        DeviceKind.DualChannel => L10n.Get("Device.DualChannel"),
+        DeviceKind.Vibration => L10n.Get("Device.Vibration"),
+        DeviceKind.Pump => L10n.Get("Device.Pump"),
+        _ => L10n.Get("Device.Linear")
     };
 }
 
@@ -25,25 +26,25 @@ public sealed record WaveformPreset(
 {
     public static IReadOnlyList<WaveformPreset> BuiltIn { get; } =
     [
-        new(Guid.Parse("e3934206-0b7d-4e97-a3eb-3524fa772001"), "轻柔呼吸", WaveShape.Sine, 4, 20, "平滑起伏，缓缓进入节奏"),
-        new(Guid.Parse("e3934206-0b7d-4e97-a3eb-3524fa772002"), "三角律动", WaveShape.Triangle, 3, 30, "匀速上升与回落"),
-        new(Guid.Parse("e3934206-0b7d-4e97-a3eb-3524fa772003"), "间歇脉冲", WaveShape.Pulse, 2, 40, "清晰的间歇节奏"),
-        new(Guid.Parse("e3934206-0b7d-4e97-a3eb-3524fa772004"), "渐进阶梯", WaveShape.Ramp, 5, 25, "逐步累积，循环释放")
+        new(Guid.Parse("e3934206-0b7d-4e97-a3eb-3524fa772001"), L10n.Get("Wave.Sine.Name"), WaveShape.Sine, 4, 20, L10n.Get("Wave.Sine.Description")),
+        new(Guid.Parse("e3934206-0b7d-4e97-a3eb-3524fa772002"), L10n.Get("Wave.Triangle.Name"), WaveShape.Triangle, 3, 30, L10n.Get("Wave.Triangle.Description")),
+        new(Guid.Parse("e3934206-0b7d-4e97-a3eb-3524fa772003"), L10n.Get("Wave.Pulse.Name"), WaveShape.Pulse, 2, 40, L10n.Get("Wave.Pulse.Description")),
+        new(Guid.Parse("e3934206-0b7d-4e97-a3eb-3524fa772004"), L10n.Get("Wave.Ramp.Name"), WaveShape.Ramp, 5, 25, L10n.Get("Wave.Ramp.Description"))
     ];
 
     public void Validate()
     {
         if (Id == Guid.Empty || string.IsNullOrWhiteSpace(Name) || Name.Length > 60)
-            throw new ArgumentException("波形需要有效的标识和 1–60 字名称。");
+            throw new LocalizedArgumentException("Error.WaveName");
         if (!Enum.IsDefined(Shape) || !double.IsFinite(PeriodSeconds) || PeriodSeconds is < 0.2 or > 60)
-            throw new ArgumentException("周期应在 0.2–60 秒之间。");
+            throw new LocalizedArgumentException("Error.Period");
         if (!double.IsFinite(Frequency) || Frequency is < 1 or > 100)
-            throw new ArgumentException("频率应在 1–100 Hz 之间。");
+            throw new LocalizedArgumentException("Error.Frequency");
         if (Description is null || Description.Length > 300)
-            throw new ArgumentException("描述应在 300 字以内。");
+            throw new LocalizedArgumentException("Error.Description");
         if (Shape == WaveShape.Custom && (Points is null || Points.Length is < 2 or > 256 ||
             Points.Any(x => !double.IsFinite(x) || x is < 0 or > 1)))
-            throw new ArgumentException("自定义波形需要 2–256 个 0–1 之间的采样点。");
+            throw new LocalizedArgumentException("Error.Points");
     }
 }
 
@@ -74,10 +75,10 @@ public static class WaveformGenerator
 }
 
 public sealed record SessionRecord(Guid Id, DateTimeOffset StartedAt, double DurationSeconds,
-    string WaveformName, int DeviceCount, double PeakA, double PeakB, string Reason);
+    string WaveformName, int DeviceCount, double PeakA, double PeakB, string Reason, Guid? WaveformId = null);
 
 public sealed record AppSettings(double DefaultLimit = 60, double SessionMinutes = 10,
-    bool OffsetChannelB = true);
+    bool OffsetChannelB = true, string? Language = null);
 
 public sealed record WorkspaceData(int SchemaVersion, List<WaveformPreset> Presets,
     List<SessionRecord> Sessions, AppSettings Settings)

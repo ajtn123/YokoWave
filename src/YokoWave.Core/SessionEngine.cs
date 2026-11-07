@@ -1,3 +1,4 @@
+using YokoWave.Core.Localization;
 namespace YokoWave.Core;
 
 /// <summary>Caller supplies monotonic elapsed time. All lifecycle changes serialize with output ticks.</summary>
@@ -23,12 +24,12 @@ public sealed class SessionEngine(DeviceController controller)
         await _gate.WaitAsync();
         try
         {
-            if (IsRunning) throw new InvalidOperationException("请先停止当前会话。");
+            if (IsRunning) throw new LocalizedOperationException("Error.AlreadyRunning");
             var ids = targets.Distinct().ToArray();
             if (ids.Length == 0 || ids.Any(id => !controller.Connections.ContainsKey(id)))
-                throw new InvalidOperationException("请先连接并选择至少一个设备。");
+                throw new LocalizedOperationException("Error.SelectConnected");
             if (duration.TotalSeconds is < 1 or > 7200 || !double.IsFinite(duration.TotalSeconds))
-                throw new ArgumentException("会话时长应在 1 秒至 120 分钟之间。");
+                throw new LocalizedArgumentException("Error.Duration");
             await controller.StopAllAsync();
             _targets = ids;
             _preset = preset;
@@ -47,9 +48,9 @@ public sealed class SessionEngine(DeviceController controller)
         try
         {
             if (!IsRunning || _preset is null) return;
-            if (elapsed < Elapsed) throw new ArgumentException("会话时间不能倒退。");
+            if (elapsed < Elapsed) throw new LocalizedArgumentException("Error.Clock");
             Elapsed = elapsed;
-            if (elapsed.TotalSeconds >= _duration) { Elapsed = TimeSpan.FromSeconds(_duration); await StopCoreAsync("定时结束"); return; }
+            if (elapsed.TotalSeconds >= _duration) { Elapsed = TimeSpan.FromSeconds(_duration); await StopCoreAsync("Reason.Timer"); return; }
             try
             {
                 foreach (var id in _targets)
@@ -63,12 +64,12 @@ public sealed class SessionEngine(DeviceController controller)
                     _peakB = Math.Max(_peakB, output.ChannelB);
                 }
             }
-            catch { await StopCoreAsync("连接异常"); throw; }
+            catch { await StopCoreAsync("Reason.ConnectionError"); throw; }
         }
         finally { _gate.Release(); }
     }
 
-    public async Task StopAsync(string reason = "手动停止")
+    public async Task StopAsync(string reason = "Reason.Manual")
     {
         await _gate.WaitAsync();
         try { await StopCoreAsync(reason); }
@@ -84,7 +85,7 @@ public sealed class SessionEngine(DeviceController controller)
         {
             if (wasRunning && _preset is not null)
                 Completed?.Invoke(this, new(Guid.NewGuid(), _startedAt, Elapsed.TotalSeconds,
-                    _preset.Name, _targets.Length, _peakA, _peakB, reason));
+                    _preset.Name, _targets.Length, _peakA, _peakB, reason, _preset.Id));
         }
     }
 }

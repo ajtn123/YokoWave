@@ -1,8 +1,9 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l="using:YokoWave.App.Localization"
         xmlns:views="using:YokoWave.App.Views"
         x:Class="YokoWave.App.Views.MainWindow"
         Width="1450" Height="1000" MinWidth="680" MinHeight="620"
-        Title="YokoWave · 波枢" WindowStartupLocation="CenterScreen">
+        Title="{l:Loc App.Title}" WindowStartupLocation="CenterScreen">
   <views:MainView />
 </Window>

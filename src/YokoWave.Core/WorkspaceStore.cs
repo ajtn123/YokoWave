@@ -1,3 +1,4 @@
+using YokoWave.Core.Localization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -12,7 +13,8 @@ public sealed class WorkspaceStore(string directory)
         WriteIndented = true,
         Converters = { new JsonStringEnumConverter() }
     };
-    public string? LoadWarning { get; private set; }
+    private bool _loadFailed;
+    public string? LoadWarning => _loadFailed ? L10n.Get("Error.CorruptWorkspace") : null;
 
     public async Task<WorkspaceData> LoadAsync()
     {
@@ -21,14 +23,14 @@ public sealed class WorkspaceStore(string directory)
         {
             var json = await File.ReadAllTextAsync(FilePath);
             var data = JsonSerializer.Deserialize<WorkspaceData>(json, JsonOptions)
-                ?? throw new JsonException("空文件");
+                ?? throw new JsonException("Empty workspace file.");
             Validate(data);
             return data;
         }
         catch (Exception e) when (e is JsonException or ArgumentException or IOException or NotSupportedException)
         {
             // Preserve the original file for recovery. Never silently overwrite damaged data.
-            LoadWarning = "本地数据无法读取，已保留原文件。请检查或备份后移走 workspace.json。";
+            _loadFailed = true;
             return WorkspaceData.Empty;
         }
     }
@@ -39,7 +41,7 @@ public sealed class WorkspaceStore(string directory)
         await _gate.WaitAsync();
         try
         {
-            if (LoadWarning is not null) throw new IOException(LoadWarning);
+            if (_loadFailed) throw new LocalizedIOException("Error.CorruptWorkspace");
             Directory.CreateDirectory(directory);
             var temp = FilePath + ".tmp";
             await File.WriteAllTextAsync(temp, JsonSerializer.Serialize(data, JsonOptions));
@@ -53,25 +55,25 @@ public sealed class WorkspaceStore(string directory)
 
     public static IReadOnlyList<WaveformPreset> ImportPresets(string json)
     {
-        if (json.Length > 1_000_000) throw new ArgumentException("波形文件不能超过 1 MB。");
+        if (json.Length > 1_000_000) throw new LocalizedArgumentException("Error.FileSize");
         var presets = JsonSerializer.Deserialize<List<WaveformPreset>>(json, JsonOptions)
-            ?? throw new ArgumentException("波形文件为空。");
-        if (presets.Count is < 1 or > 100) throw new ArgumentException("每次可导入 1–100 个波形。");
-        foreach (var preset in presets) { if (preset is null) throw new ArgumentException("无效波形。"); preset.Validate(); }
+            ?? throw new LocalizedArgumentException("Error.EmptyWaveFile");
+        if (presets.Count is < 1 or > 100) throw new LocalizedArgumentException("Error.ImportCount");
+        foreach (var preset in presets) { if (preset is null) throw new LocalizedArgumentException("Error.InvalidWave"); preset.Validate(); }
         if (presets.Select(p => p.Id).Distinct().Count() != presets.Count)
-            throw new ArgumentException("文件中存在重复的波形标识。");
+            throw new LocalizedArgumentException("Error.DuplicateIds");
         return presets;
     }
 
     private static void Validate(WorkspaceData data)
     {
         if (data.SchemaVersion != 1 || data.Presets is null || data.Sessions is null || data.Settings is null)
-            throw new ArgumentException("不支持的数据格式。");
-        foreach (var preset in data.Presets) { if (preset is null) throw new ArgumentException("无效波形。"); preset.Validate(); }
+            throw new LocalizedArgumentException("Error.UnsupportedData");
+        foreach (var preset in data.Presets) { if (preset is null) throw new LocalizedArgumentException("Error.InvalidWave"); preset.Validate(); }
         if (data.Presets.Select(p => p.Id).Distinct().Count() != data.Presets.Count || data.Sessions.Any(s => s is null))
-            throw new ArgumentException("本地数据包含无效记录。");
+            throw new LocalizedArgumentException("Error.InvalidRecords");
         if (!double.IsFinite(data.Settings.DefaultLimit) || data.Settings.DefaultLimit is < 0 or > 100 ||
             !double.IsFinite(data.Settings.SessionMinutes) || data.Settings.SessionMinutes is < 1 or > 120)
-            throw new ArgumentException("无效设置。");
+            throw new LocalizedArgumentException("Error.InvalidSettings");
     }
 }

@@ -1,3 +1,4 @@
+using YokoWave.Core.Localization;
 namespace YokoWave.Core;
 
 /// <summary>Normalized application values. A hardware adapter must supply its own verified encoding.</summary>
@@ -14,7 +15,7 @@ public interface IDeviceTransport : IAsyncDisposable
 public sealed class SimulationTransport : IDeviceTransport
 {
     private readonly Dictionary<string, OutputFrame> _connected = [];
-    public string DisplayName => "本地模拟";
+    public string DisplayName => L10n.Get("Mode.Simulation");
     public IReadOnlyDictionary<string, OutputFrame> Outputs => _connected;
 
     public async Task<IReadOnlyList<DeviceDescriptor>> ScanAsync(CancellationToken cancellationToken = default)
@@ -39,7 +40,7 @@ public sealed class SimulationTransport : IDeviceTransport
     public Task SendAsync(string deviceId, OutputFrame frame, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!_connected.ContainsKey(deviceId)) throw new InvalidOperationException("设备尚未连接。");
+        if (!_connected.ContainsKey(deviceId)) throw new LocalizedOperationException("Error.NotConnected");
         _connected[deviceId] = frame;
         return Task.CompletedTask;
     }
