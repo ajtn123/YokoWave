@@ -9,6 +9,5 @@ internal static class Program
 
     public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<App.App>()
         .UsePlatformDetect()
-        .WithInterFont()
         .LogToTrace();
 }

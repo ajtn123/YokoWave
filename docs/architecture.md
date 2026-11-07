@@ -38,6 +38,8 @@
 
 `App.axaml` 的 `RequestedThemeVariant="Default"` 跟随系统。FluentTheme 不设置自定义 Accent，从平台读取系统强调色。所有固定颜色和语义资源集中在 `Styles/Palette.axaml` 的 Light / Dark 字典中。
 
+界面继承平台默认字体，通过系统已有字体提供字形回退；不捆绑字体包，也不固定具体字体名称。包括 JSON 编辑框在内的控件均继承同一字体选择。平台字体行为参考 [Avalonia Typography](https://docs.avaloniaui.net/docs/styling/typography)。
+
 视图与绘图控件均使用动态资源。自定义图表把画笔暴露为 Avalonia 样式属性，资源变化会触发重绘。强调色按钮通过相对亮度计算选择合适的前景色。通道 B 保留独立的语义颜色，避免两条曲线无法区分。
 
 ## 本地化

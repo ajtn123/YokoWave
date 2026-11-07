@@ -30,7 +30,6 @@ namespace YokoWave.Tests;
 public static class TestAppBuilder
 {
     public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<App.App>()
-        .WithInterFont()
         .UseHarfBuzz()
         .UseSkia()
         .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false });

@@ -26,7 +26,7 @@
     </Style>
     <Style Selector="Window">
       <Setter Property="Background" Value="{DynamicResource CanvasBrush}" />
-      <Setter Property="FontFamily" Value="Inter, Microsoft YaHei UI, Noto Sans CJK SC, sans-serif" />
+      <Setter Property="FontFamily" Value="Microsoft YaHei UI, Noto Sans CJK SC, sans-serif" />
       <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
     </Style>
     <Style Selector="TextBlock">
