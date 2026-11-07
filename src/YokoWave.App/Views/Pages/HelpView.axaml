@@ -1,0 +1,54 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="using:YokoWave.App.Localization"
+             x:Class="YokoWave.App.Views.Pages.HelpView">
+  <StackPanel Classes="section reading">
+    <Border Classes="card">
+      <StackPanel Classes="items">
+        <TextBlock Text="{l:Loc Help.StopTitle}" Classes="section-title" />
+        <TextBlock x:Name="HelpStopInfoText" Text="{l:Loc Help.StopBehavior}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Disconnection}" Classes="muted help" />
+      </StackPanel>
+    </Border>
+    <Border Classes="card">
+      <StackPanel Classes="items">
+        <TextBlock Text="{l:Loc Help.ConnectTitle}" Classes="section-title" />
+        <TextBlock Text="{l:Loc Help.Connect}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Discovery}" Classes="muted help" />
+      </StackPanel>
+    </Border>
+    <Border Classes="card">
+      <StackPanel Classes="items">
+        <TextBlock Text="{l:Loc Help.OutputTitle}" Classes="section-title" />
+        <TextBlock Text="{l:Loc Help.Output}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Readings}" Classes="muted help" />
+      </StackPanel>
+    </Border>
+    <Border Classes="card">
+      <StackPanel Classes="items">
+        <TextBlock Text="{l:Loc Help.TimerTitle}" Classes="section-title" />
+        <TextBlock Text="{l:Loc Help.Timer}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.TimerLimit}" Classes="muted help" />
+      </StackPanel>
+    </Border>
+    <Border Classes="card">
+      <StackPanel Classes="items">
+        <TextBlock Text="{l:Loc Help.LinkedTitle}" Classes="section-title" />
+        <TextBlock Text="{l:Loc Help.Linked}" Classes="help" />
+      </StackPanel>
+    </Border>
+    <Border Classes="card">
+      <StackPanel Classes="items">
+        <TextBlock Text="{l:Loc Help.WavesTitle}" Classes="section-title" />
+        <TextBlock Text="{l:Loc Help.LiveWave}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Waves}" Classes="muted help" />
+      </StackPanel>
+    </Border>
+    <Border Classes="card">
+      <StackPanel Classes="items">
+        <TextBlock Text="{l:Loc Help.StorageTitle}" Classes="section-title" />
+        <TextBlock Text="{l:Loc Help.Storage}" Classes="help" />
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>

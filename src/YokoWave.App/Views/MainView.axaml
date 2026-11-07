@@ -23,6 +23,7 @@
           <Button Classes="nav" Classes.active="{Binding IsHistory}" Command="{Binding HistoryCommand}" Content="{l:Loc Nav.History}" />
           <Border Classes="divider" />
           <Button Classes="nav" Classes.active="{Binding IsSettings}" Command="{Binding SettingsCommand}" Content="{l:Loc Nav.Settings}" />
+          <Button x:Name="HelpNavigationButton" Classes="nav" Classes.active="{Binding IsHelp}" Command="{Binding HelpCommand}" Content="{l:Loc Nav.Help}" />
         </StackPanel>
         <StackPanel Grid.Row="2" Classes="items">
           <Border Classes="mode-panel">
@@ -43,6 +44,7 @@
               <Button Classes="small" Content="{l:Loc Nav.CompactWaves}" Command="{Binding WavesCommand}" />
               <Button Classes="small" Content="{l:Loc Nav.CompactHistory}" Command="{Binding HistoryCommand}" />
               <Button Classes="small" Content="{l:Loc Nav.CompactSettings}" Command="{Binding SettingsCommand}" />
+              <Button x:Name="CompactHelpButton" Classes="small" Content="{l:Loc Nav.CompactHelp}" Command="{Binding HelpCommand}" />
             </StackPanel>
           </StackPanel>
           <Button Grid.Column="1" x:Name="StopAllButton" Classes="danger" Content="{l:Loc Action.StopAll}" Command="{Binding EmergencyStopCommand}"
@@ -64,7 +66,8 @@
           <!-- Settings -->
           <pages:SettingsView x:Name="SettingsPage" IsVisible="{Binding IsSettings}" />
 
-
+          <!-- Help -->
+          <pages:HelpView x:Name="HelpPage" IsVisible="{Binding IsHelp}" />
         </Grid>
       </ScrollViewer>
 

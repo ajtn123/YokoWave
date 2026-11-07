@@ -56,7 +56,6 @@
         <TextBlock Text="{l:Loc Settings.StorageHelp}" Classes="muted help" />
         <TextBlock Text="{l:Loc Settings.DataPath}" Classes="label" />
         <SelectableTextBlock Text="{Binding StoragePath}" TextWrapping="Wrap" Classes="label channel-b" />
-        <TextBlock Text="{l:Loc Settings.StopHelp}" Classes="muted help" />
       </StackPanel>
     </Border>
     <TextBlock Text="{l:Loc App.Version}" Margin="{DynamicResource Margin.AllSmall}" Classes="small muted" />

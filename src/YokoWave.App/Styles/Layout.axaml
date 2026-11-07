@@ -59,8 +59,8 @@
     <Setter Property="Width" Value="{DynamicResource Size.WaveTile}" />
     <Setter Property="Margin" Value="{DynamicResource Margin.Tile}" />
   </Style>
-  <Style Selector="StackPanel.settings">
-    <Setter Property="MaxWidth" Value="{DynamicResource Size.SettingsMaxWidth}" />
+  <Style Selector="StackPanel.settings, StackPanel.reading">
+    <Setter Property="MaxWidth" Value="{DynamicResource Size.ReadingMaxWidth}" />
     <Setter Property="HorizontalAlignment" Value="Left" />
   </Style>
 </Styles>

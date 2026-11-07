@@ -91,7 +91,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public bool IsWaves => _page == "waves";
     public bool IsHistory => _page == "history";
     public bool IsSettings => _page == "settings";
-    public string PageTitle => _page switch { "waves" => L10n.Get("Page.Waves"), "history" => L10n.Get("Page.History"), "settings" => L10n.Get("Page.Settings"), _ => L10n.Get("Page.Devices") };
+    public bool IsHelp => _page == "help";
+    public string PageTitle => _page switch { "waves" => L10n.Get("Page.Waves"), "history" => L10n.Get("Page.History"), "settings" => L10n.Get("Page.Settings"), "help" => L10n.Get("Page.Help"), _ => L10n.Get("Page.Devices") };
     public bool IsScanning { get => _scanBusy; private set { Set(ref _scanBusy, value); Raise(nameof(ScanLabel)); (SaveSettingsCommand as AsyncCommand)?.NotifyCanExecuteChanged(); } }
     public string ScanLabel => L10n.Get(IsScanning ? "Device.Scanning" : "Device.Scan");
     public string Status => _status.Value;
@@ -255,6 +256,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public ICommand WavesCommand { get; }
     public ICommand HistoryCommand { get; }
     public ICommand SettingsCommand { get; }
+    public ICommand HelpCommand { get; }
     public ICommand ScanCommand { get; }
     public ICommand PlaybackCommand { get; }
     public ICommand EmergencyStopCommand { get; }
@@ -284,6 +286,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         WavesCommand = new AsyncCommand(() => NavigateAsync("waves"), ShowError);
         HistoryCommand = new AsyncCommand(() => NavigateAsync("history"), ShowError);
         SettingsCommand = new AsyncCommand(() => NavigateAsync("settings"), ShowError);
+        HelpCommand = new AsyncCommand(() => NavigateAsync("help"), ShowError);
         ScanCommand = new AsyncCommand(ScanAsync, ShowError);
         PlaybackCommand = new AsyncCommand(TogglePlaybackAsync, ShowError);
         EmergencyStopCommand = new AsyncCommand(() => StopAsync("Reason.AllStopped"), ShowError);
@@ -441,7 +444,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     {
         await StopAsync("Reason.PageChanged", false);
         _page = page;
-        foreach (var property in new[] { nameof(IsWorkspace), nameof(IsWaves), nameof(IsHistory), nameof(IsSettings), nameof(PageTitle) }) Raise(property);
+        foreach (var property in new[] { nameof(IsWorkspace), nameof(IsWaves), nameof(IsHistory), nameof(IsSettings), nameof(IsHelp), nameof(PageTitle) }) Raise(property);
     }
 
     public void NewWave()

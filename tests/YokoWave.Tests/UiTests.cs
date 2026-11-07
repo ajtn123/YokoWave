@@ -39,6 +39,68 @@ public static class TestAppBuilder
 public sealed class UiTests
 {
     [AvaloniaFact]
+    public async Task HelpNavigationStopsOutputRetainsSelectionsAndLocalizesInBothLayouts()
+    {
+        using var folder = new TestFolder();
+        var originalLanguage = L10n.Current.Language;
+        Window? window = null;
+        try
+        {
+            var transport = new SimulationTransport();
+            await using var vm = new MainViewModel(new DeviceController(transport), new WorkspaceStore(folder.Path));
+            var view = new MainView { DataContext = vm };
+            window = new Window { Content = view, Width = 1000, Height = 900 };
+            window.Show();
+            await WaitForAsync(() => vm.Devices.Count == 5 && !vm.IsScanning);
+            vm.SelectedLanguage = vm.Languages.First(language => language.Code == "zh-CN");
+            await vm.ToggleConnectionAsync(vm.Devices[0]);
+            var selectedDevice = vm.SelectedDevice;
+            var selectedPreset = vm.SelectedPreset;
+            vm.ChannelA = 20;
+            vm.EditorName = "Help navigation";
+            await vm.TogglePlaybackAsync();
+            await vm.TickAsync();
+            Click(window, Find<Button>(view, "HelpNavigationButton"));
+            await WaitForAsync(() => vm.IsHelp);
+            Assert.False(vm.IsRunning);
+            Assert.All(transport.Outputs.Values, output => Assert.Equal(0, output.ChannelA));
+            Assert.Equal("Reason.PageChanged", Assert.Single(vm.Sessions).Record.Reason);
+            Assert.True(Find<HelpView>(view, "HelpPage").IsVisible);
+            Assert.False(Find<SettingsView>(view, "SettingsPage").IsVisible);
+            Assert.Equal("帮助", Find<TextBlock>(view, "PageTitleText").Text);
+            var stopInfo = Find<TextBlock>(view, "HelpStopInfoText");
+            Assert.Equal(L10n.Get("Help.StopBehavior"), stopInfo.Text);
+            Assert.DoesNotContain(Find<SettingsView>(view, "SettingsPage").GetLogicalDescendants().OfType<TextBlock>(),
+                text => text.Text == stopInfo.Text);
+            stopInfo.BringIntoView();
+            Capture(window, "help-zh-CN.png");
+
+            vm.SelectedLanguage = vm.Languages.First(language => language.Code == "en");
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("Help", Find<TextBlock>(view, "PageTitleText").Text);
+            Assert.StartsWith("Output starts at zero", stopInfo.Text);
+            Assert.Same(selectedDevice, vm.SelectedDevice);
+            Assert.Same(selectedPreset, vm.SelectedPreset);
+            Assert.Equal(20, vm.ChannelA);
+            Assert.Equal("Help navigation", vm.EditorName);
+
+            window.Width = 600;
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(Find<StackPanel>(view, "CompactNav").IsVisible);
+            await vm.NavigateAsync("settings");
+            Click(window, Find<Button>(view, "CompactHelpButton"));
+            await WaitForAsync(() => vm.IsHelp);
+            stopInfo.BringIntoView();
+            Capture(window, "help-en-compact.png");
+        }
+        finally
+        {
+            window?.Close();
+            L10n.Current.SetLanguage(originalLanguage);
+        }
+    }
+
+    [AvaloniaFact]
     public async Task ZeroStrengthSessionStartsFromButtonAndAcceptsLiveStrengthChanges()
     {
         using var folder = new TestFolder();
