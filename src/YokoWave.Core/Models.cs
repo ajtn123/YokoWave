@@ -103,10 +103,16 @@ public sealed record SessionRecord(Guid Id, DateTimeOffset StartedAt, double Dur
     string WaveformName, int DeviceCount, double PeakA, double PeakB, string Reason, Guid? WaveformId = null);
 
 public sealed record AppSettings(double DefaultLimit = 60, double SessionMinutes = 10,
-    bool OffsetChannelB = true, string? Language = null, bool UseBluetooth = false);
+    bool OffsetChannelB = true, string? Language = null, bool UseBluetooth = false,
+    bool TimerEnabled = true, int SessionSeconds = 0);
 
 public sealed record WorkspaceData(int SchemaVersion, List<WaveformPreset> Presets,
-    List<SessionRecord> Sessions, AppSettings Settings)
+    List<SessionRecord> Sessions, AppSettings Settings, SessionStatistics? Statistics = null)
 {
-    public static WorkspaceData Empty => new(1, [], [], new());
+    public static WorkspaceData Empty => new(2, [], [], new(), new());
+}
+
+public sealed record SessionStatistics(long SessionCount = 0, double TotalDurationSeconds = 0)
+{
+    public SessionStatistics Add(SessionRecord session) => new(SessionCount + 1, TotalDurationSeconds + session.DurationSeconds);
 }

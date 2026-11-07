@@ -38,6 +38,12 @@
 - Codex agent 使用 `codex <codex@openai.com>`，通过单次命令设置：`git -c user.name=codex -c user.email=codex@openai.com commit ...`。
 - 不修改用户的全局 Git 身份配置。
 
+## 本地存储
+
+- `workspace.json` 只保存版本与基础累计统计，设置和自定义波形分别保存到 `settings.json`、`presets.json`。
+- 会话按紧凑 JSON Lines 写入 `sessions.jsonl`，按 UTF-8 字节数在 128 KiB 时滚动，仅保留 `sessions.1.jsonl` 一个旧文件；存储 JSON 不缩进。
+- 开发阶段不实现旧数据迁移，旧版工作区重置即可；不得删除数据目录中的无关文件。
+
 ## 原站参考数据
 
 - 本地参考账号凭据位于 `.research/credentials/reference-service.dpapi`，使用 Windows DPAPI `CurrentUser` 加密，仅同一 Windows 用户可解密。

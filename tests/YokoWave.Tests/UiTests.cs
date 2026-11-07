@@ -39,6 +39,87 @@ public static class TestAppBuilder
 public sealed class UiTests
 {
     [AvaloniaFact]
+    public async Task TimerCountsSecondsAndLiveWaveChangeDoesNotRestartTheSession()
+    {
+        using var folder = new TestFolder();
+        var transport = new SimulationTransport();
+        await using var vm = new MainViewModel(new DeviceController(transport), new WorkspaceStore(folder.Path));
+        var view = new MainView { DataContext = vm };
+        var window = new Window { Content = view, Width = 1000, Height = 900 };
+        window.Show();
+        await WaitForAsync(() => vm.Devices.Count == 5 && !vm.IsScanning);
+        Find<NumericUpDown>(view, "DurationInput").Value = 0;
+        Find<NumericUpDown>(view, "DurationSecondsInput").Value = 3;
+        Assert.Equal("00:03", Find<TextBlock>(view, "SessionClockText").Text);
+        await vm.ToggleConnectionAsync(vm.Devices[0]);
+        vm.ChannelA = 20;
+        await vm.TogglePlaybackAsync();
+        Assert.False(Find<ToggleSwitch>(view, "TimerEnabledToggle").IsEffectivelyEnabled);
+        Assert.False(Find<NumericUpDown>(view, "DurationSecondsInput").IsEffectivelyEnabled);
+        await WaitForAsync(() => vm.Remaining == "00:02");
+        var picker = Find<ComboBox>(view, "PresetPicker");
+        Assert.True(picker.IsEffectivelyEnabled);
+        picker.SelectedItem = vm.Presets[1];
+        await vm.TickAsync();
+        Assert.True(vm.IsRunning);
+        Assert.Equal("00:02", vm.Remaining);
+        Assert.Empty(vm.Sessions);
+        Assert.Equal(vm.Presets[1].Preset.Samples![0], transport.Outputs["sim-dual-01"].ReferenceSample);
+        Capture(window, "timer-live-wave.png");
+        await WaitForAsync(() => !vm.IsRunning);
+        Assert.Equal("00:00", Find<TextBlock>(view, "SessionClockText").Text);
+        Assert.Equal("Reason.Timer", Assert.Single(vm.Sessions).Record.Reason);
+        Assert.Equal(0, transport.Outputs["sim-dual-01"].ChannelA);
+        Find<NumericUpDown>(view, "DurationInput").Value = 120;
+        Assert.Equal(0, vm.SessionSeconds);
+        Find<Button>(view, "PlaybackButton").BringIntoView();
+        Capture(window, "timer-controls.png");
+        Find<NumericUpDown>(view, "DurationInput").Value = 0;
+        Find<NumericUpDown>(view, "DurationSecondsInput").Value = 3;
+        Find<ToggleSwitch>(view, "TimerEnabledToggle").IsChecked = false;
+        Assert.False(vm.TimerEnabled);
+        Assert.False(Find<NumericUpDown>(view, "DurationInput").IsEffectivelyEnabled);
+        await vm.TogglePlaybackAsync();
+        await vm.TickAsync();
+        Assert.True(vm.IsRunning);
+        Assert.False(vm.IsTimedSession);
+        Assert.Equal(L10n.Get("Session.NoTimer"), vm.Remaining);
+        await vm.StopAsync();
+        await vm.SaveAsync();
+        var settings = (await new WorkspaceStore(folder.Path).LoadAsync()).Settings;
+        Assert.False(settings.TimerEnabled);
+        Assert.Equal(0, settings.SessionMinutes);
+        Assert.Equal(3, settings.SessionSeconds);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public async Task IncompatibleLiveSelectionRestoresTheCurrentWaveform()
+    {
+        using var folder = new TestFolder();
+        var adapter = new FakeBluetoothAdapter();
+        await new WorkspaceStore(folder.Path).SaveAsync(new(2, [], [], new(UseBluetooth: true, TimerEnabled: false)));
+        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path),
+            () => new ElectricalBluetoothTransport(adapter));
+        var view = new MainView { DataContext = vm };
+        var window = new Window { Content = view, Width = 1000, Height = 600 };
+        window.Show();
+        await WaitForAsync(() => vm.Devices.Count == 1 && !vm.IsScanning);
+        await vm.ToggleConnectionAsync(vm.Devices[0]);
+        vm.ChannelA = 10;
+        await vm.TogglePlaybackAsync();
+        var original = vm.SelectedPreset;
+        Find<ComboBox>(view, "PresetPicker").SelectedItem = vm.Presets.First(preset => preset.Preset.Family == WaveformFamily.Motor);
+        await WaitForAsync(() => vm.IsError);
+        Assert.Same(original, vm.SelectedPreset);
+        Assert.Same(original, Find<ComboBox>(view, "PresetPicker").SelectedItem);
+        Assert.True(vm.IsRunning);
+        Assert.Empty(vm.Sessions);
+        await vm.StopAsync();
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public async Task BluetoothSourceSwitchPersistsChoiceUpdatesTelemetryAndResetsOutput()
     {
         using var folder = new TestFolder();

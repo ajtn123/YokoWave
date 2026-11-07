@@ -35,6 +35,9 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private double _safetyLimit = 60;
     private double _defaultLimit = 60;
     private double _sessionMinutes = 10;
+    private double _sessionSeconds;
+    private bool _timerEnabled = true;
+    private bool _hasSessionClock;
     private bool _offsetChannelB = true;
     private bool _linkMode;
     private string _editorName = "";
@@ -47,6 +50,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private Guid? _editingId;
     private string _transferJson = "";
     private readonly List<SessionRecord> _records = [];
+    private SessionStatistics _statistics = new();
 
     public ObservableCollection<DeviceItem> Devices { get; } = [];
     public ObservableCollection<PresetItem> Presets { get; } = [];
@@ -99,12 +103,18 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public string SessionState => IsRunning ? L10n.Get("Session.Running") : L10n.Get("Session.Idle");
     public string PlaybackLabel => IsRunning ? L10n.Get("Session.Stop") : L10n.Get("Session.Start");
     public string Elapsed => FormatDuration(_engine.Elapsed);
-    public string Remaining => FormatDuration(TimeSpan.FromSeconds(Math.Max(0, SessionMinutes * 60 - _engine.Elapsed.TotalSeconds)));
-    public double Playhead => IsRunning ? _engine.Elapsed.TotalSeconds / 12 % 1 : 0;
+    private TimeSpan? ConfiguredDuration => TimerEnabled ? TimeSpan.FromSeconds(SessionMinutes * 60 + SessionSeconds) : null;
+    public bool IsTimedSession => _hasSessionClock ? _engine.Duration.HasValue : TimerEnabled;
+    public bool CanEditDuration => !IsRunning && TimerEnabled;
+    public string Remaining => (_hasSessionClock ? _engine.Remaining : ConfiguredDuration) is { } remaining
+        ? FormatDuration(TimeSpan.FromSeconds(Math.Ceiling(remaining.TotalSeconds))) : L10n.Get("Session.NoTimer");
+    public string SessionClock => IsTimedSession ? Remaining : Elapsed;
+    public string SessionTimeLabel => L10n.Get(IsTimedSession ? "Session.Remaining" : "Session.Elapsed");
+    public double Playhead => IsRunning ? _engine.WaveformElapsed.TotalSeconds / 12 % 1 : 0;
     public string TransportName => _controller.TransportName;
-    public string StoragePath => _store.FilePath;
-    public int SessionCount => Sessions.Count;
-    public string TotalTime => L10n.Format("History.TotalFormat", _records.Sum(r => r.DurationSeconds) / 60);
+    public string StoragePath => _store.DirectoryPath;
+    public long SessionCount => _statistics.SessionCount;
+    public string TotalTime => L10n.Format("History.TotalFormat", _statistics.TotalDurationSeconds / 60);
     public string SelectedName => SelectedDevice?.Name ?? L10n.Get("Device.None");
     public string SelectedKind => SelectedDevice?.Kind ?? L10n.Get("Device.ConnectHelp");
     public string SelectedId => SelectedDevice?.Id ?? L10n.Get("Device.NoneId");
@@ -143,7 +153,30 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             Raise(nameof(PresetSummary));
             Raise(nameof(SelectedPresetName)); Raise(nameof(SelectedWaveform));
             DeleteWaveCommand.NotifyCanExecuteChanged();
-            if (IsRunning) _ = GuardAsync(() => StopAsync("Reason.WaveChanged"));
+            if (IsRunning) _ = GuardAsync(() => ApplySelectedWaveformAsync(value));
+        }
+    }
+
+    private async Task ApplySelectedWaveformAsync(PresetItem? selected)
+    {
+        if (selected is null) { await StopAsync("Reason.WaveChanged", false); return; }
+        try
+        {
+            if (await _engine.ChangeWaveformAsync(selected.Preset))
+            {
+                RefreshPlayback();
+                Notify("Status.WaveChanged", selected);
+            }
+        }
+        catch
+        {
+            if (SelectedPreset == selected)
+            {
+                _selectedPreset = Presets.FirstOrDefault(p => p.Preset.Id == _engine.CurrentWaveform?.Id);
+                foreach (var property in new[] { nameof(SelectedPreset), nameof(SelectedPresetName), nameof(SelectedWaveform), nameof(PresetSummary) }) Raise(property);
+                DeleteWaveCommand.NotifyCanExecuteChanged();
+            }
+            throw;
         }
     }
     public double ChannelA { get => _channelA; set { Set(ref _channelA, Math.Clamp(value, 0, SafetyLimit)); _engine.ChannelA = _channelA; } }
@@ -161,7 +194,29 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         }
     }
     public double DefaultLimit { get => _defaultLimit; set => Set(ref _defaultLimit, Math.Clamp(value, 0, 100)); }
-    public double SessionMinutes { get => _sessionMinutes; set => Set(ref _sessionMinutes, Math.Clamp(value, 1, 120)); }
+    public bool TimerEnabled
+    {
+        get => _timerEnabled;
+        set { if (!IsRunning && Set(ref _timerEnabled, value)) OnTimerSettingsChanged(); }
+    }
+    public double SessionMinutes
+    {
+        get => _sessionMinutes;
+        set { if (!IsRunning && double.IsFinite(value) && Set(ref _sessionMinutes, Math.Clamp(Math.Truncate(value), 0, 120))) OnTimerSettingsChanged(); }
+    }
+    public double MaximumSessionSeconds => SessionMinutes == 120 ? 0 : 59;
+    public double SessionSeconds
+    {
+        get => _sessionSeconds;
+        set { if (!IsRunning && double.IsFinite(value) && Set(ref _sessionSeconds, Math.Clamp(Math.Truncate(value), 0, MaximumSessionSeconds))) OnTimerSettingsChanged(); }
+    }
+    private void OnTimerSettingsChanged()
+    {
+        if (_sessionMinutes == 120 && _sessionSeconds != 0) { _sessionSeconds = 0; Raise(nameof(SessionSeconds)); }
+        if (TimerEnabled && _sessionMinutes == 0 && _sessionSeconds == 0) { _sessionSeconds = 1; Raise(nameof(SessionSeconds)); }
+        _hasSessionClock = false;
+        foreach (var property in new[] { nameof(MaximumSessionSeconds), nameof(CanEditDuration), nameof(IsTimedSession), nameof(Remaining), nameof(SessionClock), nameof(SessionTimeLabel) }) Raise(property);
+    }
     public bool OffsetChannelB { get => _offsetChannelB; set { Set(ref _offsetChannelB, value); _engine.OffsetChannelB = value; } }
     public bool LinkMode { get => _linkMode; set { Set(ref _linkMode, value); Raise(nameof(RoutingSummary)); } }
     public string EditorName { get => _editorName; set { Set(ref _editorName, value); Raise(nameof(EditorPreview)); } }
@@ -234,13 +289,17 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         var data = await _store.LoadAsync();
         SelectedLanguage = Languages.First(l => l.Code == JsonLocalizer.NormalizeLanguage(data.Settings.Language ?? JsonLocalizer.SystemLanguage));
         DefaultLimit = data.Settings.DefaultLimit;
-        SessionMinutes = data.Settings.SessionMinutes;
+        TimerEnabled = data.Settings.TimerEnabled;
+        var configuredSeconds = Math.Round(data.Settings.SessionMinutes * 60 + data.Settings.SessionSeconds);
+        SessionMinutes = Math.Floor(configuredSeconds / 60);
+        SessionSeconds = configuredSeconds % 60;
         OffsetChannelB = data.Settings.OffsetChannelB;
         SelectedTransport = TransportOptions.First(option => option.UseBluetooth == data.Settings.UseBluetooth);
         await ApplyTransportAsync();
         foreach (var preset in WaveformPreset.BuiltIn) Presets.Add(new(preset));
         foreach (var preset in data.Presets.Where(p => !WaveformPreset.BuiltIn.Any(b => b.Id == p.Id))) Presets.Add(new(preset));
         foreach (var record in data.Sessions.OrderByDescending(r => r.StartedAt)) { _records.Add(record); Sessions.Add(new(record)); }
+        _statistics = data.Statistics ?? new(data.Sessions.Count, data.Sessions.Sum(record => record.DurationSeconds));
         SelectedPreset = Presets.First();
         _settingsLoaded = true;
         Raise(nameof(SessionCount)); Raise(nameof(TotalTime));
@@ -344,7 +403,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             : SelectedDevice is { IsConnected: true } device ? [device.Id] : Array.Empty<string>();
         if (ChannelA <= 0 && (!HasChannelB || ChannelB <= 0))
             throw new LocalizedOperationException("Error.SetLevel");
-        await _engine.StartAsync(targets, SelectedPreset.Preset, TimeSpan.FromMinutes(SessionMinutes));
+        await _engine.StartAsync(targets, SelectedPreset.Preset, ConfiguredDuration);
+        _hasSessionClock = true;
         _clock.Restart();
         RefreshPlayback();
         Notify("Status.Started", SelectedPreset, targets.Length);
@@ -435,9 +495,17 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         Notify("Status.Imported", added.Length, imported.Count - added.Length);
     }
 
-    public Task SaveAsync(IEnumerable<WaveformPreset>? presets = null) => _store.SaveAsync(new(1,
-        (presets ?? Presets.Select(p => p.Preset)).Where(p => !WaveformPreset.BuiltIn.Any(b => b.Id == p.Id)).ToList(),
-        _records.Take(500).ToList(), new(DefaultLimit, SessionMinutes, OffsetChannelB, SelectedLanguage?.Code, IsBluetooth)));
+    public async Task SaveAsync(IEnumerable<WaveformPreset>? presets = null)
+    {
+        await _store.SaveAsync(new(2,
+            (presets ?? Presets.Select(p => p.Preset)).Where(p => !WaveformPreset.BuiltIn.Any(b => b.Id == p.Id)).ToList(),
+            _records.ToList(), new(DefaultLimit, SessionMinutes, OffsetChannelB, SelectedLanguage?.Code, IsBluetooth, TimerEnabled, (int)SessionSeconds), _statistics));
+        _statistics = new(Math.Max(_statistics.SessionCount, _store.Statistics.SessionCount),
+            Math.Max(_statistics.TotalDurationSeconds, _store.Statistics.TotalDurationSeconds));
+        _records.RemoveAll(record => _store.Journal.IsDiscarded(record.Id));
+        foreach (var session in Sessions.Where(session => _store.Journal.IsDiscarded(session.Record.Id)).ToArray()) Sessions.Remove(session);
+        Raise(nameof(SessionCount)); Raise(nameof(TotalTime));
+    }
 
     private void OnDeviceChanged(object? sender, EventArgs e) => RunOnUi(RefreshDevices);
     private void OnTransportFaulted(object? sender, DeviceTransportFault fault) => RunOnUi(() => _ = GuardAsync(async () =>
@@ -455,8 +523,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private void OnSessionCompleted(object? sender, SessionRecord record)
     {
         _records.Insert(0, record); Sessions.Insert(0, new(record));
-        while (Sessions.Count > 500) Sessions.RemoveAt(Sessions.Count - 1);
-        while (_records.Count > 500) _records.RemoveAt(_records.Count - 1);
+        _statistics = _statistics.Add(record);
         Raise(nameof(SessionCount)); Raise(nameof(TotalTime));
         _ = GuardAsync(() => SaveAsync());
         Notify("Status.SessionSaved", new StoredReason(record.Reason));
@@ -480,7 +547,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
     private void RefreshPlayback()
     {
-        foreach (var property in new[] { nameof(IsRunning), nameof(CanEditRouting), nameof(SessionState), nameof(PlaybackLabel), nameof(Elapsed), nameof(Remaining), nameof(Playhead) }) Raise(property);
+        foreach (var property in new[] { nameof(IsRunning), nameof(CanEditRouting), nameof(CanEditDuration), nameof(IsTimedSession),
+            nameof(SessionState), nameof(PlaybackLabel), nameof(Elapsed), nameof(Remaining), nameof(SessionClock), nameof(SessionTimeLabel), nameof(Playhead) }) Raise(property);
         RefreshDevices();
     }
 
@@ -516,6 +584,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         foreach (var item in Activities) item.RefreshLocalization();
         foreach (var item in TransportOptions) item.RefreshLocalization();
         RefreshTransport();
+        foreach (var property in new[] { nameof(Remaining), nameof(SessionTimeLabel), nameof(SessionClock) }) Raise(property);
         foreach (var name in new[] { nameof(PageTitle), nameof(ScanLabel), nameof(Status), nameof(SessionState),
             nameof(PlaybackLabel), nameof(TotalTime), nameof(SelectedName), nameof(SelectedKind), nameof(SelectedId),
             nameof(SelectedBatteryLabel), nameof(SelectedOutputALabel), nameof(SelectedOutputBLabel),
