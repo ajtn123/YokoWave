@@ -61,6 +61,8 @@ public sealed class DefaultWaveformTests
         var engine = new SessionEngine(controller) { ChannelA = 30, ChannelB = 20, OffsetChannelB = true };
         await engine.StartAsync(["one"], preset, TimeSpan.FromSeconds(10));
         await engine.AdvanceAsync(TimeSpan.FromSeconds(0.1));
+        Assert.Equal(30, transport.Latest["one"].ChannelA);
+        Assert.Equal(20, transport.Latest["one"].ChannelB);
         Assert.Equal(WaveformGenerator.ReferenceSample(preset, 0.1), transport.Latest["one"].ReferenceSample);
         Assert.Equal(WaveformGenerator.ReferenceSample(preset, 0.1, 0.5), transport.Latest["one"].ReferenceSampleB);
         await engine.StopAsync();

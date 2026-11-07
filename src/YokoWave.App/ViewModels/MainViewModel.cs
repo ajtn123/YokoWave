@@ -6,6 +6,7 @@ using System.Windows.Input;
 using System.Text.Json;
 using YokoWave.Core;
 using YokoWave.Core.Localization;
+using YokoWave.Core.Bluetooth;
 
 namespace YokoWave.App.ViewModels;
 
@@ -14,6 +15,10 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private readonly DeviceController _controller;
     private readonly SessionEngine _engine;
     private readonly WorkspaceStore _store;
+    private readonly Func<IDeviceTransport> _bluetoothFactory;
+    private readonly SynchronizationContext? _uiContext;
+    private bool _changingTransport;
+    private TransportOption? _selectedTransport;
     private readonly Stopwatch _clock = new();
     private bool _tickBusy;
     private bool _scanBusy;
@@ -50,6 +55,24 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public IReadOnlyList<ShapeItem> Shapes { get; } = Enum.GetValues<WaveShape>().Select(s => new ShapeItem(s)).ToArray();
     public IReadOnlyList<LanguageOption> Languages { get; } =
         [new("en", L10n.Current.English["Language.en"]), new("zh-CN", L10n.Current.English["Language.zh-CN"])];
+    public IReadOnlyList<TransportOption> TransportOptions { get; } = [new(false), new(true)];
+    public TransportOption? SelectedTransport { get => _selectedTransport; set { if (value is not null) Set(ref _selectedTransport, value); } }
+    public bool IsBluetooth => !_controller.IsSimulation;
+    public string ModeLabel => $"●  {TransportName}";
+    public string DriverLabel => L10n.Format("Settings.DriverFormat", TransportName);
+    public string DeviceHelp => L10n.Get(IsBluetooth ? "Device.BluetoothHelp" : "Device.SimulationHelp");
+    public string TransportHelp => L10n.Get(IsBluetooth ? "Settings.BluetoothHelp" : "Settings.SimulationHelp");
+    public string ReadingsLabel => L10n.Get(IsBluetooth ? "Device.HardwareReadings" : "Device.Readings");
+    public bool HasElectrodeReadings => IsBluetooth && SelectedConnected;
+    public string SelectedContacts
+    {
+        get
+        {
+            _controller.Connections.TryGetValue(SelectedDevice?.Id ?? "", out var connection);
+            return L10n.Format("Device.Contacts", L10n.Get($"Contact.{connection?.ContactA ?? ElectrodeContact.Unknown}"),
+                L10n.Get($"Contact.{connection?.ContactB ?? ElectrodeContact.Unknown}"));
+        }
+    }
     public LanguageOption? SelectedLanguage
     {
         get => _selectedLanguage;
@@ -65,7 +88,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public bool IsHistory => _page == "history";
     public bool IsSettings => _page == "settings";
     public string PageTitle => _page switch { "waves" => L10n.Get("Page.Waves"), "history" => L10n.Get("Page.History"), "settings" => L10n.Get("Page.Settings"), _ => L10n.Get("Page.Devices") };
-    public bool IsScanning { get => _scanBusy; private set { Set(ref _scanBusy, value); Raise(nameof(ScanLabel)); } }
+    public bool IsScanning { get => _scanBusy; private set { Set(ref _scanBusy, value); Raise(nameof(ScanLabel)); (SaveSettingsCommand as AsyncCommand)?.NotifyCanExecuteChanged(); } }
     public string ScanLabel => L10n.Get(IsScanning ? "Device.Scanning" : "Device.Scan");
     public string Status => _status.Value;
     public bool IsError { get => _isError; private set => Set(ref _isError, value); }
@@ -108,7 +131,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             if (value is not null) value.IsSelected = true;
             foreach (var property in new[] { nameof(SelectedName), nameof(SelectedKind), nameof(SelectedId), nameof(HasSelection),
                 nameof(SelectedConnected), nameof(HasChannelB), nameof(SelectedBattery), nameof(SelectedBatteryLabel), nameof(SelectedSignal),
-                nameof(SelectedOutputALabel), nameof(SelectedOutputBLabel) }) Raise(property);
+                nameof(SelectedOutputALabel), nameof(SelectedOutputBLabel), nameof(SelectedContacts), nameof(HasElectrodeReadings) }) Raise(property);
         }
     }
     public PresetItem? SelectedPreset
@@ -176,14 +199,18 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public ICommand SaveSettingsCommand { get; }
     public ICommand UseWaveCommand { get; }
 
-    public MainViewModel(DeviceController controller, WorkspaceStore store)
+    public MainViewModel(DeviceController controller, WorkspaceStore store, Func<IDeviceTransport>? bluetoothFactory = null)
     {
         _controller = controller;
         _store = store;
+        _bluetoothFactory = bluetoothFactory ?? (() => new ElectricalBluetoothTransport(new UnsupportedBluetoothAdapter()));
+        _uiContext = SynchronizationContext.Current;
+        _selectedTransport = TransportOptions.First(option => option.UseBluetooth == !controller.IsSimulation);
         _selectedLanguage = Languages.First(l => l.Code == L10n.Current.Language);
         L10n.Current.PropertyChanged += OnLanguageChanged;
         _engine = new(controller);
         _controller.Changed += OnDeviceChanged;
+        _controller.Faulted += OnTransportFaulted;
         _engine.Completed += OnSessionCompleted;
         WorkspaceCommand = new AsyncCommand(() => NavigateAsync("workspace"), ShowError);
         WavesCommand = new AsyncCommand(() => NavigateAsync("waves"), ShowError);
@@ -198,7 +225,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         DeleteWaveCommand = new AsyncCommand(DeleteWaveAsync, ShowError, () => SelectedPreset is { IsBuiltIn: false });
         ExportCommand = new ActionCommand(() => { TransferJson = WorkspaceStore.ExportPresets(Presets.Select(p => p.Preset)); Notify("Status.Generated"); });
         ImportCommand = new AsyncCommand(() => ImportAsync(TransferJson), ShowError);
-        SaveSettingsCommand = new AsyncCommand(async () => { await SaveAsync(); Notify("Status.SettingsSaved"); }, ShowError);
+        SaveSettingsCommand = new AsyncCommand(SaveSettingsAsync, ShowError, () => !IsScanning);
         UseWaveCommand = new AsyncCommand(() => NavigateAsync("workspace"), ShowError);
     }
 
@@ -209,6 +236,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         DefaultLimit = data.Settings.DefaultLimit;
         SessionMinutes = data.Settings.SessionMinutes;
         OffsetChannelB = data.Settings.OffsetChannelB;
+        SelectedTransport = TransportOptions.First(option => option.UseBluetooth == data.Settings.UseBluetooth);
+        await ApplyTransportAsync();
         foreach (var preset in WaveformPreset.BuiltIn) Presets.Add(new(preset));
         foreach (var preset in data.Presets.Where(p => !WaveformPreset.BuiltIn.Any(b => b.Id == p.Id))) Presets.Add(new(preset));
         foreach (var record in data.Sessions.OrderByDescending(r => r.StartedAt)) { _records.Add(record); Sessions.Add(new(record)); }
@@ -221,23 +250,64 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
     public async Task ScanAsync()
     {
-        if (IsScanning) return;
+        if (IsScanning || _changingTransport) return;
         IsScanning = true;
         try
         {
             var found = await _controller.ScanAsync();
+            var foundIds = found.Select(device => device.Id).ToHashSet();
+            foreach (var stale in Devices.Where(device => !device.IsConnected && !foundIds.Contains(device.Id)).ToArray())
+            {
+                if (SelectedDevice == stale) SelectedDevice = null;
+                Devices.Remove(stale);
+            }
             foreach (var item in found)
             {
-                if (Devices.Any(d => d.Id == item.Id)) continue;
+                if (Devices.FirstOrDefault(d => d.Id == item.Id) is { } existing)
+                { existing.UpdateReadings(item with { Battery = item.Battery ?? existing.Device.Battery }); continue; }
                 var device = new DeviceItem(item, Devices.Count + 1, SelectDeviceAsync, ToggleConnectionAsync, ShowError);
                 device.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(DeviceItem.IsIncluded)) Raise(nameof(RoutingSummary)); };
                 Devices.Add(device);
             }
             if (SelectedDevice is null && Devices.Count > 0) SelectedDevice = Devices[0];
-            Notify("Status.Discovered", found.Count);
+            Notify(IsBluetooth ? "Status.BluetoothDiscovered" : "Status.Discovered", found.Count);
             Raise(nameof(ConnectedSummary));
         }
         finally { IsScanning = false; }
+    }
+
+    public async Task SaveSettingsAsync()
+    {
+        if (IsScanning) throw new LocalizedOperationException("Error.BluetoothBusy");
+        var changed = await ApplyTransportAsync();
+        await SaveAsync();
+        Notify("Status.SettingsSaved");
+        if (changed) await ScanAsync();
+    }
+
+    private async Task<bool> ApplyTransportAsync()
+    {
+        if (SelectedTransport is null || SelectedTransport.UseBluetooth == IsBluetooth) return false;
+        _changingTransport = true;
+        try
+        {
+            await StopAsync("Reason.TransportChanged", false);
+            foreach (var id in _controller.Connections.Keys.ToArray()) await _controller.DisconnectAsync(id);
+            await _controller.ChangeTransportAsync(SelectedTransport.UseBluetooth ? _bluetoothFactory() : new SimulationTransport());
+            SelectedDevice = null;
+            Devices.Clear();
+            ChannelA = ChannelB = 0;
+            RefreshTransport();
+            return true;
+        }
+        finally { _changingTransport = false; }
+    }
+
+    private void RefreshTransport()
+    {
+        foreach (var property in new[] { nameof(IsBluetooth), nameof(ModeLabel), nameof(TransportName), nameof(DriverLabel),
+            nameof(DeviceHelp), nameof(TransportHelp), nameof(ReadingsLabel), nameof(HasElectrodeReadings), nameof(SelectedContacts) }) Raise(property);
+        RefreshDevices();
     }
 
     public async Task SelectDeviceAsync(DeviceItem device)
@@ -367,9 +437,21 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
     public Task SaveAsync(IEnumerable<WaveformPreset>? presets = null) => _store.SaveAsync(new(1,
         (presets ?? Presets.Select(p => p.Preset)).Where(p => !WaveformPreset.BuiltIn.Any(b => b.Id == p.Id)).ToList(),
-        _records.Take(500).ToList(), new(DefaultLimit, SessionMinutes, OffsetChannelB, SelectedLanguage?.Code)));
+        _records.Take(500).ToList(), new(DefaultLimit, SessionMinutes, OffsetChannelB, SelectedLanguage?.Code, IsBluetooth)));
 
-    private void OnDeviceChanged(object? sender, EventArgs e) => RefreshDevices();
+    private void OnDeviceChanged(object? sender, EventArgs e) => RunOnUi(RefreshDevices);
+    private void OnTransportFaulted(object? sender, DeviceTransportFault fault) => RunOnUi(() => _ = GuardAsync(async () =>
+    {
+        await StopAsync("Reason.ConnectionError", false);
+        ShowError(fault.Error);
+    }));
+    private void RunOnUi(Action action)
+    {
+        if (_disposed) return;
+        if (_uiContext is not null && SynchronizationContext.Current != _uiContext)
+            _uiContext.Post(_ => { if (!_disposed) action(); }, null);
+        else action();
+    }
     private void OnSessionCompleted(object? sender, SessionRecord record)
     {
         _records.Insert(0, record); Sessions.Insert(0, new(record));
@@ -388,9 +470,12 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             device.IsConnected = _controller.Connections.TryGetValue(device.Id, out var connection);
             device.OutputA = connection?.Output.ChannelA ?? 0;
             device.OutputB = connection?.Output.ChannelB ?? 0;
+            if (connection is not null) device.UpdateReadings(connection.Device);
         }
         Raise(nameof(ConnectedCount)); Raise(nameof(ConnectedSummary)); Raise(nameof(SelectedConnected)); Raise(nameof(RoutingSummary));
         Raise(nameof(SelectedOutputALabel)); Raise(nameof(SelectedOutputBLabel));
+        Raise(nameof(SelectedBattery)); Raise(nameof(SelectedBatteryLabel)); Raise(nameof(SelectedSignal));
+        Raise(nameof(SelectedContacts)); Raise(nameof(HasElectrodeReadings));
     }
 
     private void RefreshPlayback()
@@ -429,6 +514,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         foreach (var item in Shapes) item.RefreshLocalization();
         foreach (var item in Sessions) item.RefreshLocalization();
         foreach (var item in Activities) item.RefreshLocalization();
+        foreach (var item in TransportOptions) item.RefreshLocalization();
+        RefreshTransport();
         foreach (var name in new[] { nameof(PageTitle), nameof(ScanLabel), nameof(Status), nameof(SessionState),
             nameof(PlaybackLabel), nameof(TotalTime), nameof(SelectedName), nameof(SelectedKind), nameof(SelectedId),
             nameof(SelectedBatteryLabel), nameof(SelectedOutputALabel), nameof(SelectedOutputBLabel),
@@ -450,6 +537,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         finally
         {
             _controller.Changed -= OnDeviceChanged;
+            _controller.Faulted -= OnTransportFaulted;
             _engine.Completed -= OnSessionCompleted;
             L10n.Current.PropertyChanged -= OnLanguageChanged;
             await _controller.DisposeAsync();

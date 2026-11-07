@@ -20,6 +20,7 @@ using YokoWave.App.Views;
 using YokoWave.App.Controls;
 using YokoWave.Core;
 using YokoWave.Core.Localization;
+using YokoWave.Core.Bluetooth;
 using Xunit;
 
 [assembly: AvaloniaTestApplication(typeof(YokoWave.Tests.TestAppBuilder))]
@@ -37,6 +38,80 @@ public static class TestAppBuilder
 
 public sealed class UiTests
 {
+    [AvaloniaFact]
+    public async Task BluetoothSourceSwitchPersistsChoiceUpdatesTelemetryAndResetsOutput()
+    {
+        using var folder = new TestFolder();
+        var adapter = new FakeBluetoothAdapter();
+        var simulation = new SimulationTransport();
+        await using var vm = new MainViewModel(new DeviceController(simulation), new WorkspaceStore(folder.Path),
+            () => new ElectricalBluetoothTransport(adapter));
+        var view = new MainView { DataContext = vm };
+        var window = new Window { Content = view, Width = 1000, Height = 600 };
+        window.Show();
+        await WaitForAsync(() => vm.Devices.Count == 5 && !vm.IsScanning);
+        await vm.ToggleConnectionAsync(vm.Devices[0]);
+        vm.ChannelA = 30;
+        await vm.NavigateAsync("settings");
+        Find<ComboBox>(view, "TransportPicker").SelectedItem = vm.TransportOptions.Single(option => option.UseBluetooth);
+        Click(window, Find<Button>(view, "SaveSettingsButton"));
+        await WaitForAsync(() => vm.IsBluetooth && vm.Devices.Count == 1 && !vm.IsScanning);
+        Assert.Empty(simulation.Outputs);
+        Assert.Equal(0, vm.ChannelA);
+        Assert.Equal("YCY-DJ", vm.SelectedDevice!.Name);
+        Assert.Equal("—", vm.SelectedBattery);
+        Assert.True((await new WorkspaceStore(folder.Path).LoadAsync()).Settings.UseBluetooth);
+        await vm.ToggleConnectionAsync(vm.Devices[0]);
+        await WaitForAsync(() => vm.SelectedBattery == "82%");
+        var link = adapter.Links[vm.SelectedDevice.Id];
+        await Task.Run(() => link.Notify(V1Protocol.WithChecksum([0x35, 0x71, 4, 42])), TestContext.Current.CancellationToken);
+        await WaitForAsync(() => vm.SelectedBattery == "42%");
+        Assert.True(vm.HasElectrodeReadings);
+        Assert.Contains(L10n.Get("Contact.NotConnected"), vm.SelectedContacts);
+        await vm.NavigateAsync("workspace");
+        Capture(window, "bluetooth-workspace.png");
+        vm.ChannelA = 20;
+        await vm.TogglePlaybackAsync();
+        await vm.TickAsync();
+        vm.SelectedTransport = vm.TransportOptions.Single(option => !option.UseBluetooth);
+        await vm.SaveSettingsAsync();
+        Assert.False(vm.IsRunning);
+        Assert.False(vm.IsBluetooth);
+        Assert.Equal(0, vm.ChannelA);
+        Assert.Equal(5, vm.Devices.Count);
+        Assert.True(link.Closed);
+        Assert.Equal(V2Protocol.Stop(), link.Writes[^1]);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public async Task LostBluetoothConnectionStopsOtherLinkedDevices()
+    {
+        using var folder = new TestFolder();
+        var adapter = new FakeBluetoothAdapter();
+        adapter.Devices.Add(new("ble:000000000002", "YCY-DJ", -60));
+        await new WorkspaceStore(folder.Path).SaveAsync(new(1, [], [], new(UseBluetooth: true)));
+        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path),
+            () => new ElectricalBluetoothTransport(adapter));
+        var view = new MainView { DataContext = vm };
+        var window = new Window { Content = view, Width = 1000, Height = 600 };
+        window.Show();
+        await WaitForAsync(() => vm.IsBluetooth && vm.Devices.Count == 2 && !vm.IsScanning);
+        Assert.Equal(0, vm.ConnectedCount);
+        await vm.ToggleConnectionAsync(vm.Devices[0]);
+        await vm.ToggleConnectionAsync(vm.Devices[1]);
+        vm.LinkMode = true; vm.ChannelA = 20;
+        await vm.TogglePlaybackAsync();
+        await vm.TickAsync();
+        var lost = adapter.Links[vm.Devices[0].Id];
+        await Task.Run(lost.LoseConnection, TestContext.Current.CancellationToken);
+        await WaitForAsync(() => !vm.IsRunning && !vm.Devices[0].IsConnected && vm.IsError);
+        Assert.True(lost.Closed);
+        Assert.Equal(V2Protocol.Stop(), adapter.Links[vm.Devices[1].Id].Writes[^1]);
+        Assert.Equal("Reason.ConnectionError", Assert.Single(vm.Sessions).Record.Reason);
+        window.Close();
+    }
+
     [AvaloniaFact]
     public async Task StartupAndEmptySelectionsProduceNoBindingErrorsOrValidationExceptions()
     {

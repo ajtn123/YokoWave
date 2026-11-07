@@ -4,11 +4,13 @@ using Avalonia.Markup.Xaml;
 using YokoWave.App.ViewModels;
 using YokoWave.App.Views;
 using YokoWave.Core;
+using YokoWave.Core.Bluetooth;
 
 namespace YokoWave.App;
 
 public sealed partial class App : Application
 {
+    public static Func<IBluetoothAdapter> BluetoothAdapterFactory { get; set; } = () => new UnsupportedBluetoothAdapter();
     public override void Initialize() => AvaloniaXamlLoader.Load(this);
 
     public override void OnFrameworkInitializationCompleted()
@@ -20,7 +22,8 @@ public sealed partial class App : Application
         }
         var dataDirectory = Environment.GetEnvironmentVariable("YOKOWAVE_DATA_DIR")
             ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "YokoWave");
-        var viewModel = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(dataDirectory));
+        var viewModel = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(dataDirectory),
+            () => new ElectricalBluetoothTransport(BluetoothAdapterFactory()));
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var window = new MainWindow { DataContext = viewModel };
@@ -31,7 +34,7 @@ public sealed partial class App : Application
                 {
                     try
                     {
-                        for (var attempt = 0; attempt < 100 && viewModel.Devices.Count == 0; attempt++)
+                        for (var attempt = 0; attempt < 600 && (viewModel.Devices.Count == 0 || viewModel.IsScanning) && !viewModel.IsError; attempt++)
                             await Task.Delay(50);
                         if (viewModel.Devices.Count == 0 || viewModel.IsError)
                             throw new InvalidOperationException(viewModel.Status);

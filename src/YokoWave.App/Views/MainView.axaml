@@ -26,7 +26,7 @@
         </StackPanel>
         <StackPanel Grid.Row="2" Classes="items">
           <Border Classes="mode-panel">
-            <TextBlock Text="{l:Loc Mode.Sidebar}" Classes="label emphasis accent" />
+            <TextBlock Text="{Binding ModeLabel}" Classes="label emphasis accent" />
           </Border>
           <TextBlock Text="YokoWave  /  0.1.0" Margin="{DynamicResource Margin.Horizontal}" Classes="caption muted" />
         </StackPanel>
@@ -47,7 +47,7 @@
           </StackPanel>
           <StackPanel Grid.Column="1" VerticalAlignment="Center" Classes="actions">
             <Border x:Name="ModeBadge" Classes="badge">
-              <TextBlock Text="{l:Loc Mode.Badge}" Classes="label accent" />
+              <TextBlock Text="{Binding ModeLabel}" Classes="label accent" />
             </Border>
             <Button x:Name="StopAllButton" Classes="danger" Content="{l:Loc Action.StopAll}" Command="{Binding EmergencyStopCommand}"
                     ToolTip.Tip="{l:Loc Action.StopAllTip}" AutomationProperties.Name="{l:Loc Action.StopAllName}" />

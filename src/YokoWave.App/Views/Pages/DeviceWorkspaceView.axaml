@@ -82,11 +82,12 @@
             <StackPanel Classes="field">
               <TextBlock Text="{Binding SelectedName}" Classes="title" />
               <TextBlock Text="{Binding SelectedKind}" Classes="muted label" />
+              <TextBlock Text="{Binding SelectedContacts}" IsVisible="{Binding HasElectrodeReadings}" Classes="muted caption" TextWrapping="Wrap" />
             </StackPanel>
             <StackPanel Grid.Column="1" VerticalAlignment="Center" Classes="field">
               <TextBlock Text="{Binding SelectedBatteryLabel}" HorizontalAlignment="Right" Classes="label accent" />
               <TextBlock Text="{Binding SelectedSignal}" Classes="muted caption" HorizontalAlignment="Right" />
-              <TextBlock Text="{l:Loc Device.Readings}" Classes="muted fine-print" HorizontalAlignment="Right" />
+              <TextBlock Text="{Binding ReadingsLabel}" Classes="muted fine-print" HorizontalAlignment="Right" />
             </StackPanel>
           </Grid>
         </Border>
@@ -175,7 +176,7 @@
             </Grid>
           </StackPanel>
         </Border>
-        <TextBlock Text="{l:Loc Device.SimulationHelp}" Classes="caption muted help" />
+        <TextBlock Text="{Binding DeviceHelp}" Classes="caption muted help" />
       </StackPanel>
     </Grid>
   </StackPanel>

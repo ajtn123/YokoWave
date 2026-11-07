@@ -5,10 +5,38 @@ namespace YokoWave.Core;
 public interface IDeviceTransport : IAsyncDisposable
 {
     string DisplayName { get; }
+    bool IsSimulation => true;
     Task<IReadOnlyList<DeviceDescriptor>> ScanAsync(CancellationToken cancellationToken = default);
     Task ConnectAsync(DeviceDescriptor device, CancellationToken cancellationToken = default);
     Task SendAsync(string deviceId, OutputFrame frame, CancellationToken cancellationToken = default);
     Task DisconnectAsync(string deviceId, CancellationToken cancellationToken = default);
+}
+
+public enum ElectrodeContact { NotConnected, Delivering, Connected, Unknown }
+
+public sealed class DeviceStatusUpdate(string deviceId, int? battery = null,
+    ElectrodeContact? contactA = null, ElectrodeContact? contactB = null,
+    bool? outputAEnabled = null, bool? outputBEnabled = null) : EventArgs
+{
+    public string DeviceId { get; } = deviceId;
+    public int? Battery { get; } = battery;
+    public ElectrodeContact? ContactA { get; } = contactA;
+    public ElectrodeContact? ContactB { get; } = contactB;
+    public bool? OutputAEnabled { get; } = outputAEnabled;
+    public bool? OutputBEnabled { get; } = outputBEnabled;
+}
+
+public sealed class DeviceTransportFault(string deviceId, bool disconnected, Exception error) : EventArgs
+{
+    public string DeviceId { get; } = deviceId;
+    public bool Disconnected { get; } = disconnected;
+    public Exception Error { get; } = error;
+}
+
+public interface IDeviceStatusSource
+{
+    event EventHandler<DeviceStatusUpdate>? StatusChanged;
+    event EventHandler<DeviceTransportFault>? Faulted;
 }
 
 /// <summary>Deterministic local peripherals; never accesses the system Bluetooth adapter.</summary>

@@ -1,5 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <YokoWaveWindowsBluetooth Condition="'$(YokoWaveWindowsBluetooth)' == '' and $([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('win'))">true</YokoWaveWindowsBluetooth>
+    <YokoWaveWindowsBluetooth Condition="'$(YokoWaveWindowsBluetooth)' == '' and '$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('Windows'))">true</YokoWaveWindowsBluetooth>
+    <TargetFramework Condition="'$(YokoWaveWindowsBluetooth)' == 'true'">net10.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion Condition="'$(YokoWaveWindowsBluetooth)' == 'true'">10.0.19041.0</SupportedOSPlatformVersion>
     <OutputType>WinExe</OutputType>
     <AssemblyName>YokoWave</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>

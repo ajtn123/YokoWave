@@ -22,8 +22,14 @@
     <Border Classes="card">
       <StackPanel Classes="group">
         <TextBlock Text="{l:Loc Settings.Output}" Classes="title" />
-        <TextBlock Text="{l:Loc Settings.Driver}" Classes="accent" />
-        <TextBlock Text="{l:Loc Settings.SimulationHelp}" Classes="muted help" />
+        <StackPanel Classes="field">
+          <TextBlock Text="{l:Loc Settings.Transport}" Classes="field-label" />
+          <ComboBox x:Name="TransportPicker" ItemsSource="{Binding TransportOptions}" SelectedItem="{Binding SelectedTransport}" Classes="language-picker">
+            <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:TransportOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+          </ComboBox>
+        </StackPanel>
+        <TextBlock Text="{Binding DriverLabel}" Classes="accent" />
+        <TextBlock Text="{Binding TransportHelp}" Classes="muted help" />
         <TextBlock Text="{l:Loc Settings.DefaultLimit}" Classes="small" />
         <Grid>
           <Grid.ColumnDefinitions>
@@ -34,7 +40,7 @@
           <TextBlock Grid.Column="1" Text="{Binding DefaultLimit, StringFormat='{}{0:0}%'}" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="accent" />
         </Grid>
         <CheckBox Content="{l:Loc Settings.Offset}" IsChecked="{Binding OffsetChannelB}" />
-        <Button Classes="primary" Command="{Binding SaveSettingsCommand}" Content="{l:Loc Settings.Save}" />
+        <Button x:Name="SaveSettingsButton" Classes="primary" Command="{Binding SaveSettingsCommand}" Content="{l:Loc Settings.Save}" />
       </StackPanel>
     </Border>
     <Border Classes="card">

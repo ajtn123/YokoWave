@@ -21,6 +21,8 @@ public sealed class SessionEngine(DeviceController controller)
     public async Task StartAsync(IEnumerable<string> targets, WaveformPreset preset, TimeSpan duration)
     {
         preset.Validate();
+        if (!controller.IsSimulation && preset.Family == WaveformFamily.Motor)
+            throw new LocalizedArgumentException("Error.ElectricalWaveform");
         await _gate.WaitAsync();
         try
         {
@@ -56,8 +58,8 @@ public sealed class SessionEngine(DeviceController controller)
                 foreach (var id in _targets)
                 {
                     await controller.SendAsync(id, new(
-                        ChannelA * WaveformGenerator.Sample(_preset, elapsed.TotalSeconds),
-                        ChannelB * WaveformGenerator.Sample(_preset, elapsed.TotalSeconds, OffsetChannelB ? 0.5 : 0),
+                        _preset.Family == WaveformFamily.Electrical ? ChannelA : ChannelA * WaveformGenerator.Sample(_preset, elapsed.TotalSeconds),
+                        _preset.Family == WaveformFamily.Electrical ? ChannelB : ChannelB * WaveformGenerator.Sample(_preset, elapsed.TotalSeconds, OffsetChannelB ? 0.5 : 0),
                         _preset.Frequency, WaveformGenerator.ReferenceSample(_preset, elapsed.TotalSeconds),
                         WaveformGenerator.ReferenceSample(_preset, elapsed.TotalSeconds, OffsetChannelB ? 0.5 : 0)));
                     var output = controller.Connections[id].Output;

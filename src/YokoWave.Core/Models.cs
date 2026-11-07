@@ -5,7 +5,7 @@ public enum DeviceKind { DualChannel, Vibration, Pump, Linear }
 public enum WaveShape { Sine, Triangle, Pulse, Ramp, Custom, Sampled }
 public enum WaveformFamily { Generic, Electrical, Motor }
 
-public sealed record DeviceDescriptor(string Id, string Name, DeviceKind Kind, int Battery, int Signal)
+public sealed record DeviceDescriptor(string Id, string Name, DeviceKind Kind, int? Battery, int? Signal)
 {
     public string KindLabel => Kind switch
     {
@@ -103,7 +103,7 @@ public sealed record SessionRecord(Guid Id, DateTimeOffset StartedAt, double Dur
     string WaveformName, int DeviceCount, double PeakA, double PeakB, string Reason, Guid? WaveformId = null);
 
 public sealed record AppSettings(double DefaultLimit = 60, double SessionMinutes = 10,
-    bool OffsetChannelB = true, string? Language = null);
+    bool OffsetChannelB = true, string? Language = null, bool UseBluetooth = false);
 
 public sealed record WorkspaceData(int SchemaVersion, List<WaveformPreset> Presets,
     List<SessionRecord> Sessions, AppSettings Settings)

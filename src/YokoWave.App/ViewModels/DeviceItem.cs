@@ -12,12 +12,12 @@ public sealed class DeviceItem : ObservableObject
     private bool _canEditRouting = true;
     private double _outputA;
     private double _outputB;
-    public DeviceDescriptor Device { get; }
+    public DeviceDescriptor Device { get; private set; }
     public string Name => Device.Name;
     public string Id => Device.Id;
     public string Kind => Device.KindLabel;
-    public string Battery => $"{Device.Battery}%";
-    public string Signal => $"{Device.Signal} dBm";
+    public string Battery => Device.Battery is { } battery ? $"{battery}%" : "—";
+    public string Signal => Device.Signal is { } signal ? $"{signal} dBm" : "—";
     public string Number { get; }
     public string Symbol => Device.Kind switch
     { DeviceKind.DualChannel => "∿", DeviceKind.Vibration => "≋", DeviceKind.Pump => "◉", _ => "↕" };
@@ -46,6 +46,13 @@ public sealed class DeviceItem : ObservableObject
     public void RefreshLocalization()
     {
         foreach (var property in new[] { nameof(Kind), nameof(Status), nameof(ConnectionAction), nameof(OutputALabel), nameof(OutputBLabel) }) Raise(property);
+    }
+
+    public void UpdateReadings(DeviceDescriptor device)
+    {
+        if (Device == device) return;
+        Device = device;
+        Raise(nameof(Battery)); Raise(nameof(Signal));
     }
 }
 
@@ -100,3 +107,10 @@ public sealed class ShapeItem(WaveShape shape) : ObservableObject
 }
 
 public sealed record LanguageOption(string Code, string DisplayName);
+
+public sealed class TransportOption(bool useBluetooth) : ObservableObject
+{
+    public bool UseBluetooth { get; } = useBluetooth;
+    public string Label => L10n.Get(UseBluetooth ? "Mode.Bluetooth" : "Mode.Simulation");
+    public void RefreshLocalization() => Raise(nameof(Label));
+}

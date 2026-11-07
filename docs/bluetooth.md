@@ -1,0 +1,50 @@
+# 蓝牙电击器接入
+
+目前使用 Windows BLE / GATT 原生 API，最低目标为 Windows 10 2004。平台适配通过 `IBluetoothAdapter` / `IBluetoothConnection` 隔离；Core 不引用 Windows SDK。macOS、Linux 仍使用模拟模式，选择蓝牙模式会明确报告后端尚未实现。
+
+## 设备与协议
+
+| 广播名 | 线协议 | 控制包 |
+| --- | --- | --- |
+| `YYC-DJ` | 旧版 V1 | 单通道配置；参数相同时合并为 AB 控制 |
+| `YCY-DJ`、`YYC-DJV2`、`YYC-DJ-V2` | 新版 V2 | 实时模式，一个包包含 A / B 配置 |
+
+广播名和产品代际不应混为一谈。两种线协议共用 FF30 服务、FF31 无响应写入特征、FF32 通知特征；连接时会核对 UUID 和特征权限，不通过枚举到的任意可写特征发送数据。当前只接受表中的已知广播名。
+
+协议依据：[厂商开源蓝牙协议目录](https://github.com/YCY-YOKONEX/YCY-YOKONEX-OpenSource/tree/main/Bluetooth)、[V1 文档](https://github.com/YCY-YOKONEX/YCY-YOKONEX-OpenSource/blob/main/Bluetooth/%E7%94%B5%E5%87%BB%E5%99%A8%E4%B8%80%E4%BB%A3.pdf)、[V2 文档](https://github.com/YCY-YOKONEX/YCY-YOKONEX-OpenSource/blob/main/Bluetooth/%E7%94%B5%E5%87%BB%E5%99%A8%E4%BA%8C%E4%BB%A3.pdf)。Windows API 使用方式见 [Microsoft GATT Client](https://learn.microsoft.com/en-us/windows/apps/develop/devices-sensors/gatt-client)。实现是独立编写的 C# 编码器；参考 APK、提取源码和原始 PDF 保留在 Git 忽略的研究目录。
+
+## 输出与状态
+
+- 连接先订阅通知，发送关闭双通道指令，再查询电量及 A / B 状态。只有设备确认两路均关闭后，连接才算完成；3 秒内未确认则再次尝试关闭并释放连接。
+- UI 的通道强度是 0–100%，经过设备上限限制后映射至协议 0–276 级，使用大端强度字段及逐字节累加校验。百分比不代表实际电流。
+- 默认电击波形的 PL / TL 分别进入频率及脉宽字段，强度独立设置；不能把脉宽再次乘进强度。生成器波形通过幅度包络调节强度，脉宽固定为 100，频率来自编辑器。
+- A / B 错相分别采样。旧版可分别发送两路配置，新版使用双通道实时包。电机采样被拒绝，不会发送给电击器。
+- 电量、电极接触与输出开启状态来自通知，读取前显示未知；无效长度、范围或校验的通知被忽略。写入采用无响应模式，成功表示系统接受写入，不等同于测得物理输出。
+- 控制命令串行执行。停止、断开、模式切换、页面切换、计时结束和关闭应用均发送关闭指令。设备拒绝指令后禁止继续发送非零输出，但仍允许关闭指令；同一故障只上报一次，避免停止指令的错误通知形成循环。
+- 意外断连会释放连接并停止其他联动设备，不会自动恢复输出。已经失联的设备无法继续接收关闭指令，也无法确认其物理输出。
+
+## 使用与诊断
+
+设置页选择「YOKONEX 蓝牙」并保存，再到工作台连接设备。首次启动使用模拟模式；已保存的蓝牙来源会在下次启动恢复，但不会自动连接或播放。
+
+仅扫描、输出广播总数及相关候选：
+
+```sh
+dotnet run --project src/YokoWave.Desktop -- --bluetooth-probe
+```
+
+发现且仅发现一台兼容设备时，连接、关闭输出、等待设备确认、读取状态，再断开：
+
+```sh
+dotnet run --project src/YokoWave.Desktop -- --bluetooth-probe --connect
+```
+
+诊断模式不会发送非零强度。多台设备需通过界面选择，不自动猜选。扫描未发现设备时，先检查开机、距离、系统蓝牙和其他应用是否仍持有连接。
+
+Windows 桌面目标会自动使用 `net10.0-windows10.0.19041.0`；非 Windows RID 仍使用通用 `net10.0`。需要在 Windows 上构建通用模拟入口时可设置 `-p:YokoWaveWindowsBluetooth=false`。这只是构建选择，不会给非 Windows 平台增加原生蓝牙能力。
+
+## 验证记录
+
+2026-11-07：在 Windows 上实际发现并连接 `YCY-DJ`，读取到电量 82%、A / B 电极未接入，且设备明确回报两路输出关闭，之后主动断开。未发送非零强度，因此尚未验证实际刺激输出、强度标定或长时间硬件播放。旧版 `YYC-DJ` 编码器通过协议测试，尚无旧版实机验证。
+
+自动测试使用假的 GATT 链路核对精确控制包、关闭确认、校验与范围、连接失败释放、故障锁定、后台通知到 UI 的调度、设备来源保存与恢复，以及断连时停止其他联动设备。测试中的非零强度仅写入内存链路。
