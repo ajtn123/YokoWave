@@ -10,6 +10,9 @@ using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Avalonia.LogicalTree;
+using Avalonia.Logging;
+using System.Collections.Concurrent;
+using System.Runtime.ExceptionServices;
 using YokoWave.App.Views.Pages;
 using YokoWave.App.Views.Components;
 using YokoWave.App.ViewModels;
@@ -35,6 +38,69 @@ public static class TestAppBuilder
 
 public sealed class UiTests
 {
+    [AvaloniaFact]
+    public async Task StartupAndEmptySelectionsProduceNoBindingErrorsOrValidationExceptions()
+    {
+        using var folder = new TestFolder();
+        var previousSink = Logger.Sink;
+        var sink = new BindingErrorSink();
+        var validationErrors = new ConcurrentQueue<Exception>();
+        void OnFirstChanceException(object? sender, FirstChanceExceptionEventArgs e)
+        {
+            if (e.Exception is LocalizedArgumentException) validationErrors.Enqueue(e.Exception);
+        }
+        Logger.Sink = sink;
+        AppDomain.CurrentDomain.FirstChanceException += OnFirstChanceException;
+        Window? window = null;
+        try
+        {
+            var controller = new DeviceController(new SimulationTransport());
+            await using var vm = new MainViewModel(controller, new WorkspaceStore(folder.Path));
+            Assert.Null(vm.SelectedDevice);
+            Assert.Null(vm.SelectedPreset);
+            var view = new MainView { DataContext = vm };
+            Assert.Equal(L10n.Format("Device.Output", 0), Find<TextBlock>(view, "SelectedOutputAText").Text);
+            Assert.Equal(L10n.Format("Device.Output", 0), Find<TextBlock>(view, "SelectedOutputBText").Text);
+            window = new Window { Content = view, Width = 1000, Height = 600 };
+            window.Show();
+            await WaitForAsync(() => vm.Devices.Count == 5 && !vm.IsScanning);
+            var selected = vm.SelectedPreset;
+            vm.SelectedPreset = null;
+            Dispatcher.UIThread.RunJobs();
+            Assert.Null(Find<WaveformPlot>(view, "MainPlot").Preset);
+            Assert.Equal(L10n.Get("Wave.Select"), Find<TextBlock>(view, "SelectedWaveNameText").Text);
+            vm.SelectedPreset = selected;
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(selected!.Preset, Find<WaveformPlot>(view, "MainPlot").Preset);
+            Assert.Equal(selected.Name, Find<TextBlock>(view, "SelectedWaveNameText").Text);
+            Assert.Null(vm.EditorPreview);
+            vm.EditorName = "Draft";
+            Assert.NotNull(vm.EditorPreview);
+            vm.EditorPeriod = 0.1;
+            Assert.Null(vm.EditorPreview);
+            vm.EditorPeriod = 4;
+            vm.EditorShape = WaveShape.Sampled;
+            Assert.Null(vm.EditorPreview);
+            await vm.ToggleConnectionAsync(vm.Devices[0]);
+            await vm.ToggleConnectionAsync(vm.Devices[1]);
+            await vm.SelectDeviceAsync(vm.Devices[0]);
+            await controller.SendAsync(vm.SelectedDevice!.Id, new(25, 15, 20), TestContext.Current.CancellationToken);
+            Assert.Equal(25, vm.SelectedDevice.OutputA);
+            Assert.Equal(vm.SelectedDevice.OutputALabel, Find<TextBlock>(view, "SelectedOutputAText").Text);
+            Assert.Equal(vm.SelectedDevice.OutputBLabel, Find<TextBlock>(view, "SelectedOutputBText").Text);
+            await vm.SelectDeviceAsync(vm.Devices[1]);
+            Assert.Equal(L10n.Format("Device.Output", 0), Find<TextBlock>(view, "SelectedOutputAText").Text);
+            Assert.True(sink.Errors.IsEmpty && validationErrors.IsEmpty,
+                $"Binding errors: {string.Join("; ", sink.Errors)}. Validation exceptions: {validationErrors.Count}.");
+        }
+        finally
+        {
+            window?.Close();
+            AppDomain.CurrentDomain.FirstChanceException -= OnFirstChanceException;
+            Logger.Sink = previousSink;
+        }
+    }
+
     [AvaloniaFact]
     public async Task SplitViewsProtectDefaultsAndPreserveSamplesWhenDuplicating()
     {
@@ -272,6 +338,18 @@ public sealed class UiTests
         Assert.Single(loaded.Presets);
         Assert.Single(loaded.Sessions);
         window.Close();
+    }
+
+    private sealed class BindingErrorSink : ILogSink
+    {
+        public ConcurrentQueue<string> Errors { get; } = new();
+        public bool IsEnabled(LogEventLevel level, string area) => area == LogArea.Binding && level >= LogEventLevel.Warning;
+        public void Log(LogEventLevel level, string area, object? source, string messageTemplate)
+        {
+            if (IsEnabled(level, area)) Errors.Enqueue(messageTemplate);
+        }
+        public void Log(LogEventLevel level, string area, object? source, string messageTemplate, params object?[] propertyValues) =>
+            Log(level, area, source, $"{messageTemplate} [{string.Join(", ", propertyValues)}]");
     }
 
     private static T Find<T>(Control root, string name) where T : Control

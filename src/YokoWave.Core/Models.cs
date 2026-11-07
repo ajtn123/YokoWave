@@ -33,22 +33,34 @@ public sealed record WaveformPreset(
 
     public void Validate()
     {
+        if (!TryValidate(out var errorKey)) throw new LocalizedArgumentException(errorKey!);
+    }
+
+    public bool TryValidate(out string? errorKey)
+    {
+        errorKey = GetValidationError();
+        return errorKey is null;
+    }
+
+    private string? GetValidationError()
+    {
         if (Id == Guid.Empty || string.IsNullOrWhiteSpace(Name) || Name.Length > 60)
-            throw new LocalizedArgumentException("Error.WaveName");
-        if (!Enum.IsDefined(Family)) throw new LocalizedArgumentException("Error.InvalidWave");
+            return "Error.WaveName";
+        if (!Enum.IsDefined(Family)) return "Error.InvalidWave";
         if (!Enum.IsDefined(Shape) || !double.IsFinite(PeriodSeconds) || PeriodSeconds is < 0.2 or > 60)
-            throw new LocalizedArgumentException("Error.Period");
+            return "Error.Period";
         if (!double.IsFinite(Frequency) || Frequency is < 1 or > 100)
-            throw new LocalizedArgumentException("Error.Frequency");
+            return "Error.Frequency";
         if (Shape == WaveShape.Custom && (Points is null || Points.Length is < 2 or > 256 ||
             Points.Any(x => !double.IsFinite(x) || x is < 0 or > 1)))
-            throw new LocalizedArgumentException("Error.Points");
+            return "Error.Points";
         if (Shape == WaveShape.Sampled && (Samples is null || Samples.Length is < 2 or > 256 || Samples.Any(sample =>
             sample is null || !double.IsFinite(sample.Level) || sample.Level is < 0 or > 1 ||
             !double.IsFinite(sample.FrequencyCode) || sample.FrequencyCode is < 0 or > 100 ||
             !double.IsFinite(sample.PulseWidthCode) || sample.PulseWidthCode is < 0 or > 100 ||
             sample.Motors is { } motors && (motors.Length != 3 || motors.Any(x => !double.IsFinite(x) || x is < -20 or > 20)))))
-            throw new LocalizedArgumentException("Error.Samples");
+            return "Error.Samples";
+        return null;
     }
 }
 

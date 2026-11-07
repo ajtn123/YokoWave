@@ -91,8 +91,12 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public string SelectedBattery => SelectedDevice?.Battery ?? "—";
     public string SelectedBatteryLabel => L10n.Format("Device.Battery", SelectedBattery);
     public string SelectedSignal => SelectedDevice?.Signal ?? "—";
+    public string SelectedOutputALabel => SelectedDevice?.OutputALabel ?? L10n.Format("Device.Output", 0);
+    public string SelectedOutputBLabel => SelectedDevice?.OutputBLabel ?? L10n.Format("Device.Output", 0);
     public string RoutingSummary => LinkMode ? L10n.Format("Device.LinkedCount", Devices.Count(d => d.IsConnected && d.IsIncluded)) : L10n.Get("Device.CurrentOnly");
     public string PresetSummary => SelectedPreset?.Detail ?? L10n.Get("Wave.Select");
+    public string SelectedPresetName => SelectedPreset?.Name ?? L10n.Get("Wave.Select");
+    public WaveformPreset? SelectedWaveform => SelectedPreset?.Preset;
 
     public DeviceItem? SelectedDevice
     {
@@ -103,7 +107,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             Set(ref _selectedDevice, value);
             if (value is not null) value.IsSelected = true;
             foreach (var property in new[] { nameof(SelectedName), nameof(SelectedKind), nameof(SelectedId), nameof(HasSelection),
-                nameof(SelectedConnected), nameof(HasChannelB), nameof(SelectedBattery), nameof(SelectedBatteryLabel), nameof(SelectedSignal) }) Raise(property);
+                nameof(SelectedConnected), nameof(HasChannelB), nameof(SelectedBattery), nameof(SelectedBatteryLabel), nameof(SelectedSignal),
+                nameof(SelectedOutputALabel), nameof(SelectedOutputBLabel) }) Raise(property);
         }
     }
     public PresetItem? SelectedPreset
@@ -113,6 +118,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         {
             if (!Set(ref _selectedPreset, value)) return;
             Raise(nameof(PresetSummary));
+            Raise(nameof(SelectedPresetName)); Raise(nameof(SelectedWaveform));
             DeleteWaveCommand.NotifyCanExecuteChanged();
             if (IsRunning) _ = GuardAsync(() => StopAsync("Reason.WaveChanged"));
         }
@@ -149,7 +155,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     {
         get
         {
-            try { var preset = BuildEditorPreset(); preset.Validate(); return preset; }
+            try { var preset = BuildEditorPreset(); return preset.TryValidate(out _) ? preset : null; }
             catch (Exception e) when (e is ArgumentException or FormatException or OverflowException or JsonException) { return null; }
         }
     }
@@ -384,6 +390,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             device.OutputB = connection?.Output.ChannelB ?? 0;
         }
         Raise(nameof(ConnectedCount)); Raise(nameof(ConnectedSummary)); Raise(nameof(SelectedConnected)); Raise(nameof(RoutingSummary));
+        Raise(nameof(SelectedOutputALabel)); Raise(nameof(SelectedOutputBLabel));
     }
 
     private void RefreshPlayback()
@@ -424,7 +431,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         foreach (var item in Activities) item.RefreshLocalization();
         foreach (var name in new[] { nameof(PageTitle), nameof(ScanLabel), nameof(Status), nameof(SessionState),
             nameof(PlaybackLabel), nameof(TotalTime), nameof(SelectedName), nameof(SelectedKind), nameof(SelectedId),
-            nameof(SelectedBatteryLabel), nameof(RoutingSummary), nameof(PresetSummary), nameof(TransportName) }) Raise(name);
+            nameof(SelectedBatteryLabel), nameof(SelectedOutputALabel), nameof(SelectedOutputBLabel),
+            nameof(RoutingSummary), nameof(PresetSummary), nameof(SelectedPresetName), nameof(SelectedWaveform), nameof(TransportName) }) Raise(name);
         Raise(nameof(SelectedPreset));
     }
     private async Task GuardAsync(Func<Task> action) { try { await action(); } catch (Exception e) { ShowError(e); } }
