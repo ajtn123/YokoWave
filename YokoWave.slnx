@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/YokoWave.Core/YokoWave.Core.csproj" />
+    <Project Path="src/YokoWave.App/YokoWave.App.csproj" />
+    <Project Path="src/YokoWave.Desktop/YokoWave.Desktop.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/YokoWave.Tests/YokoWave.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,47 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:theming="using:YokoWave.App.Theming">
+  <!-- The only location for application color definitions. SystemAccentColor and
+       its readable variants are supplied and updated by Avalonia FluentTheme. -->
+  <theming:AccentContrastConverter x:Key="AccentContrastConverter" LightColor="White" DarkColor="#101418" />
+  <SolidColorBrush x:Key="AccentBrush" Color="{DynamicResource SystemAccentColor}" />
+  <SolidColorBrush x:Key="OnAccentBrush" Color="{ReflectionBinding Color, Source={StaticResource AccentBrush}, Converter={StaticResource AccentContrastConverter}}" />
+  <SolidColorBrush x:Key="AccentSoftBrush" Color="{DynamicResource SystemAccentColor}" Opacity="0.12" />
+  <SolidColorBrush x:Key="AccentAreaBrush" Color="{DynamicResource SystemAccentColor}" Opacity="0.08" />
+  <SolidColorBrush x:Key="TransparentBrush" Color="Transparent" />
+
+  <ResourceDictionary.ThemeDictionaries>
+    <ResourceDictionary x:Key="Light">
+      <SolidColorBrush x:Key="CanvasBrush" Color="#F4F6F8" />
+      <SolidColorBrush x:Key="SidebarBrush" Color="#EDF0F4" />
+      <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="RaisedBrush" Color="#E8EDF2" />
+      <SolidColorBrush x:Key="InputBrush" Color="#FAFBFD" />
+      <SolidColorBrush x:Key="BorderBrush" Color="#CFD6DF" />
+      <SolidColorBrush x:Key="TextPrimaryBrush" Color="#192230" />
+      <SolidColorBrush x:Key="TextSecondaryBrush" Color="#445367" />
+      <SolidColorBrush x:Key="TextMutedBrush" Color="#5B687B" />
+      <SolidColorBrush x:Key="AccentTextBrush" Color="{DynamicResource SystemAccentColorDark2}" />
+      <SolidColorBrush x:Key="ChannelBBrush" Color="#7650B5" />
+      <SolidColorBrush x:Key="DangerTextBrush" Color="#B42332" />
+      <SolidColorBrush x:Key="DangerSurfaceBrush" Color="#FCEBED" />
+      <SolidColorBrush x:Key="DangerBorderBrush" Color="#DCA6AE" />
+    </ResourceDictionary>
+    <ResourceDictionary x:Key="Dark">
+      <SolidColorBrush x:Key="CanvasBrush" Color="#101318" />
+      <SolidColorBrush x:Key="SidebarBrush" Color="#151920" />
+      <SolidColorBrush x:Key="SurfaceBrush" Color="#191D25" />
+      <SolidColorBrush x:Key="RaisedBrush" Color="#252B36" />
+      <SolidColorBrush x:Key="InputBrush" Color="#13171E" />
+      <SolidColorBrush x:Key="BorderBrush" Color="#343C49" />
+      <SolidColorBrush x:Key="TextPrimaryBrush" Color="#F2F4F8" />
+      <SolidColorBrush x:Key="TextSecondaryBrush" Color="#B1BBC9" />
+      <SolidColorBrush x:Key="TextMutedBrush" Color="#9AA6B8" />
+      <SolidColorBrush x:Key="AccentTextBrush" Color="{DynamicResource SystemAccentColorLight2}" />
+      <SolidColorBrush x:Key="ChannelBBrush" Color="#B7A2EF" />
+      <SolidColorBrush x:Key="DangerTextBrush" Color="#FFAAA9" />
+      <SolidColorBrush x:Key="DangerSurfaceBrush" Color="#38252B" />
+      <SolidColorBrush x:Key="DangerBorderBrush" Color="#86505A" />
+    </ResourceDictionary>
+  </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>
