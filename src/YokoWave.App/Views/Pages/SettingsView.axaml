@@ -1,0 +1,49 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:YokoWave.App.ViewModels"
+             xmlns:l="using:YokoWave.App.Localization"
+             xmlns:controls="using:YokoWave.App.Controls"
+             xmlns:components="using:YokoWave.App.Views.Components"
+             x:Class="YokoWave.App.Views.Pages.SettingsView"
+             x:DataType="vm:MainViewModel">
+  <StackPanel Spacing="22" MaxWidth="820" HorizontalAlignment="Left">
+    <Border Classes="card" Padding="26">
+      <StackPanel Spacing="12">
+        <TextBlock Text="{l:Loc Settings.Language}" Classes="title" />
+        <ComboBox x:Name="LanguagePicker" ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}" MinWidth="220">
+          <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:LanguageOption"><TextBlock Text="{Binding DisplayName}" /></DataTemplate></ComboBox.ItemTemplate>
+        </ComboBox>
+      </StackPanel>
+    </Border>
+    <Border Classes="card" Padding="26">
+      <StackPanel Spacing="12">
+        <TextBlock Text="{l:Loc Settings.Appearance}" Classes="title" />
+        <TextBlock Text="{l:Loc Settings.AppearanceHelp}" Classes="muted" TextWrapping="Wrap" LineHeight="23" />
+      </StackPanel>
+    </Border>
+    <Border Classes="card" Padding="26">
+      <StackPanel Spacing="18">
+        <TextBlock Text="{l:Loc Settings.Output}" Classes="title" />
+        <TextBlock Text="{l:Loc Settings.Driver}" Foreground="{DynamicResource AccentTextBrush}" />
+        <TextBlock Text="{l:Loc Settings.SimulationHelp}" Classes="muted" TextWrapping="Wrap" LineHeight="23" />
+        <TextBlock Text="{l:Loc Settings.DefaultLimit}" FontSize="12" />
+        <Grid ColumnDefinitions="*,60">
+          <Slider Value="{Binding DefaultLimit}" Minimum="0" Maximum="100" TickFrequency="5" IsSnapToTickEnabled="True" />
+          <TextBlock Grid.Column="1" Text="{Binding DefaultLimit, StringFormat='{}{0:0}%'}" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{DynamicResource AccentTextBrush}" />
+        </Grid>
+        <CheckBox Content="{l:Loc Settings.Offset}" IsChecked="{Binding OffsetChannelB}" />
+        <Button Classes="primary" Command="{Binding SaveSettingsCommand}" Content="{l:Loc Settings.Save}" />
+      </StackPanel>
+    </Border>
+    <Border Classes="card" Padding="26">
+      <StackPanel Spacing="14">
+        <TextBlock Text="{l:Loc Settings.Storage}" Classes="title" />
+        <TextBlock Text="{l:Loc Settings.StorageHelp}" Classes="muted" TextWrapping="Wrap" LineHeight="23" />
+        <TextBlock Text="{l:Loc Settings.DataPath}" FontSize="11" />
+        <SelectableTextBlock Text="{Binding StoragePath}" FontSize="11" Foreground="{DynamicResource ChannelBBrush}" TextWrapping="Wrap" />
+        <TextBlock Text="{l:Loc Settings.StopHelp}" Classes="muted" TextWrapping="Wrap" LineHeight="23" />
+      </StackPanel>
+    </Border>
+    <TextBlock Text="{l:Loc App.Version}" Foreground="{DynamicResource TextMutedBrush}" FontSize="12" Margin="6" />
+  </StackPanel>
+</UserControl>

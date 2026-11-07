@@ -9,6 +9,9 @@ using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Avalonia.LogicalTree;
+using YokoWave.App.Views.Pages;
+using YokoWave.App.Views.Components;
 using YokoWave.App.ViewModels;
 using YokoWave.App.Views;
 using YokoWave.App.Controls;
@@ -33,6 +36,40 @@ public static class TestAppBuilder
 public sealed class UiTests
 {
     [AvaloniaFact]
+    public async Task SplitViewsProtectDefaultsAndPreserveSamplesWhenDuplicating()
+    {
+        using var folder = new TestFolder();
+        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path));
+        var view = new MainView { DataContext = vm };
+        var window = new Window { Content = view, Width = 1000, Height = 600 };
+        window.Show();
+        await WaitForAsync(() => vm.Presets.Count == 22 && !vm.IsScanning);
+        Assert.NotNull(Find<DeviceWorkspaceView>(view, "WorkspacePage"));
+        Assert.NotNull(Find<WaveformLibraryView>(view, "WavesPage"));
+        Assert.NotNull(Find<SessionHistoryView>(view, "HistoryPage"));
+        Assert.NotNull(Find<SettingsView>(view, "SettingsPage"));
+        Assert.Single(view.GetLogicalDescendants().OfType<WaveformEditorView>());
+        Assert.Single(view.GetLogicalDescendants().OfType<WaveformTransferView>());
+        await vm.NavigateAsync("waves");
+        var original = vm.SelectedPreset!.Preset;
+        Assert.False(vm.DeleteWaveCommand.CanExecute(null));
+        Assert.False(Find<Button>(view, "DeleteWaveButton").IsEffectivelyEnabled);
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(vm.DeleteWaveAsync);
+        vm.EditWave();
+        await vm.SaveWaveAsync();
+        Assert.Equal(23, vm.Presets.Count);
+        Assert.False(vm.SelectedPreset!.IsBuiltIn);
+        Assert.Equivalent(original.Samples, vm.SelectedPreset.Preset.Samples);
+        Assert.True(vm.DeleteWaveCommand.CanExecute(null));
+        Assert.True(Find<Button>(view, "DeleteWaveButton").IsEffectivelyEnabled);
+        Click(window, Find<Button>(view, "DeleteWaveButton"));
+        await WaitForAsync(() => vm.Presets.Count == 22);
+        Assert.False(vm.DeleteWaveCommand.CanExecute(null));
+        Capture(window, "default-waveforms.png");
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public async Task LanguagePickerRefreshesExistingUiAndPersistsSelection()
     {
         using var folder = new TestFolder();
@@ -51,16 +88,16 @@ public sealed class UiTests
             var selectedDevice = vm.SelectedDevice;
             var selectedPreset = vm.SelectedPreset;
             vm.EditorName = "用户名称 / User name";
-            vm.EditorDescription = "用户描述 / User description";
+
             await vm.NavigateAsync("settings");
-            var picker = view.FindControl<ComboBox>("LanguagePicker")!;
+            var picker = Find<ComboBox>(view, "LanguagePicker")!;
             picker.SelectedItem = vm.Languages.First(l => l.Code == "en");
             Dispatcher.UIThread.RunJobs();
-            Assert.Equal("Settings", view.FindControl<TextBlock>("PageTitleText")!.Text);
-            Assert.Equal("■  Stop all", view.FindControl<Button>("StopAllButton")!.Content);
+            Assert.Equal("Settings", Find<TextBlock>(view, "PageTitleText")!.Text);
+            Assert.Equal("■  Stop all", Find<Button>(view, "StopAllButton")!.Content);
             Assert.Equal("YokoWave", window.Title);
-            Assert.Same(L10n.Current.Culture.NumberFormat, view.FindControl<NumericUpDown>("DurationInput")!.NumberFormat);
-            Assert.Equal("Sine wave", selectedPreset!.Name);
+            Assert.Same(L10n.Current.Culture.NumberFormat, Find<NumericUpDown>(view, "DurationInput")!.NumberFormat);
+            Assert.Equal("Tide", selectedPreset!.Name);
             Assert.Contains("Manual stop", vm.Sessions[0].Detail);
             vm.ShowError(new LocalizedArgumentException("Error.Period"));
             Assert.Contains("Period", vm.Status);
@@ -68,18 +105,18 @@ public sealed class UiTests
 
             picker.SelectedItem = vm.Languages.First(l => l.Code == "zh-CN");
             Dispatcher.UIThread.RunJobs();
-            Assert.Equal("偏好设置", view.FindControl<TextBlock>("PageTitleText")!.Text);
-            Assert.Equal("■  全部停止", view.FindControl<Button>("StopAllButton")!.Content);
+            Assert.Equal("偏好设置", Find<TextBlock>(view, "PageTitleText")!.Text);
+            Assert.Equal("■  全部停止", Find<Button>(view, "StopAllButton")!.Content);
             Assert.Equal("YokoWave · 波枢", window.Title);
-            Assert.Same(L10n.Current.Culture.NumberFormat, view.FindControl<NumericUpDown>("DurationInput")!.NumberFormat);
-            Assert.Equal("正弦波", selectedPreset.Name);
+            Assert.Same(L10n.Current.Culture.NumberFormat, Find<NumericUpDown>(view, "DurationInput")!.NumberFormat);
+            Assert.Equal("潮汐", selectedPreset.Name);
             Assert.Equal("正弦", vm.SelectedShape!.Label);
             Assert.Contains("周期", vm.Status);
             Assert.Contains("手动停止", vm.Sessions[0].Detail);
             Assert.Same(selectedDevice, vm.SelectedDevice);
             Assert.Same(selectedPreset, vm.SelectedPreset);
             Assert.Equal("用户名称 / User name", vm.EditorName);
-            Assert.Equal("用户描述 / User description", vm.EditorDescription);
+
             Assert.Equal(1, vm.ConnectedCount);
             Assert.Equal(20, vm.ChannelA);
             Capture(window, "settings-zh-CN.png");
@@ -135,7 +172,7 @@ public sealed class UiTests
         vm.ChannelA = 40; vm.ChannelB = 25;
         Dispatcher.UIThread.RunJobs();
         var lightCanvas = Assert.IsAssignableFrom<ISolidColorBrush>(view.Background).Color;
-        var plot = view.FindControl<WaveformPlot>("MainPlot")!;
+        var plot = Find<WaveformPlot>(view, "MainPlot")!;
         var lightGrid = Assert.IsAssignableFrom<ISolidColorBrush>(plot.GridBrush).Color;
         Capture(window, "workspace-light.png");
         window.RequestedThemeVariant = ThemeVariant.Dark;
@@ -149,7 +186,7 @@ public sealed class UiTests
         app.Resources["SystemAccentColor"] = Color.Parse("#A84078");
         app.Resources["SystemAccentColorLight2"] = Color.Parse("#EC90C1");
         Dispatcher.UIThread.RunJobs();
-        var primary = view.FindControl<Button>("PlaybackButton")!;
+        var primary = Find<Button>(view, "PlaybackButton")!;
         var before = Assert.IsAssignableFrom<ISolidColorBrush>(primary.Background).Color;
         var chartBefore = Assert.IsAssignableFrom<ISolidColorBrush>(plot.ChannelABrush).Color;
         app.Resources["SystemAccentColor"] = Color.Parse("#227D69");
@@ -177,18 +214,18 @@ public sealed class UiTests
         var connect = view.GetVisualDescendants().OfType<Button>().First(b => b.Content as string == L10n.Get("Device.Connect"));
         Click(window, connect);
         await WaitForAsync(() => vm.ConnectedCount == 1);
-        var slider = view.FindControl<Slider>("ChannelASlider")!;
+        var slider = Find<Slider>(view, "ChannelASlider")!;
         slider.Value = 35;
-        view.FindControl<Slider>("ChannelBSlider")!.Value = 20;
+        Find<Slider>(view, "ChannelBSlider")!.Value = 20;
         Assert.Equal(35, vm.ChannelA);
-        Click(window, view.FindControl<Button>("PlaybackButton")!);
+        Click(window, Find<Button>(view, "PlaybackButton")!);
         await WaitForAsync(() => vm.IsRunning);
         await Task.Delay(100, TestContext.Current.CancellationToken);
         await vm.TickAsync();
         Assert.True(transport.Outputs["sim-dual-01"].ChannelA > 0);
         Capture(window, "workspace.png");
 
-        Click(window, view.FindControl<Button>("StopAllButton")!);
+        Click(window, Find<Button>(view, "StopAllButton")!);
         await WaitForAsync(() => !vm.IsRunning);
         Assert.All(transport.Outputs.Values, output => Assert.Equal(0, output.ChannelA));
         Assert.Single(vm.Sessions);
@@ -196,11 +233,11 @@ public sealed class UiTests
         await vm.NavigateAsync("waves");
         vm.EditorName = "自定义波形";
         Dispatcher.UIThread.RunJobs();
-        Assert.NotNull(view.FindControl<WaveformPlot>("EditorPreviewPlot")!.Preset);
+        Assert.NotNull(Find<WaveformPlot>(view, "EditorPreviewPlot")!.Preset);
         vm.EditorShape = WaveShape.Custom;
         vm.EditorPoints = "0, 0.4, 1, 0.5, 0";
-        Click(window, view.FindControl<Button>("SaveWaveButton")!);
-        await WaitForAsync(() => vm.Presets.Count == 5);
+        Click(window, Find<Button>(view, "SaveWaveButton")!);
+        await WaitForAsync(() => vm.Presets.Count == WaveformPreset.BuiltIn.Count + 1);
         Assert.Equal("自定义波形", vm.SelectedPreset!.Name);
         Capture(window, "waveforms.png");
         window.Close();
@@ -216,8 +253,8 @@ public sealed class UiTests
         window.Show();
         await WaitForAsync(() => vm.Devices.Count == 5 && !vm.IsScanning);
         Dispatcher.UIThread.RunJobs();
-        Assert.False(view.FindControl<Border>("Sidebar")!.IsVisible);
-        Assert.True(view.FindControl<StackPanel>("CompactNav")!.IsVisible);
+        Assert.False(Find<Border>(view, "Sidebar")!.IsVisible);
+        Assert.True(Find<StackPanel>(view, "CompactNav")!.IsVisible);
         await vm.ToggleConnectionAsync(vm.Devices[0]);
         await vm.ToggleConnectionAsync(vm.Devices[1]);
         vm.LinkMode = true; vm.ChannelA = 25; vm.ChannelB = 15;
@@ -229,7 +266,7 @@ public sealed class UiTests
         await vm.NavigateAsync("waves");
         await vm.ImportAsync(WorkspaceStore.ExportPresets([WaveformPreset.BuiltIn[0] with { Id = Guid.NewGuid(), Name = "导入测试" }]));
         await vm.ImportAsync(WorkspaceStore.ExportPresets(vm.Presets.Select(p => p.Preset)));
-        Assert.Equal(5, vm.Presets.Count);
+        Assert.Equal(WaveformPreset.BuiltIn.Count + 1, vm.Presets.Count);
         await vm.SaveAsync();
         var loaded = await new WorkspaceStore(folder.Path).LoadAsync();
         Assert.Single(loaded.Presets);
@@ -237,8 +274,15 @@ public sealed class UiTests
         window.Close();
     }
 
+    private static T Find<T>(Control root, string name) where T : Control
+    {
+        Dispatcher.UIThread.RunJobs();
+        return root.GetLogicalDescendants().OfType<T>().Single(c => c.Name == name);
+    }
+
     private static void Click(Window window, Button button)
     {
+        button.BringIntoView();
         Dispatcher.UIThread.RunJobs();
         var point = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window);
         Assert.NotNull(point);

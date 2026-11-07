@@ -58,7 +58,8 @@ public sealed class SessionEngine(DeviceController controller)
                     await controller.SendAsync(id, new(
                         ChannelA * WaveformGenerator.Sample(_preset, elapsed.TotalSeconds),
                         ChannelB * WaveformGenerator.Sample(_preset, elapsed.TotalSeconds, OffsetChannelB ? 0.5 : 0),
-                        _preset.Frequency));
+                        _preset.Frequency, WaveformGenerator.ReferenceSample(_preset, elapsed.TotalSeconds),
+                        WaveformGenerator.ReferenceSample(_preset, elapsed.TotalSeconds, OffsetChannelB ? 0.5 : 0)));
                     var output = controller.Connections[id].Output;
                     _peakA = Math.Max(_peakA, output.ChannelA);
                     _peakB = Math.Max(_peakB, output.ChannelB);

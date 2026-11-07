@@ -7,6 +7,7 @@ namespace YokoWave.Tests;
 public sealed class CoreTests
 {
     private static DeviceDescriptor Device(string id = "one", DeviceKind kind = DeviceKind.DualChannel) => new(id, id, kind, 90, -40);
+    private static WaveformPreset Sine() => new(Guid.NewGuid(), "test", WaveShape.Sine, 4, 20);
 
     [Theory]
     [InlineData(WaveShape.Sine)]
@@ -16,7 +17,7 @@ public sealed class CoreTests
     [InlineData(WaveShape.Custom)]
     public void WaveformsStayNormalizedAndRepeat(WaveShape shape)
     {
-        var preset = new WaveformPreset(Guid.NewGuid(), "test", shape, 4, 20, "", [0, 0.3, 1, 0]);
+        var preset = new WaveformPreset(Guid.NewGuid(), "test", shape, 4, 20, [0, 0.3, 1, 0]);
         for (var i = -100; i < 100; i++)
         {
             var time = i / 10d;
@@ -77,7 +78,7 @@ public sealed class CoreTests
         var engine = new SessionEngine(controller) { ChannelA = 40, ChannelB = 30, OffsetChannelB = false };
         SessionRecord? completed = null;
         engine.Completed += (_, record) => completed = record;
-        await engine.StartAsync(["one", "two"], WaveformPreset.BuiltIn[0], TimeSpan.FromSeconds(4));
+        await engine.StartAsync(["one", "two"], Sine(), TimeSpan.FromSeconds(4));
         await engine.AdvanceAsync(TimeSpan.FromSeconds(2));
         Assert.Equal(15, transport.Latest["one"].ChannelA);
         Assert.Equal(40, transport.Latest["two"].ChannelA);
@@ -100,7 +101,7 @@ public sealed class CoreTests
         await controller.ConnectAsync(Device("one"), ct: TestContext.Current.CancellationToken);
         await controller.ConnectAsync(Device("two"), ct: TestContext.Current.CancellationToken);
         var engine = new SessionEngine(controller) { ChannelA = 30 };
-        await engine.StartAsync(["one", "two"], WaveformPreset.BuiltIn[0], TimeSpan.FromMinutes(1));
+        await engine.StartAsync(["one", "two"], Sine(), TimeSpan.FromMinutes(1));
         transport.FailId = "two";
         await Assert.ThrowsAnyAsync<Exception>(() => engine.AdvanceAsync(TimeSpan.FromSeconds(2)));
         Assert.False(engine.IsRunning);
@@ -115,7 +116,7 @@ public sealed class CoreTests
         await using var controller = new DeviceController(transport);
         await controller.ConnectAsync(Device(), ct: TestContext.Current.CancellationToken);
         var engine = new SessionEngine(controller) { ChannelA = 40 };
-        await engine.StartAsync(["one"], WaveformPreset.BuiltIn[0], TimeSpan.FromMinutes(1));
+        await engine.StartAsync(["one"], Sine(), TimeSpan.FromMinutes(1));
         await Task.WhenAll(engine.AdvanceAsync(TimeSpan.FromSeconds(2)), engine.StopAsync());
         await engine.AdvanceAsync(TimeSpan.FromSeconds(3));
         Assert.False(engine.IsRunning);
@@ -130,7 +131,7 @@ public sealed class CoreTests
         var custom = WaveformPreset.BuiltIn[0] with { Id = Guid.NewGuid(), Name = "自定义" };
         await store.SaveAsync(new(1, [custom], [], new(35, 5, false)));
         var loaded = await store.LoadAsync();
-        Assert.Equal(custom, Assert.Single(loaded.Presets));
+        Assert.Equivalent(custom, Assert.Single(loaded.Presets));
         Assert.Equal(35, loaded.Settings.DefaultLimit);
         await File.WriteAllTextAsync(store.FilePath, "broken", TestContext.Current.CancellationToken);
         Assert.Empty((await store.LoadAsync()).Presets);

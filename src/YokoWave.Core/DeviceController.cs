@@ -57,9 +57,12 @@ public sealed class DeviceController(IDeviceTransport transport) : IAsyncDisposa
 
     private async Task WriteCoreAsync(DeviceConnection connection, OutputFrame frame, CancellationToken ct)
     {
-        var output = new OutputFrame(Math.Min(Clamp(frame.ChannelA), connection.Limit),
-            connection.Device.Kind == DeviceKind.DualChannel ? Math.Min(Clamp(frame.ChannelB), connection.Limit) : 0,
-            double.IsFinite(frame.Frequency) ? Math.Clamp(frame.Frequency, 1, 100) : 1);
+        var output = frame with
+        {
+            ChannelA = Math.Min(Clamp(frame.ChannelA), connection.Limit),
+            ChannelB = connection.Device.Kind == DeviceKind.DualChannel ? Math.Min(Clamp(frame.ChannelB), connection.Limit) : 0,
+            Frequency = double.IsFinite(frame.Frequency) ? Math.Clamp(frame.Frequency, 1, 100) : 1
+        };
         await transport.SendAsync(connection.Device.Id, output, ct);
         connection.Output = output;
     }

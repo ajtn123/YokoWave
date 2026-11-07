@@ -51,25 +51,26 @@ public sealed class DeviceItem : ObservableObject
 
 public sealed class PresetItem(WaveformPreset preset) : ObservableObject
 {
-    public WaveformPreset Preset => IsBuiltIn ? preset with { Name = Name, Description = Description } : preset;
-    public string Name => IsBuiltIn ? L10n.Get($"Wave.{preset.Shape}.Name") : preset.Name;
-    public string Description => IsBuiltIn ? L10n.Get($"Wave.{preset.Shape}.Description") : preset.Description;
-    public string Detail => L10n.Format("Wave.Detail", preset.PeriodSeconds, preset.Frequency);
+    public WaveformPreset Preset => IsBuiltIn ? preset with { Name = Name } : preset;
+    public string Name => IsBuiltIn ? DefaultWaveformCatalog.Name(preset.Id) : preset.Name;
+    public string Detail => preset.Shape == WaveShape.Sampled
+        ? L10n.Format("Wave.SampledDetail", preset.Samples?.Length ?? 0, preset.PeriodSeconds, L10n.Get($"Wave.Family{preset.Family}"))
+        : L10n.Format("Wave.Detail", preset.PeriodSeconds, preset.Frequency);
     public string ShapeLabel => L10n.Get($"Shape.{preset.Shape}");
-    public bool IsBuiltIn => WaveformPreset.BuiltIn.Any(p => p.Id == preset.Id);
+    public bool IsBuiltIn => DefaultWaveformCatalog.Contains(preset.Id);
     public string Origin => L10n.Get(IsBuiltIn ? "Wave.BuiltIn" : "Wave.CustomOrigin");
     public override string ToString() => Name;
     public void RefreshLocalization()
     {
-        foreach (var property in new[] { nameof(Preset), nameof(Name), nameof(Description), nameof(Detail), nameof(ShapeLabel), nameof(Origin) }) Raise(property);
+        foreach (var property in new[] { nameof(Preset), nameof(Name), nameof(Detail), nameof(ShapeLabel), nameof(Origin) }) Raise(property);
     }
 }
 
 public sealed class SessionItem(SessionRecord record) : ObservableObject
 {
     public SessionRecord Record { get; } = record;
-    public string Name => WaveformPreset.BuiltIn.FirstOrDefault(p => p.Id == Record.WaveformId) is { } builtIn
-        ? L10n.Get($"Wave.{builtIn.Shape}.Name") : Record.WaveformName;
+    public string Name => Record.WaveformId is { } id && DefaultWaveformCatalog.Contains(id)
+        ? DefaultWaveformCatalog.Name(id) : Record.WaveformName;
     public string Date => Record.StartedAt.ToLocalTime().ToString(L10n.Get("History.DateFormat"), L10n.Current.Culture);
     public string Duration => TimeSpan.FromSeconds(Record.DurationSeconds).ToString(Record.DurationSeconds >= 3600 ? @"h\:mm\:ss" : @"mm\:ss");
     public string Detail => L10n.Format("History.Detail", Record.DeviceCount, Record.PeakA, Record.PeakB, new StoredReason(Record.Reason));

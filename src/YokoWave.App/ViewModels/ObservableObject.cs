@@ -25,14 +25,15 @@ public sealed class ActionCommand(Action execute) : ICommand
     public void Execute(object? parameter) => execute();
 }
 
-public sealed class AsyncCommand(Func<Task> execute, Action<Exception> onError) : ICommand
+public sealed class AsyncCommand(Func<Task> execute, Action<Exception> onError, Func<bool>? canExecute = null) : ICommand
 {
     private bool _executing;
     public event EventHandler? CanExecuteChanged;
-    public bool CanExecute(object? parameter) => !_executing;
+    public bool CanExecute(object? parameter) => !_executing && (canExecute?.Invoke() ?? true);
+    public void NotifyCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
     public async void Execute(object? parameter)
     {
-        if (_executing) return;
+        if (!CanExecute(parameter)) return;
         _executing = true;
         CanExecuteChanged?.Invoke(this, EventArgs.Empty);
         try { await execute(); }

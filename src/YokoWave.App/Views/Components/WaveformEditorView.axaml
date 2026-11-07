@@ -1,0 +1,46 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:YokoWave.App.ViewModels"
+             xmlns:l="using:YokoWave.App.Localization"
+             xmlns:controls="using:YokoWave.App.Controls"
+             xmlns:components="using:YokoWave.App.Views.Components"
+             x:Class="YokoWave.App.Views.Components.WaveformEditorView"
+             x:DataType="vm:MainViewModel">
+  <Border Classes="card" Padding="24">
+    <StackPanel Spacing="16">
+      <TextBlock Text="{l:Loc Wave.Editor}" FontSize="16" FontWeight="SemiBold" />
+      <Grid ColumnDefinitions="*,18,*" RowDefinitions="Auto,12,Auto,12,Auto">
+        <StackPanel Spacing="7">
+          <TextBlock Text="{l:Loc Wave.Name}" Classes="muted" FontSize="11" />
+          <TextBox x:Name="WaveNameInput" Text="{Binding EditorName}" MaxLength="60" />
+        </StackPanel>
+        <StackPanel Grid.Column="2" Spacing="7">
+          <TextBlock Text="{l:Loc Wave.Shape}" Classes="muted" FontSize="10" />
+          <ComboBox x:Name="ShapePicker" ItemsSource="{Binding Shapes}" SelectedItem="{Binding SelectedShape}" HorizontalAlignment="Stretch">
+            <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:ShapeItem"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+          </ComboBox>
+        </StackPanel>
+        <StackPanel Grid.Row="2" Spacing="7">
+          <TextBlock Text="{l:Loc Wave.Period}" Classes="muted" FontSize="11" />
+          <NumericUpDown Value="{Binding EditorPeriod}" Minimum="0.2" Maximum="60" Increment="0.2" FormatString="0.0" />
+        </StackPanel>
+        <StackPanel Grid.Row="2" Grid.Column="2" Spacing="7" IsVisible="{Binding IsGeneratedEditor}">
+          <TextBlock Text="{l:Loc Wave.Frequency}" Classes="muted" FontSize="11" />
+          <NumericUpDown Value="{Binding EditorFrequency}" Minimum="1" Maximum="100" Increment="1" FormatString="0" />
+        </StackPanel>
+        <StackPanel Grid.Row="4" Grid.ColumnSpan="3" Spacing="7" IsVisible="{Binding IsGeneratedEditor}">
+          <TextBlock Text="{l:Loc Wave.PointsHelp}" Classes="muted" FontSize="11" />
+          <TextBox Text="{Binding EditorPoints}" />
+        </StackPanel>
+        <StackPanel Grid.Row="4" Grid.ColumnSpan="3" Spacing="7" IsVisible="{Binding IsSampledEditor}">
+          <TextBlock Text="{l:Loc Wave.Samples}" Classes="muted" FontSize="11" />
+          <TextBlock Text="{l:Loc Wave.SamplesHelp}" Classes="muted" FontSize="10" TextWrapping="Wrap" />
+          <TextBox Text="{Binding EditorSamples}" AcceptsReturn="True" Height="160" FontFamily="Cascadia Code, monospace" FontSize="11" />
+        </StackPanel>
+      </Grid>
+      <TextBlock Text="{l:Loc Wave.EditorPreview}" Classes="muted" FontSize="10" />
+      <controls:WaveformPlot x:Name="EditorPreviewPlot" Preset="{Binding EditorPreview}" ShowGrid="False" Height="65" AmplitudeA="85" AmplitudeB="0" />
+      <Button x:Name="SaveWaveButton" Classes="primary" Command="{Binding SaveWaveCommand}" Content="{l:Loc Wave.Save}" />
+    </StackPanel>
+  </Border>
+</UserControl>
