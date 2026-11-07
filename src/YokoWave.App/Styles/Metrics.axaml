@@ -37,7 +37,6 @@
   <Thickness x:Key="Padding.Input">10,9</Thickness>
   <Thickness x:Key="Padding.Navigation">16,13</Thickness>
   <Thickness x:Key="Padding.Device">14</Thickness>
-  <Thickness x:Key="Padding.Badge">12,7</Thickness>
   <Thickness x:Key="Padding.Header">30,23</Thickness>
   <Thickness x:Key="Padding.Status">24,12</Thickness>
   <Thickness x:Key="Margin.Content">30,24,30,28</Thickness>
@@ -56,7 +55,7 @@
   <Thickness x:Key="Margin.AllSmall">8</Thickness>
   <Thickness x:Key="Margin.Symbol">0,-4,0,0</Thickness>
   <Thickness x:Key="Margin.VerticalSmall">0,8</Thickness>
-  <Thickness x:Key="Margin.DeviceActions">4,8,4,4</Thickness>
+  <Thickness x:Key="Margin.DeviceActions">14,0,14,12</Thickness>
   <Thickness x:Key="Border.Thin">1</Thickness>
   <Thickness x:Key="Border.Right">0,0,1,0</Thickness>
   <Thickness x:Key="Border.Bottom">0,0,0,1</Thickness>
@@ -65,7 +64,6 @@
   <CornerRadius x:Key="Radius.Control">8</CornerRadius>
   <CornerRadius x:Key="Radius.Compact">10</CornerRadius>
   <CornerRadius x:Key="Radius.Input">7</CornerRadius>
-  <CornerRadius x:Key="Radius.Pill">20</CornerRadius>
 
   <x:Double x:Key="Size.ControlMinHeight">38</x:Double>
   <x:Double x:Key="Size.SmallControlMinHeight">28</x:Double>
@@ -87,7 +85,6 @@
   <x:Double x:Key="Size.Hairline">1</x:Double>
   <x:Double x:Key="Layout.SidebarWidth">194</x:Double>
   <x:Double x:Key="Layout.CompactBreakpoint">1000</x:Double>
-  <x:Double x:Key="Layout.BadgeBreakpoint">800</x:Double>
   <x:Double x:Key="Layout.WorkspaceBreakpoint">740</x:Double>
   <x:Double x:Key="Layout.DevicePaneWidth">264</x:Double>
   <GridLength x:Key="Column.DeviceIcon">40</GridLength>

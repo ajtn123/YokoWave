@@ -43,25 +43,28 @@
         <ItemsControl ItemsSource="{Binding Devices}">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:DeviceItem">
-              <Border Classes="list-item">
+              <Border Classes="list-item device-card" Classes.active="{Binding IsSelected}">
                 <Grid RowDefinitions="Auto,Auto">
-                  <Button Classes="device" Classes.active="{Binding IsSelected}" Command="{Binding SelectCommand}">
+                  <Button Classes="device" Command="{Binding SelectCommand}">
                     <Grid RowDefinitions="Auto,Auto">
                       <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="{DynamicResource Column.DeviceIcon}" />
                         <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
                       </Grid.ColumnDefinitions>
                       <Border Grid.RowSpan="2" Classes="device-icon">
                         <TextBlock Text="{Binding Symbol}" HorizontalAlignment="Center" VerticalAlignment="Center" Classes="icon accent" />
                       </Border>
-                      <TextBlock Grid.Column="1" Text="{Binding Name}" Classes="small emphasis" />
-                      <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding Kind}" Classes="muted caption" Margin="{DynamicResource Margin.AboveSmall}" />
+                      <TextBlock Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding Name}" TextTrimming="CharacterEllipsis" Classes="small emphasis" />
+                      <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding Kind}" TextTrimming="CharacterEllipsis" Classes="muted caption" Margin="{DynamicResource Margin.AboveSmall}" />
+                      <TextBlock Grid.Column="2" Grid.Row="1" Text="{Binding Status}" Classes="muted caption" Margin="{DynamicResource Margin.AboveSmall}" />
                     </Grid>
                   </Button>
-                  <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="{DynamicResource Margin.DeviceActions}">
-                    <CheckBox IsChecked="{Binding IsIncluded}" IsEnabled="{Binding CanEditRouting}" ToolTip.Tip="{l:Loc Device.Include}" Classes="compact" />
-                    <TextBlock Grid.Column="1" Text="{Binding Status}" Classes="muted caption" VerticalAlignment="Center" />
-                    <Button Grid.Column="2" Classes="small" Command="{Binding ConnectCommand}" Content="{Binding ConnectionAction}" />
+                  <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Classes="columns" Margin="{DynamicResource Margin.DeviceActions}">
+                    <CheckBox Content="{l:Loc Device.IncludeLabel}" IsChecked="{Binding IsIncluded}" IsEnabled="{Binding CanEditRouting}"
+                              ToolTip.Tip="{l:Loc Device.Include}" Classes="compact caption" />
+                    <Button Grid.Column="1" Classes="small connection-action" Classes.primary="{Binding !IsConnected}" Classes.danger="{Binding IsConnected}"
+                            Command="{Binding ConnectCommand}" Content="{Binding ConnectionAction}" />
                   </Grid>
                 </Grid>
               </Border>

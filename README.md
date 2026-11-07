@@ -19,6 +19,7 @@ Windows、macOS 和 Linux 共用同一个桌面入口。真实 BLE 后端目前�
 
 1. 在「偏好设置 → 设备来源」选择「本地模拟」或「YOKONEX 蓝牙」，点击保存。切换来源会停止并断开现有设备。首次启动使用模拟模式。
 2. 点击「发现设备」，再连接一台或多台设备。实机需要开机并断开其他控制应用；连接后先关闭双通道，并等待设备确认，超时则断开。
+   卡片内的「参与联动」用于选择联动会话的目标设备，不会自动连接；独立控制模式只使用当前设备。连接按钮使用系统强调色，断开按钮使用警示色。
 3. 选择当前设备，设置输出上限。A / B 通道均为 0% 时也可开始会话，并在运行中调节强度。单通道设备始终忽略 B 通道。
 4. 定时开关、时长滑块和时间读数位于同一行。开启定时后拖动滑块选择时长，按方向键可精确调整 1 秒；开始后滑块变为逐渐缩短的剩余进度条，到期自动停止。滑块上限在「偏好设置 → 定时时长上限」配置（1 至 120 分钟）。关闭定时则持续运行，直到主动停止。运行后定时设置锁定。开启「多设备联动」后，会话控制已连接且勾选的设备；每台设备保留各自的输出上限。
    工作台的波形下拉框支持运行中切换：保留设备、强度、会话计时及剩余时长，新波形从起点播放。真实电击器拒绝电机波形并保留当前波形。
@@ -40,6 +41,8 @@ Windows、macOS 和 Linux 共用同一个桌面入口。真实 BLE 后端目前�
 所有应用颜色集中定义在 [`src/YokoWave.App/Styles/Palette.axaml`](src/YokoWave.App/Styles/Palette.axaml)。视图和绘图控件通过动态资源获取颜色，运行时切换主题无需重启。系统主题行为参考 [Avalonia Theme variants](https://docs.avaloniaui.net/docs/how-to/theme-switching-how-to) 和 [FluentTheme 文档](https://docs.avaloniaui.net/docs/styling/themes)。
 
 字号、间距、内边距、圆角与布局尺寸集中在 [`Styles/Metrics.axaml`](src/YokoWave.App/Styles/Metrics.axaml)。页面通过共享样式类组合标题、表单、卡片及操作行，修改通用外观无需逐页调整数值。样式分工见 [架构说明](docs/architecture.md)。
+
+应用图标的矢量源为 `src/YokoWave.App/Assets/YokoWave.svg`；同目录的多尺寸 `YokoWave.ico` 同时用于桌面窗口和 Windows EXE，普通构建即可嵌入图标。
 
 数据目录默认为 `LocalApplicationData/YokoWave/`，准确路径显示在设置页，也可用 `YOKOWAVE_DATA_DIR` 指定。`workspace.json` 只存累计次数与时长等基础统计，设置存入 `settings.json`，自定义波形存入 `presets.json`；这些存储文件均为紧凑 JSON。会话逐条写入 `sessions.jsonl`，每个文件最大 128 KiB，仅保留一个滚动旧文件 `sessions.1.jsonl`。历史列表显示两份日志中仍保留的记录，累计统计不会随滚动减少。开发阶段不迁移旧格式，启动读取到旧版数据时会重置。
 

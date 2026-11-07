@@ -7,6 +7,7 @@
     <OutputType>WinExe</OutputType>
     <AssemblyName>YokoWave</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>../YokoWave.App/Assets/YokoWave.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../YokoWave.App/YokoWave.App.csproj" />

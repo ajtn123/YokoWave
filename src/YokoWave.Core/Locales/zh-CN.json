@@ -48,6 +48,7 @@
   "Device.GroupHelp": "勾选设备后开启联动。每台设备仍遵循自己的输出上限。",
   "Device.HardwareReadings": "设备电量 / 广播信号",
   "Device.Include": "加入下次联动会话",
+  "Device.IncludeLabel": "参与联动",
   "Device.Independent": "独立控制",
   "Device.Limit": "输出上限",
   "Device.Linear": "线性设备",

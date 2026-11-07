@@ -35,7 +35,7 @@
     <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}" />
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
-  <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
+  <Style Selector="Button.primary:pointerover /template/ ContentPresenter, Button.primary:pressed /template/ ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}" />
   </Style>
@@ -44,6 +44,11 @@
     <Setter Property="Background" Value="{DynamicResource DangerSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource DangerBorderBrush}" />
     <Setter Property="BorderThickness" Value="{DynamicResource Border.Thin}" />
+  </Style>
+  <Style Selector="Button.danger:pointerover /template/ ContentPresenter, Button.danger:pressed /template/ ContentPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource DangerTextBrush}" />
+    <Setter Property="Background" Value="{DynamicResource DangerSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource DangerBorderBrush}" />
   </Style>
   <Style Selector="Button.nav">
     <Setter Property="HorizontalContentAlignment" Value="Left" />
@@ -62,14 +67,12 @@
     <Setter Property="HorizontalAlignment" Value="Stretch" />
     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
     <Setter Property="Padding" Value="{DynamicResource Padding.Device}" />
-    <Setter Property="Background" Value="{DynamicResource RaisedBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
-    <Setter Property="BorderThickness" Value="{DynamicResource Border.Thin}" />
+    <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+    <Setter Property="BorderThickness" Value="0" />
     <Setter Property="CornerRadius" Value="{DynamicResource Radius.Compact}" />
   </Style>
-  <Style Selector="Button.device.active">
+  <Style Selector="Button.device:pointerover /template/ ContentPresenter, Button.device:pressed /template/ ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource AccentTextBrush}" />
   </Style>
   <Style Selector="TextBox">
     <Setter Property="CornerRadius" Value="{DynamicResource Radius.Input}" />

@@ -33,7 +33,6 @@ public sealed partial class MainView : UserControl
         Sidebar.IsVisible = !compact;
         Shell.ColumnDefinitions[0].Width = new GridLength(compact ? 0 : (double)this.FindResource("Layout.SidebarWidth")!);
         CompactNav.IsVisible = compact;
-        ModeBadge.IsVisible = Bounds.Width > (double)this.FindResource("Layout.BadgeBreakpoint")!;
     }
 
 }

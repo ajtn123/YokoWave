@@ -45,13 +45,8 @@
               <Button Classes="small" Content="{l:Loc Nav.CompactSettings}" Command="{Binding SettingsCommand}" />
             </StackPanel>
           </StackPanel>
-          <StackPanel Grid.Column="1" VerticalAlignment="Center" Classes="actions">
-            <Border x:Name="ModeBadge" Classes="badge">
-              <TextBlock Text="{Binding ModeLabel}" Classes="label accent" />
-            </Border>
-            <Button x:Name="StopAllButton" Classes="danger" Content="{l:Loc Action.StopAll}" Command="{Binding EmergencyStopCommand}"
-                    ToolTip.Tip="{l:Loc Action.StopAllTip}" AutomationProperties.Name="{l:Loc Action.StopAllName}" />
-          </StackPanel>
+          <Button Grid.Column="1" x:Name="StopAllButton" Classes="danger" Content="{l:Loc Action.StopAll}" Command="{Binding EmergencyStopCommand}"
+                  VerticalAlignment="Center" ToolTip.Tip="{l:Loc Action.StopAllTip}" AutomationProperties.Name="{l:Loc Action.StopAllName}" />
         </Grid>
       </Border>
 

@@ -48,6 +48,7 @@
   "Device.GroupHelp": "Select devices to link their output. Each device keeps its own limit.",
   "Device.HardwareReadings": "Device battery / advertised signal",
   "Device.Include": "Include in the next linked session",
+  "Device.IncludeLabel": "Include in group",
   "Device.Independent": "Independent",
   "Device.Limit": "Output limit",
   "Device.Linear": "Linear device",

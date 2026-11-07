@@ -100,10 +100,14 @@
     <Setter Property="CornerRadius" Value="{DynamicResource Radius.Compact}" />
     <Setter Property="Padding" Value="{DynamicResource Padding.CardCompact}" />
   </Style>
-  <Style Selector="Border.badge">
+  <Style Selector="Border.device-card">
+    <Setter Property="Background" Value="{DynamicResource RaisedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="{DynamicResource Border.Thin}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Compact}" />
+  </Style>
+  <Style Selector="Border.device-card.active">
     <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
-    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Pill}" />
-    <Setter Property="Padding" Value="{DynamicResource Padding.Badge}" />
-    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentTextBrush}" />
   </Style>
 </Styles>
