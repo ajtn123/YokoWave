@@ -28,8 +28,25 @@
   <Style Selector="ComboBox.language-picker">
     <Setter Property="MinWidth" Value="{DynamicResource Size.LanguagePickerMinWidth}" />
   </Style>
-  <Style Selector="NumericUpDown.duration">
-    <Setter Property="Width" Value="{DynamicResource Size.DurationInputWidth}" />
+  <Style Selector="NumericUpDown.setting-value">
+    <Setter Property="Width" Value="{DynamicResource Size.SettingInputWidth}" />
+  </Style>
+  <Style Selector="Grid.timer-row">
+    <Setter Property="MinHeight" Value="{DynamicResource Size.ControlMinHeight}" />
+  </Style>
+  <Style Selector="ProgressBar.session-timer">
+    <Setter Property="Height" Value="{DynamicResource Size.TimerProgressHeight}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+    <Setter Property="Background" Value="{DynamicResource RaisedBrush}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+  </Style>
+  <Style Selector="TextBlock.timer-readout">
+    <Setter Property="Width" Value="{DynamicResource Size.TimerReadoutWidth}" />
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.Small}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="TextAlignment" Value="Right" />
+    <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
   <Style Selector="CheckBox.compact">
     <Setter Property="MinHeight" Value="{DynamicResource Size.CompactCheckMinHeight}" />

@@ -123,7 +123,8 @@ public sealed class WorkspaceStore(string directory)
         var settings = data.Settings;
         if (!double.IsFinite(settings.DefaultLimit) || settings.DefaultLimit is < 0 or > 100 ||
             !double.IsFinite(settings.SessionMinutes) || settings.SessionMinutes is < 0 or > 120 || settings.SessionSeconds is < 0 or > 59 ||
-            settings.SessionMinutes * 60 + settings.SessionSeconds > 7200 ||
+            settings.TimerLimitMinutes is < 1 or > 120 ||
+            settings.SessionMinutes * 60 + settings.SessionSeconds > settings.TimerLimitMinutes * 60 ||
             settings.TimerEnabled && settings.SessionMinutes * 60 + settings.SessionSeconds < 1)
             throw new LocalizedArgumentException("Error.InvalidSettings");
     }

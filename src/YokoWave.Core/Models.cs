@@ -104,7 +104,7 @@ public sealed record SessionRecord(Guid Id, DateTimeOffset StartedAt, double Dur
 
 public sealed record AppSettings(double DefaultLimit = 60, double SessionMinutes = 10,
     bool OffsetChannelB = true, string? Language = null, bool UseBluetooth = false,
-    bool TimerEnabled = true, int SessionSeconds = 0);
+    bool TimerEnabled = true, int SessionSeconds = 0, int TimerLimitMinutes = 120);
 
 public sealed record WorkspaceData(int SchemaVersion, List<WaveformPreset> Presets,
     List<SessionRecord> Sessions, AppSettings Settings, SessionStatistics? Statistics = null)

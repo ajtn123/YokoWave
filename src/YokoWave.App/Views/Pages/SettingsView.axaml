@@ -39,6 +39,13 @@
           <Slider Value="{Binding DefaultLimit}" Minimum="0" Maximum="100" TickFrequency="5" IsSnapToTickEnabled="True" />
           <TextBlock Grid.Column="1" Text="{Binding DefaultLimit, StringFormat='{}{0:0}%'}" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="accent" />
         </Grid>
+        <StackPanel Classes="field">
+          <TextBlock Text="{l:Loc Settings.TimerLimit}" Classes="field-label" />
+          <StackPanel Classes="inline">
+            <NumericUpDown x:Name="TimerLimitInput" Value="{Binding TimerLimitMinutes}" Minimum="1" Maximum="120" Increment="1" FormatString="0" Classes="setting-value" />
+            <TextBlock Text="{l:Loc Unit.Minutes}" Classes="muted label" VerticalAlignment="Center" />
+          </StackPanel>
+        </StackPanel>
         <CheckBox Content="{l:Loc Settings.Offset}" IsChecked="{Binding OffsetChannelB}" />
         <Button x:Name="SaveSettingsButton" Classes="primary" Command="{Binding SaveSettingsCommand}" Content="{l:Loc Settings.Save}" />
       </StackPanel>

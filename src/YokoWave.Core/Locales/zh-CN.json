@@ -163,6 +163,7 @@
   "Settings.Storage": "本地存储",
   "Settings.StorageHelp": "统计、设置、自定义波形与会话日志分文件保存在本机。",
   "Settings.Transport": "设备来源",
+  "Settings.TimerLimit": "定时时长上限",
   "Shape.Custom": "自定义",
   "Shape.Pulse": "脉冲",
   "Shape.Ramp": "阶梯",
@@ -226,12 +227,9 @@
   "Wave.Sine.Name": "正弦波",
   "Wave.Triangle.Name": "三角波",
   "Wave.Use": "使用所选波形 ↗",
-  "Session.TimerEnabled": "定时开启",
-  "Session.TimerDisabled": "定时关闭",
   "Session.Remaining": "剩余时间",
   "Session.Elapsed": "已运行",
   "Session.NoTimer": "不限时",
-  "Unit.Seconds": "秒",
   "Status.WaveChanged": "已切换波形：{0}。",
   "Error.SessionFileSize": "会话记录或日志文件超过 128 KiB。"
 }

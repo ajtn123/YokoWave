@@ -3,6 +3,7 @@
              xmlns:vm="using:YokoWave.App.ViewModels"
              xmlns:l="using:YokoWave.App.Localization"
              xmlns:controls="using:YokoWave.App.Controls"
+             xmlns:components="using:YokoWave.App.Views.Components"
              x:Class="YokoWave.App.Views.Pages.DeviceWorkspaceView"
              x:DataType="vm:MainViewModel">
   <StackPanel Classes="section">
@@ -166,14 +167,7 @@
               <TextBlock Text="{Binding RoutingSummary}" Classes="muted caption" VerticalAlignment="Center" />
               <CheckBox Grid.Column="1" IsChecked="{Binding OffsetChannelB}" IsEnabled="{Binding CanEditRouting}" Content="{l:Loc Channel.Offset}" Classes="caption compact" />
             </Grid>
-            <ToggleSwitch x:Name="TimerEnabledToggle" IsChecked="{Binding TimerEnabled}" IsEnabled="{Binding CanEditRouting}"
-                          OnContent="{l:Loc Session.TimerEnabled}" OffContent="{l:Loc Session.TimerDisabled}" Classes="label" />
-            <StackPanel IsEnabled="{Binding CanEditDuration}" Classes="inline">
-              <NumericUpDown x:Name="DurationInput" Value="{Binding SessionMinutes}" Minimum="0" Maximum="120" Increment="1" FormatString="0" Classes="duration" />
-              <TextBlock Text="{l:Loc Unit.Minutes}" Classes="muted caption" VerticalAlignment="Center" />
-              <NumericUpDown x:Name="DurationSecondsInput" Value="{Binding SessionSeconds}" Minimum="0" Maximum="{Binding MaximumSessionSeconds}" Increment="1" FormatString="00" Classes="duration" />
-              <TextBlock Text="{l:Loc Unit.Seconds}" Classes="muted caption" VerticalAlignment="Center" />
-            </StackPanel>
+            <components:SessionTimerView />
             <Button x:Name="PlaybackButton" Classes="primary" Command="{Binding PlaybackCommand}" Content="{Binding PlaybackLabel}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
           </StackPanel>
         </Border>

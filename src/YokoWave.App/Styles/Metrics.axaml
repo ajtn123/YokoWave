@@ -76,7 +76,9 @@
   <x:Double x:Key="Size.EditorPlotHeight">65</x:Double>
   <x:Double x:Key="Size.JsonEditorHeight">160</x:Double>
   <x:Double x:Key="Size.ChartHeight">180</x:Double>
-  <x:Double x:Key="Size.DurationInputWidth">120</x:Double>
+  <x:Double x:Key="Size.SettingInputWidth">120</x:Double>
+  <x:Double x:Key="Size.TimerReadoutWidth">76</x:Double>
+  <x:Double x:Key="Size.TimerProgressHeight">8</x:Double>
   <x:Double x:Key="Size.LanguagePickerMinWidth">220</x:Double>
   <x:Double x:Key="Size.SettingsMaxWidth">820</x:Double>
   <x:Double x:Key="Size.BrandIcon">34</x:Double>

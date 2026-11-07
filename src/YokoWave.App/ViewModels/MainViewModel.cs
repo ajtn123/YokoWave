@@ -34,8 +34,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private double _channelB;
     private double _safetyLimit = 60;
     private double _defaultLimit = 60;
-    private double _sessionMinutes = 10;
-    private double _sessionSeconds;
+    private double _sessionDurationSeconds = 600;
+    private double _timerLimitMinutes = 120;
     private bool _timerEnabled = true;
     private bool _hasSessionClock;
     private bool _offsetChannelB = true;
@@ -103,13 +103,18 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public string SessionState => IsRunning ? L10n.Get("Session.Running") : L10n.Get("Session.Idle");
     public string PlaybackLabel => IsRunning ? L10n.Get("Session.Stop") : L10n.Get("Session.Start");
     public string Elapsed => FormatDuration(_engine.Elapsed);
-    private TimeSpan? ConfiguredDuration => TimerEnabled ? TimeSpan.FromSeconds(SessionMinutes * 60 + SessionSeconds) : null;
+    private TimeSpan? ConfiguredDuration => TimerEnabled ? TimeSpan.FromSeconds(SessionDurationSeconds) : null;
     public bool IsTimedSession => _hasSessionClock ? _engine.Duration.HasValue : TimerEnabled;
     public bool CanEditDuration => !IsRunning && TimerEnabled;
     public string Remaining => (_hasSessionClock ? _engine.Remaining : ConfiguredDuration) is { } remaining
         ? FormatDuration(TimeSpan.FromSeconds(Math.Ceiling(remaining.TotalSeconds))) : L10n.Get("Session.NoTimer");
     public string SessionClock => IsTimedSession ? Remaining : Elapsed;
     public string SessionTimeLabel => L10n.Get(IsTimedSession ? "Session.Remaining" : "Session.Elapsed");
+    public bool ShowTimerProgress => IsRunning && IsTimedSession;
+    public double TimerProgress => _engine.Duration is { TotalSeconds: > 0 } duration
+        ? Math.Clamp((_engine.Remaining?.TotalSeconds ?? 0) / duration.TotalSeconds, 0, 1) : 0;
+    public string TimerReadout => !TimerEnabled ? L10n.Get("Session.NoTimer")
+        : ShowTimerProgress ? Remaining : FormatDuration(TimeSpan.FromSeconds(SessionDurationSeconds));
     public double Playhead => IsRunning ? _engine.WaveformElapsed.TotalSeconds / 12 % 1 : 0;
     public string TransportName => _controller.TransportName;
     public string StoragePath => _store.DirectoryPath;
@@ -199,23 +204,31 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         get => _timerEnabled;
         set { if (!IsRunning && Set(ref _timerEnabled, value)) OnTimerSettingsChanged(); }
     }
-    public double SessionMinutes
+    public double SessionDurationSeconds
     {
-        get => _sessionMinutes;
-        set { if (!IsRunning && double.IsFinite(value) && Set(ref _sessionMinutes, Math.Clamp(Math.Truncate(value), 0, 120))) OnTimerSettingsChanged(); }
+        get => _sessionDurationSeconds;
+        set { if (!IsRunning && double.IsFinite(value) && Set(ref _sessionDurationSeconds, Math.Clamp(Math.Round(value), 1, MaximumDurationSeconds))) OnTimerSettingsChanged(); }
     }
-    public double MaximumSessionSeconds => SessionMinutes == 120 ? 0 : 59;
-    public double SessionSeconds
+    public double MaximumDurationSeconds => TimerLimitMinutes * 60;
+    public double TimerLimitMinutes
     {
-        get => _sessionSeconds;
-        set { if (!IsRunning && double.IsFinite(value) && Set(ref _sessionSeconds, Math.Clamp(Math.Truncate(value), 0, MaximumSessionSeconds))) OnTimerSettingsChanged(); }
+        get => _timerLimitMinutes;
+        set
+        {
+            if (IsRunning || !double.IsFinite(value) || !Set(ref _timerLimitMinutes, Math.Clamp(Math.Truncate(value), 1, 120))) return;
+            if (_sessionDurationSeconds > MaximumDurationSeconds)
+            {
+                _sessionDurationSeconds = MaximumDurationSeconds;
+                Raise(nameof(SessionDurationSeconds));
+            }
+            Raise(nameof(MaximumDurationSeconds));
+            OnTimerSettingsChanged();
+        }
     }
     private void OnTimerSettingsChanged()
     {
-        if (_sessionMinutes == 120 && _sessionSeconds != 0) { _sessionSeconds = 0; Raise(nameof(SessionSeconds)); }
-        if (TimerEnabled && _sessionMinutes == 0 && _sessionSeconds == 0) { _sessionSeconds = 1; Raise(nameof(SessionSeconds)); }
         _hasSessionClock = false;
-        foreach (var property in new[] { nameof(MaximumSessionSeconds), nameof(CanEditDuration), nameof(IsTimedSession), nameof(Remaining), nameof(SessionClock), nameof(SessionTimeLabel) }) Raise(property);
+        foreach (var property in new[] { nameof(CanEditDuration), nameof(IsTimedSession), nameof(Remaining), nameof(SessionClock), nameof(SessionTimeLabel), nameof(ShowTimerProgress), nameof(TimerReadout) }) Raise(property);
     }
     public bool OffsetChannelB { get => _offsetChannelB; set { Set(ref _offsetChannelB, value); _engine.OffsetChannelB = value; } }
     public bool LinkMode { get => _linkMode; set { Set(ref _linkMode, value); Raise(nameof(RoutingSummary)); } }
@@ -290,9 +303,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         SelectedLanguage = Languages.First(l => l.Code == JsonLocalizer.NormalizeLanguage(data.Settings.Language ?? JsonLocalizer.SystemLanguage));
         DefaultLimit = data.Settings.DefaultLimit;
         TimerEnabled = data.Settings.TimerEnabled;
-        var configuredSeconds = Math.Round(data.Settings.SessionMinutes * 60 + data.Settings.SessionSeconds);
-        SessionMinutes = Math.Floor(configuredSeconds / 60);
-        SessionSeconds = configuredSeconds % 60;
+        TimerLimitMinutes = data.Settings.TimerLimitMinutes;
+        SessionDurationSeconds = data.Settings.SessionMinutes * 60 + data.Settings.SessionSeconds;
         OffsetChannelB = data.Settings.OffsetChannelB;
         SelectedTransport = TransportOptions.First(option => option.UseBluetooth == data.Settings.UseBluetooth);
         await ApplyTransportAsync();
@@ -499,7 +511,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     {
         await _store.SaveAsync(new(2,
             (presets ?? Presets.Select(p => p.Preset)).Where(p => !WaveformPreset.BuiltIn.Any(b => b.Id == p.Id)).ToList(),
-            _records.ToList(), new(DefaultLimit, SessionMinutes, OffsetChannelB, SelectedLanguage?.Code, IsBluetooth, TimerEnabled, (int)SessionSeconds), _statistics));
+            _records.ToList(), new(DefaultLimit, Math.Floor(SessionDurationSeconds / 60), OffsetChannelB, SelectedLanguage?.Code,
+                IsBluetooth, TimerEnabled, (int)SessionDurationSeconds % 60, (int)TimerLimitMinutes), _statistics));
         _statistics = new(Math.Max(_statistics.SessionCount, _store.Statistics.SessionCount),
             Math.Max(_statistics.TotalDurationSeconds, _store.Statistics.TotalDurationSeconds));
         _records.RemoveAll(record => _store.Journal.IsDiscarded(record.Id));
@@ -548,7 +561,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private void RefreshPlayback()
     {
         foreach (var property in new[] { nameof(IsRunning), nameof(CanEditRouting), nameof(CanEditDuration), nameof(IsTimedSession),
-            nameof(SessionState), nameof(PlaybackLabel), nameof(Elapsed), nameof(Remaining), nameof(SessionClock), nameof(SessionTimeLabel), nameof(Playhead) }) Raise(property);
+            nameof(SessionState), nameof(PlaybackLabel), nameof(Elapsed), nameof(Remaining), nameof(SessionClock), nameof(SessionTimeLabel),
+            nameof(ShowTimerProgress), nameof(TimerProgress), nameof(TimerReadout), nameof(Playhead) }) Raise(property);
         RefreshDevices();
     }
 
@@ -584,7 +598,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         foreach (var item in Activities) item.RefreshLocalization();
         foreach (var item in TransportOptions) item.RefreshLocalization();
         RefreshTransport();
-        foreach (var property in new[] { nameof(Remaining), nameof(SessionTimeLabel), nameof(SessionClock) }) Raise(property);
+        foreach (var property in new[] { nameof(Remaining), nameof(SessionTimeLabel), nameof(SessionClock), nameof(TimerReadout) }) Raise(property);
         foreach (var name in new[] { nameof(PageTitle), nameof(ScanLabel), nameof(Status), nameof(SessionState),
             nameof(PlaybackLabel), nameof(TotalTime), nameof(SelectedName), nameof(SelectedKind), nameof(SelectedId),
             nameof(SelectedBatteryLabel), nameof(SelectedOutputALabel), nameof(SelectedOutputBLabel),

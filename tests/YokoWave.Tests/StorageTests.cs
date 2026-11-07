@@ -16,7 +16,7 @@ public sealed class StorageTests
         var store = new WorkspaceStore(folder.Path);
         var preset = DefaultWaveformCatalog.Presets[0] with { Id = Guid.NewGuid(), Name = "custom" };
         var record = Record(1);
-        var settings = new AppSettings(SessionMinutes: 0, TimerEnabled: true, SessionSeconds: 3);
+        var settings = new AppSettings(SessionMinutes: 0, TimerEnabled: true, SessionSeconds: 3, TimerLimitMinutes: 5);
         await store.SaveAsync(new(2, [preset], [record], settings));
         var json = await File.ReadAllTextAsync(store.FilePath, TestContext.Current.CancellationToken);
         using var document = JsonDocument.Parse(json);
@@ -31,6 +31,16 @@ public sealed class StorageTests
         Assert.Equivalent(preset, Assert.Single(restored.Presets));
         Assert.Equal(record, Assert.Single(restored.Sessions));
         Assert.Equal(new SessionStatistics(1, 10), restored.Statistics);
+    }
+
+    [Fact]
+    public async Task SettingsRejectDurationsAboveTheConfiguredTimerLimit()
+    {
+        using var folder = new TestFolder();
+        var store = new WorkspaceStore(folder.Path);
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => store.SaveAsync(new(2, [], [], new(SessionMinutes: 6, TimerLimitMinutes: 5))));
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => store.SaveAsync(new(2, [], [], new(TimerLimitMinutes: 0))));
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => store.SaveAsync(new(2, [], [], new(TimerLimitMinutes: 121))));
     }
 
     [Fact]

@@ -1,0 +1,19 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:YokoWave.App.ViewModels"
+             xmlns:l="using:YokoWave.App.Localization"
+             x:Class="YokoWave.App.Views.Components.SessionTimerView"
+             x:DataType="vm:MainViewModel">
+  <Grid x:Name="TimerRow" ColumnDefinitions="Auto,*,Auto" Classes="columns timer-row">
+    <CheckBox x:Name="TimerEnabledToggle" IsChecked="{Binding TimerEnabled}" IsEnabled="{Binding CanEditRouting}"
+              AutomationProperties.Name="{l:Loc Session.Timer}" ToolTip.Tip="{l:Loc Session.Timer}" Classes="compact" />
+    <Grid Grid.Column="1">
+      <Slider x:Name="DurationSlider" Minimum="1" Maximum="{Binding MaximumDurationSeconds}" Value="{Binding SessionDurationSeconds}"
+              TickFrequency="1" SmallChange="1" LargeChange="60" IsSnapToTickEnabled="True" IsEnabled="{Binding CanEditDuration}"
+              IsVisible="{Binding !ShowTimerProgress}" AutomationProperties.Name="{l:Loc Session.Timer}" />
+      <ProgressBar x:Name="TimerProgressBar" Minimum="0" Maximum="1" Value="{Binding TimerProgress}"
+                   IsVisible="{Binding ShowTimerProgress}" AutomationProperties.Name="{l:Loc Session.Remaining}" Classes="session-timer" />
+    </Grid>
+    <TextBlock Grid.Column="2" x:Name="TimerReadoutText" Text="{Binding TimerReadout}" Classes="timer-readout" />
+  </Grid>
+</UserControl>
