@@ -102,7 +102,6 @@
   "Error.Samples": "采样序列需要 2–256 个有效采样帧。",
   "Error.SelectConnected": "请先连接并选择至少一个设备。",
   "Error.SelectWave": "请先选择波形。",
-  "Error.SetLevel": "先调节通道强度，再开始会话。",
   "Error.StopUnconfirmed": "部分设备未确认停止。",
   "Error.TransportConnected": "请先断开所有设备，再切换传输。",
   "Error.UnsupportedData": "不支持的数据格式。",

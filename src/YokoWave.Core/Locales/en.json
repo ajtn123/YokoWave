@@ -102,7 +102,6 @@
   "Error.Samples": "Sample sequences need 2–256 valid frames.",
   "Error.SelectConnected": "Connect and select at least one device first.",
   "Error.SelectWave": "Select a waveform first.",
-  "Error.SetLevel": "Set a channel level before starting a session.",
   "Error.StopUnconfirmed": "Some devices did not confirm that output stopped.",
   "Error.TransportConnected": "Disconnect all devices before changing the transport.",
   "Error.UnsupportedData": "Unsupported data format.",

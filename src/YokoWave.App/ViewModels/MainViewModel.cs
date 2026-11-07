@@ -413,8 +413,6 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         if (SelectedPreset is null) throw new LocalizedOperationException("Error.SelectWave");
         var targets = LinkMode ? Devices.Where(d => d.IsConnected && d.IsIncluded).Select(d => d.Id).ToArray()
             : SelectedDevice is { IsConnected: true } device ? [device.Id] : Array.Empty<string>();
-        if (ChannelA <= 0 && (!HasChannelB || ChannelB <= 0))
-            throw new LocalizedOperationException("Error.SetLevel");
         await _engine.StartAsync(targets, SelectedPreset.Preset, ConfiguredDuration);
         _hasSessionClock = true;
         _clock.Restart();

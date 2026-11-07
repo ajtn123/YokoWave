@@ -39,6 +39,52 @@ public static class TestAppBuilder
 public sealed class UiTests
 {
     [AvaloniaFact]
+    public async Task ZeroStrengthSessionStartsFromButtonAndAcceptsLiveStrengthChanges()
+    {
+        using var folder = new TestFolder();
+        var adapter = new FakeBluetoothAdapter();
+        await new WorkspaceStore(folder.Path).SaveAsync(new(2, [], [], new(UseBluetooth: true)));
+        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path),
+            () => new ElectricalBluetoothTransport(adapter));
+        var view = new MainView { DataContext = vm };
+        var window = new Window { Content = view, Width = 1000, Height = 900 };
+        window.Show();
+        await WaitForAsync(() => vm.Devices.Count == 1 && !vm.IsScanning);
+        await vm.ToggleConnectionAsync(vm.Devices[0]);
+        Assert.Equal(0, vm.ChannelA);
+        Assert.Equal(0, vm.ChannelB);
+        var link = adapter.Links[vm.SelectedDevice!.Id];
+        var button = Find<Button>(view, "PlaybackButton");
+        Click(window, button);
+        await WaitForAsync(() => vm.IsRunning);
+        await vm.TickAsync();
+        Assert.False(vm.IsError);
+        Assert.True(Find<ProgressBar>(view, "TimerProgressBar").IsVisible);
+        Assert.Equal(0, vm.SelectedDevice.OutputA);
+        Assert.Equal(0, vm.SelectedDevice.OutputB);
+        Assert.Equal(V2Protocol.Stop(), link.Writes[^1]);
+
+        var channelA = Find<Slider>(view, "ChannelASlider");
+        var channelB = Find<Slider>(view, "ChannelBSlider");
+        channelA.Value = 25;
+        channelB.Value = 15;
+        await vm.TickAsync();
+        Assert.Equal(25, vm.SelectedDevice.OutputA);
+        Assert.Equal(15, vm.SelectedDevice.OutputB);
+        channelA.Value = channelB.Value = 0;
+        await vm.TickAsync();
+        Assert.Equal(V2Protocol.Stop(), link.Writes[^1]);
+        Assert.True(vm.IsRunning);
+        Assert.Empty(vm.Sessions);
+        Click(window, button);
+        await WaitForAsync(() => !vm.IsRunning);
+        var record = Assert.Single(vm.Sessions).Record;
+        Assert.Equal(25, record.PeakA);
+        Assert.Equal(15, record.PeakB);
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public async Task TimerCountsSecondsAndLiveWaveChangeDoesNotRestartTheSession()
     {
         using var folder = new TestFolder();
