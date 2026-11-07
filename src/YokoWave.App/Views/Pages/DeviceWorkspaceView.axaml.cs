@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 
 namespace YokoWave.App.Views.Pages;
@@ -12,10 +13,12 @@ public sealed partial class DeviceWorkspaceView : UserControl
 
     private void UpdateLayoutMode()
     {
-        var stacked = Bounds.Width < 740;
-        WorkspaceGrid.ColumnDefinitions = ColumnDefinitions.Parse(stacked ? "*" : "264,22,*");
-        WorkspaceGrid.RowDefinitions = RowDefinitions.Parse(stacked ? "Auto,24,Auto" : "Auto");
-        Grid.SetColumn(ControlPane, stacked ? 0 : 2);
-        Grid.SetRow(ControlPane, stacked ? 2 : 0);
+        var stacked = Bounds.Width < (double)this.FindResource("Layout.WorkspaceBreakpoint")!;
+        WorkspaceGrid.ColumnDefinitions = stacked
+            ? new ColumnDefinitions("*")
+            : [new(new GridLength((double)this.FindResource("Layout.DevicePaneWidth")!)), new(GridLength.Star)];
+        WorkspaceGrid.RowDefinitions = RowDefinitions.Parse(stacked ? "Auto,Auto" : "Auto");
+        Grid.SetColumn(ControlPane, stacked ? 0 : 1);
+        Grid.SetRow(ControlPane, stacked ? 1 : 0);
     }
 }

@@ -1,0 +1,96 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:YokoWave.App.Controls"
+        xmlns:localization="using:YokoWave.Core.Localization">
+  <Style Selector="NumericUpDown">
+    <Setter Property="NumberFormat" Value="{ReflectionBinding Culture.NumberFormat, Source={x:Static localization:L10n.Current}}" />
+  </Style>
+  <Style Selector="controls|WaveformPlot">
+    <Setter Property="GridBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="ChannelABrush" Value="{DynamicResource AccentTextBrush}" />
+    <Setter Property="ChannelBBrush" Value="{DynamicResource ChannelBBrush}" />
+    <Setter Property="AreaBrush" Value="{DynamicResource AccentAreaBrush}" />
+    <Setter Property="PlayheadBrush" Value="{DynamicResource TextPrimaryBrush}" />
+  </Style>
+  <Style Selector="Window">
+    <Setter Property="Background" Value="{DynamicResource CanvasBrush}" />
+    <Setter Property="FontFamily" Value="{DynamicResource FontFamily.Ui}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+  </Style>
+  <Style Selector="Border.card">
+    <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="{DynamicResource Border.Thin}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Card}" />
+  </Style>
+  <Style Selector="Button">
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+    <Setter Property="Padding" Value="{DynamicResource Padding.Button}" />
+    <Setter Property="Background" Value="{DynamicResource RaisedBrush}" />
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.Small}" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.primary">
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}" />
+  </Style>
+  <Style Selector="Button.danger">
+    <Setter Property="Foreground" Value="{DynamicResource DangerTextBrush}" />
+    <Setter Property="Background" Value="{DynamicResource DangerSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource DangerBorderBrush}" />
+    <Setter Property="BorderThickness" Value="{DynamicResource Border.Thin}" />
+  </Style>
+  <Style Selector="Button.nav">
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+    <Setter Property="Padding" Value="{DynamicResource Padding.Navigation}" />
+    <Setter Property="Margin" Value="{DynamicResource Margin.Navigation}" />
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.Body}" />
+  </Style>
+  <Style Selector="Button.nav.active">
+    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+  </Style>
+  <Style Selector="Button.device">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Padding" Value="{DynamicResource Padding.Device}" />
+    <Setter Property="Background" Value="{DynamicResource RaisedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="{DynamicResource Border.Thin}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Compact}" />
+  </Style>
+  <Style Selector="Button.device.active">
+    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentTextBrush}" />
+  </Style>
+  <Style Selector="TextBox">
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Input}" />
+    <Setter Property="Background" Value="{DynamicResource InputBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="Padding" Value="{DynamicResource Padding.Input}" />
+  </Style>
+  <Style Selector="ComboBox">
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Input}" />
+    <Setter Property="Background" Value="{DynamicResource RaisedBrush}" />
+    <Setter Property="MinHeight" Value="{DynamicResource Size.ControlMinHeight}" />
+  </Style>
+  <Style Selector="Slider">
+    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+  </Style>
+  <Style Selector="CheckBox">
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.Small}" />
+  </Style>
+  <Style Selector="Button.small">
+    <Setter Property="Padding" Value="{DynamicResource Padding.ButtonSmall}" />
+    <Setter Property="MinHeight" Value="{DynamicResource Size.SmallControlMinHeight}" />
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.Label}" />
+  </Style>
+</Styles>

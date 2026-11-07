@@ -6,32 +6,32 @@
              xmlns:components="using:YokoWave.App.Views.Components"
              x:Class="YokoWave.App.Views.Pages.WaveformLibraryView"
              x:DataType="vm:MainViewModel">
-  <StackPanel Spacing="22">
+  <StackPanel Classes="section">
     <Grid ColumnDefinitions="*,Auto">
-      <StackPanel Spacing="6">
-        <TextBlock Text="{l:Loc Wave.LibraryHelp}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+      <StackPanel Classes="field">
+        <TextBlock Text="{l:Loc Wave.LibraryHelp}" Classes="muted label" TextWrapping="Wrap" />
       </StackPanel>
       <Button Grid.Column="1" Classes="primary" Command="{Binding NewWaveCommand}" Content="{l:Loc Wave.New}" VerticalAlignment="Center" />
     </Grid>
-    <ListBox x:Name="WaveList" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" Background="{DynamicResource TransparentBrush}" BorderThickness="0" Padding="0" MaxHeight="350" ScrollViewer.VerticalScrollBarVisibility="Auto">
+    <ListBox x:Name="WaveList" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" Classes="wave-library">
       <ListBox.ItemsPanel><ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate></ListBox.ItemsPanel>
       <ListBox.ItemTemplate>
         <DataTemplate x:DataType="vm:PresetItem">
-          <Border Classes="card" Width="238" Padding="16" Margin="0,0,8,8">
-            <StackPanel Spacing="10">
+          <Border Classes="card compact wave-tile">
+            <StackPanel Classes="items">
               <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                <TextBlock Grid.Column="1" Text="{Binding ShapeLabel}" Classes="muted" FontSize="10" />
+                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" Classes="card-title" />
+                <TextBlock Grid.Column="1" Text="{Binding ShapeLabel}" Classes="muted caption" />
               </Grid>
-              <controls:WaveformPlot Preset="{Binding Preset}" ShowGrid="False" Height="50" AmplitudeA="85" AmplitudeB="0" />
-              <TextBlock Text="{Binding Detail}" Foreground="{DynamicResource ChannelBBrush}" FontSize="10" />
-              <TextBlock Text="{Binding Origin}" Foreground="{DynamicResource TextMutedBrush}" FontSize="9" />
+              <controls:WaveformPlot Preset="{Binding Preset}" Classes="thumbnail" />
+              <TextBlock Text="{Binding Detail}" Classes="caption channel-b" />
+              <TextBlock Text="{Binding Origin}" Classes="fine-print muted" />
             </StackPanel>
           </Border>
         </DataTemplate>
       </ListBox.ItemTemplate>
     </ListBox>
-    <StackPanel Orientation="Horizontal" Spacing="10">
+    <StackPanel Classes="actions">
       <Button Classes="primary" Content="{l:Loc Wave.Use}" Command="{Binding UseWaveCommand}" />
       <Button Content="{l:Loc Wave.Edit}" Command="{Binding EditWaveCommand}" />
       <Button x:Name="DeleteWaveButton" Content="{l:Loc Wave.Delete}" Command="{Binding DeleteWaveCommand}" />

@@ -29,11 +29,11 @@ public sealed partial class MainView : UserControl
 
     private void UpdateLayoutMode()
     {
-        var compact = Bounds.Width < 1000;
+        var compact = Bounds.Width < (double)this.FindResource("Layout.CompactBreakpoint")!;
         Sidebar.IsVisible = !compact;
-        Shell.ColumnDefinitions[0].Width = new GridLength(compact ? 0 : 194);
+        Shell.ColumnDefinitions[0].Width = new GridLength(compact ? 0 : (double)this.FindResource("Layout.SidebarWidth")!);
         CompactNav.IsVisible = compact;
-        ModeBadge.IsVisible = Bounds.Width > 800;
+        ModeBadge.IsVisible = Bounds.Width > (double)this.FindResource("Layout.BadgeBreakpoint")!;
     }
 
 }

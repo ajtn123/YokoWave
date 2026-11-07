@@ -2,41 +2,48 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:YokoWave.App.ViewModels"
              xmlns:l="using:YokoWave.App.Localization"
-             xmlns:controls="using:YokoWave.App.Controls"
-             xmlns:components="using:YokoWave.App.Views.Components"
              x:Class="YokoWave.App.Views.Pages.SessionHistoryView"
              x:DataType="vm:MainViewModel">
-  <StackPanel Spacing="22">
-    <Grid ColumnDefinitions="*,16,*">
-      <Border Classes="card" Padding="24">
-        <StackPanel Spacing="10"><TextBlock Text="{l:Loc History.Completed}" Classes="muted" /><TextBlock Text="{Binding SessionCount}" FontSize="34" Foreground="{DynamicResource AccentTextBrush}" /></StackPanel>
+  <StackPanel Classes="section">
+    <Grid Classes="columns" ColumnDefinitions="*,*">
+      <Border Classes="card">
+        <StackPanel Classes="items"><TextBlock Text="{l:Loc History.Completed}" Classes="muted" /><TextBlock Text="{Binding SessionCount}" Classes="large-metric accent" /></StackPanel>
       </Border>
-      <Border Grid.Column="2" Classes="card" Padding="24">
-        <StackPanel Spacing="10"><TextBlock Text="{l:Loc History.Total}" Classes="muted" /><TextBlock Text="{Binding TotalTime}" FontSize="34" Foreground="{DynamicResource ChannelBBrush}" /></StackPanel>
+      <Border Grid.Column="1" Classes="card">
+        <StackPanel Classes="items"><TextBlock Text="{l:Loc History.Total}" Classes="muted" /><TextBlock Text="{Binding TotalTime}" Classes="large-metric channel-b" /></StackPanel>
       </Border>
     </Grid>
     <TextBlock Text="{l:Loc History.Recent}" Classes="title" />
-    <TextBlock Text="{l:Loc History.Help}" Classes="muted" FontSize="11" />
+    <TextBlock Text="{l:Loc History.Help}" Classes="muted label" />
     <ItemsControl ItemsSource="{Binding Sessions}">
       <ItemsControl.ItemTemplate>
         <DataTemplate x:DataType="vm:SessionItem">
-          <Border Classes="card" Padding="22,18" Margin="0,0,0,10">
-            <Grid ColumnDefinitions="110,*,Auto">
+          <Border Classes="card detail list-item">
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="{DynamicResource Column.HistoryDate}" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
               <TextBlock Text="{Binding Date}" Classes="muted" VerticalAlignment="Center" />
-              <StackPanel Grid.Column="1" Spacing="7"><TextBlock Text="{Binding Name}" FontWeight="SemiBold" /><TextBlock Text="{Binding Detail}" Classes="muted" FontSize="10" TextWrapping="Wrap" /></StackPanel>
-              <TextBlock Grid.Column="2" Text="{Binding Duration}" FontSize="20" Foreground="{DynamicResource AccentTextBrush}" VerticalAlignment="Center" />
+              <StackPanel Grid.Column="1" Classes="field"><TextBlock Text="{Binding Name}" Classes="emphasis" /><TextBlock Text="{Binding Detail}" Classes="muted caption" TextWrapping="Wrap" /></StackPanel>
+              <TextBlock Grid.Column="2" Text="{Binding Duration}" VerticalAlignment="Center" Classes="title accent" />
             </Grid>
           </Border>
         </DataTemplate>
       </ItemsControl.ItemTemplate>
     </ItemsControl>
-    <TextBlock Text="{l:Loc History.Activity}" FontSize="16" FontWeight="SemiBold" Margin="0,12,0,0" />
+    <TextBlock Text="{l:Loc History.Activity}" Margin="{DynamicResource Margin.AboveMedium}" Classes="section-title" />
     <ItemsControl ItemsSource="{Binding Activities}">
       <ItemsControl.ItemTemplate>
         <DataTemplate x:DataType="vm:ActivityItem">
-          <Grid ColumnDefinitions="85,*" Margin="0,8">
-            <TextBlock Text="{Binding Time}" Foreground="{DynamicResource TextMutedBrush}" FontSize="11" />
-            <TextBlock Grid.Column="1" Text="{Binding Text}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" TextWrapping="Wrap" />
+          <Grid Margin="{DynamicResource Margin.VerticalSmall}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="{DynamicResource Column.ActivityTime}" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{Binding Time}" Classes="label muted" />
+            <TextBlock Grid.Column="1" Text="{Binding Text}" TextWrapping="Wrap" Classes="label secondary" />
           </Grid>
         </DataTemplate>
       </ItemsControl.ItemTemplate>

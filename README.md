@@ -37,6 +37,8 @@ Windows、macOS 和 Linux 共用同一个桌面入口。当前已在 Windows 完
 
 所有应用颜色集中定义在 [`src/YokoWave.App/Styles/Palette.axaml`](src/YokoWave.App/Styles/Palette.axaml)。视图和绘图控件通过动态资源获取颜色，运行时切换主题无需重启。系统主题行为参考 [Avalonia Theme variants](https://docs.avaloniaui.net/docs/how-to/theme-switching-how-to) 和 [FluentTheme 文档](https://docs.avaloniaui.net/docs/styling/themes)。
 
+字号、间距、内边距、圆角与布局尺寸集中在 [`Styles/Metrics.axaml`](src/YokoWave.App/Styles/Metrics.axaml)。页面通过共享样式类组合标题、表单、卡片及操作行，修改通用外观无需逐页调整数值。样式分工见 [架构说明](docs/architecture.md)。
+
 自定义波形、偏好和最多 500 条会话记录保存到 `LocalApplicationData/YokoWave/workspace.json`；准确路径显示在设置页。可用 `YOKOWAVE_DATA_DIR` 环境变量指定其他目录。写入先创建同目录临时文件，再替换原文件；数据损坏时保留原文件并阻止覆盖。应用不访问原应用服务。
 
 ## 开发验证

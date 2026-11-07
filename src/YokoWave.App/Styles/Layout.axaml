@@ -1,0 +1,66 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Style Selector="StackPanel.section">
+    <Setter Property="Spacing" Value="{DynamicResource Space.Section}" />
+  </Style>
+  <Style Selector="StackPanel.group">
+    <Setter Property="Spacing" Value="{DynamicResource Space.Large}" />
+  </Style>
+  <Style Selector="StackPanel.items">
+    <Setter Property="Spacing" Value="{DynamicResource Space.Medium}" />
+  </Style>
+  <Style Selector="StackPanel.field, StackPanel.compact">
+    <Setter Property="Spacing" Value="{DynamicResource Space.Small}" />
+  </Style>
+  <Style Selector="StackPanel.actions">
+    <Setter Property="Orientation" Value="Horizontal" />
+    <Setter Property="Spacing" Value="{DynamicResource Space.Medium}" />
+  </Style>
+  <Style Selector="StackPanel.inline">
+    <Setter Property="Orientation" Value="Horizontal" />
+    <Setter Property="Spacing" Value="{DynamicResource Space.Small}" />
+  </Style>
+  <Style Selector="Grid.form, Grid.columns">
+    <Setter Property="ColumnSpacing" Value="{DynamicResource Space.Large}" />
+    <Setter Property="RowSpacing" Value="{DynamicResource Space.Medium}" />
+  </Style>
+  <Style Selector="Grid.summary">
+    <Setter Property="ColumnSpacing" Value="{DynamicResource Space.Medium}" />
+  </Style>
+  <Style Selector="Grid.workspace">
+    <Setter Property="ColumnSpacing" Value="{DynamicResource Space.Section}" />
+    <Setter Property="RowSpacing" Value="{DynamicResource Space.Section}" />
+  </Style>
+  <Style Selector="Border.card">
+    <Setter Property="Padding" Value="{DynamicResource Padding.Card}" />
+  </Style>
+  <Style Selector="Border.card.compact">
+    <Setter Property="Padding" Value="{DynamicResource Padding.CardCompact}" />
+  </Style>
+  <Style Selector="Border.card.detail">
+    <Setter Property="Padding" Value="{DynamicResource Padding.CardDetail}" />
+  </Style>
+  <Style Selector="Border.card.summary">
+    <Setter Property="Padding" Value="{DynamicResource Padding.Summary}" />
+  </Style>
+  <Style Selector="Border.card.channel">
+    <Setter Property="Padding" Value="{DynamicResource Padding.Channel}" />
+  </Style>
+  <Style Selector="Border.card.output">
+    <Setter Property="Padding" Value="{DynamicResource Padding.Output}" />
+  </Style>
+  <Style Selector="Border.card.session">
+    <Setter Property="Padding" Value="{DynamicResource Padding.Session}" />
+  </Style>
+  <Style Selector="Border.list-item">
+    <Setter Property="Margin" Value="{DynamicResource Margin.ListItem}" />
+  </Style>
+  <Style Selector="Border.wave-tile">
+    <Setter Property="Width" Value="{DynamicResource Size.WaveTile}" />
+    <Setter Property="Margin" Value="{DynamicResource Margin.Tile}" />
+  </Style>
+  <Style Selector="StackPanel.settings">
+    <Setter Property="MaxWidth" Value="{DynamicResource Size.SettingsMaxWidth}" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+  </Style>
+</Styles>

@@ -1,0 +1,92 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:YokoWave.App.Controls">
+  <Style Selector="TextBox.code-editor">
+    <Setter Property="AcceptsReturn" Value="True" />
+    <Setter Property="Height" Value="{DynamicResource Size.JsonEditorHeight}" />
+    <Setter Property="FontFamily" Value="{DynamicResource FontFamily.Code}" />
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.Label}" />
+  </Style>
+  <Style Selector="controls|WaveformPlot.preview, controls|WaveformPlot.thumbnail">
+    <Setter Property="ShowGrid" Value="False" />
+    <Setter Property="AmplitudeA" Value="85" />
+    <Setter Property="AmplitudeB" Value="0" />
+  </Style>
+  <Style Selector="controls|WaveformPlot.preview">
+    <Setter Property="Height" Value="{DynamicResource Size.EditorPlotHeight}" />
+  </Style>
+  <Style Selector="controls|WaveformPlot.thumbnail">
+    <Setter Property="Height" Value="{DynamicResource Size.MiniPlotHeight}" />
+  </Style>
+  <Style Selector="ListBox.wave-library">
+    <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="MaxHeight" Value="{DynamicResource Size.WaveListMaxHeight}" />
+    <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+  </Style>
+  <Style Selector="ComboBox.language-picker">
+    <Setter Property="MinWidth" Value="{DynamicResource Size.LanguagePickerMinWidth}" />
+  </Style>
+  <Style Selector="NumericUpDown.duration">
+    <Setter Property="Width" Value="{DynamicResource Size.DurationInputWidth}" />
+  </Style>
+  <Style Selector="CheckBox.compact">
+    <Setter Property="MinHeight" Value="{DynamicResource Size.CompactCheckMinHeight}" />
+  </Style>
+  <Style Selector="Grid.chart">
+    <Setter Property="Height" Value="{DynamicResource Size.ChartHeight}" />
+  </Style>
+  <Style Selector="Border.sidebar">
+    <Setter Property="Background" Value="{DynamicResource SidebarBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="{DynamicResource Border.Right}" />
+  </Style>
+  <Style Selector="Border.header">
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="{DynamicResource Border.Bottom}" />
+    <Setter Property="Padding" Value="{DynamicResource Padding.Header}" />
+  </Style>
+  <Style Selector="Border.statusbar">
+    <Setter Property="Background" Value="{DynamicResource SidebarBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="{DynamicResource Border.Top}" />
+    <Setter Property="Padding" Value="{DynamicResource Padding.Status}" />
+  </Style>
+  <Style Selector="Border.brand-icon">
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Compact}" />
+    <Setter Property="Width" Value="{DynamicResource Size.BrandIcon}" />
+    <Setter Property="Height" Value="{DynamicResource Size.BrandIcon}" />
+  </Style>
+  <Style Selector="Border.device-icon">
+    <Setter Property="Background" Value="{DynamicResource RaisedBrush}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Compact}" />
+    <Setter Property="Width" Value="{DynamicResource Size.DeviceIconWidth}" />
+    <Setter Property="Height" Value="{DynamicResource Size.DeviceIconHeight}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.divider">
+    <Setter Property="Height" Value="{DynamicResource Size.Hairline}" />
+    <Setter Property="Background" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="Margin" Value="{DynamicResource Margin.Divider}" />
+  </Style>
+  <Style Selector="Border.mode-panel">
+    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="{DynamicResource Border.Thin}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Compact}" />
+    <Setter Property="Padding" Value="{DynamicResource Padding.Device}" />
+  </Style>
+  <Style Selector="Border.inset-panel">
+    <Setter Property="Background" Value="{DynamicResource RaisedBrush}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Compact}" />
+    <Setter Property="Padding" Value="{DynamicResource Padding.CardCompact}" />
+  </Style>
+  <Style Selector="Border.badge">
+    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Pill}" />
+    <Setter Property="Padding" Value="{DynamicResource Padding.Badge}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+</Styles>

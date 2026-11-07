@@ -38,7 +38,11 @@
 
 `App.axaml` 的 `RequestedThemeVariant="Default"` 跟随系统。FluentTheme 不设置自定义 Accent，从平台读取系统强调色。所有固定颜色和语义资源集中在 `Styles/Palette.axaml` 的 Light / Dark 字典中。
 
-界面继承平台默认字体，通过系统已有字体提供字形回退；不捆绑字体包，也不固定具体字体名称。包括 JSON 编辑框在内的控件均继承同一字体选择。平台字体行为参考 [Avalonia Typography](https://docs.avaloniaui.net/docs/styling/typography)。
+应用使用系统已有字体，不捆绑字体包；当前 UI 和代码编辑框的字体回退配置统一保存在 `Styles/Metrics.axaml`，控件通过样式获取。平台字体行为参考 [Avalonia Typography](https://docs.avaloniaui.net/docs/styling/typography)。
+
+`Styles/Metrics.axaml` 还集中定义字号、间距尺度、内边距、圆角、控件尺寸、固定列宽及响应式断点。`Typography.axaml` 定义标题、标签、说明与数值等文字角色，`Layout.axaml` 定义卡片、分组、表单和操作行，`Controls.axaml` 定义基础控件外观，`Components.axaml` 定义代码编辑器、波形预览和导航外壳。`App.axaml` 只组合资源字典与样式文件。
+
+视图使用语义样式，例如 `Border.card`、`TextBlock.section-title`、`TextBlock.field-label`、`StackPanel.field` 和 `Grid.form`；表单使用真正的 `RowSpacing` / `ColumnSpacing`，不插入空白行列。外观资源通过 `DynamicResource` 引用。视图中仍保留数据绑定、行列索引、输入范围与格式等功能信息，窗口初始尺寸保留用户设置。
 
 视图与绘图控件均使用动态资源。自定义图表把画笔暴露为 Avalonia 样式属性，资源变化会触发重绘。强调色按钮通过相对亮度计算选择合适的前景色。通道 B 保留独立的语义颜色，避免两条曲线无法区分。
 

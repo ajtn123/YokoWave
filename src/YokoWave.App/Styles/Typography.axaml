@@ -1,0 +1,78 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Style Selector="TextBlock">
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.Body}" />
+  </Style>
+  <Style Selector="TextBlock.small">
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.Small}" />
+  </Style>
+  <Style Selector="TextBlock.label, SelectableTextBlock.label, ToggleSwitch.label">
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource FontSize.Label}" />
+  </Style>
+  <Style Selector="TextBlock.field-label">
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.Label}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+  </Style>
+  <Style Selector="TextBlock.caption, CheckBox.caption">
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource FontSize.Caption}" />
+  </Style>
+  <Style Selector="TextBlock.fine-print">
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.FinePrint}" />
+  </Style>
+  <Style Selector="TextBlock.card-title">
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.CardTitle}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.section-title">
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.SectionTitle}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.title">
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.Title}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.page-title">
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.PageTitle}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.metric">
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.Metric}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.large-metric">
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.LargeMetric}" />
+  </Style>
+  <Style Selector="TextBlock.emphasis">
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.muted">
+    <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+  </Style>
+  <Style Selector="TextBlock.secondary">
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+  </Style>
+  <Style Selector="TextBlock.accent">
+    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+  </Style>
+  <Style Selector="TextBlock.channel-b, SelectableTextBlock.channel-b">
+    <Setter Property="Foreground" Value="{DynamicResource ChannelBBrush}" />
+  </Style>
+  <Style Selector="TextBlock.error">
+    <Setter Property="Foreground" Value="{DynamicResource DangerTextBrush}" />
+  </Style>
+  <Style Selector="TextBlock.help">
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="LineHeight" Value="{DynamicResource LineHeight.Help}" />
+  </Style>
+  <Style Selector="TextBlock.caption.help">
+    <Setter Property="LineHeight" Value="{DynamicResource LineHeight.Caption}" />
+  </Style>
+  <Style Selector="TextBlock.icon">
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.Icon}" />
+  </Style>
+  <Style Selector="TextBlock.brand">
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.Brand}" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="LetterSpacing" Value="-0.6" />
+  </Style>
+</Styles>

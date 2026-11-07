@@ -3,60 +3,63 @@
              xmlns:vm="using:YokoWave.App.ViewModels"
              xmlns:l="using:YokoWave.App.Localization"
              xmlns:controls="using:YokoWave.App.Controls"
-             xmlns:components="using:YokoWave.App.Views.Components"
              x:Class="YokoWave.App.Views.Pages.DeviceWorkspaceView"
              x:DataType="vm:MainViewModel">
-  <StackPanel Spacing="24">
-    <Grid ColumnDefinitions="*,12,*,12,*">
-      <Border Classes="card" Padding="18,15">
+  <StackPanel Classes="section">
+    <Grid Classes="summary" ColumnDefinitions="*,*,*">
+      <Border Classes="card summary">
         <Grid ColumnDefinitions="*,Auto">
-          <StackPanel Spacing="8">
-            <TextBlock Text="{l:Loc Device.Count}" Classes="muted" FontSize="11" />
-            <TextBlock Text="{Binding ConnectedSummary}" FontSize="26" FontWeight="SemiBold" />
+          <StackPanel Classes="field">
+            <TextBlock Text="{l:Loc Device.Count}" Classes="muted label" />
+            <TextBlock Text="{Binding ConnectedSummary}" Classes="metric" />
           </StackPanel>
-          <TextBlock Grid.Column="1" Text="⌁" FontSize="31" Foreground="{DynamicResource AccentTextBrush}" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="1" Text="⌁" VerticalAlignment="Center" Classes="icon accent" />
         </Grid>
       </Border>
-      <Border Grid.Column="2" Classes="card" Padding="18,15">
-        <StackPanel Spacing="8">
-          <TextBlock Text="{l:Loc Session.Current}" Classes="muted" FontSize="11" />
-          <StackPanel Orientation="Horizontal" Spacing="10">
-            <TextBlock Text="{Binding Elapsed}" FontSize="26" FontWeight="SemiBold" />
-            <TextBlock Text="{Binding SessionState}" Foreground="{DynamicResource ChannelBBrush}" FontSize="10" VerticalAlignment="Center" />
+      <Border Grid.Column="1" Classes="card summary">
+        <StackPanel Classes="field">
+          <TextBlock Text="{l:Loc Session.Current}" Classes="muted label" />
+          <StackPanel Classes="actions">
+            <TextBlock Text="{Binding Elapsed}" Classes="metric" />
+            <TextBlock Text="{Binding SessionState}" VerticalAlignment="Center" Classes="caption channel-b" />
           </StackPanel>
         </StackPanel>
       </Border>
-      <Border Grid.Column="4" Classes="card" Padding="18,15">
-        <StackPanel Spacing="8">
-          <TextBlock Text="{l:Loc Wave.Current}" Classes="muted" FontSize="11" />
-          <TextBlock x:Name="SelectedWaveNameText" Text="{Binding SelectedPresetName}" FontSize="21" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+      <Border Grid.Column="2" Classes="card summary">
+        <StackPanel Classes="field">
+          <TextBlock Text="{l:Loc Wave.Current}" Classes="muted label" />
+          <TextBlock x:Name="SelectedWaveNameText" Text="{Binding SelectedPresetName}" TextTrimming="CharacterEllipsis" Classes="title" />
         </StackPanel>
       </Border>
     </Grid>
 
-    <Grid x:Name="WorkspaceGrid" ColumnDefinitions="264,22,*" RowDefinitions="Auto">
-      <StackPanel x:Name="DevicePane" Spacing="18">
-        <Grid ColumnDefinitions="*,Auto" Margin="0,2,0,0">
-          <TextBlock Text="{l:Loc Device.List}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+    <Grid x:Name="WorkspaceGrid" Classes="workspace" ColumnDefinitions="Auto,*" RowDefinitions="Auto">
+      <StackPanel x:Name="DevicePane" Classes="group">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Text="{l:Loc Device.List}" VerticalAlignment="Center" Classes="section-title" />
           <Button Grid.Column="1" x:Name="ScanButton" Classes="small" Content="{Binding ScanLabel}" Command="{Binding ScanCommand}" />
         </Grid>
         <ItemsControl ItemsSource="{Binding Devices}">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:DeviceItem">
-              <Border Margin="0,0,0,10">
+              <Border Classes="list-item">
                 <Grid RowDefinitions="Auto,Auto">
                   <Button Classes="device" Classes.active="{Binding IsSelected}" Command="{Binding SelectCommand}">
-                    <Grid ColumnDefinitions="40,*" RowDefinitions="Auto,Auto">
-                      <Border Background="{DynamicResource RaisedBrush}" CornerRadius="9" Width="33" Height="36" VerticalAlignment="Center" Grid.RowSpan="2">
-                        <TextBlock Text="{Binding Symbol}" FontSize="27" Foreground="{DynamicResource AccentTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <Grid RowDefinitions="Auto,Auto">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="{DynamicResource Column.DeviceIcon}" />
+                        <ColumnDefinition Width="*" />
+                      </Grid.ColumnDefinitions>
+                      <Border Grid.RowSpan="2" Classes="device-icon">
+                        <TextBlock Text="{Binding Symbol}" HorizontalAlignment="Center" VerticalAlignment="Center" Classes="icon accent" />
                       </Border>
-                      <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold" FontSize="12" />
-                      <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding Kind}" Classes="muted" FontSize="10" Margin="0,6,0,0" />
+                      <TextBlock Grid.Column="1" Text="{Binding Name}" Classes="small emphasis" />
+                      <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding Kind}" Classes="muted caption" Margin="{DynamicResource Margin.AboveSmall}" />
                     </Grid>
                   </Button>
-                  <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="4,7,4,2">
-                    <CheckBox IsChecked="{Binding IsIncluded}" IsEnabled="{Binding CanEditRouting}" ToolTip.Tip="{l:Loc Device.Include}" MinHeight="26" />
-                    <TextBlock Grid.Column="1" Text="{Binding Status}" FontSize="10" Classes="muted" VerticalAlignment="Center" />
+                  <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="{DynamicResource Margin.DeviceActions}">
+                    <CheckBox IsChecked="{Binding IsIncluded}" IsEnabled="{Binding CanEditRouting}" ToolTip.Tip="{l:Loc Device.Include}" Classes="compact" />
+                    <TextBlock Grid.Column="1" Text="{Binding Status}" Classes="muted caption" VerticalAlignment="Center" />
                     <Button Grid.Column="2" Classes="small" Command="{Binding ConnectCommand}" Content="{Binding ConnectionAction}" />
                   </Grid>
                 </Grid>
@@ -64,111 +67,115 @@
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
-        <Border Background="{DynamicResource RaisedBrush}" CornerRadius="10" Padding="14">
-          <StackPanel Spacing="9">
-            <TextBlock Text="{l:Loc Device.Group}" FontWeight="SemiBold" FontSize="12" />
-            <ToggleSwitch x:Name="LinkModeToggle" IsChecked="{Binding LinkMode}" IsEnabled="{Binding CanEditRouting}" OnContent="{l:Loc Device.Synchronized}" OffContent="{l:Loc Device.Independent}" FontSize="11" />
-            <TextBlock Text="{l:Loc Device.GroupHelp}" FontSize="10" Classes="muted" TextWrapping="Wrap" LineHeight="17" />
+        <Border Classes="inset-panel">
+          <StackPanel Classes="field">
+            <TextBlock Text="{l:Loc Device.Group}" Classes="small emphasis" />
+            <ToggleSwitch x:Name="LinkModeToggle" IsChecked="{Binding LinkMode}" IsEnabled="{Binding CanEditRouting}" OnContent="{l:Loc Device.Synchronized}" OffContent="{l:Loc Device.Independent}" Classes="label" />
+            <TextBlock Text="{l:Loc Device.GroupHelp}" Classes="muted caption help" />
           </StackPanel>
         </Border>
       </StackPanel>
 
-      <StackPanel x:Name="ControlPane" Grid.Column="2" Spacing="16">
-        <Border Classes="card" Padding="22,18">
+      <StackPanel x:Name="ControlPane" Grid.Column="1" Classes="group">
+        <Border Classes="card detail">
           <Grid ColumnDefinitions="*,Auto">
-            <StackPanel Spacing="8">
+            <StackPanel Classes="field">
               <TextBlock Text="{Binding SelectedName}" Classes="title" />
-              <TextBlock Text="{Binding SelectedKind}" Classes="muted" FontSize="11" />
+              <TextBlock Text="{Binding SelectedKind}" Classes="muted label" />
             </StackPanel>
-            <StackPanel Grid.Column="1" Spacing="9" VerticalAlignment="Center">
-              <TextBlock Text="{Binding SelectedBatteryLabel}" Foreground="{DynamicResource AccentTextBrush}" FontSize="11" HorizontalAlignment="Right" />
-              <TextBlock Text="{Binding SelectedSignal}" Classes="muted" FontSize="10" HorizontalAlignment="Right" />
-              <TextBlock Text="{l:Loc Device.Readings}" Classes="muted" FontSize="9" HorizontalAlignment="Right" />
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" Classes="field">
+              <TextBlock Text="{Binding SelectedBatteryLabel}" HorizontalAlignment="Right" Classes="label accent" />
+              <TextBlock Text="{Binding SelectedSignal}" Classes="muted caption" HorizontalAlignment="Right" />
+              <TextBlock Text="{l:Loc Device.Readings}" Classes="muted fine-print" HorizontalAlignment="Right" />
             </StackPanel>
           </Grid>
         </Border>
 
-        <Border Classes="card" Padding="22,20">
-          <StackPanel Spacing="16">
+        <Border Classes="card output">
+          <StackPanel Classes="group">
             <Grid ColumnDefinitions="*,Auto">
-              <StackPanel Spacing="6">
-                <TextBlock Text="{l:Loc Wave.Preview}" FontSize="14" FontWeight="SemiBold" />
-                <TextBlock Text="{l:Loc Wave.PreviewHelp}" Classes="muted" FontSize="10" />
+              <StackPanel Classes="field">
+                <TextBlock Text="{l:Loc Wave.Preview}" Classes="card-title" />
+                <TextBlock Text="{l:Loc Wave.PreviewHelp}" Classes="muted caption" />
               </StackPanel>
-              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="14" VerticalAlignment="Top">
-                <TextBlock Text="● A" Foreground="{DynamicResource AccentTextBrush}" FontSize="11" />
-                <TextBlock Text="● B" Foreground="{DynamicResource ChannelBBrush}" FontSize="11" />
+              <StackPanel Grid.Column="1" VerticalAlignment="Top" Classes="actions">
+                <TextBlock Text="● A" Classes="label accent" />
+                <TextBlock Text="● B" Classes="label channel-b" />
               </StackPanel>
             </Grid>
-            <Grid ColumnDefinitions="30,*" RowDefinitions="*,Auto" Height="180">
-              <Grid RowDefinitions="*,*,*" Margin="0,0,0,20">
-                <TextBlock Text="100" Foreground="{DynamicResource TextMutedBrush}" FontSize="9" />
-                <TextBlock Grid.Row="1" Text="50" Foreground="{DynamicResource TextMutedBrush}" FontSize="9" VerticalAlignment="Center" />
-                <TextBlock Grid.Row="2" Text="0" Foreground="{DynamicResource TextMutedBrush}" FontSize="9" VerticalAlignment="Bottom" />
+            <Grid RowDefinitions="*,Auto" Classes="chart">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="{DynamicResource Column.ChartAxis}" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <Grid RowDefinitions="*,*,*" Margin="{DynamicResource Margin.BelowLarge}">
+                <TextBlock Text="100" Classes="fine-print muted" />
+                <TextBlock Grid.Row="1" Text="50" VerticalAlignment="Center" Classes="fine-print muted" />
+                <TextBlock Grid.Row="2" Text="0" VerticalAlignment="Bottom" Classes="fine-print muted" />
               </Grid>
               <controls:WaveformPlot Grid.Column="1" x:Name="MainPlot" Preset="{Binding SelectedWaveform}"
                   AmplitudeA="{Binding ChannelA}" AmplitudeB="{Binding ChannelB}" Offset="{Binding OffsetChannelB}" Playhead="{Binding Playhead}" />
-              <Grid Grid.Column="1" Grid.Row="1" ColumnDefinitions="*,*,*,*" Margin="0,10,0,0">
-                <TextBlock Text="0s" FontSize="9" Foreground="{DynamicResource TextMutedBrush}" />
-                <TextBlock Grid.Column="1" Text="4s" FontSize="9" Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center" />
-                <TextBlock Grid.Column="2" Text="8s" FontSize="9" Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Center" />
-                <TextBlock Grid.Column="3" Text="12s" FontSize="9" Foreground="{DynamicResource TextMutedBrush}" HorizontalAlignment="Right" />
+              <Grid Grid.Column="1" Grid.Row="1" ColumnDefinitions="*,*,*,*" Margin="{DynamicResource Margin.AboveSmall}">
+                <TextBlock Text="0s" Classes="fine-print muted" />
+                <TextBlock Grid.Column="1" Text="4s" HorizontalAlignment="Center" Classes="fine-print muted" />
+                <TextBlock Grid.Column="2" Text="8s" HorizontalAlignment="Center" Classes="fine-print muted" />
+                <TextBlock Grid.Column="3" Text="12s" HorizontalAlignment="Right" Classes="fine-print muted" />
               </Grid>
             </Grid>
             <Grid ColumnDefinitions="*,Auto">
               <ComboBox x:Name="PresetPicker" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" HorizontalAlignment="Stretch" IsEnabled="{Binding CanEditRouting}">
                 <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PresetItem"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
               </ComboBox>
-              <Button Grid.Column="1" Content="{l:Loc Wave.Manage}" Classes="small" Background="{DynamicResource TransparentBrush}" Command="{Binding WavesCommand}" Margin="8,0,0,0" />
+              <Button Grid.Column="1" Content="{l:Loc Wave.Manage}" Classes="small" Background="{DynamicResource TransparentBrush}" Command="{Binding WavesCommand}" Margin="{DynamicResource Margin.BeforeSmall}" />
             </Grid>
           </StackPanel>
         </Border>
 
-        <Grid ColumnDefinitions="*,12,*">
-          <Border Classes="card" Padding="18">
-            <StackPanel Spacing="8">
+        <Grid Classes="columns" ColumnDefinitions="*,*">
+          <Border Classes="card channel">
+            <StackPanel Classes="field">
               <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Text="{l:Loc Channel.A}" Foreground="{DynamicResource AccentTextBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1" Text="{Binding ChannelA, StringFormat='{}{0:0}%'}" FontSize="26" FontWeight="SemiBold" />
+                <TextBlock Text="{l:Loc Channel.A}" VerticalAlignment="Center" Classes="emphasis accent" />
+                <TextBlock Grid.Column="1" Text="{Binding ChannelA, StringFormat='{}{0:0}%'}" Classes="metric" />
               </Grid>
               <Slider x:Name="ChannelASlider" Minimum="0" Maximum="{Binding SafetyLimit}" Value="{Binding ChannelA}" TickFrequency="1" IsSnapToTickEnabled="True" IsEnabled="{Binding SelectedConnected}" />
-              <TextBlock x:Name="SelectedOutputAText" Text="{Binding SelectedOutputALabel}" Classes="muted" FontSize="10" />
+              <TextBlock x:Name="SelectedOutputAText" Text="{Binding SelectedOutputALabel}" Classes="muted caption" />
             </StackPanel>
           </Border>
-          <Border Grid.Column="2" Classes="card" Padding="18">
-            <StackPanel Spacing="8" IsEnabled="{Binding HasChannelB}">
+          <Border Grid.Column="1" Classes="card channel">
+            <StackPanel IsEnabled="{Binding HasChannelB}" Classes="field">
               <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Text="{l:Loc Channel.B}" Foreground="{DynamicResource ChannelBBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1" Text="{Binding ChannelB, StringFormat='{}{0:0}%'}" FontSize="26" FontWeight="SemiBold" />
+                <TextBlock Text="{l:Loc Channel.B}" VerticalAlignment="Center" Classes="emphasis channel-b" />
+                <TextBlock Grid.Column="1" Text="{Binding ChannelB, StringFormat='{}{0:0}%'}" Classes="metric" />
               </Grid>
               <Slider x:Name="ChannelBSlider" Minimum="0" Maximum="{Binding SafetyLimit}" Value="{Binding ChannelB}" TickFrequency="1" IsSnapToTickEnabled="True" IsEnabled="{Binding SelectedConnected}" />
-              <TextBlock x:Name="SelectedOutputBText" Text="{Binding SelectedOutputBLabel}" Classes="muted" FontSize="10" />
+              <TextBlock x:Name="SelectedOutputBText" Text="{Binding SelectedOutputBLabel}" Classes="muted caption" />
             </StackPanel>
           </Border>
         </Grid>
 
-        <Border Classes="card" Padding="20,16">
-          <StackPanel Spacing="12">
+        <Border Classes="card session">
+          <StackPanel Classes="items">
             <Grid ColumnDefinitions="*,Auto">
-              <TextBlock Text="{l:Loc Device.Limit}" FontWeight="SemiBold" FontSize="12" />
-              <TextBlock Grid.Column="1" Text="{Binding SafetyLimit, StringFormat='{}{0:0}%'}" Foreground="{DynamicResource AccentTextBrush}" FontSize="12" />
+              <TextBlock Text="{l:Loc Device.Limit}" Classes="small emphasis" />
+              <TextBlock Grid.Column="1" Text="{Binding SafetyLimit, StringFormat='{}{0:0}%'}" Classes="small accent" />
             </Grid>
             <Slider x:Name="LimitSlider" Minimum="0" Maximum="100" Value="{Binding SafetyLimit}" TickFrequency="5" IsSnapToTickEnabled="True" IsEnabled="{Binding SelectedConnected}" />
             <Grid ColumnDefinitions="*,Auto">
-              <TextBlock Text="{Binding RoutingSummary}" Classes="muted" FontSize="10" VerticalAlignment="Center" />
-              <CheckBox Grid.Column="1" IsChecked="{Binding OffsetChannelB}" IsEnabled="{Binding CanEditRouting}" Content="{l:Loc Channel.Offset}" FontSize="10" MinHeight="24" />
+              <TextBlock Text="{Binding RoutingSummary}" Classes="muted caption" VerticalAlignment="Center" />
+              <CheckBox Grid.Column="1" IsChecked="{Binding OffsetChannelB}" IsEnabled="{Binding CanEditRouting}" Content="{l:Loc Channel.Offset}" Classes="caption compact" />
             </Grid>
-            <Grid ColumnDefinitions="*,14,*">
-              <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                <TextBlock Text="{l:Loc Session.Timer}" FontSize="11" Classes="muted" VerticalAlignment="Center" />
-                <NumericUpDown x:Name="DurationInput" Value="{Binding SessionMinutes}" Minimum="1" Maximum="120" Increment="1" FormatString="0" Width="120" IsEnabled="{Binding CanEditRouting}" />
-                <TextBlock Text="{l:Loc Unit.Minutes}" FontSize="10" Classes="muted" VerticalAlignment="Center" />
+            <Grid Classes="columns" ColumnDefinitions="*,*">
+              <StackPanel VerticalAlignment="Center" Classes="inline">
+                <TextBlock Text="{l:Loc Session.Timer}" Classes="muted label" VerticalAlignment="Center" />
+                <NumericUpDown x:Name="DurationInput" Value="{Binding SessionMinutes}" Minimum="1" Maximum="120" Increment="1" FormatString="0" IsEnabled="{Binding CanEditRouting}" Classes="duration" />
+                <TextBlock Text="{l:Loc Unit.Minutes}" Classes="muted caption" VerticalAlignment="Center" />
               </StackPanel>
-              <Button Grid.Column="2" x:Name="PlaybackButton" Classes="primary" Command="{Binding PlaybackCommand}" Content="{Binding PlaybackLabel}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+              <Button Grid.Column="1" x:Name="PlaybackButton" Classes="primary" Command="{Binding PlaybackCommand}" Content="{Binding PlaybackLabel}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
             </Grid>
           </StackPanel>
         </Border>
-        <TextBlock Text="{l:Loc Device.SimulationHelp}" FontSize="10" Foreground="{DynamicResource TextMutedBrush}" TextWrapping="Wrap" LineHeight="17" />
+        <TextBlock Text="{l:Loc Device.SimulationHelp}" Classes="caption muted help" />
       </StackPanel>
     </Grid>
   </StackPanel>

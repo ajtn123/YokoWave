@@ -6,48 +6,48 @@
              x:Class="YokoWave.App.Views.MainView"
              x:DataType="vm:MainViewModel"
              Background="{DynamicResource CanvasBrush}">
-  <Grid x:Name="Shell" ColumnDefinitions="194,*">
-    <Border x:Name="Sidebar" Background="{DynamicResource SidebarBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
-      <Grid RowDefinitions="Auto,*,Auto" Margin="18,32,18,22">
-        <StackPanel Spacing="8" Margin="12,0,0,36">
-          <StackPanel Orientation="Horizontal" Spacing="10">
-            <Border Background="{DynamicResource AccentBrush}" CornerRadius="10" Width="34" Height="34">
-              <TextBlock Text="∿" Foreground="{DynamicResource OnAccentBrush}" FontSize="30" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-4,0,0" />
+  <Grid x:Name="Shell" ColumnDefinitions="Auto,*">
+    <Border x:Name="Sidebar" Classes="sidebar">
+      <Grid RowDefinitions="Auto,*,Auto" Margin="{DynamicResource Margin.Sidebar}">
+        <StackPanel Margin="{DynamicResource Margin.Brand}" Classes="field">
+          <StackPanel Classes="actions">
+            <Border Classes="brand-icon">
+              <TextBlock Text="∿" Foreground="{DynamicResource OnAccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{DynamicResource Margin.Symbol}" Classes="icon" />
             </Border>
-            <TextBlock Text="YokoWave" FontWeight="Bold" FontSize="19" VerticalAlignment="Center" LetterSpacing="-0.6" />
+            <TextBlock Text="YokoWave" VerticalAlignment="Center" Classes="brand" />
           </StackPanel>
         </StackPanel>
         <StackPanel Grid.Row="1">
           <Button Classes="nav" Classes.active="{Binding IsWorkspace}" Command="{Binding WorkspaceCommand}" Content="{l:Loc Nav.Devices}" />
           <Button Classes="nav" Classes.active="{Binding IsWaves}" Command="{Binding WavesCommand}" Content="{l:Loc Nav.Waves}" />
           <Button Classes="nav" Classes.active="{Binding IsHistory}" Command="{Binding HistoryCommand}" Content="{l:Loc Nav.History}" />
-          <Border Height="1" Background="{DynamicResource BorderBrush}" Margin="12,24" />
+          <Border Classes="divider" />
           <Button Classes="nav" Classes.active="{Binding IsSettings}" Command="{Binding SettingsCommand}" Content="{l:Loc Nav.Settings}" />
         </StackPanel>
-        <StackPanel Grid.Row="2" Spacing="14">
-          <Border Background="{DynamicResource AccentSoftBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10" Padding="13">
-            <TextBlock Text="{l:Loc Mode.Sidebar}" Foreground="{DynamicResource AccentTextBrush}" FontSize="11" FontWeight="SemiBold" />
+        <StackPanel Grid.Row="2" Classes="items">
+          <Border Classes="mode-panel">
+            <TextBlock Text="{l:Loc Mode.Sidebar}" Classes="label emphasis accent" />
           </Border>
-          <TextBlock Text="YokoWave  /  0.1.0" Foreground="{DynamicResource TextMutedBrush}" FontSize="10" Margin="12,0" />
+          <TextBlock Text="YokoWave  /  0.1.0" Margin="{DynamicResource Margin.Horizontal}" Classes="caption muted" />
         </StackPanel>
       </Grid>
     </Border>
 
     <Grid Grid.Column="1" RowDefinitions="Auto,*,Auto">
-      <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="30,23">
+      <Border Classes="header">
         <Grid ColumnDefinitions="*,Auto">
-          <StackPanel Spacing="6">
-            <TextBlock x:Name="PageTitleText" Text="{Binding PageTitle}" FontSize="24" FontWeight="SemiBold" />
-            <StackPanel x:Name="CompactNav" IsVisible="False" Orientation="Horizontal" Spacing="6" Margin="0,10,0,0">
+          <StackPanel Classes="field">
+            <TextBlock x:Name="PageTitleText" Text="{Binding PageTitle}" Classes="page-title" />
+            <StackPanel x:Name="CompactNav" IsVisible="False" Margin="{DynamicResource Margin.AboveSmall}" Classes="inline">
               <Button Classes="small" Content="{l:Loc Nav.CompactDevices}" Command="{Binding WorkspaceCommand}" />
               <Button Classes="small" Content="{l:Loc Nav.CompactWaves}" Command="{Binding WavesCommand}" />
               <Button Classes="small" Content="{l:Loc Nav.CompactHistory}" Command="{Binding HistoryCommand}" />
               <Button Classes="small" Content="{l:Loc Nav.CompactSettings}" Command="{Binding SettingsCommand}" />
             </StackPanel>
           </StackPanel>
-          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-            <Border x:Name="ModeBadge" Background="{DynamicResource AccentSoftBrush}" CornerRadius="20" Padding="12,7" VerticalAlignment="Center">
-              <TextBlock Text="{l:Loc Mode.Badge}" Foreground="{DynamicResource AccentTextBrush}" FontSize="11" />
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Classes="actions">
+            <Border x:Name="ModeBadge" Classes="badge">
+              <TextBlock Text="{l:Loc Mode.Badge}" Classes="label accent" />
             </Border>
             <Button x:Name="StopAllButton" Classes="danger" Content="{l:Loc Action.StopAll}" Command="{Binding EmergencyStopCommand}"
                     ToolTip.Tip="{l:Loc Action.StopAllTip}" AutomationProperties.Name="{l:Loc Action.StopAllName}" />
@@ -56,7 +56,7 @@
       </Border>
 
       <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
-        <Grid Margin="30,24,30,28">
+        <Grid Margin="{DynamicResource Margin.Content}">
           <!-- Workspace -->
           <pages:DeviceWorkspaceView x:Name="WorkspacePage" IsVisible="{Binding IsWorkspace}" />
 
@@ -73,10 +73,10 @@
         </Grid>
       </ScrollViewer>
 
-      <Border Grid.Row="2" Background="{DynamicResource SidebarBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="24,12">
+      <Border Grid.Row="2" Classes="statusbar">
         <Grid ColumnDefinitions="Auto,*">
-          <TextBlock Text="●" Foreground="{DynamicResource AccentTextBrush}" FontSize="10" VerticalAlignment="Center" Margin="0,0,10,0" />
-          <TextBlock Grid.Column="1" x:Name="StatusText" Classes="muted" Classes.error="{Binding IsError}" Text="{Binding Status}" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" />
+          <TextBlock Text="●" VerticalAlignment="Center" Margin="{DynamicResource Margin.AfterSmall}" Classes="caption accent" />
+          <TextBlock Grid.Column="1" x:Name="StatusText" Classes="muted label" Classes.error="{Binding IsError}" Text="{Binding Status}" TextWrapping="Wrap" VerticalAlignment="Center" />
         </Grid>
       </Border>
     </Grid>
