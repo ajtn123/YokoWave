@@ -22,6 +22,7 @@
   </Style>
   <Style Selector="Window">
     <Setter Property="Background" Value="{DynamicResource CanvasBrush}" />
+    <Setter Property="FontFamily" Value="{DynamicResource FontFamily.Ui}" />
     <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
   </Style>
   <Style Selector="Border.card">

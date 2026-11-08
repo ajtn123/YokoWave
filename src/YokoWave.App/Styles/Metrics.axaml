@@ -14,7 +14,8 @@
   <x:Double x:Key="FontSize.Metric">26</x:Double>
   <x:Double x:Key="FontSize.Icon">30</x:Double>
   <x:Double x:Key="FontSize.LargeMetric">34</x:Double>
-  <FontFamily x:Key="FontFamily.Code">monospace</FontFamily>
+  <FontFamily x:Key="FontFamily.Ui">Microsoft YaHei UI, Noto Sans CJK SC, sans-serif</FontFamily>
+  <FontFamily x:Key="FontFamily.Code">Cascadia Code, monospace</FontFamily>
   <x:Double x:Key="LineHeight.Help">23</x:Double>
   <x:Double x:Key="LineHeight.Caption">17</x:Double>
 
