@@ -19,3 +19,6 @@ jobs:
 
       - name: Test
         run: dotnet test -c Release
+
+      - name: Check redundant code
+        run: dotnet format style YokoWave.slnx --no-restore --verify-no-changes --diagnostics IDE0005 IDE0060 --severity info

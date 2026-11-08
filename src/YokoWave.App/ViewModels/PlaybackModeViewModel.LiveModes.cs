@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using YokoWave.Core;
 using YokoWave.Core.Localization;
@@ -78,9 +79,10 @@ public sealed partial class PlaybackModeViewModel
     public double InputLevel => CanInteractEstim ? _engine.InputStatus.Values.Select(status => status.Level).DefaultIfEmpty().Max() : 0;
     public string ReactiveCountdown => IsRunning && _engine.InputStatus.Values.FirstOrDefault() is { } status
         ? FormatDuration(TimeSpan.FromSeconds(Math.Ceiling(status.RemainingSeconds))) : "—";
-    public AsyncCommand CalibrateAudioCommand { get; private set; } = null!;
-    public AsyncCommand RecalibrateMotionCommand { get; private set; } = null!;
+    public AsyncCommand CalibrateAudioCommand { get; private set; }
+    public AsyncCommand RecalibrateMotionCommand { get; private set; }
 
+    [MemberNotNull(nameof(CalibrateAudioCommand), nameof(RecalibrateMotionCommand))]
     private void InitializeLiveModes(AudioSettings? audio, ReactiveSettings? reactive)
     {
         _audioSettings = audio ?? new(); _reactiveSettings = reactive ?? new();

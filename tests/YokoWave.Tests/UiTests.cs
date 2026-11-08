@@ -4,7 +4,6 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
-using Avalonia.Input.Raw;
 using Avalonia.Media.Imaging;
 using Avalonia.Media;
 using Avalonia.Styling;
@@ -974,8 +973,8 @@ public sealed class UiTests
         window.Show();
         await WaitForAsync(() => vm.Devices.Count == 5 && !vm.IsScanning);
         Dispatcher.UIThread.RunJobs();
-        Assert.False(Find<Border>(view, "Sidebar")!.IsVisible);
-        Assert.True(Find<StackPanel>(view, "CompactNav")!.IsVisible);
+        Assert.False(Find<Border>(view, "Sidebar").IsVisible);
+        Assert.True(Find<StackPanel>(view, "CompactNav").IsVisible);
         await vm.ToggleConnectionAsync(vm.Devices[0]);
         vm.SelectedMode.AssignTarget(vm.Devices[0].Id, true);
         await vm.ToggleConnectionAsync(vm.Devices[1]);

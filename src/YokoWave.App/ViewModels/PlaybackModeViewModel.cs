@@ -34,7 +34,7 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
     public bool IsRunning => _engine.IsRunning;
     public bool CanEditRouting => !IsRunning && !_starting && !IsCalibrating && !_targets.Any(id => _controller.DeviceOwner(id) == Id);
     public bool UsesWaveform(Guid id) => _engine.UsesWaveform(id) || IsRunning && SupportsPlaylist && Playlist.Any(entry => entry.Id == id);
-    public bool SelectedConnected => _targets.Any(id => _controller.Connections.ContainsKey(id));
+    public bool SelectedConnected => _targets.Any(_controller.Connections.ContainsKey);
     public bool HasChannelB => _targets.Count == 0 || _targets.Any(id => _controller.Connections.TryGetValue(id, out var connection) && connection.Device.Kind == DeviceKind.DualChannel);
     public bool HasElectrodeReadings => _host.IsBluetooth && _host.SelectedConnected && ShowContacts;
     public string RoutingSummary => L10n.Format("Mode.TargetCount", _targets.Count);

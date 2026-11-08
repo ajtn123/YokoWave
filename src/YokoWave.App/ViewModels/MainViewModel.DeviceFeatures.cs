@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using YokoWave.Core.Bluetooth;
 using YokoWave.Core.Localization;
 
@@ -21,8 +22,9 @@ public sealed partial class MainViewModel
     private bool? SelectedLight => _controller.Connections.TryGetValue(SelectedDevice?.Id ?? "", out var connection) ? connection.LightEnabled : null;
     public string LightLabel => L10n.Get(SelectedLight switch { true => "Device.LightOn", false => "Device.LightOff", _ => "Device.LightUnknown" });
     public string LightAction => L10n.Get(SelectedLight == true ? "Device.TurnLightOff" : "Device.TurnLightOn");
-    public AsyncCommand ReadDeviceFeaturesCommand { get; private set; } = null!;
-    public AsyncCommand ToggleLightCommand { get; private set; } = null!;
+    public AsyncCommand ReadDeviceFeaturesCommand { get; private set; }
+    public AsyncCommand ToggleLightCommand { get; private set; }
+    [MemberNotNull(nameof(ReadDeviceFeaturesCommand), nameof(ToggleLightCommand))]
     private void InitializeDeviceFeatureCommands()
     {
         ReadDeviceFeaturesCommand = new(() => RunDeviceFeatureAsync(id => _controller.RefreshFeaturesAsync(id)), ShowError, () => CanReadDeviceFeatures);

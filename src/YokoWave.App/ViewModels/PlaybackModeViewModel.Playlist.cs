@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using YokoWave.Core;
+using YokoWave.Core.Localization;
 
 namespace YokoWave.App.ViewModels;
 
@@ -10,7 +12,7 @@ public sealed partial class PlaybackModeViewModel
     public bool SupportsPlaylist => Kind is ModeKind.Waveform or ModeKind.SleepDeprivation;
     public IReadOnlyList<PresetItem> PlaybackPresets => UsesCustomPlaylist ? Playlist.Select(entry => entry.Preset).ToArray()
         : Presets.Where(item => Kind == ModeKind.Waveform || item.Preset.Family != WaveformFamily.Motor).ToArray();
-    public string PlaylistHelp => YokoWave.Core.Localization.L10n.Get(IsSleep ? "Playlist.SleepHelp" : "Playlist.Help");
+    public string PlaylistHelp => L10n.Get(IsSleep ? "Playlist.SleepHelp" : "Playlist.Help");
     public System.Windows.Input.ICommand WavesCommand => _host.WavesCommand;
     public IReadOnlyList<PresetItem> PlaylistCandidates => Presets
         .Where(item => (Kind == ModeKind.Waveform && _controller.IsSimulation || item.Preset.Family != WaveformFamily.Motor) &&
@@ -21,10 +23,11 @@ public sealed partial class PlaybackModeViewModel
         set { Set(ref _playlistCandidate, value); AddPlaylistCommand?.NotifyCanExecuteChanged(); }
     }
     public bool HasPlaylist => Playlist.Count > 0;
-    public AsyncCommand AddPlaylistCommand { get; private set; } = null!;
+    public AsyncCommand AddPlaylistCommand { get; private set; }
     private bool CanAddPlaylist => CanEditRouting && SupportsPlaylist && Playlist.Count < 100 &&
         PlaylistCandidate is { } candidate && Playlist.All(entry => entry.Id != candidate.Preset.Id);
 
+    [MemberNotNull(nameof(AddPlaylistCommand))]
     private void InitializePlaylist(List<Guid>? ids)
     {
         AddPlaylistCommand = new(() => { AddPlaylistWave(); return Task.CompletedTask; }, ShowError, () => CanAddPlaylist);

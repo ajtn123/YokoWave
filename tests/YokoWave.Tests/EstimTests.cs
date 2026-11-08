@@ -10,7 +10,7 @@ public sealed class EstimTests
     private static WaveformPreset Wave(string name, double period = 1, double frequency = 20, double pulse = 30) =>
         new(Guid.NewGuid(), name, WaveShape.Sampled, period, frequency,
             Samples: [new(0.3, frequency, pulse), new(0.7, frequency + 1, pulse + 1)], Family: WaveformFamily.Electrical);
-    private static async Task<DeviceController> Controller(RecordingTransport transport, double limit = 60)
+    private static async Task<DeviceController> Controller(RecordingTransport transport)
     {
         var controller = new DeviceController(transport);
         await controller.ConnectAsync(new("one", "one", DeviceKind.DualChannel, 80, -40), TestContext.Current.CancellationToken);

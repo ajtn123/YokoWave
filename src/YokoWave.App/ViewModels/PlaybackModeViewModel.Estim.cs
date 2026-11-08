@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using YokoWave.Core;
 using YokoWave.Core.Localization;
 
@@ -79,9 +80,9 @@ public sealed partial class PlaybackModeViewModel
     public bool HasRecording => _engine.Recording.Count >= 2;
     public string TouchRecordingName { get => _touchRecordingName; set { Set(ref _touchRecordingName, value); SaveRecordingCommand.NotifyCanExecuteChanged(); } }
     public bool CanSaveRecording => !IsRunning && HasRecording && !string.IsNullOrWhiteSpace(TouchRecordingName);
-    public AsyncCommand PauseCommand { get; private set; } = null!;
-    public AsyncCommand ResetStrengthCommand { get; private set; } = null!;
-    public AsyncCommand SaveRecordingCommand { get; private set; } = null!;
+    public AsyncCommand PauseCommand { get; private set; }
+    public AsyncCommand ResetStrengthCommand { get; private set; }
+    public AsyncCommand SaveRecordingCommand { get; private set; }
 
     public PresetItem? SelectedPresetB
     {
@@ -102,6 +103,7 @@ public sealed partial class PlaybackModeViewModel
             Raise(nameof(SelectedPresetB)); Raise(nameof(SelectedWaveformB)); throw;
         }
     }
+    [MemberNotNull(nameof(PauseCommand), nameof(ResetStrengthCommand), nameof(SaveRecordingCommand))]
     private void InitializeEstimCommands()
     {
         PauseCommand = new(TogglePauseAsync, ShowError, () => IsRunning);

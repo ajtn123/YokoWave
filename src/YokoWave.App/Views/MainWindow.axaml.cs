@@ -1,4 +1,3 @@
-using YokoWave.Core.Localization;
 using Avalonia.Controls;
 using Avalonia.Input;
 using YokoWave.App.ViewModels;

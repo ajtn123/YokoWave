@@ -9,3 +9,6 @@ indent_size = 4
 
 [*.{json,axaml,props,csproj,slnx,yml}]
 indent_size = 2
+
+[*.cs]
+dotnet_diagnostic.IDE0005.severity = warning
