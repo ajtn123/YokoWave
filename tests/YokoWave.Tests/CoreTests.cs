@@ -136,7 +136,7 @@ public sealed class CoreTests
         using var folder = new TestFolder();
         var store = new WorkspaceStore(folder.Path);
         var custom = WaveformPreset.BuiltIn[0] with { Id = Guid.NewGuid(), Name = "自定义" };
-        await store.SaveAsync(new(1, [custom], [], new(35)));
+        await store.SaveAsync(new(WorkspaceData.CurrentSchema, [custom], [], new(35)));
         var loaded = await store.LoadAsync();
         Assert.Equivalent(custom, Assert.Single(loaded.Presets));
         Assert.Equal(35, loaded.Settings.DefaultLimit);

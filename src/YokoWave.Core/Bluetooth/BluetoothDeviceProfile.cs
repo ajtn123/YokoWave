@@ -12,15 +12,7 @@ public sealed record BluetoothDeviceProfile(BluetoothProtocol Protocol, string N
 {
     public GattAddress Write => Endpoints.First(endpoint => endpoint.Write).Address;
     public GattAddress Notify => Endpoints.First(endpoint => endpoint.Notify).Address;
-    public bool Accepts(WaveformPreset preset) => Domain switch
-    {
-        OutputDomain.Electrical => preset.Family != WaveformFamily.Motor && (preset.Samples?.All(sample => sample.Motors is null) ?? true) &&
-            (Protocol is BluetoothProtocol.CoyoteV2 or BluetoothProtocol.CoyoteV3
-                ? preset.Family != WaveformFamily.Electrical : preset.Family != WaveformFamily.DgLab),
-        OutputDomain.Motor => preset.Family is WaveformFamily.Generic or WaveformFamily.Motor &&
-            (preset.Samples?.All(sample => sample.Motors?.All(value => value >= 0) ?? true) ?? true),
-        _ => false
-    };
+    public bool Accepts(WaveformPreset preset) => Supported && Domain is OutputDomain.Electrical or OutputDomain.Motor && preset.TryValidate(out _);
 }
 
 public static class BluetoothDeviceProfiles

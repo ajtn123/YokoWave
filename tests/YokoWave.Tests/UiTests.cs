@@ -75,7 +75,7 @@ public sealed class UiTests
     public async Task ExplicitDisconnectClosesAFailedLinkAndReconnectStartsWithANewConnection()
     {
         using var folder = new TestFolder(); var adapter = new FakeBluetoothAdapter();
-        await new WorkspaceStore(folder.Path).SaveAsync(new(5, [], [], new(UseBluetooth: true)));
+        await new WorkspaceStore(folder.Path).SaveAsync(new(WorkspaceData.CurrentSchema, [], [], new(UseBluetooth: true)));
         await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path),
             () => new ElectricalBluetoothTransport(adapter));
         await vm.InitializeAsync(); var device = Assert.Single(vm.Devices); await vm.ToggleConnectionAsync(device);
@@ -249,7 +249,7 @@ public sealed class UiTests
         using var folder = new TestFolder(); var adapter = new FakeBluetoothAdapter();
         adapter.Devices.Add(new("ble:000000000002", "YCY-DJ", -55));
         adapter.Devices.Add(new("ble:000000000003", "YCY-DJ", -60));
-        await new WorkspaceStore(folder.Path).SaveAsync(new(3, [], [], new(UseBluetooth: true)));
+        await new WorkspaceStore(folder.Path).SaveAsync(new(WorkspaceData.CurrentSchema, [], [], new(UseBluetooth: true)));
         await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path),
             () => new ElectricalBluetoothTransport(adapter));
         await vm.InitializeAsync();
@@ -295,7 +295,7 @@ public sealed class UiTests
     {
         using var folder = new TestFolder();
         var adapter = new FakeBluetoothAdapter();
-        await new WorkspaceStore(folder.Path).SaveAsync(new(2, [], [], new(UseBluetooth: true)));
+        await new WorkspaceStore(folder.Path).SaveAsync(new(WorkspaceData.CurrentSchema, [], [], new(UseBluetooth: true)));
         await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path),
             () => new ElectricalBluetoothTransport(adapter));
         var view = new MainView { DataContext = vm };
@@ -368,7 +368,7 @@ public sealed class UiTests
         await vm.StopAsync(); vm.TouchRecordingName = "Local touch recording";
         Assert.True(vm.CanSaveRecording);
         await vm.SaveRecordingAsync();
-        Assert.Equal(WaveformFamily.Electrical, vm.SelectedPreset!.Preset.Family);
+        Assert.Equal(1, vm.SelectedPreset!.Preset.FormatVersion);
         Assert.InRange(vm.SelectedPreset.Preset.Samples!.Length, 2, SessionEngine.MaxRecordingFrames);
         Assert.Equal("Local touch recording", Assert.Single((await new WorkspaceStore(folder.Path).LoadAsync()).Presets).Name);
         Assert.True(Assert.Single(vm.Sessions).Record.TouchControl);
@@ -380,7 +380,7 @@ public sealed class UiTests
     {
         using var folder = new TestFolder();
         var adapter = new FakeBluetoothAdapter();
-        await new WorkspaceStore(folder.Path).SaveAsync(new(2, [], [], new(UseBluetooth: true)));
+        await new WorkspaceStore(folder.Path).SaveAsync(new(WorkspaceData.CurrentSchema, [], [], new(UseBluetooth: true)));
         await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path),
             () => new ElectricalBluetoothTransport(adapter));
         var view = new MainView { DataContext = vm };
@@ -475,7 +475,7 @@ public sealed class UiTests
     {
         using var folder = new TestFolder();
         var adapter = new FakeBluetoothAdapter();
-        await new WorkspaceStore(folder.Path).SaveAsync(new(2, [], [], new(UseBluetooth: true)));
+        await new WorkspaceStore(folder.Path).SaveAsync(new(WorkspaceData.CurrentSchema, [], [], new(UseBluetooth: true)));
         await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path),
             () => new ElectricalBluetoothTransport(adapter));
         var view = new MainView { DataContext = vm };
@@ -640,11 +640,11 @@ public sealed class UiTests
     }
 
     [AvaloniaFact]
-    public async Task IncompatibleLiveSelectionRestoresTheCurrentWaveform()
+    public async Task CrossSourceLiveSelectionKeepsTheCurrentSessionRunning()
     {
         using var folder = new TestFolder();
         var adapter = new FakeBluetoothAdapter();
-        await new WorkspaceStore(folder.Path).SaveAsync(new(2, [], [], new(UseBluetooth: true)));
+        await new WorkspaceStore(folder.Path).SaveAsync(new(WorkspaceData.CurrentSchema, [], [], new(UseBluetooth: true)));
         await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path),
             () => new ElectricalBluetoothTransport(adapter));
         var view = new MainView { DataContext = vm };
@@ -655,13 +655,12 @@ public sealed class UiTests
         vm.SelectedMode.AssignTarget(vm.Devices[0].Id, true);
         vm.ChannelA = 10;
         await vm.TogglePlaybackAsync();
-        var original = vm.SelectedPreset;
-        // Incompatible items are filtered from the picker; the model still rejects direct selection.
-        vm.SelectedPreset = vm.Presets.First(preset => preset.Preset.Family == WaveformFamily.Motor);
-        await WaitForAsync(() => vm.IsError);
-        Assert.Same(original, vm.SelectedPreset);
-        Assert.Same(original, Find<ComboBox>(view, "PresetPicker").SelectedItem);
-        Assert.True(vm.IsRunning);
+        var next = vm.Presets.First(preset => preset.Preset.Samples!.Any(sample => sample.Channels is not null));
+        vm.SelectedPreset = next;
+        await vm.TickAsync();
+        Assert.Same(next, vm.SelectedPreset);
+        Assert.Same(next, Find<ComboBox>(view, "PresetPicker").SelectedItem);
+        Assert.True(vm.IsRunning); Assert.False(vm.IsError); Assert.Equal(10, vm.ChannelA);
         Assert.Empty(vm.Sessions);
         await vm.StopAsync();
         window.Close();
@@ -722,7 +721,7 @@ public sealed class UiTests
         using var folder = new TestFolder();
         var adapter = new FakeBluetoothAdapter();
         adapter.Devices.Add(new("ble:000000000002", "YCY-DJ", -60));
-        await new WorkspaceStore(folder.Path).SaveAsync(new(1, [], [], new(UseBluetooth: true)));
+        await new WorkspaceStore(folder.Path).SaveAsync(new(WorkspaceData.CurrentSchema, [], [], new(UseBluetooth: true)));
         await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path),
             () => new ElectricalBluetoothTransport(adapter));
         var view = new MainView { DataContext = vm };

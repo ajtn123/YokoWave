@@ -17,7 +17,7 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
     private double _peakA, _peakB, _peakC, _strengthEpoch, _randomAddition;
     private long _randomBucket;
     private bool _boostHeld, _touchHeld, _hasTouch;
-    private WaveformSample _touch = new(0.5, 20, 50);
+    private WaveformSample _touch = new(1, 20, .5);
     private readonly List<WaveformSample> _recording = [];
     private long _recordBucket = -1;
     private double _touchReplayEpoch;
@@ -193,7 +193,7 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
         await _gate.WaitAsync();
         try
         {
-            _touch = new(pulseWidth / 100, frequency, pulseWidth);
+            _touch = new(1, frequency, pulseWidth / 100);
             if (!IsRunning || IsPaused || !_program.TouchControl) { _touchHeld = false; return; }
             if (held && !_touchHeld) { _recording.Clear(); _recordBucket = -1; }
             if (!held && _touchHeld) _touchReplayEpoch = Elapsed.TotalSeconds;
@@ -261,30 +261,21 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
         }
         else
         {
-            sampleA = WaveformGenerator.ReferenceSample(waveA, timeA); sampleB = WaveformGenerator.ReferenceSample(waveB, timeB, phaseB);
-            if (waveA.Family == WaveformFamily.Generic) { var scale = WaveformGenerator.Sample(waveA, timeA); a *= scale; c *= scale; }
-            if (waveB.Family == WaveformFamily.Generic) b *= WaveformGenerator.Sample(waveB, timeB, phaseB);
-            // A generated B wave needs its own frequency even when A has a different preset.
-            if (_b is not null && sampleB is null) sampleB = new(1, waveB.Frequency, 100);
+            sampleA = WaveformGenerator.At(waveA, timeA); sampleB = WaveformGenerator.At(waveB, timeB, phaseB);
         }
         foreach (var id in _targets)
         {
             if (!controller.Connections.TryGetValue(id, out var connection)) throw new LocalizedOperationException("Error.NotConnected");
             var frame = new OutputFrame(a, b, waveA.Frequency, sampleA, sampleB, _settings.Gentle, c,
-                _program.TouchControl ? WaveformFamily.Generic : waveA.Family, _program.TouchControl ? WaveformFamily.Generic : waveB.Family,
-                _program.TouchControl ? null : PlaybackCompatibility.Window(waveA, timeA),
-                _program.TouchControl ? null : PlaybackCompatibility.Window(waveB, timeB, phaseB),
+                _program.TouchControl ? null : WaveformGenerator.Window(waveA, timeA, repeat: _settings.Order != PlaybackOrder.Once, remainingSeconds: Remaining?.TotalSeconds),
+                _program.TouchControl ? null : WaveformGenerator.Window(waveB, timeB, phaseB, _settings.Order != PlaybackOrder.Once, Remaining?.TotalSeconds),
                 _outputLimit, _program.Kind == ModeKind.Pump ? Pump : null, _program.DgBalances);
-            if (_program.TouchControl && connection.Device.Profile?.Domain == Bluetooth.OutputDomain.Motor)
-            {
-                var scale = (sampleA?.PulseWidthCode ?? 0) / 100;
-                frame = frame with { ChannelA = a * scale, ChannelB = b * scale, ChannelC = c * scale };
-            }
             if (_reactive is not null) frame = _reactive.Render(id, Elapsed, frame, Strength(ChannelA), Strength(ChannelB), connection.Motion, Strength(ChannelC));
+            if (Remaining is { } remaining) frame = WaveformRendering.WithRemaining(frame, remaining.TotalSeconds);
             frame = frame with { ChannelA = Math.Min(frame.ChannelA, _outputLimit), ChannelB = Math.Min(frame.ChannelB, _outputLimit), ChannelC = Math.Min(frame.ChannelC, _outputLimit) };
             await controller.SendOwnedAsync(OwnerId, id, frame);
             var output = connection.Output;
-            _peakA = Math.Max(_peakA, output.ChannelA); _peakB = Math.Max(_peakB, output.ChannelB); _peakC = Math.Max(_peakC, output.ChannelC);
+            _peakA = Math.Max(_peakA, WaveformRendering.Strength(output, 0)); _peakB = Math.Max(_peakB, WaveformRendering.Strength(output, 1)); _peakC = Math.Max(_peakC, WaveformRendering.Strength(output, 2));
         }
     }
 

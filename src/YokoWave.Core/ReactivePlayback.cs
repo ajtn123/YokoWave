@@ -101,19 +101,18 @@ public sealed class ReactivePlayback(SessionProgram program, TimeProvider clock,
             var time = elapsed - state.BurstStart;
             return frame with
             {
-                ChannelA = baseA * state.StrengthFactor * Envelope(a, time),
-                ChannelB = baseB * state.StrengthFactor * Envelope(b, time),
-                ChannelC = baseC * state.StrengthFactor * Envelope(a, time),
+                ChannelA = baseA * state.StrengthFactor,
+                ChannelB = baseB * state.StrengthFactor,
+                ChannelC = baseC * state.StrengthFactor,
                 Frequency = a.Frequency,
-                ReferenceSample = WaveformGenerator.ReferenceSample(a, time),
-                ReferenceSampleB = WaveformGenerator.ReferenceSample(b, time) ?? new(1, b.Frequency, 100),
-                FamilyA = a.Family, FamilyB = b.Family,
-                WindowA = PlaybackCompatibility.Window(a, time), WindowB = PlaybackCompatibility.Window(b, time)
+                ReferenceSample = WaveformGenerator.At(a, time),
+                ReferenceSampleB = WaveformGenerator.At(b, time),
+                WindowA = WaveformGenerator.Window(a, time, remainingSeconds: state.BurstEnd - elapsed),
+                WindowB = WaveformGenerator.Window(b, time, remainingSeconds: state.BurstEnd - elapsed)
             };
         }
-        return frame;
+        return WaveformRendering.WithRemaining(frame, state.BurstEnd - elapsed);
     }
-    private static double Envelope(WaveformPreset wave, double time) => wave.Family == WaveformFamily.Generic ? WaveformGenerator.Sample(wave, time) : 1;
     private void NewCycle(State state, double elapsed)
     {
         state.CycleStart = elapsed; state.InBurst = false;
@@ -147,8 +146,8 @@ public sealed class ReactivePlayback(SessionProgram program, TimeProvider clock,
         var a = ParameterFrame(frame, baseA * _leftScale, baseB * _rightScale, _leftScale);
         return a with { ReferenceSampleB = Parameters(_rightScale), ChannelC = baseC * _leftScale };
     }
-    private static WaveformSample Parameters(double factor) => new(factor, Math.Max(2, 100 - Math.Ceiling(factor * 100)), Math.Ceiling(factor * 100));
+    private static WaveformSample Parameters(double factor) => new(1, Math.Max(2, 100 - Math.Ceiling(factor * 100)), Math.Ceiling(factor * 100) / 100);
     private static OutputFrame ParameterFrame(OutputFrame original, double a, double b, double factor) =>
         original with { ChannelA = a, ChannelB = b, ReferenceSample = Parameters(factor), ReferenceSampleB = Parameters(factor),
-            FamilyA = WaveformFamily.Generic, FamilyB = WaveformFamily.Generic, WindowA = null, WindowB = null };
+            WindowA = null, WindowB = null };
 }

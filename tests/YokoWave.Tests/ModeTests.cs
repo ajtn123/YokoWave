@@ -9,7 +9,7 @@ public sealed class ModeTests
     public async Task SavedModesRejectDuplicateDeviceAssignmentsEvenWhenNothingIsRunning()
     {
         using var folder = new TestFolder(); var store = new WorkspaceStore(folder.Path);
-        await Assert.ThrowsAnyAsync<ArgumentException>(() => store.SaveAsync(new(4, [], [], new(), Modes:
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => store.SaveAsync(new(WorkspaceData.CurrentSchema, [], [], new(), Modes:
         [new(Guid.NewGuid(), "One", TargetDeviceIds: ["same"]), new(Guid.NewGuid(), "Two", TargetDeviceIds: ["same"])])));
         Assert.False(File.Exists(store.ModesPath));
     }
@@ -113,7 +113,7 @@ public sealed class ModeTests
             new(Guid.NewGuid(), "Second", ChannelA: 40, OutputLimit: 50, DurationSeconds: 30, TargetDeviceIds: ["two"]),
             new(Guid.NewGuid(), "Third", Kind: ModeKind.Touch, TargetDeviceIds: ["three", "four"])
         };
-        await store.SaveAsync(new(3, [], [], new(), Modes: configs));
+        await store.SaveAsync(new(WorkspaceData.CurrentSchema, [], [], new(), Modes: configs));
         var loaded = await new WorkspaceStore(folder.Path).LoadAsync(); Assert.Equivalent(configs, loaded.Modes);
         Assert.DoesNotContain('\n', await File.ReadAllTextAsync(store.ModesPath, TestContext.Current.CancellationToken));
         Assert.Empty(Directory.GetFiles(folder.Path, "*device*"));

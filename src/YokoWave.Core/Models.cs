@@ -1,9 +1,9 @@
 using YokoWave.Core.Localization;
+using System.Text.Json.Serialization;
 namespace YokoWave.Core;
 
 public enum DeviceKind { DualChannel, Vibration, Pump, Linear, Sensor }
 public enum WaveShape { Sine, Triangle, Pulse, Ramp, Custom, Sampled }
-public enum WaveformFamily { Generic, Electrical, Motor, DgLab }
 
 public sealed record DeviceDescriptor(string Id, string Name, DeviceKind Kind, int? Battery, int? Signal,
     string? ProtocolId = null, int? ChannelMask = null)
@@ -26,19 +26,27 @@ public sealed record DeviceDescriptor(string Id, string Name, DeviceKind Kind, i
 
 public sealed record OutputFrame(double ChannelA, double ChannelB, double Frequency,
     WaveformSample? ReferenceSample = null, WaveformSample? ReferenceSampleB = null, bool Gentle = false,
-    double ChannelC = 0, WaveformFamily FamilyA = WaveformFamily.Generic, WaveformFamily FamilyB = WaveformFamily.Generic,
+    double ChannelC = 0,
     IReadOnlyList<WaveformSample>? WindowA = null, IReadOnlyList<WaveformSample>? WindowB = null,
     double OutputLimit = 100, PumpOutput? Pump = null, DgBalanceSettings? DgBalances = null)
 {
     public static OutputFrame Zero { get; } = new(0, 0, 1);
 }
 
-public sealed record WaveformSample(double Level, double FrequencyCode, double PulseWidthCode, double[]? Motors = null);
+public sealed record WaveformSample([property: JsonRequired] double Level, [property: JsonRequired] double FrequencyHz,
+    [property: JsonRequired] double PulseWidth = 1, double[]? Channels = null)
+{
+    [JsonIgnore] public bool IsValid => double.IsFinite(Level) && Level is >= 0 and <= 1 && double.IsFinite(FrequencyHz) && FrequencyHz is >= 1 and <= 100 &&
+        double.IsFinite(PulseWidth) && PulseWidth is >= 0 and <= 1 &&
+        (Channels is null || Channels.Length is >= 1 and <= 3 && Channels.All(value => double.IsFinite(value) && value is >= -1 and <= 1));
+    public double ChannelMagnitude(int channel) => Channels is null ? 1 : channel < Channels.Length ? Math.Abs(Channels[channel]) : 0;
+    [JsonIgnore] public double PreviewLevel => Level * PulseWidth * (Channels?.Select(Math.Abs).Max() ?? 1);
+}
 
 public sealed record WaveformPreset(
-    Guid Id, string Name, WaveShape Shape, double PeriodSeconds,
-    double Frequency, double[]? Points = null, WaveformSample[]? Samples = null,
-    WaveformFamily Family = WaveformFamily.Generic)
+    [property: JsonRequired] Guid Id, [property: JsonRequired] string Name, [property: JsonRequired] WaveShape Shape, [property: JsonRequired] double PeriodSeconds,
+    [property: JsonRequired] double Frequency, double[]? Points = null, WaveformSample[]? Samples = null,
+    [property: JsonRequired] int FormatVersion = 1)
 {
     public static IReadOnlyList<WaveformPreset> BuiltIn => DefaultWaveformCatalog.Presets;
 
@@ -57,8 +65,7 @@ public sealed record WaveformPreset(
     {
         if (Id == Guid.Empty || string.IsNullOrWhiteSpace(Name) || Name.Length > 60)
             return "Error.WaveName";
-        if (!Enum.IsDefined(Family)) return "Error.InvalidWave";
-        if (Family == WaveformFamily.DgLab && Shape != WaveShape.Sampled) return "Error.Samples";
+        if (FormatVersion != 1) return "Error.UnsupportedWaveFormat";
         if (!Enum.IsDefined(Shape) || !double.IsFinite(PeriodSeconds) || PeriodSeconds is < 0.2 or > 60)
             return "Error.Period";
         if (!double.IsFinite(Frequency) || Frequency is < 1 or > 100)
@@ -67,10 +74,7 @@ public sealed record WaveformPreset(
             Points.Any(x => !double.IsFinite(x) || x is < 0 or > 1)))
             return "Error.Points";
         if (Shape == WaveShape.Sampled && (Samples is null || Samples.Length is < 2 or > 256 || Samples.Any(sample =>
-            sample is null || !double.IsFinite(sample.Level) || sample.Level is < 0 or > 1 ||
-            !double.IsFinite(sample.FrequencyCode) || sample.FrequencyCode < (Family == WaveformFamily.DgLab ? 10 : 0) || sample.FrequencyCode > (Family == WaveformFamily.DgLab ? 1000 : 100) ||
-            !double.IsFinite(sample.PulseWidthCode) || sample.PulseWidthCode is < 0 or > 100 ||
-            sample.Motors is { } motors && (motors.Length != 3 || motors.Any(x => !double.IsFinite(x) || x is < -20 or > 20)))))
+            sample is null || !sample.IsValid)))
             return "Error.Samples";
         return null;
     }
@@ -89,7 +93,7 @@ public static class WaveformGenerator
             WaveShape.Pulse => position < 0.4 ? 1 : 0,
             WaveShape.Ramp => Math.Floor(position * 5) / 4,
             WaveShape.Custom when preset.Points is { Length: >= 2 } points => Interpolate(points, position),
-            WaveShape.Sampled => ReferenceSample(preset, seconds, phase)?.Level ?? 0,
+            WaveShape.Sampled => ReferenceSample(preset, seconds, phase)?.PreviewLevel ?? 0,
             _ => 0
         };
     }
@@ -101,6 +105,15 @@ public static class WaveformGenerator
         var index = (int)Math.Floor(Math.Round(position * samples.Length, 9));
         return samples[Math.Min(index, samples.Length - 1)];
     }
+
+    public static WaveformSample At(WaveformPreset preset, double seconds, double phase = 0) =>
+        ReferenceSample(preset, seconds, phase) ?? new(Sample(preset, seconds, phase), preset.Frequency);
+
+    public static IReadOnlyList<WaveformSample> Window(WaveformPreset preset, double seconds, double phase = 0,
+        bool repeat = true, double? remainingSeconds = null) => Enumerable.Range(0, 4).Select(index =>
+        (!repeat && seconds + index * .025 >= preset.PeriodSeconds - 1e-9) ||
+        remainingSeconds is { } remaining && index * .025 >= remaining - 1e-9
+            ? new WaveformSample(0, 1, 0) : At(preset, seconds + index * .025, phase)).ToArray();
 
     private static double Interpolate(double[] points, double position)
     {
@@ -121,7 +134,8 @@ public sealed record AppSettings(double DefaultLimit = 60, string? Language = nu
 public sealed record WorkspaceData(int SchemaVersion, List<WaveformPreset> Presets,
     List<SessionRecord> Sessions, AppSettings Settings, SessionStatistics? Statistics = null, List<PlaybackModeConfig>? Modes = null)
 {
-    public static WorkspaceData Empty => new(5, [], [], new(), new(), []);
+    public const int CurrentSchema = 6;
+    public static WorkspaceData Empty => new(CurrentSchema, [], [], new(), new(), []);
 }
 
 public sealed record SessionStatistics(long SessionCount = 0, double TotalDurationSeconds = 0)

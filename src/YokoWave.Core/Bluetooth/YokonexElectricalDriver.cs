@@ -19,8 +19,6 @@ internal sealed class YokonexElectricalDriver(string id, BluetoothDeviceProfile 
     public override Task Stop(CancellationToken ct) => Write(Profile.Protocol == BluetoothProtocol.YokonexV1 ? V1Protocol.Stop() : V2Protocol.Stop(), ct);
     public override async Task Send(OutputFrame frame, CancellationToken ct)
     {
-        if ((frame.ChannelA > 0 && frame.FamilyA == WaveformFamily.DgLab) || (frame.ChannelB > 0 && frame.FamilyB == WaveformFamily.DgLab))
-            throw new LocalizedArgumentException("Error.WaveDeviceMismatch");
         var packets = Profile.Protocol == BluetoothProtocol.YokonexV1 ? V1Protocol.Encode(frame) : [V2Protocol.Encode(frame)];
         for (var index = 0; index < packets.Count; index++)
         {

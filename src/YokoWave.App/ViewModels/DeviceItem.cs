@@ -64,7 +64,7 @@ public sealed class PresetItem(WaveformPreset preset) : ObservableObject
     public WaveformPreset Preset => IsBuiltIn ? preset with { Name = Name } : preset;
     public string Name => IsBuiltIn ? DefaultWaveformCatalog.Name(preset.Id) : preset.Name;
     public string Detail => preset.Shape == WaveShape.Sampled
-        ? L10n.Format("Wave.SampledDetail", preset.Samples?.Length ?? 0, preset.PeriodSeconds, L10n.Get($"Wave.Family{preset.Family}"))
+        ? L10n.Format("Wave.SampledDetail", preset.Samples?.Length ?? 0, preset.PeriodSeconds)
         : L10n.Format("Wave.Detail", preset.PeriodSeconds, preset.Frequency);
     public string ShapeLabel => L10n.Get($"Shape.{preset.Shape}");
     public bool IsBuiltIn => DefaultWaveformCatalog.Contains(preset.Id);

@@ -22,7 +22,7 @@ public sealed class HardwareUiTests
     public async Task RestoredRoutingRefreshesCompatibleChoicesWhenScanIdentifiesTheDevice()
     {
         using var folder = new TestFolder(); var store = new WorkspaceStore(folder.Path);
-        await store.SaveAsync(new(5, [], [], new(UseBluetooth: true), Modes:
+        await store.SaveAsync(new(WorkspaceData.CurrentSchema, [], [], new(UseBluetooth: true), Modes:
             [new(Guid.NewGuid(), "Saved", WaveformAId: DefaultWaveformCatalog.Presets[0].Id, TargetDeviceIds: ["CoyoteV3"])]));
         var adapter = new HardwareGattAdapter(BluetoothProtocol.CoyoteV3);
         var controller = new DeviceController(new SimulationTransport());
@@ -33,9 +33,9 @@ public sealed class HardwareUiTests
             window.Show();
             for (var i = 0; i < 200 && (vm.Devices.Count == 0 || vm.IsScanning); i++)
             { Dispatcher.UIThread.RunJobs(); await Task.Delay(10, TestContext.Current.CancellationToken); }
-            Assert.Equal(WaveformFamily.DgLab, vm.SelectedPreset!.Preset.Family);
+            Assert.Equal(DefaultWaveformCatalog.Presets[0].Id, vm.SelectedPreset!.Preset.Id);
             var picker = view.GetVisualDescendants().OfType<ComboBox>().Single(control => control.Name == "PresetPicker");
-            Assert.All(picker.ItemsSource!.Cast<PresetItem>(), item => Assert.NotEqual(WaveformFamily.Electrical, item.Preset.Family));
+            Assert.Equal(vm.Presets.Count, picker.ItemsSource!.Cast<PresetItem>().Count());
             Assert.Empty(controller.Connections); Assert.False(vm.IsRunning);
         }
         finally { window.Close(); }
@@ -45,7 +45,7 @@ public sealed class HardwareUiTests
     public async Task HardwarePanelsFilterRoutingLocalizeAndPersistOnlyModeSettings()
     {
         using var folder = new TestFolder(); var store = new WorkspaceStore(folder.Path);
-        await store.SaveAsync(new(5, [], [], new(UseBluetooth: true)));
+        await store.SaveAsync(new(WorkspaceData.CurrentSchema, [], [], new(UseBluetooth: true)));
         var adapter = new HardwareGattAdapter(BluetoothProtocol.CoyoteV3, BluetoothProtocol.YokonexMotor,
             BluetoothProtocol.YokonexPump, BluetoothProtocol.Paw, BluetoothProtocol.Civet);
         var previous = Logger.Sink; var errors = new BindingErrors(); Logger.Sink = errors;
@@ -60,8 +60,8 @@ public sealed class HardwareUiTests
             var coyote = vm.Devices.Single(device => device.Device.Profile?.Protocol == BluetoothProtocol.CoyoteV3);
             await vm.ToggleConnectionAsync(coyote); var waveMode = vm.SelectedMode;
             waveMode.Name = "V3 settings"; waveMode.AssignTarget(coyote.Id, true);
-            Assert.Equal(WaveformFamily.DgLab, waveMode.SelectedPreset!.Preset.Family);
-            Assert.All(waveMode.PlaybackPresets, item => Assert.NotEqual(WaveformFamily.Electrical, item.Preset.Family));
+            Assert.Equal(1, waveMode.SelectedPreset!.Preset.FormatVersion);
+            Assert.Equal(vm.Presets.Count, waveMode.PlaybackPresets.Count);
             waveMode.FrequencyBalanceA = 42; waveMode.WidthBalanceB = 201; waveMode.ChannelA = 12;
             Assert.True(waveMode.HasDgBalances); Assert.False(vm.HasElectrodeReadings);
             Assert.True(waveMode.CanStart);
@@ -73,7 +73,7 @@ public sealed class HardwareUiTests
             Assert.True(motorMode.CanStart);
             Assert.Equal(37, vm.ChannelC); Assert.True(view.GetVisualDescendants().OfType<Slider>().Single(slider => slider.Name == "ChannelCSlider").IsVisible);
             Assert.All(motorMode.PlaybackPresets.Where(item => item.Preset.Samples is not null), item =>
-                Assert.All(item.Preset.Samples!, sample => Assert.True(sample.Motors?.All(value => value >= 0) ?? true)));
+                Assert.All(item.Preset.Samples!, sample => Assert.True(sample.IsValid)));
             await vm.AddModeAsync(ModeKind.Pump); var pumpMode = vm.SelectedMode;
             var pump = vm.Devices.Single(device => device.Device.Profile?.Protocol == BluetoothProtocol.YokonexPump);
             Assert.True(pump.CanAssign); Assert.False(coyote.CanAssign);
@@ -103,23 +103,23 @@ public sealed class HardwareUiTests
     }
 
     [AvaloniaFact]
-    public async Task IncompatiblePlaylistIsRetainedAndCannotStartOnCoyote()
+    public async Task MixedSourcePlaylistIsRetainedAndPlaysOnCoyote()
     {
         using var folder = new TestFolder(); var store = new WorkspaceStore(folder.Path);
-        await store.SaveAsync(new(5, [], [], new(UseBluetooth: true)));
+        await store.SaveAsync(new(WorkspaceData.CurrentSchema, [], [], new(UseBluetooth: true)));
         var adapter = new HardwareGattAdapter(BluetoothProtocol.CoyoteV3);
         await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), store, () => new BluetoothDeviceTransport(adapter));
         await vm.InitializeAsync(); var device = Assert.Single(vm.Devices); await vm.ToggleConnectionAsync(device);
         var mode = vm.SelectedMode;
-        mode.PlaylistCandidate = vm.Presets.First(item => item.Preset.Family == WaveformFamily.Electrical && item != mode.SelectedPreset);
+        mode.PlaylistCandidate = vm.Presets.First(item => item != mode.SelectedPreset && item.Preset.Samples!.Any(sample => sample.Channels is not null));
         mode.AddPlaylistWave(); var savedIds = mode.Playlist.Select(entry => entry.Id).ToArray();
         mode.SelectedPlaybackOrder = mode.PlaybackOrders.Single(option => option.Value == (int)PlaybackOrder.Sequential);
         mode.AssignTarget(device.Id, true);
-        Assert.Equal(savedIds, mode.Playlist.Select(entry => entry.Id)); Assert.False(mode.CanStart);
-        await mode.TogglePlaybackAsync(); Assert.False(mode.IsRunning); Assert.Equal(L10n.Get("Error.WaveDeviceMismatch"), vm.Status);
+        Assert.Equal(savedIds, mode.Playlist.Select(entry => entry.Id)); Assert.True(mode.CanStart);
+        await mode.TogglePlaybackAsync(); Assert.True(mode.IsRunning); await mode.StopAsync();
         mode.Playlist[0].RemoveCommand.Execute(null); var remaining = Assert.Single(mode.Playlist).Id;
         mode.AssignTarget(device.Id, false); mode.AssignTarget(device.Id, true);
-        Assert.Equal(remaining, Assert.Single(mode.Playlist).Id); Assert.False(mode.CanStart);
+        Assert.Equal(remaining, Assert.Single(mode.Playlist).Id); Assert.True(mode.CanStart);
     }
 
     private static void Capture(Window window, string file)

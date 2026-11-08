@@ -22,7 +22,7 @@ public sealed class SessionTests
         Assert.True(engine.IsRunning);
         Assert.Null(engine.Remaining);
         Assert.Null(completed);
-        Assert.Equal(10, transport.Latest["one"].ChannelA, 8);
+        Assert.Equal(10, WaveformRendering.Strength(transport.Latest["one"], 0), 8);
         await engine.StopAsync();
         Assert.Equal(36001, completed!.DurationSeconds);
         Assert.Equal(0, transport.Latest["one"].ChannelA);
@@ -69,11 +69,11 @@ public sealed class SessionTests
         Assert.Equal(0, completed);
         await engine.AdvanceAsync(TimeSpan.FromSeconds(1.5));
         Assert.Equal(TimeSpan.Zero, engine.WaveformElapsed);
-        Assert.Equal(5, transport.Latest["one"].ChannelA);
+        Assert.Equal(5, WaveformRendering.Strength(transport.Latest["one"], 0));
         Assert.Equal(40, transport.Latest["two"].Frequency);
         await engine.AdvanceAsync(TimeSpan.FromSeconds(2.5));
-        Assert.Equal(10, transport.Latest["one"].ChannelA);
-        Assert.Equal(10, transport.Latest["two"].ChannelA);
+        Assert.Equal(10, WaveformRendering.Strength(transport.Latest["one"], 0));
+        Assert.Equal(10, WaveformRendering.Strength(transport.Latest["two"], 0));
         await engine.AdvanceAsync(TimeSpan.FromSeconds(5));
         Assert.False(engine.IsRunning);
         Assert.Equal(1, completed);
@@ -104,7 +104,7 @@ public sealed class SessionTests
         var current = DefaultWaveformCatalog.Presets[0];
         await engine.StartAsync([device.Id], current, null);
         await Assert.ThrowsAnyAsync<ArgumentException>(() => engine.ChangeWaveformAsync(
-            DefaultWaveformCatalog.Presets.First(preset => preset.Family == WaveformFamily.Motor)));
+            current with { FormatVersion = 999 }));
         Assert.True(engine.IsRunning);
         Assert.Equal(current.Id, engine.CurrentWaveform!.Id);
         await engine.AdvanceAsync(TimeSpan.FromSeconds(1));

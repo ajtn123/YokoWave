@@ -228,7 +228,7 @@ public sealed class LiveModeUiTests
     {
         using var folder = new TestFolder(); var adapter = new FakeBluetoothAdapter(); var factory = new FakeAudioInputFactory();
         adapter.Devices.Add(new("ble:000000000002", "YCY-DJ", -55));
-        await new WorkspaceStore(folder.Path).SaveAsync(new(5, [], [], new(UseBluetooth: true)));
+        await new WorkspaceStore(folder.Path).SaveAsync(new(WorkspaceData.CurrentSchema, [], [], new(UseBluetooth: true)));
         await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path),
             () => new ElectricalBluetoothTransport(adapter), factory);
         await vm.InitializeAsync();

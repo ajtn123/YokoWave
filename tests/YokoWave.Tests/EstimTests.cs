@@ -9,7 +9,7 @@ public sealed class EstimTests
 {
     private static WaveformPreset Wave(string name, double period = 1, double frequency = 20, double pulse = 30) =>
         new(Guid.NewGuid(), name, WaveShape.Sampled, period, frequency,
-            Samples: [new(0.3, frequency, pulse), new(0.7, frequency + 1, pulse + 1)], Family: WaveformFamily.Electrical);
+            Samples: [new(1, frequency, pulse / 100), new(1, frequency + 1, (pulse + 1) / 100)]);
     private static async Task<DeviceController> Controller(RecordingTransport transport)
     {
         var controller = new DeviceController(transport);
@@ -133,7 +133,7 @@ public sealed class EstimTests
         else
         {
             Assert.Equal(20, transport.Latest["one"].ChannelA);
-            Assert.Equal(mode == TouchPlayback.RecordedLoop ? 25 : 50, transport.Latest["one"].ReferenceSample!.FrequencyCode);
+            Assert.Equal(mode == TouchPlayback.RecordedLoop ? 25 : 50, transport.Latest["one"].ReferenceSample!.FrequencyHz);
         }
         await engine.StopAsync(); await engine.SetTouchAsync(100, 100, true);
         Assert.Equal(0, transport.Latest["one"].ChannelA);
@@ -203,11 +203,11 @@ public sealed class EstimTests
         var a = Wave("A"); var b = Wave("B");
         var record = new SessionRecord(Guid.NewGuid(), DateTimeOffset.Now, 1, a.Name, 1, 20, 10, "Reason.Manual", a.Id, b.Id, b.Name, Gentle: true);
         var store = new WorkspaceStore(folder.Path);
-        await store.SaveAsync(new(3, [a, b], [record], settings, Modes: [mode]));
+        await store.SaveAsync(new(WorkspaceData.CurrentSchema, [a, b], [record], settings, Modes: [mode]));
         var restored = await new WorkspaceStore(folder.Path).LoadAsync();
         Assert.Equal(options, Assert.Single(restored.Modes!).Estim);
         Assert.Equal(record, Assert.Single(restored.Sessions));
-        await Assert.ThrowsAnyAsync<ArgumentException>(() => store.SaveAsync(new(3, [], [], new(), Modes: [mode with { Estim = options with { Strength = new(IntervalSeconds: 0) } }])));
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => store.SaveAsync(new(WorkspaceData.CurrentSchema, [], [], new(), Modes: [mode with { Estim = options with { Strength = new(IntervalSeconds: 0) } }])));
     }
 
     [Fact]

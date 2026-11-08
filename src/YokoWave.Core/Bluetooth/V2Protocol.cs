@@ -12,8 +12,8 @@ public static class V2Protocol
 
     public static byte[] Encode(OutputFrame frame)
     {
-        var a = V1Protocol.Parameters(frame.ChannelA, frame.Frequency, frame.ReferenceSample, frame.Gentle);
-        var b = V1Protocol.Parameters(frame.ChannelB, frame.Frequency, frame.ReferenceSampleB ?? frame.ReferenceSample, frame.Gentle);
+        var a = V1Protocol.Parameters(frame, 0);
+        var b = V1Protocol.Parameters(frame, 1);
         byte[] data = [0x35, 0x11, 0x02, 0, 0, (byte)Math.Max(1, a.Frequency), (byte)a.PulseWidth,
             0, 0, (byte)Math.Max(1, b.Frequency), (byte)b.PulseWidth];
         BinaryPrimitives.WriteUInt16BigEndian(data.AsSpan(3, 2), (ushort)a.Strength);

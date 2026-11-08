@@ -17,7 +17,7 @@ public sealed partial class PlaybackModeViewModel
     public bool HasChannelC => TargetDescriptors().Any(device => device.HasChannel(2));
     public double ChannelC { get => _channelC; set { if (double.IsFinite(value)) { Set(ref _channelC, Math.Clamp(value, 0, SafetyLimit)); _engine.ChannelC = _channelC; if (value != _channelC) Raise(nameof(ChannelC)); } } }
     private double _channelC;
-    public string SelectedOutputCLabel => L10n.Format("Device.Output", Outputs().Select(output => output.ChannelC).DefaultIfEmpty().Max());
+    public string SelectedOutputCLabel => L10n.Format("Device.Output", Outputs().Select(output => WaveformRendering.Strength(output, 2)).DefaultIfEmpty().Max());
     public SessionOption SelectedPumpDirection
     {
         get => PumpDirections.First(option => option.Value == (int)_pump.Direction);
@@ -49,18 +49,6 @@ public sealed partial class PlaybackModeViewModel
             return waves.Concat(new[] { SelectedPreset?.Preset, program.ChannelBWaveform }.OfType<WaveformPreset>())
                 .Any(wave => !AcceptsWaveform(wave)) ? "Error.WaveDeviceMismatch" : null;
         }
-    }
-    private void SelectCompatibleDefault()
-    {
-        var previous = SelectedPreset;
-        if (previous is not { IsBuiltIn: true } || AcceptsWaveform(previous.Preset)) return;
-        if (!_automaticPlaylist && (UsesCustomPlaylist || IsSleep && IsRandomSleep)) return;
-        var compatible = Presets.FirstOrDefault(item => AcceptsWaveform(item.Preset));
-        if (compatible is null) return;
-        _selectedPreset = compatible;
-        if (_selectedPresetB is { IsBuiltIn: true } && !AcceptsWaveform(_selectedPresetB.Preset)) _selectedPresetB = compatible;
-        if (_automaticPlaylist && Playlist.Count == 1 && Playlist[0].Id == previous.Preset.Id) { Playlist.Clear(); Playlist.Add(new(this, compatible)); }
-        Raise(nameof(SelectedPresetB)); Raise(nameof(SelectedWaveformB)); Raise(nameof(SelectedWaveform)); Raise(nameof(SelectedPresetName));
     }
     private void RefreshHardware()
     {

@@ -19,7 +19,7 @@ public sealed class StorageTests
         var record = Record(1);
         var settings = new AppSettings(TimerLimitMinutes: 5);
         var mode = new PlaybackModeConfig(Guid.NewGuid(), "Mode", DurationSeconds: 3);
-        await store.SaveAsync(new(3, [preset], [record], settings, Modes: [mode]));
+        await store.SaveAsync(new(WorkspaceData.CurrentSchema, [preset], [record], settings, Modes: [mode]));
         var json = await File.ReadAllTextAsync(store.FilePath, TestContext.Current.CancellationToken);
         using var document = JsonDocument.Parse(json);
         Assert.Equal(new[] { "SchemaVersion", "SessionCount", "TotalDurationSeconds" }, document.RootElement.EnumerateObject().Select(p => p.Name));
@@ -42,10 +42,10 @@ public sealed class StorageTests
     {
         using var folder = new TestFolder();
         var store = new WorkspaceStore(folder.Path);
-        await Assert.ThrowsAnyAsync<ArgumentException>(() => store.SaveAsync(new(3, [], [], new(TimerLimitMinutes: 5),
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => store.SaveAsync(new(WorkspaceData.CurrentSchema, [], [], new(TimerLimitMinutes: 5),
             Modes: [new(Guid.NewGuid(), "Mode", DurationSeconds: 360)])));
-        await Assert.ThrowsAnyAsync<ArgumentException>(() => store.SaveAsync(new(2, [], [], new(TimerLimitMinutes: 0))));
-        await Assert.ThrowsAnyAsync<ArgumentException>(() => store.SaveAsync(new(2, [], [], new(TimerLimitMinutes: 121))));
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => store.SaveAsync(new(WorkspaceData.CurrentSchema, [], [], new(TimerLimitMinutes: 0))));
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => store.SaveAsync(new(WorkspaceData.CurrentSchema, [], [], new(TimerLimitMinutes: 121))));
     }
 
     [Fact]
@@ -54,7 +54,7 @@ public sealed class StorageTests
         using var folder = new TestFolder();
         var store = new WorkspaceStore(folder.Path);
         var records = Enumerable.Range(0, 16).Select(i => Record(i, new string('字', 6000))).ToList();
-        var data = new WorkspaceData(2, [], records, new());
+        var data = new WorkspaceData(WorkspaceData.CurrentSchema, [], records, new());
         await store.SaveAsync(data);
         Assert.Equal(2, Directory.GetFiles(folder.Path, "*.jsonl").Length);
         Assert.InRange(new FileInfo(store.Journal.FilePath).Length, 1, SessionJournal.MaxFileBytes);
@@ -74,7 +74,7 @@ public sealed class StorageTests
         using var folder = new TestFolder();
         var store = new WorkspaceStore(folder.Path);
         var records = Enumerable.Range(0, 8).Select(i => Record(i)).ToList();
-        var data = new WorkspaceData(2, [], records, new());
+        var data = new WorkspaceData(WorkspaceData.CurrentSchema, [], records, new());
         await Task.WhenAll(store.SaveAsync(data), store.SaveAsync(data));
         Assert.Equal(8, (await File.ReadAllLinesAsync(store.Journal.FilePath, TestContext.Current.CancellationToken)).Length);
         Assert.Equal(new SessionStatistics(8, 80), (await store.LoadAsync()).Statistics);
@@ -85,6 +85,7 @@ public sealed class StorageTests
     [InlineData(2)]
     [InlineData(3)]
     [InlineData(4)]
+    [InlineData(5)]
     public async Task OldDevelopmentFormatIsResetWithoutMigration(int schema)
     {
         using var folder = new TestFolder();
@@ -95,7 +96,7 @@ public sealed class StorageTests
         var unrelated = Path.Combine(folder.Path, "keep.txt");
         await File.WriteAllTextAsync(unrelated, "keep", TestContext.Current.CancellationToken);
         var data = await store.LoadAsync();
-        Assert.Equal(5, data.SchemaVersion);
+        Assert.Equal(WorkspaceData.CurrentSchema, data.SchemaVersion);
         Assert.Empty(data.Presets);
         Assert.Empty(data.Sessions);
         Assert.Empty(data.Modes!);

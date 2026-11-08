@@ -14,7 +14,4 @@ public static class PlaybackCompatibility
     public static bool Accepts(DeviceDescriptor device, WaveformPreset preset) => device.Profile?.Accepts(preset) ??
         (device.Kind != DeviceKind.Pump && !device.IsInput);
 
-    public static IReadOnlyList<WaveformSample>? Window(WaveformPreset preset, double seconds, double phase = 0) =>
-        preset.Family == WaveformFamily.DgLab
-            ? Enumerable.Range(0, 4).Select(index => WaveformGenerator.ReferenceSample(preset, seconds + index * .025, phase)!).ToArray() : null;
 }

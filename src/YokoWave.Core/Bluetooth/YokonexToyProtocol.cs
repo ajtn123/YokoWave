@@ -15,7 +15,7 @@ public static class YokonexToyProtocol
         byte[] values = new byte[3];
         for (var channel = 0; channel < 3; channel++)
         {
-            var strength = channel == 0 ? frame.ChannelA : channel == 1 ? frame.ChannelB : frame.ChannelC;
+            var strength = WaveformRendering.Strength(frame, channel);
             values[channel] = (mask & 1 << channel) == 0 ? (byte)0
                 : (byte)Math.Floor(DgLabProtocol.Strength(strength, 20, frame.Gentle) * DgLabProtocol.MotorAmplitude(frame, channel) / 100d);
         }

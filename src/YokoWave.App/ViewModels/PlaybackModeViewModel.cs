@@ -16,7 +16,6 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
     private double _channelA, _channelB, _safetyLimit = 60, _sessionDurationSeconds = 600;
     private string _name;
     private PresetItem? _selectedPreset;
-    private string _targetProfiles = "";
     public Guid Id { get; }
     public ModeKind Kind { get; }
     public string Name
@@ -64,8 +63,8 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
     public string PresetSummary => SelectedPreset?.Detail ?? L10n.Get("Wave.Select");
     public string SelectedPresetName => UsesWaveforms ? SelectedPreset?.Name ?? L10n.Get("Wave.Select") : KindLabel;
     public WaveformPreset? SelectedWaveform => SelectedPreset?.Preset;
-    public string SelectedOutputALabel => L10n.Format("Device.Output", Outputs().Select(output => output.ChannelA).DefaultIfEmpty().Max());
-    public string SelectedOutputBLabel => L10n.Format("Device.Output", Outputs().Select(output => output.ChannelB).DefaultIfEmpty().Max());
+    public string SelectedOutputALabel => L10n.Format("Device.Output", Outputs().Select(output => WaveformRendering.Strength(output, 0)).DefaultIfEmpty().Max());
+    public string SelectedOutputBLabel => L10n.Format("Device.Output", Outputs().Select(output => WaveformRendering.Strength(output, 1)).DefaultIfEmpty().Max());
     private IEnumerable<OutputFrame> Outputs() => _targets.Where(id => _controller.DeviceOwner(id) == Id)
         .Select(id => _controller.Connections.TryGetValue(id, out var connection) ? connection.Output : OutputFrame.Zero);
     private AsyncCommand DeleteWaveCommand => _host.DeleteWaveCommand;
@@ -160,13 +159,6 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
     }
     public void RefreshTargets()
     {
-        var profiles = string.Join('|', TargetDescriptors().OrderBy(device => device.Id).Select(device => $"{device.Id}:{device.ProtocolId}:{device.Kind}"));
-        if (profiles != _targetProfiles)
-        {
-            _targetProfiles = profiles;
-            if (CanEditRouting) SelectCompatibleDefault();
-            RefreshPlaylist();
-        }
         var ids = _targets.ToArray();
         foreach (var item in Targets.Where(item => !ids.Contains(item.Id)).ToArray()) Targets.Remove(item);
         foreach (var id in ids)

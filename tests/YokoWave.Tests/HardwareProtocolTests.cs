@@ -15,9 +15,9 @@ public sealed class HardwareProtocolTests
         Assert.Equal("FF0700", Convert.ToHexString(DgLabProtocol.V2Strength(0, 100)));
         Assert.Equal((2047, 2047), DgLabProtocol.ParseV2Strength(Convert.FromHexString("FFFF3F")));
         Assert.Null(DgLabProtocol.ParseV2Strength(Convert.FromHexString("FFFFFF")));
-        var frame = new OutputFrame(100, 100, 100, new(1, 10, 100), FamilyA: WaveformFamily.DgLab, FamilyB: WaveformFamily.DgLab);
+        var frame = new OutputFrame(100, 100, 100, new(1, 100, 1));
         Assert.Equal("21010A", Convert.ToHexString(DgLabProtocol.V2Pulse(frame, false))); // X=1, Y=9, Z=20.
-        Assert.Equal("210102", Convert.ToHexString(DgLabProtocol.V2Pulse(frame with { ReferenceSample = new(1, 10, 20) }, false)));
+        Assert.Equal("210102", Convert.ToHexString(DgLabProtocol.V2Pulse(frame with { ReferenceSample = new(1, 100, .2) }, false)));
         Assert.Equal(BluetoothDeviceProfiles.Coyote2(0x1506), BluetoothDeviceProfiles.V2WaveA.Characteristic);
         Assert.Equal(BluetoothDeviceProfiles.Coyote2(0x1505), BluetoothDeviceProfiles.V2WaveB.Characteristic);
     }
@@ -25,15 +25,15 @@ public sealed class HardwareProtocolTests
     [Fact]
     public void CoyoteV3EncodesFourDistinct25MillisecondSamplesAndAbsoluteStrength()
     {
-        WaveformSample[] samples = [new(0, 100, 0), new(.25, 101, 25), new(.5, 600, 50), new(1, 1000, 100)];
-        var frame = new OutputFrame(50, 25, 20, FamilyA: WaveformFamily.DgLab, FamilyB: WaveformFamily.DgLab, WindowA: samples, WindowB: samples);
+        WaveformSample[] samples = [new(1, 10, 0), new(1, 1000d / 101, .25), new(1, 1000d / 600, .5), new(1, 1, 1)];
+        var frame = new OutputFrame(50, 25, 20, WindowA: samples, WindowB: samples);
         Assert.Equal("B03F64326464C8F0001932646464C8F000193264", Convert.ToHexString(DgLabProtocol.V3(frame, 3)));
         Assert.Equal("BF787880808080", Convert.ToHexString(DgLabProtocol.Limits(60)));
         Assert.Equal((100, 50), DgLabProtocol.ParseV3([0xb1, 3, 100, 50]));
         Assert.Null(DgLabProtocol.ParseV3([0xb1, 16, 100, 50]));
         Assert.Null(DgLabProtocol.ParseV3([0xb1, 3, 201, 0]));
         Assert.Equal((byte)0, DgLabProtocol.V3(frame with { ChannelA = 0 })[11]);
-        Assert.Throws<LocalizedArgumentException>(() => DgLabProtocol.V3(frame with { FamilyA = WaveformFamily.Electrical }));
+        Assert.Throws<LocalizedArgumentException>(() => DgLabProtocol.V3(frame with { ReferenceSample = new(1, 0) , WindowA = null }));
     }
 
     [Fact]
@@ -54,10 +54,10 @@ public sealed class HardwareProtocolTests
     public void MotorChecksumChannelMaskAndDirectionRestrictions()
     {
         Assert.Equal("351045", Convert.ToHexString(YokonexToyProtocol.MotorInfo()));
-        var frame = new OutputFrame(100, 50, 20, new(1, 0, 0, [20, 10, 5]), ChannelC: 100, FamilyA: WaveformFamily.Motor, FamilyB: WaveformFamily.Motor);
+        var frame = new OutputFrame(100, 50, 20, new(1, 20, 1, [1, .5, .25]), ChannelC: 100);
         Assert.Equal("351214050565", Convert.ToHexString(YokonexToyProtocol.MotorOutput(frame, 7)));
         Assert.Equal("351214000560", Convert.ToHexString(YokonexToyProtocol.MotorOutput(frame, 5)));
-        Assert.Throws<LocalizedArgumentException>(() => YokonexToyProtocol.MotorOutput(frame with { ReferenceSample = new(1, 0, 0, [-1, 10, 5]) }, 7));
+        Assert.Throws<LocalizedArgumentException>(() => YokonexToyProtocol.MotorOutput(frame with { ReferenceSample = new(1, 20, 1, [double.NaN, .5, .25]) }, 7));
         var opossum = DgLabProtocol.OpossumWave(frame);
         Assert.Equal(20, opossum.Length); Assert.Equal((byte)0xb0, opossum[0]);
         Assert.Equal(new byte[] { 100, 100, 100, 100 }, opossum[8..12]);
@@ -144,8 +144,8 @@ public sealed class HardwareProtocolTests
         await using var controller = new DeviceController(new BluetoothDeviceTransport(adapter));
         var device = Assert.Single(await controller.ScanAsync(TestContext.Current.CancellationToken));
         await controller.ConnectAsync(device, TestContext.Current.CancellationToken);
-        var samples = Enumerable.Range(0, 8).Select(i => new WaveformSample(i / 7d, 10 + i, i * 10)).ToArray();
-        var wave = new WaveformPreset(Guid.NewGuid(), "25ms", WaveShape.Sampled, .2, 20, Samples: samples, Family: WaveformFamily.DgLab);
+        var samples = Enumerable.Range(0, 8).Select(i => new WaveformSample(1, 1000d / (10 + i), i / 10d)).ToArray();
+        var wave = new WaveformPreset(Guid.NewGuid(), "25ms", WaveShape.Sampled, .2, 20, Samples: samples);
         var engine = new SessionEngine(controller) { ChannelA = 30, ChannelB = 20, OffsetChannelB = false };
         await engine.StartAsync([device.Id], wave, null, new(OutputLimit: 40));
         await engine.AdvanceAsync(TimeSpan.FromSeconds(.1));
@@ -158,7 +158,7 @@ public sealed class HardwareProtocolTests
         await engine.SetOutputLimitAsync(10); Assert.Equal((byte)20, link.Writes[^1].Data[2]);
         await engine.StopAsync(); Assert.Equal((byte)0, link.Writes.Last(w => w.Data[0] == 0xbf).Data[1]);
         var before = link.Writes.Count;
-        await Assert.ThrowsAsync<LocalizedArgumentException>(() => engine.StartAsync([device.Id], DefaultWaveformCatalog.Presets[0], null));
+        await Assert.ThrowsAsync<LocalizedArgumentException>(() => engine.StartAsync([device.Id], wave with { FormatVersion = 999 }, null));
         Assert.Equal(before, link.Writes.Count); Assert.Null(controller.DeviceOwner(device.Id));
     }
 
@@ -191,7 +191,7 @@ public sealed class HardwareProtocolTests
         await controller.ConnectAsync(device, TestContext.Current.CancellationToken);
         await Wait(() => controller.Connections[device.Id].Device.ChannelMask == 7);
         var wave = new WaveformPreset(Guid.NewGuid(), "Motors", WaveShape.Sampled, .2, 20,
-            Samples: [new(.25, 0, 0, [20, 10, 5]), new(.25, 0, 0, [20, 10, 5])], Family: WaveformFamily.Motor);
+            Samples: [new(1, 20, 1, [1, .5, .25]), new(1, 20, 1, [1, .5, .25])]);
         var engine = new SessionEngine(controller) { ChannelA = 50, ChannelB = 50, ChannelC = 50, OffsetChannelB = false };
         await engine.StartAsync([device.Id], wave, null);
         await engine.AdvanceAsync(TimeSpan.FromSeconds(.1));
@@ -232,7 +232,7 @@ public sealed class HardwareProtocolTests
         await using var controller = new DeviceController(new BluetoothDeviceTransport(adapter));
         var device = Assert.Single(await controller.ScanAsync(TestContext.Current.CancellationToken));
         await controller.ConnectAsync(device, TestContext.Current.CancellationToken);
-        var engine = new SessionEngine(controller); var wave = DefaultWaveformCatalog.Presets.First(p => p.Family == WaveformFamily.DgLab);
+        var engine = new SessionEngine(controller); var wave = DefaultWaveformCatalog.Presets[^1];
         await engine.StartAsync([device.Id], wave, null); adapter.Links[device.Id].FailWrites = true;
         await Assert.ThrowsAsync<LocalizedAggregateException>(() => engine.StopAsync());
         Assert.Equal(engine.OwnerId, controller.DeviceOwner(device.Id));
@@ -270,7 +270,7 @@ public sealed class HardwareProtocolTests
         var device = Assert.Single(await controller.ScanAsync(TestContext.Current.CancellationToken)); await controller.ConnectAsync(device, TestContext.Current.CancellationToken);
         var generated = new WaveformPreset(Guid.NewGuid(), "Generated", WaveShape.Custom, .2, 20, [1, 1]);
         var native = new WaveformPreset(Guid.NewGuid(), "Native", WaveShape.Sampled, .2, 20,
-            Samples: [new(.5, 0, 0, [10, 10, 10]), new(.5, 0, 0, [10, 10, 10])], Family: WaveformFamily.Motor);
+            Samples: [new(1, 20, 1, [.5, .5, .5]), new(1, 20, 1, [.5, .5, .5])]);
         var engine = new SessionEngine(controller) { ChannelA = 50 };
         await engine.StartAsync([device.Id], generated, null, new(new(PlaybackOrder.Sequential), [generated, native]));
         await engine.AdvanceAsync(TimeSpan.FromSeconds(.2)); Assert.Equal(native.Id, engine.CurrentWaveform!.Id);
@@ -289,6 +289,7 @@ internal sealed class HardwareGattAdapter : IBluetoothAdapter
         {
             var name = protocol switch
             {
+                BluetoothProtocol.YokonexV1 => "YYC-DJ", BluetoothProtocol.YokonexV2 => "YCY-DJ",
                 BluetoothProtocol.CoyoteV2 => "D-LAB ESTIM01", BluetoothProtocol.CoyoteV3 => "47L121000",
                 BluetoothProtocol.Opossum => "47L127000", BluetoothProtocol.Paw => "47L120300",
                 BluetoothProtocol.Civet => "47L124000", BluetoothProtocol.UnsupportedPaw => "47L120100", _ => protocol.ToString()
@@ -322,6 +323,11 @@ internal sealed class HardwareGattLink(BluetoothDeviceProfile profile) : IBlueto
     {
         ct.ThrowIfCancellationRequested(); if (Closed || FailWrites) throw new IOException("Closed link");
         Writes.Add((address, packet.ToArray())); if (!Reply) return Task.CompletedTask;
+        if (profile.Protocol is BluetoothProtocol.YokonexV1 or BluetoothProtocol.YokonexV2 && packet[1] == 0x71)
+        {
+            if (packet[2] == 4) Notify(V1Protocol.WithChecksum([0x35, 0x71, 4, 80]));
+            if (packet[2] is 1 or 2) Notify(V1Protocol.WithChecksum([0x35, 0x71, packet[2], 0, 0, 0, 0, 0]));
+        }
         if (profile.Protocol == BluetoothProtocol.CoyoteV3 && packet[0] == 0xb0) Notify([0xb1, (byte)(packet[1] >> 4), packet[2], packet[3]]);
         if (profile.Protocol == BluetoothProtocol.Opossum && packet[0] == 0xb3) Notify([0xb3, packet[1], packet[2]]);
         if (profile.Protocol == BluetoothProtocol.Paw && packet[0] == 0x50) { Notify([0x51, 1, 3, 80]); Notify([0xd0, 1, 1, 0, 2, 3, 4, 5, 6]); }

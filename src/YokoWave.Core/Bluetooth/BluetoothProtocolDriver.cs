@@ -21,16 +21,9 @@ internal abstract class BluetoothProtocolDriver(string id, BluetoothDeviceProfil
         if (Profile.Domain == OutputDomain.Input && (frame.ChannelA > 0 || frame.ChannelB > 0 || frame.ChannelC > 0 || frame.Pump is not null))
             throw new LocalizedOperationException("Error.SensorOnly");
         if (_fault is { } error && (frame.ChannelA > 0 || frame.ChannelB > 0 || frame.ChannelC > 0 || frame.Pump is { Direction: not PumpDirection.Off } or { Water: true })) throw error;
-        if (Profile.Domain == OutputDomain.Motor && ((frame.ChannelA > 0 || frame.ChannelC > 0) && frame.FamilyA is WaveformFamily.Electrical or WaveformFamily.DgLab ||
-            frame.ChannelB > 0 && frame.FamilyB is WaveformFamily.Electrical or WaveformFamily.DgLab))
-            throw new LocalizedArgumentException("Error.WaveDeviceMismatch");
-        if (Profile.Domain == OutputDomain.Electrical)
-        {
-            var dg = Profile.Protocol is BluetoothProtocol.CoyoteV2 or BluetoothProtocol.CoyoteV3;
-            bool Invalid(WaveformFamily family) => family == WaveformFamily.Motor || (dg ? family == WaveformFamily.Electrical : family == WaveformFamily.DgLab);
-            if (frame.ChannelA > 0 && Invalid(frame.FamilyA) || frame.ChannelB > 0 && Invalid(frame.FamilyB))
-                throw new LocalizedArgumentException("Error.WaveDeviceMismatch");
-        }
+        foreach (var sample in new[] { frame.ReferenceSample, frame.ReferenceSampleB }.OfType<WaveformSample>().Concat(frame.WindowA ?? []).Concat(frame.WindowB ?? []))
+            if (sample is null || !sample.IsValid) throw new LocalizedArgumentException("Error.Samples");
+        if (frame.WindowA is { Count: not 4 } || frame.WindowB is { Count: not 4 }) throw new LocalizedArgumentException("Error.Samples");
     }
     protected Task Write(byte[] packet, CancellationToken ct) => Link.WriteAsync(Profile.Write, packet, ct);
     protected async Task Battery(GattAddress address, CancellationToken ct)

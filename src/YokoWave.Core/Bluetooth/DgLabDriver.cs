@@ -52,11 +52,11 @@ internal sealed class DgLabDriver(string id, BluetoothDeviceProfile profile, IBl
                 if (_limits is null || !_limits.AsSpan().SequenceEqual(limits)) { await Write(limits, ct); _limits = limits; }
                 await Write(DgLabProtocol.V3(frame), ct); break;
             case BluetoothProtocol.CoyoteV2:
-                await Link.WriteAsync(BluetoothDeviceProfiles.V2Strength, DgLabProtocol.V2Strength(frame.ChannelA, frame.ChannelB, frame.Gentle), ct);
+                await Link.WriteAsync(BluetoothDeviceProfiles.V2Strength, DgLabProtocol.V2Strength(WaveformRendering.Strength(frame, 0), WaveformRendering.Strength(frame, 1), frame.Gentle), ct);
                 await Link.WriteAsync(BluetoothDeviceProfiles.V2WaveA, DgLabProtocol.V2Pulse(frame, false), ct);
                 await Link.WriteAsync(BluetoothDeviceProfiles.V2WaveB, DgLabProtocol.V2Pulse(frame, true), ct); break;
             case BluetoothProtocol.Opossum:
-                await Write([0xb3, (byte)DgLabProtocol.Strength(frame.ChannelA, 200, frame.Gentle), (byte)DgLabProtocol.Strength(frame.ChannelB, 200, frame.Gentle)], ct);
+                await Write([0xb3, (byte)DgLabProtocol.Strength(WaveformRendering.Strength(frame, 0, true), 200, frame.Gentle), (byte)DgLabProtocol.Strength(WaveformRendering.Strength(frame, 1, true), 200, frame.Gentle)], ct);
                 await Write(DgLabProtocol.OpossumWave(frame), ct); break;
         }
     }

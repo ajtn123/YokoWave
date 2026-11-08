@@ -1,1 +1,726 @@
-[{"id":"d7470000-0000-4000-8003-000000000001","name":"呼吸","nameKey":"Wave.DgBreathing","family":"DgLab","sourceId":1,"deviceCode":"DG-LAB public protocol examples","sampleIntervalSeconds":0.025,"frames":[{"level":0.0,"frequencyCode":10,"pulseWidthCode":0},{"level":0.0,"frequencyCode":10,"pulseWidthCode":0},{"level":0.0,"frequencyCode":10,"pulseWidthCode":0},{"level":0.0,"frequencyCode":10,"pulseWidthCode":0},{"level":0.2,"frequencyCode":10,"pulseWidthCode":20},{"level":0.2,"frequencyCode":10,"pulseWidthCode":20},{"level":0.2,"frequencyCode":10,"pulseWidthCode":20},{"level":0.2,"frequencyCode":10,"pulseWidthCode":20},{"level":0.4,"frequencyCode":10,"pulseWidthCode":40},{"level":0.4,"frequencyCode":10,"pulseWidthCode":40},{"level":0.4,"frequencyCode":10,"pulseWidthCode":40},{"level":0.4,"frequencyCode":10,"pulseWidthCode":40},{"level":0.6,"frequencyCode":10,"pulseWidthCode":60},{"level":0.6,"frequencyCode":10,"pulseWidthCode":60},{"level":0.6,"frequencyCode":10,"pulseWidthCode":60},{"level":0.6,"frequencyCode":10,"pulseWidthCode":60},{"level":0.8,"frequencyCode":10,"pulseWidthCode":80},{"level":0.8,"frequencyCode":10,"pulseWidthCode":80},{"level":0.8,"frequencyCode":10,"pulseWidthCode":80},{"level":0.8,"frequencyCode":10,"pulseWidthCode":80},{"level":1.0,"frequencyCode":10,"pulseWidthCode":100},{"level":1.0,"frequencyCode":10,"pulseWidthCode":100},{"level":1.0,"frequencyCode":10,"pulseWidthCode":100},{"level":1.0,"frequencyCode":10,"pulseWidthCode":100},{"level":1.0,"frequencyCode":10,"pulseWidthCode":100},{"level":1.0,"frequencyCode":10,"pulseWidthCode":100},{"level":1.0,"frequencyCode":10,"pulseWidthCode":100},{"level":1.0,"frequencyCode":10,"pulseWidthCode":100},{"level":1.0,"frequencyCode":10,"pulseWidthCode":100},{"level":1.0,"frequencyCode":10,"pulseWidthCode":100},{"level":1.0,"frequencyCode":10,"pulseWidthCode":100},{"level":1.0,"frequencyCode":10,"pulseWidthCode":100},{"level":0.0,"frequencyCode":10,"pulseWidthCode":0},{"level":0.0,"frequencyCode":10,"pulseWidthCode":0},{"level":0.0,"frequencyCode":10,"pulseWidthCode":0},{"level":0.0,"frequencyCode":10,"pulseWidthCode":0},{"level":0.0,"frequencyCode":10,"pulseWidthCode":0},{"level":0.0,"frequencyCode":10,"pulseWidthCode":0},{"level":0.0,"frequencyCode":10,"pulseWidthCode":0},{"level":0.0,"frequencyCode":10,"pulseWidthCode":0},{"level":0.0,"frequencyCode":10,"pulseWidthCode":0},{"level":0.0,"frequencyCode":10,"pulseWidthCode":0},{"level":0.0,"frequencyCode":10,"pulseWidthCode":0},{"level":0.0,"frequencyCode":10,"pulseWidthCode":0},{"level":0.0,"frequencyCode":10,"pulseWidthCode":0},{"level":0.0,"frequencyCode":10,"pulseWidthCode":0},{"level":0.0,"frequencyCode":10,"pulseWidthCode":0},{"level":0.0,"frequencyCode":10,"pulseWidthCode":0}]},{"id":"d7470000-0000-4000-8003-000000000002","name":"潮汐","nameKey":"Wave.DgTide","family":"DgLab","sourceId":2,"deviceCode":"DG-LAB public protocol examples","sampleIntervalSeconds":0.025,"frames":[{"level":0.0,"frequencyCode":10,"pulseWidthCode":0},{"level":0.0,"frequencyCode":10,"pulseWidthCode":0},{"level":0.0,"frequencyCode":10,"pulseWidthCode":0},{"level":0.0,"frequencyCode":10,"pulseWidthCode":0},{"level":0.16,"frequencyCode":11,"pulseWidthCode":16},{"level":0.16,"frequencyCode":11,"pulseWidthCode":16},{"level":0.16,"frequencyCode":11,"pulseWidthCode":16},{"level":0.16,"frequencyCode":11,"pulseWidthCode":16},{"level":0.33,"frequencyCode":13,"pulseWidthCode":33},{"level":0.33,"frequencyCode":13,"pulseWidthCode":33},{"level":0.33,"frequencyCode":13,"pulseWidthCode":33},{"level":0.33,"frequencyCode":13,"pulseWidthCode":33},{"level":0.5,"frequencyCode":14,"pulseWidthCode":50},{"level":0.5,"frequencyCode":14,"pulseWidthCode":50},{"level":0.5,"frequencyCode":14,"pulseWidthCode":50},{"level":0.5,"frequencyCode":14,"pulseWidthCode":50},{"level":0.66,"frequencyCode":16,"pulseWidthCode":66},{"level":0.66,"frequencyCode":16,"pulseWidthCode":66},{"level":0.66,"frequencyCode":16,"pulseWidthCode":66},{"level":0.66,"frequencyCode":16,"pulseWidthCode":66},{"level":0.83,"frequencyCode":18,"pulseWidthCode":83},{"level":0.83,"frequencyCode":18,"pulseWidthCode":83},{"level":0.83,"frequencyCode":18,"pulseWidthCode":83},{"level":0.83,"frequencyCode":18,"pulseWidthCode":83},{"level":1.0,"frequencyCode":19,"pulseWidthCode":100},{"level":1.0,"frequencyCode":19,"pulseWidthCode":100},{"level":1.0,"frequencyCode":19,"pulseWidthCode":100},{"level":1.0,"frequencyCode":19,"pulseWidthCode":100},{"level":0.92,"frequencyCode":21,"pulseWidthCode":92},{"level":0.92,"frequencyCode":21,"pulseWidthCode":92},{"level":0.92,"frequencyCode":21,"pulseWidthCode":92},{"level":0.92,"frequencyCode":21,"pulseWidthCode":92},{"level":0.84,"frequencyCode":22,"pulseWidthCode":84},{"level":0.84,"frequencyCode":22,"pulseWidthCode":84},{"level":0.84,"frequencyCode":22,"pulseWidthCode":84},{"level":0.84,"frequencyCode":22,"pulseWidthCode":84},{"level":0.76,"frequencyCode":24,"pulseWidthCode":76},{"level":0.76,"frequencyCode":24,"pulseWidthCode":76},{"level":0.76,"frequencyCode":24,"pulseWidthCode":76},{"level":0.76,"frequencyCode":24,"pulseWidthCode":76},{"level":0.68,"frequencyCode":26,"pulseWidthCode":68},{"level":0.68,"frequencyCode":26,"pulseWidthCode":68},{"level":0.68,"frequencyCode":26,"pulseWidthCode":68},{"level":0.68,"frequencyCode":26,"pulseWidthCode":68},{"level":0.0,"frequencyCode":26,"pulseWidthCode":0},{"level":0.0,"frequencyCode":26,"pulseWidthCode":0},{"level":0.0,"frequencyCode":26,"pulseWidthCode":0},{"level":0.0,"frequencyCode":26,"pulseWidthCode":0},{"level":0.16,"frequencyCode":27,"pulseWidthCode":16},{"level":0.16,"frequencyCode":27,"pulseWidthCode":16},{"level":0.16,"frequencyCode":27,"pulseWidthCode":16},{"level":0.16,"frequencyCode":27,"pulseWidthCode":16},{"level":0.33,"frequencyCode":29,"pulseWidthCode":33},{"level":0.33,"frequencyCode":29,"pulseWidthCode":33},{"level":0.33,"frequencyCode":29,"pulseWidthCode":33},{"level":0.33,"frequencyCode":29,"pulseWidthCode":33},{"level":0.5,"frequencyCode":30,"pulseWidthCode":50},{"level":0.5,"frequencyCode":30,"pulseWidthCode":50},{"level":0.5,"frequencyCode":30,"pulseWidthCode":50},{"level":0.5,"frequencyCode":30,"pulseWidthCode":50},{"level":0.66,"frequencyCode":32,"pulseWidthCode":66},{"level":0.66,"frequencyCode":32,"pulseWidthCode":66},{"level":0.66,"frequencyCode":32,"pulseWidthCode":66},{"level":0.66,"frequencyCode":32,"pulseWidthCode":66},{"level":0.83,"frequencyCode":34,"pulseWidthCode":83},{"level":0.83,"frequencyCode":34,"pulseWidthCode":83},{"level":0.83,"frequencyCode":34,"pulseWidthCode":83},{"level":0.83,"frequencyCode":34,"pulseWidthCode":83},{"level":1.0,"frequencyCode":35,"pulseWidthCode":100},{"level":1.0,"frequencyCode":35,"pulseWidthCode":100},{"level":1.0,"frequencyCode":35,"pulseWidthCode":100},{"level":1.0,"frequencyCode":35,"pulseWidthCode":100},{"level":0.92,"frequencyCode":37,"pulseWidthCode":92},{"level":0.92,"frequencyCode":37,"pulseWidthCode":92},{"level":0.92,"frequencyCode":37,"pulseWidthCode":92},{"level":0.92,"frequencyCode":37,"pulseWidthCode":92},{"level":0.84,"frequencyCode":38,"pulseWidthCode":84},{"level":0.84,"frequencyCode":38,"pulseWidthCode":84},{"level":0.84,"frequencyCode":38,"pulseWidthCode":84},{"level":0.84,"frequencyCode":38,"pulseWidthCode":84},{"level":0.76,"frequencyCode":40,"pulseWidthCode":76},{"level":0.76,"frequencyCode":40,"pulseWidthCode":76},{"level":0.76,"frequencyCode":40,"pulseWidthCode":76},{"level":0.76,"frequencyCode":40,"pulseWidthCode":76},{"level":0.68,"frequencyCode":42,"pulseWidthCode":68},{"level":0.68,"frequencyCode":42,"pulseWidthCode":68},{"level":0.68,"frequencyCode":42,"pulseWidthCode":68},{"level":0.68,"frequencyCode":42,"pulseWidthCode":68},{"level":0.0,"frequencyCode":10,"pulseWidthCode":0},{"level":0.0,"frequencyCode":10,"pulseWidthCode":0},{"level":0.0,"frequencyCode":10,"pulseWidthCode":0},{"level":0.0,"frequencyCode":10,"pulseWidthCode":0}]}]
+[
+  {
+    "FormatVersion": 1,
+    "Id": "d7470000-0000-4000-8003-000000000001",
+    "Name": "呼吸",
+    "Shape": "Sampled",
+    "PeriodSeconds": 1.2000000000000002,
+    "Frequency": 100.0,
+    "Samples": [
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.2
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.2
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.2
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.2
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.6
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.6
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.6
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.6
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.8
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.8
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.8
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.8
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 1.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 1.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 1.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 1.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 1.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 1.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 1.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 1.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 1.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 1.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 1.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 1.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.0
+      }
+    ],
+    "NameKey": "Wave.DgBreathing",
+    "SourceId": 1
+  },
+  {
+    "FormatVersion": 1,
+    "Id": "d7470000-0000-4000-8003-000000000002",
+    "Name": "潮汐",
+    "Shape": "Sampled",
+    "PeriodSeconds": 2.3000000000000003,
+    "Frequency": 100.0,
+    "Samples": [
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 90.9090909090909,
+        "PulseWidth": 0.16
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 90.9090909090909,
+        "PulseWidth": 0.16
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 90.9090909090909,
+        "PulseWidth": 0.16
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 90.9090909090909,
+        "PulseWidth": 0.16
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 76.92307692307692,
+        "PulseWidth": 0.33
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 76.92307692307692,
+        "PulseWidth": 0.33
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 76.92307692307692,
+        "PulseWidth": 0.33
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 76.92307692307692,
+        "PulseWidth": 0.33
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 71.42857142857143,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 71.42857142857143,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 71.42857142857143,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 71.42857142857143,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 62.5,
+        "PulseWidth": 0.66
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 62.5,
+        "PulseWidth": 0.66
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 62.5,
+        "PulseWidth": 0.66
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 62.5,
+        "PulseWidth": 0.66
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 55.55555555555556,
+        "PulseWidth": 0.83
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 55.55555555555556,
+        "PulseWidth": 0.83
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 55.55555555555556,
+        "PulseWidth": 0.83
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 55.55555555555556,
+        "PulseWidth": 0.83
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 52.63157894736842,
+        "PulseWidth": 1.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 52.63157894736842,
+        "PulseWidth": 1.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 52.63157894736842,
+        "PulseWidth": 1.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 52.63157894736842,
+        "PulseWidth": 1.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 47.61904761904762,
+        "PulseWidth": 0.92
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 47.61904761904762,
+        "PulseWidth": 0.92
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 47.61904761904762,
+        "PulseWidth": 0.92
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 47.61904761904762,
+        "PulseWidth": 0.92
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 45.45454545454545,
+        "PulseWidth": 0.84
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 45.45454545454545,
+        "PulseWidth": 0.84
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 45.45454545454545,
+        "PulseWidth": 0.84
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 45.45454545454545,
+        "PulseWidth": 0.84
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 41.666666666666664,
+        "PulseWidth": 0.76
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 41.666666666666664,
+        "PulseWidth": 0.76
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 41.666666666666664,
+        "PulseWidth": 0.76
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 41.666666666666664,
+        "PulseWidth": 0.76
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 38.46153846153846,
+        "PulseWidth": 0.68
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 38.46153846153846,
+        "PulseWidth": 0.68
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 38.46153846153846,
+        "PulseWidth": 0.68
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 38.46153846153846,
+        "PulseWidth": 0.68
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 38.46153846153846,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 38.46153846153846,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 38.46153846153846,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 38.46153846153846,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 37.03703703703704,
+        "PulseWidth": 0.16
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 37.03703703703704,
+        "PulseWidth": 0.16
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 37.03703703703704,
+        "PulseWidth": 0.16
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 37.03703703703704,
+        "PulseWidth": 0.16
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 34.48275862068966,
+        "PulseWidth": 0.33
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 34.48275862068966,
+        "PulseWidth": 0.33
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 34.48275862068966,
+        "PulseWidth": 0.33
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 34.48275862068966,
+        "PulseWidth": 0.33
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 33.333333333333336,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 33.333333333333336,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 33.333333333333336,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 33.333333333333336,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 31.25,
+        "PulseWidth": 0.66
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 31.25,
+        "PulseWidth": 0.66
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 31.25,
+        "PulseWidth": 0.66
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 31.25,
+        "PulseWidth": 0.66
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 29.41176470588235,
+        "PulseWidth": 0.83
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 29.41176470588235,
+        "PulseWidth": 0.83
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 29.41176470588235,
+        "PulseWidth": 0.83
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 29.41176470588235,
+        "PulseWidth": 0.83
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 28.571428571428573,
+        "PulseWidth": 1.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 28.571428571428573,
+        "PulseWidth": 1.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 28.571428571428573,
+        "PulseWidth": 1.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 28.571428571428573,
+        "PulseWidth": 1.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 27.027027027027028,
+        "PulseWidth": 0.92
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 27.027027027027028,
+        "PulseWidth": 0.92
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 27.027027027027028,
+        "PulseWidth": 0.92
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 27.027027027027028,
+        "PulseWidth": 0.92
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 26.31578947368421,
+        "PulseWidth": 0.84
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 26.31578947368421,
+        "PulseWidth": 0.84
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 26.31578947368421,
+        "PulseWidth": 0.84
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 26.31578947368421,
+        "PulseWidth": 0.84
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 25.0,
+        "PulseWidth": 0.76
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 25.0,
+        "PulseWidth": 0.76
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 25.0,
+        "PulseWidth": 0.76
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 25.0,
+        "PulseWidth": 0.76
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 23.80952380952381,
+        "PulseWidth": 0.68
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 23.80952380952381,
+        "PulseWidth": 0.68
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 23.80952380952381,
+        "PulseWidth": 0.68
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 23.80952380952381,
+        "PulseWidth": 0.68
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100.0,
+        "PulseWidth": 0.0
+      }
+    ],
+    "NameKey": "Wave.DgTide",
+    "SourceId": 2
+  }
+]

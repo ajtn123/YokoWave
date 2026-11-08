@@ -15,7 +15,7 @@ internal sealed class ManualInputClock : TimeProvider
 public sealed class ReactiveTests
 {
     private static WaveformPreset Wave(double frequency = 20) => new(Guid.NewGuid(), "local", WaveShape.Sampled, 4, frequency,
-        Samples: [new(1, frequency, 100), new(1, frequency, 100)], Family: WaveformFamily.Electrical);
+        Samples: [new(1, frequency, 1), new(1, frequency, 1)]);
     private static async Task<DeviceController> Controller(RecordingTransport transport, ManualInputClock clock, params string[] ids)
     {
         var controller = new DeviceController(transport, clock);
@@ -186,7 +186,7 @@ public sealed class ReactiveTests
         for (var tick = 1; tick <= 12; tick++) await engine.AdvanceAsync(TimeSpan.FromMilliseconds(tick * 100));
         var output = transport.Latest["one"];
         Assert.InRange(output.ChannelA, 10, 20); Assert.Equal(0, output.ChannelB);
-        Assert.Contains(output.ReferenceSample!.FrequencyCode, new[] { 20d, 40d });
+        Assert.Contains(output.ReferenceSample!.FrequencyHz, new[] { 20d, 40d });
         await engine.StopAsync();
         await Assert.ThrowsAnyAsync<InvalidOperationException>(() => engine.StartAsync(["one"], Wave(), null,
             new(Kind: ModeKind.SleepDeprivation, Playlist: [], Reactive: new(SleepCycle: SleepCycleKind.Random))));
@@ -259,10 +259,10 @@ public sealed class ReactiveTests
         using var folder = new TestFolder(); var store = new WorkspaceStore(folder.Path);
         var modes = Enum.GetValues<ModeKind>().Select(kind => new PlaybackModeConfig(Guid.NewGuid(), kind.ToString(), kind,
             Audio: new(AudioSourceKind.MediaFile, "local.wav", Sensitivity: 72), Reactive: new(SafeAngle: 12, SleepCycle: SleepCycleKind.ActivityReset))).ToList();
-        await store.SaveAsync(new(5, [], [], new(), Modes: modes));
+        await store.SaveAsync(new(WorkspaceData.CurrentSchema, [], [], new(), Modes: modes));
         Assert.Equivalent(modes, (await new WorkspaceStore(folder.Path).LoadAsync()).Modes);
         Assert.DoesNotContain('\n', await File.ReadAllTextAsync(store.ModesPath, TestContext.Current.CancellationToken));
-        await Assert.ThrowsAnyAsync<ArgumentException>(() => store.SaveAsync(new(5, [], [], new(), Modes:
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => store.SaveAsync(new(WorkspaceData.CurrentSchema, [], [], new(), Modes:
             [new(Guid.NewGuid(), "bad", Reactive: new(MinimumIntervalSeconds: 20, MaximumIntervalSeconds: 10))])));
     }
 }

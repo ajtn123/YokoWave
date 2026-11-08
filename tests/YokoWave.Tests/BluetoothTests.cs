@@ -26,7 +26,7 @@ public sealed class BluetoothTests
         Assert.Equal(ElectricalGeneration.LegacyV1, ElectricalDeviceProfile.FromName("YYC-DJ")!.Generation);
         Assert.Null(ElectricalDeviceProfile.FromName("YCY-FJB-01"));
         Assert.Equal("35110200000100000001004A", Convert.ToHexString(V2Protocol.Stop()));
-        var output = new OutputFrame(100, 50, 20, new(0.18, 98, 18), new(0.8, 40, 80));
+        var output = new OutputFrame(100, 50, 20, new(1, 98, .18), new(1, 40, .8));
         Assert.Equal("35110201146212008A2850D3", Convert.ToHexString(V2Protocol.Encode(output)));
         Assert.ThrowsAny<ArgumentException>(() => V2Protocol.Encode(output with { ReferenceSample = new(0.5, 0, 0, [1, 2, 3]) }));
     }
@@ -137,7 +137,7 @@ public sealed class BluetoothTests
         Assert.Equal(18, adapter.Links[device.Id].Writes[^1][6]);
         await engine.StopAsync();
         await Assert.ThrowsAnyAsync<ArgumentException>(() => engine.StartAsync([device.Id],
-            DefaultWaveformCatalog.Presets.First(p => p.Family == WaveformFamily.Motor), TimeSpan.FromSeconds(10)));
+            preset with { FormatVersion = 999 }, TimeSpan.FromSeconds(10)));
         Assert.Equal(V2Protocol.Stop(), adapter.Links[device.Id].Writes[^1]);
     }
 

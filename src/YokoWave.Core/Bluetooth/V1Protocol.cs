@@ -1,5 +1,4 @@
 using System.Buffers.Binary;
-using YokoWave.Core.Localization;
 
 namespace YokoWave.Core.Bluetooth;
 
@@ -18,27 +17,22 @@ public static class V1Protocol
 
     public static IReadOnlyList<byte[]> Encode(OutputFrame frame)
     {
-        if (frame.ReferenceSample?.Motors is not null || frame.ReferenceSampleB?.Motors is not null)
-            throw new LocalizedArgumentException("Error.ElectricalWaveform");
-        var a = Parameters(frame.ChannelA, frame.Frequency, frame.ReferenceSample, frame.Gentle);
-        var b = Parameters(frame.ChannelB, frame.Frequency, frame.ReferenceSampleB ?? frame.ReferenceSample, frame.Gentle);
+        var a = Parameters(frame, 0);
+        var b = Parameters(frame, 1);
         return a == b ? [Channel(3, a.Strength, a.Frequency, a.PulseWidth)]
             : [Channel(1, a.Strength, a.Frequency, a.PulseWidth), Channel(2, b.Strength, b.Frequency, b.PulseWidth)];
     }
 
-    internal static (int Strength, int Frequency, int PulseWidth) Parameters(double strength, double frequency, WaveformSample? sample, bool gentle = false)
+    internal static (int Strength, int Frequency, int PulseWidth) Parameters(OutputFrame frame, int channel)
     {
-        if (sample?.Motors is not null) throw new LocalizedArgumentException("Error.ElectricalWaveform");
-        var level = double.IsFinite(strength) ? Math.Clamp(strength, 0, 100) : 0;
+        var level = WaveformRendering.Strength(frame, channel);
         if (level == 0) return (0, 0, 0);
-        var code = sample?.FrequencyCode ?? frequency;
-        var pulse = sample?.PulseWidthCode ?? 100;
-        if (!double.IsFinite(code) || !double.IsFinite(pulse)) throw new LocalizedArgumentException("Error.Samples");
-        var encodedStrength = gentle ? (int)Math.Floor(level * 180 / 100)
+        var sample = WaveformRendering.Sample(frame, channel);
+        var encodedStrength = frame.Gentle ? (int)Math.Floor(level * 180 / 100)
             : (int)Math.Round(level * MaxStrength / 100, MidpointRounding.AwayFromZero);
         if (encodedStrength == 0) return (0, 0, 0);
         return (encodedStrength,
-            (int)Math.Clamp(Math.Round(code), 1, 100), (int)Math.Clamp(Math.Round(pulse), 0, 100));
+            (int)Math.Clamp(Math.Round(sample.FrequencyHz), 1, 100), (int)Math.Round(WaveformRendering.Width(frame, channel) * 100));
     }
 
     private static byte[] Channel(byte channel, int strength, int frequency, int pulseWidth)

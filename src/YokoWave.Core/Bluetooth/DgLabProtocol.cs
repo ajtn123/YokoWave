@@ -1,5 +1,4 @@
 using System.Buffers.Binary;
-using YokoWave.Core.Localization;
 
 namespace YokoWave.Core.Bluetooth;
 
@@ -16,7 +15,7 @@ public static class DgLabProtocol
     public static byte[] V3(OutputFrame frame, byte sequence = 0)
     {
         byte[] data = new byte[20]; data[0] = 0xb0; data[1] = (byte)((sequence & 15) << 4 | 15);
-        data[2] = (byte)Strength(frame.ChannelA, 200, frame.Gentle); data[3] = (byte)Strength(frame.ChannelB, 200, frame.Gentle);
+        data[2] = (byte)Strength(WaveformRendering.Strength(frame, 0, true), 200, frame.Gentle); data[3] = (byte)Strength(WaveformRendering.Strength(frame, 1, true), 200, frame.Gentle);
         for (var index = 0; index < 4; index++)
         {
             var a = Pulse(frame, false, index); var b = Pulse(frame, true, index);
@@ -44,51 +43,35 @@ public static class DgLabProtocol
     }
     public static byte[] V2Pulse(OutputFrame frame, bool channelB)
     {
-        var pulse = Pulse(frame, channelB, 0);
+        var pulse = Pulse(frame, channelB, 0, false);
         var period = (int)Math.Round(Math.Clamp(pulse.Period, 10, 1000));
         // Keep X:Y at or below the published 1:9 ratio, including the 10 ms example.
         var x = Math.Clamp((int)Math.Round(Math.Sqrt(period / 1000d) * 15), 1, Math.Min(31, period / 10));
         var y = Math.Clamp(period - x, 0, 1023);
-        var z = Strength(channelB ? frame.ChannelB : frame.ChannelA, 2047, frame.Gentle) == 0 ? 0 : (int)Math.Round(pulse.Amplitude / 5d);
+        var z = Strength(WaveformRendering.Strength(frame, channelB ? 1 : 0), 2047, frame.Gentle) == 0 ? 0 : (int)Math.Round(pulse.Amplitude / 5d);
         var packed = x | y << 5 | Math.Clamp(z, 0, 20) << 15;
         return [(byte)packed, (byte)(packed >> 8), (byte)(packed >> 16)];
     }
-    private static (double Period, byte Amplitude) Pulse(OutputFrame frame, bool b, int index)
+    private static (double Period, byte Amplitude) Pulse(OutputFrame frame, bool b, int index, bool window = true)
     {
-        var family = b ? frame.FamilyB : frame.FamilyA;
-        var channel = b ? frame.ChannelB : frame.ChannelA;
-        if (channel <= 0) return (10, 0);
-        if (family is WaveformFamily.Electrical or WaveformFamily.Motor) throw new LocalizedArgumentException("Error.WaveDeviceMismatch");
-        var window = b ? frame.WindowB : frame.WindowA;
-        var sample = window is { Count: 4 } ? window[index] : b ? frame.ReferenceSampleB ?? frame.ReferenceSample : frame.ReferenceSample;
-        var code = sample?.FrequencyCode ?? frame.Frequency;
-        var width = sample?.PulseWidthCode ?? 100;
-        if (!double.IsFinite(code) || !double.IsFinite(width)) throw new LocalizedArgumentException("Error.Samples");
-        return (family == WaveformFamily.DgLab ? Math.Clamp(code, 10, 1000) : 1000 / Math.Clamp(code, 1, 100),
-            (byte)Math.Floor(Math.Clamp(width, 0, 100)));
+        var channel = b ? 1 : 0;
+        var sample = WaveformRendering.Sample(frame, channel, index);
+        return (Math.Round(1000 / sample.FrequencyHz, 9), (byte)Math.Round(WaveformRendering.Width(frame, channel, index, window) * 100));
     }
     public static byte[] OpossumWave(OutputFrame frame)
     {
         byte[] packet = new byte[20]; packet[0] = 0xb0;
         for (var index = 0; index < 4; index++)
         {
-            packet[8 + index] = MotorAmplitude(frame, 0);
-            packet[16 + index] = MotorAmplitude(frame, 1);
+            packet[8 + index] = MotorAmplitude(frame, 0, index, true);
+            packet[16 + index] = MotorAmplitude(frame, 1, index, true);
         }
         return packet;
     }
-    public static byte MotorAmplitude(OutputFrame frame, int channel)
+    public static byte MotorAmplitude(OutputFrame frame, int channel, int index = 0, bool window = false)
     {
-        var level = channel == 0 ? frame.ChannelA : channel == 1 ? frame.ChannelB : frame.ChannelC;
-        if (level <= 0) return 0;
-        var sample = channel == 1 ? frame.ReferenceSampleB ?? frame.ReferenceSample : frame.ReferenceSample;
-        if (sample?.Motors is { } motors)
-        {
-            if (motors.Length != 3 || motors.Any(value => !double.IsFinite(value) || value is < 0 or > 20))
-                throw new LocalizedArgumentException("Error.WaveDeviceMismatch");
-            return (byte)Math.Floor(motors[channel] * 5);
-        }
-        return 100;
+        return WaveformRendering.Strength(frame, channel, window) <= 0 ? (byte)0
+            : (byte)Math.Round(WaveformRendering.Width(frame, channel, index, window) * 100);
     }
     public static (int A, int B)? ParseV3(ReadOnlySpan<byte> data) =>
         data.Length == 4 && data[0] == 0xb1 && data[1] <= 15 && data[2] <= 200 && data[3] <= 200 ? (data[2], data[3]) : null;

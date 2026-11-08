@@ -29,7 +29,6 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private double _defaultLimit = 60, _timerLimitMinutes = 120;
     private string _editorName = "", _editorPoints = "0, 0.2, 0.8, 1, 0.8, 0.2, 0", _editorSamples = "[]", _transferJson = "";
     private WaveShape _editorShape = WaveShape.Sine;
-    private WaveformFamily _editorFamily;
     private double _editorPeriod = 4, _editorFrequency = 20;
     private Guid? _editingId;
     private readonly List<SessionRecord> _records = [];
@@ -362,7 +361,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     public void NewWave()
     {
         _editingId = null;
-        EditorName = ""; EditorSamples = "[]"; _editorFamily = WaveformFamily.Generic;
+        EditorName = ""; EditorSamples = "[]";
         EditorShape = WaveShape.Sine; EditorPeriod = 4; EditorFrequency = 20;
     }
 
@@ -372,7 +371,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         var preset = selected.Preset;
         _editingId = selected.IsBuiltIn ? null : preset.Id;
         EditorName = selected.IsBuiltIn ? L10n.Format("Wave.CopyName", preset.Name) : preset.Name;
-        EditorShape = preset.Shape; _editorFamily = preset.Family;
+        EditorShape = preset.Shape;
         EditorSamples = JsonSerializer.Serialize(preset.Samples ?? [], new JsonSerializerOptions { WriteIndented = true });
         EditorPeriod = preset.PeriodSeconds; EditorFrequency = preset.Frequency;
         EditorPoints = string.Join(", ", preset.Points?.Select(p => p.ToString("0.###", CultureInfo.InvariantCulture)) ?? ["0", "1", "0"]);
@@ -401,7 +400,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         var samples = IsSampledEditor ? JsonSerializer.Deserialize<WaveformSample[]>(EditorSamples,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) : null;
         return new(_editingId ?? Guid.NewGuid(), EditorName.Trim(), EditorShape,
-            EditorPeriod, EditorFrequency, points, samples, IsSampledEditor ? _editorFamily : WaveformFamily.Generic);
+            EditorPeriod, EditorFrequency, points, samples);
     }
 
     public async Task DeleteWaveAsync()
@@ -433,7 +432,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     public async Task SaveAsync(IEnumerable<WaveformPreset>? presets = null)
     {
         if (Presets.Count == 0) return;
-        await _store.SaveAsync(new(5, (presets ?? Presets.Select(item => item.Preset)).Where(preset => !DefaultWaveformCatalog.Contains(preset.Id)).ToList(),
+        await _store.SaveAsync(new(WorkspaceData.CurrentSchema, (presets ?? Presets.Select(item => item.Preset)).Where(preset => !DefaultWaveformCatalog.Contains(preset.Id)).ToList(),
             _records.ToList(), new(DefaultLimit, SelectedLanguage?.Code, IsBluetooth, (int)TimerLimitMinutes), _statistics, Modes.Select(mode => mode.ToConfig()).ToList()));
         _statistics = new(Math.Max(_statistics.SessionCount, _store.Statistics.SessionCount), Math.Max(_statistics.TotalDurationSeconds, _store.Statistics.TotalDurationSeconds));
         _records.RemoveAll(record => _store.Journal.IsDiscarded(record.Id));
@@ -458,7 +457,8 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         foreach (var device in Devices)
         {
             device.IsConnected = _controller.Connections.TryGetValue(device.Id, out var connection);
-            device.OutputA = connection?.Output.ChannelA ?? 0; device.OutputB = connection?.Output.ChannelB ?? 0;
+            device.OutputA = connection is null ? 0 : WaveformRendering.Strength(connection.Output, 0);
+            device.OutputB = connection is null ? 0 : WaveformRendering.Strength(connection.Output, 1);
             device.ActiveModeName = _controller.DeviceOwner(device.Id) is { } owner ? Modes.FirstOrDefault(mode => mode.Id == owner)?.Name : null;
             if (connection is not null) device.UpdateReadings(connection.Device);
         }

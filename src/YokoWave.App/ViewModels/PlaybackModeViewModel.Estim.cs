@@ -161,11 +161,8 @@ public sealed partial class PlaybackModeViewModel
     {
         if (!CanSaveRecording) throw new LocalizedOperationException("Error.TouchRecording");
         var samples = _engine.Recording.ToArray();
-        var dg = TargetDescriptors().Any(device => device.Profile?.Protocol is Core.Bluetooth.BluetoothProtocol.CoyoteV2 or Core.Bluetooth.BluetoothProtocol.CoyoteV3);
-        var motor = TargetDescriptors().Any() && TargetDescriptors().All(device => device.Kind == DeviceKind.Vibration);
-        if (dg) samples = samples.Select(sample => sample with { FrequencyCode = 1000 / Math.Clamp(sample.FrequencyCode, 1, 100) }).ToArray();
         var preset = new WaveformPreset(Guid.NewGuid(), TouchRecordingName.Trim(), WaveShape.Sampled, samples.Length / 10.0,
-            TouchFrequency, Samples: samples, Family: dg ? WaveformFamily.DgLab : motor ? WaveformFamily.Generic : WaveformFamily.Electrical);
+            TouchFrequency, Samples: samples);
         preset.Validate();
         await _host.SaveAsync(Presets.Select(item => item.Preset).Append(preset));
         var item = new PresetItem(preset); Presets.Add(item); SelectedPreset = item;

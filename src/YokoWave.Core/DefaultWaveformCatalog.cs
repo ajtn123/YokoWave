@@ -7,8 +7,7 @@ namespace YokoWave.Core;
 
 public static class DefaultWaveformCatalog
 {
-    private sealed record Definition(Guid Id, string Name, string NameKey, WaveformFamily Family,
-        int SourceId, string? DeviceCode, double SampleIntervalSeconds, WaveformSample[] Frames);
+    private sealed record Definition(WaveformPreset Preset, string NameKey);
 
     private static readonly JsonSerializerOptions Options = new()
     {
@@ -17,8 +16,7 @@ public static class DefaultWaveformCatalog
     };
     private static readonly IReadOnlyDictionary<Guid, Definition> Definitions = Load();
     public static IReadOnlyList<WaveformPreset> Presets { get; } = new ReadOnlyCollection<WaveformPreset>(
-        Definitions.Values.Select(d => new WaveformPreset(d.Id, d.Name, WaveShape.Sampled,
-            d.Frames.Length * d.SampleIntervalSeconds, 1, Samples: d.Frames, Family: d.Family)).ToList());
+        Definitions.Values.Select(d => d.Preset).ToList());
 
     public static bool Contains(Guid id) => Definitions.ContainsKey(id);
     public static string Name(Guid id) => Definitions.TryGetValue(id, out var definition)
@@ -26,22 +24,23 @@ public static class DefaultWaveformCatalog
 
     private static IReadOnlyDictionary<Guid, Definition> Load()
     {
-        var entries = new[] { "default-waveforms", "dglab-waveforms" }.SelectMany(name =>
+        List<Definition> entries = [];
+        foreach (var name in new[] { "default-waveforms", "dglab-waveforms" })
         {
             using var stream = typeof(DefaultWaveformCatalog).Assembly.GetManifestResourceStream($"YokoWave.Core.Data.{name}.json")
                 ?? throw new InvalidDataException("Default waveform catalog is missing.");
-            return JsonSerializer.Deserialize<Definition[]>(stream, Options)
-                ?? throw new InvalidDataException("Default waveform catalog is empty.");
-        }).ToArray();
-        if (entries.Length == 0 || entries.Select(d => d.Id).Distinct().Count() != entries.Length)
-            throw new InvalidDataException("Default waveform identifiers must be unique.");
-        foreach (var entry in entries)
-        {
-            if (!double.IsFinite(entry.SampleIntervalSeconds) || entry.SampleIntervalSeconds <= 0 || entry.Frames is null)
-                throw new InvalidDataException("Invalid default waveform timing.");
-            new WaveformPreset(entry.Id, entry.Name, WaveShape.Sampled,
-                entry.Frames.Length * entry.SampleIntervalSeconds, 1, Samples: entry.Frames, Family: entry.Family).Validate();
+            using var document = JsonDocument.Parse(stream);
+            foreach (var item in document.RootElement.EnumerateArray())
+            {
+                var preset = item.Deserialize<WaveformPreset>(Options) ?? throw new InvalidDataException("Invalid default waveform.");
+                preset.Validate();
+                var nameKey = item.GetProperty("NameKey").GetString();
+                if (string.IsNullOrWhiteSpace(nameKey)) throw new InvalidDataException("Default waveform name key is missing.");
+                entries.Add(new(preset, nameKey));
+            }
         }
-        return new ReadOnlyDictionary<Guid, Definition>(entries.ToDictionary(d => d.Id));
+        if (entries.Count == 0 || entries.Select(d => d.Preset.Id).Distinct().Count() != entries.Count)
+            throw new InvalidDataException("Default waveform identifiers must be unique.");
+        return new ReadOnlyDictionary<Guid, Definition>(entries.ToDictionary(d => d.Preset.Id));
     }
 }
