@@ -19,22 +19,10 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
     private static readonly IReadOnlyDictionary<string, PlaybackInputStatus> EmptyStatus = new Dictionary<string, PlaybackInputStatus>();
     public int MovementCount => (_mode as IMotionPlaybackInput)?.MovementCount ?? 0;
     public const int MaxRecordingFrames = TouchModeRuntime.MaxRecordingFrames;
-    public bool IsRunning
-    {
-        get; private set;
-    }
-    public bool IsPaused
-    {
-        get; private set;
-    }
-    public TimeSpan Elapsed
-    {
-        get; private set;
-    }
-    public TimeSpan? Duration
-    {
-        get; private set;
-    }
+    public bool IsRunning { get; private set; }
+    public bool IsPaused { get; private set; }
+    public TimeSpan Elapsed { get; private set; }
+    public TimeSpan? Duration { get; private set; }
     public TimeSpan? Remaining => Duration is { } duration ? (duration > Elapsed ? duration - Elapsed : TimeSpan.Zero) : null;
     public TimeSpan WaveformElapsed => _mode?.Waveforms?.Elapsed ?? TimeSpan.Zero;
     public WaveformPreset? CurrentWaveform => _mode?.Waveforms?.Current ?? _preset;
@@ -42,18 +30,9 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
     public bool UsesWaveform(Guid id) => IsRunning && _mode?.Waveforms is not null &&
         (CurrentWaveform?.Id == id || CurrentWaveformB?.Id == id || (_program.Playlist?.Any(wave => wave.Id == id) ?? false));
     public IReadOnlyList<WaveformSample> Recording => (_mode as ITouchPlaybackInput)?.Recording ?? [];
-    public double ChannelA
-    {
-        get; set;
-    }
-    public double ChannelB
-    {
-        get; set;
-    }
-    public double ChannelC
-    {
-        get; set;
-    }
+    public double ChannelA { get; set; }
+    public double ChannelB { get; set; }
+    public double ChannelC { get; set; }
     public PumpOutput Pump { get; set; } = new();
     public bool OffsetChannelB { get; set; } = true;
     public event EventHandler<SessionRecord>? Completed;
@@ -166,8 +145,8 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
             _strength.BoostHeld = false;
             _mode?.Suspend();
             if (paused)
-            foreach (var id in _targets)
-                await controller.SendOwnedAsync(OwnerId, id, OutputFrame.Zero);
+                foreach (var id in _targets)
+                    await controller.SendOwnedAsync(OwnerId, id, OutputFrame.Zero);
         }
         catch (Exception error)
         {

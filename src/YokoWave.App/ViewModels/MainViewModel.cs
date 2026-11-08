@@ -14,10 +14,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private readonly DeviceController _controller;
     private readonly WorkspaceStore _store;
     private readonly Func<IDeviceTransport> _bluetoothFactory;
-    internal IAudioInputFactory AudioInputs
-    {
-        get;
-    }
+    internal IAudioInputFactory AudioInputs { get; }
     private readonly SynchronizationContext? _uiContext;
     private bool _changingTransport, _scanBusy, _disposed, _settingsLoaded;
     private string _page = "workspace";
@@ -193,86 +190,26 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         get => _transferJson; set => Set(ref _transferJson, value);
     }
 
-    public ICommand WorkspaceCommand
-    {
-        get;
-    }
-    public ICommand WavesCommand
-    {
-        get;
-    }
-    public ICommand HistoryCommand
-    {
-        get;
-    }
-    public ICommand SettingsCommand
-    {
-        get;
-    }
-    public ICommand HelpCommand
-    {
-        get;
-    }
-    public ICommand ScanCommand
-    {
-        get;
-    }
-    public ICommand EmergencyStopCommand
-    {
-        get;
-    }
-    public ICommand SaveWaveCommand
-    {
-        get;
-    }
-    public ICommand NewWaveCommand
-    {
-        get;
-    }
-    public ICommand EditWaveCommand
-    {
-        get;
-    }
-    public AsyncCommand DeleteWaveCommand
-    {
-        get;
-    }
-    public ICommand ExportCommand
-    {
-        get;
-    }
-    public ICommand ImportCommand
-    {
-        get;
-    }
-    public ICommand SaveSettingsCommand
-    {
-        get;
-    }
-    public ICommand UseWaveCommand
-    {
-        get;
-    }
-    public ICommand AddWaveModeCommand
-    {
-        get;
-    }
-    public ICommand AddTouchModeCommand
-    {
-        get;
-    }
-    public ICommand AddModeCommand
-    {
-        get;
-    }
-    public ICommand SaveModesCommand
-    {
-        get;
-    }
-    public ICommand RemoveModeCommand
-    {
-        get;
-    }
+    public ICommand WorkspaceCommand { get; }
+    public ICommand WavesCommand { get; }
+    public ICommand HistoryCommand { get; }
+    public ICommand SettingsCommand { get; }
+    public ICommand HelpCommand { get; }
+    public ICommand ScanCommand { get; }
+    public ICommand EmergencyStopCommand { get; }
+    public ICommand SaveWaveCommand { get; }
+    public ICommand NewWaveCommand { get; }
+    public ICommand EditWaveCommand { get; }
+    public AsyncCommand DeleteWaveCommand { get; }
+    public ICommand ExportCommand { get; }
+    public ICommand ImportCommand { get; }
+    public ICommand SaveSettingsCommand { get; }
+    public ICommand UseWaveCommand { get; }
+    public ICommand AddWaveModeCommand { get; }
+    public ICommand AddTouchModeCommand { get; }
+    public ICommand AddModeCommand { get; }
+    public ICommand SaveModesCommand { get; }
+    public ICommand RemoveModeCommand { get; }
     public MainViewModel(DeviceController controller, WorkspaceStore store, Func<IDeviceTransport>? bluetoothFactory = null, IAudioInputFactory? audioInputFactory = null)
     {
         _controller = controller;
@@ -471,8 +408,8 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         foreach (var device in UnassignedDevices.Where(device => !available.Contains(device)).ToArray())
             UnassignedDevices.Remove(device);
         foreach (var device in available)
-        if (!UnassignedDevices.Contains(device))
-            UnassignedDevices.Add(device);
+            if (!UnassignedDevices.Contains(device))
+                UnassignedDevices.Add(device);
         RefreshAssignableDevices();
         Raise(nameof(HasUnassignedDevices));
     }

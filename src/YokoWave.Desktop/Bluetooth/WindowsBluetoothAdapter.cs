@@ -14,10 +14,7 @@ namespace YokoWave.Desktop.Bluetooth;
 
 internal sealed class WindowsBluetoothAdapter : IBluetoothAdapter
 {
-    public Action<string>? Diagnostic
-    {
-        get; init;
-    }
+    public Action<string>? Diagnostic { get; init; }
     public async Task<IReadOnlyList<BluetoothPeripheral>> ScanAsync(CancellationToken ct)
     {
         var adapter = await BluetoothAdapter.GetDefaultAsync().AsTask(ct);

@@ -229,18 +229,9 @@ internal sealed class ConcurrentTransport : IDeviceTransport, IDeviceStatusSourc
     public TaskCompletionSource Blocked { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public TaskCompletionSource FastOutput { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    public string? BlockedId
-    {
-        get; set;
-    }
-    public bool BlockAllWrites
-    {
-        get; set;
-    }
-    public int FeatureCalls
-    {
-        get; private set;
-    }
+    public string? BlockedId { get; set; }
+    public bool BlockAllWrites { get; set; }
+    public int FeatureCalls { get; private set; }
     public bool FailMotionStart { get; set; }
     public bool FailZeroAfterMotion { get; set; }
     public IOException MotionError { get; } = new("motion startup");

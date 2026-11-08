@@ -188,18 +188,9 @@ public sealed partial class PlaybackModeViewModel
         }
     }
     public bool CanSaveRecording => !IsRunning && HasRecording && !string.IsNullOrWhiteSpace(TouchRecordingName);
-    public AsyncCommand PauseCommand
-    {
-        get; private set;
-    }
-    public AsyncCommand ResetStrengthCommand
-    {
-        get; private set;
-    }
-    public AsyncCommand SaveRecordingCommand
-    {
-        get; private set;
-    }
+    public AsyncCommand PauseCommand { get; private set; }
+    public AsyncCommand ResetStrengthCommand { get; private set; }
+    public AsyncCommand SaveRecordingCommand { get; private set; }
 
     public PresetItem? SelectedPresetB
     {

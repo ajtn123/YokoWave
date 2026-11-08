@@ -33,7 +33,7 @@ public sealed class HardwareProtocolTests
         Assert.Null(DgLabProtocol.ParseV3([0xb1, 16, 100, 50]));
         Assert.Null(DgLabProtocol.ParseV3([0xb1, 3, 201, 0]));
         Assert.Equal((byte)0, DgLabProtocol.V3(frame with { ChannelA = 0 })[11]);
-        Assert.Throws<LocalizedArgumentException>(() => DgLabProtocol.V3(frame with { ReferenceSample = new(1, 0) , WindowA = null }));
+        Assert.Throws<LocalizedArgumentException>(() => DgLabProtocol.V3(frame with { ReferenceSample = new(1, 0), WindowA = null }));
     }
 
     [Fact]
@@ -291,10 +291,15 @@ internal sealed class HardwareGattAdapter : IBluetoothAdapter
         {
             var name = protocol switch
             {
-                BluetoothProtocol.YokonexV1 => "YYC-DJ", BluetoothProtocol.YokonexV2 => "YCY-DJ",
-                BluetoothProtocol.CoyoteV2 => "D-LAB ESTIM01", BluetoothProtocol.CoyoteV3 => "47L121000",
-                BluetoothProtocol.Opossum => "47L127000", BluetoothProtocol.Paw => "47L120300",
-                BluetoothProtocol.Civet => "47L124000", BluetoothProtocol.UnsupportedPaw => "47L120100", _ => protocol.ToString()
+                BluetoothProtocol.YokonexV1 => "YYC-DJ",
+                BluetoothProtocol.YokonexV2 => "YCY-DJ",
+                BluetoothProtocol.CoyoteV2 => "D-LAB ESTIM01",
+                BluetoothProtocol.CoyoteV3 => "47L121000",
+                BluetoothProtocol.Opossum => "47L127000",
+                BluetoothProtocol.Paw => "47L120300",
+                BluetoothProtocol.Civet => "47L124000",
+                BluetoothProtocol.UnsupportedPaw => "47L120100",
+                _ => protocol.ToString()
             };
             var services = protocol == BluetoothProtocol.YokonexMotor ? new[] { BluetoothDeviceProfiles.Standard(0xff40) }
                 : protocol == BluetoothProtocol.YokonexPump ? new[] { BluetoothDeviceProfiles.Standard(0xffb0) } : [];

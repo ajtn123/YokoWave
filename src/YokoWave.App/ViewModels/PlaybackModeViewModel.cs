@@ -16,18 +16,9 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
     private double _channelA, _channelB, _outputLimit = 60, _sessionDurationSeconds = 600;
     private string _name;
     private PresetItem? _selectedPreset;
-    public Guid Id
-    {
-        get;
-    }
-    public ModeKind Kind
-    {
-        get;
-    }
-    public PlaybackModeDefinition Definition
-    {
-        get;
-    }
+    public Guid Id { get; }
+    public ModeKind Kind { get; }
+    public PlaybackModeDefinition Definition { get; }
     public string Name
     {
         get => _name;
@@ -44,14 +35,8 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
     public bool HasTargets => Targets.Count > 0;
     public bool IsSelected => _host.SelectedMode == this;
     public string KindLabel => L10n.Get($"ModeKind.{Kind}");
-    public ActionCommand SelectCommand
-    {
-        get;
-    }
-    public AsyncCommand PlaybackCommand
-    {
-        get;
-    }
+    public ActionCommand SelectCommand { get; }
+    public AsyncCommand PlaybackCommand { get; }
     internal void RefreshSelection() => Raise(nameof(IsSelected));
     public IReadOnlyCollection<string> TargetIds => _targets;
     public bool IsRunning => _engine.IsRunning;
@@ -419,10 +404,7 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
 public sealed class ModeTargetItem : ObservableObject
 {
     private readonly PlaybackModeViewModel _mode;
-    public string Id
-    {
-        get;
-    }
+    public string Id { get; }
     private DeviceItem? Device => _mode.Device(Id);
     public string Name => Device?.Name ?? Id;
     public string Status => _mode.TargetStatus(Id);
@@ -432,18 +414,9 @@ public sealed class ModeTargetItem : ObservableObject
     public bool IsConnected => Device?.IsConnected ?? false;
     public string ConnectionAction => Device?.ConnectionAction ?? L10n.Get("Device.Connect");
     public string SensorReading => _mode.SensorReading(Id);
-    public AsyncCommand SelectCommand
-    {
-        get;
-    }
-    public AsyncCommand ConnectCommand
-    {
-        get;
-    }
-    public AsyncCommand DetachCommand
-    {
-        get;
-    }
+    public AsyncCommand SelectCommand { get; }
+    public AsyncCommand ConnectCommand { get; }
+    public AsyncCommand DetachCommand { get; }
     public ModeTargetItem(PlaybackModeViewModel mode, string id)
     {
         _mode = mode;

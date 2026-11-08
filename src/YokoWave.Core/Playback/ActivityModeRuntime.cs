@@ -13,14 +13,8 @@ internal abstract class ActivityModeRuntime(SessionProgram program, WaveformPres
     }
     private readonly Dictionary<string, Target> _targets = [];
     private readonly Dictionary<string, PlaybackInputStatus> _status = [];
-    protected abstract bool NeedsMotion
-    {
-        get;
-    }
-    protected abstract double MovementThreshold
-    {
-        get;
-    }
+    protected abstract bool NeedsMotion { get; }
+    protected abstract double MovementThreshold { get; }
     protected abstract BurstPlan NextCycle();
     public override IReadOnlyDictionary<string, PlaybackInputStatus> Status => _status;
     public int MovementCount => _targets.Values.Select(target => target.Motion.Movements).DefaultIfEmpty().Min();
@@ -28,8 +22,8 @@ internal abstract class ActivityModeRuntime(SessionProgram program, WaveformPres
     public override void Suspend()
     {
         if (NeedsMotion)
-        foreach (var target in _targets.Values)
-            target.Motion.Invalidate();
+            foreach (var target in _targets.Values)
+                target.Motion.Invalidate();
     }
     public void Recalibrate(double elapsed)
     {

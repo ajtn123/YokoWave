@@ -32,8 +32,13 @@ internal sealed class TouchModeRuntime(TouchPlayback playback) : PlaybackModeRun
         var touch = _held || _hasTouch && playback == TouchPlayback.HoldLast ? _sample
             : playback == TouchPlayback.RecordedLoop && _recording.Count > 0
                 ? _recording[(int)Math.Floor((context.Elapsed.TotalSeconds - _replayEpoch) * 10) % _recording.Count] : null;
-        return frame with { ReferenceSample = touch, ReferenceSampleB = touch,
-            ChannelA = touch is null ? 0 : frame.ChannelA, ChannelB = touch is null ? 0 : frame.ChannelB,
-            ChannelC = touch is null ? 0 : frame.ChannelC };
+        return frame with
+        {
+            ReferenceSample = touch,
+            ReferenceSampleB = touch,
+            ChannelA = touch is null ? 0 : frame.ChannelA,
+            ChannelB = touch is null ? 0 : frame.ChannelB,
+            ChannelC = touch is null ? 0 : frame.ChannelC
+        };
     }
 }

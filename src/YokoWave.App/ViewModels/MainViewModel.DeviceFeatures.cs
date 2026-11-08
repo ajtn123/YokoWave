@@ -22,14 +22,8 @@ public sealed partial class MainViewModel
     private bool? SelectedLight => _controller.Connections.TryGetValue(SelectedDevice?.Id ?? "", out var connection) ? connection.LightEnabled : null;
     public string LightLabel => L10n.Get(SelectedLight switch { true => "Device.LightOn", false => "Device.LightOff", _ => "Device.LightUnknown" });
     public string LightAction => L10n.Get(SelectedLight == true ? "Device.TurnLightOff" : "Device.TurnLightOn");
-    public AsyncCommand ReadDeviceFeaturesCommand
-    {
-        get; private set;
-    }
-    public AsyncCommand ToggleLightCommand
-    {
-        get; private set;
-    }
+    public AsyncCommand ReadDeviceFeaturesCommand { get; private set; }
+    public AsyncCommand ToggleLightCommand { get; private set; }
     [MemberNotNull(nameof(ReadDeviceFeaturesCommand), nameof(ToggleLightCommand))]
     private void InitializeDeviceFeatureCommands()
     {

@@ -29,9 +29,14 @@ internal sealed class SleepModeRuntime(SessionProgram program, WaveformPreset pr
         var remaining = cycle.Remaining(context.Elapsed.TotalSeconds);
         return frame with
         {
-            ChannelA = frame.ChannelA * plan.StrengthFactor, ChannelB = frame.ChannelB * plan.StrengthFactor, ChannelC = frame.ChannelC * plan.StrengthFactor,
-            Frequency = a.Frequency, ReferenceSample = WaveformGenerator.At(a, time), ReferenceSampleB = WaveformGenerator.At(b, time),
-            WindowA = WaveformGenerator.Window(a, time, remainingSeconds: remaining), WindowB = WaveformGenerator.Window(b, time, remainingSeconds: remaining)
+            ChannelA = frame.ChannelA * plan.StrengthFactor,
+            ChannelB = frame.ChannelB * plan.StrengthFactor,
+            ChannelC = frame.ChannelC * plan.StrengthFactor,
+            Frequency = a.Frequency,
+            ReferenceSample = WaveformGenerator.At(a, time),
+            ReferenceSampleB = WaveformGenerator.At(b, time),
+            WindowA = WaveformGenerator.Window(a, time, remainingSeconds: remaining),
+            WindowB = WaveformGenerator.Window(b, time, remainingSeconds: remaining)
         };
     }
 }

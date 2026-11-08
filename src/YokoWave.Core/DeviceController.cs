@@ -11,34 +11,13 @@ public sealed class DeviceConnection(DeviceDescriptor device)
     public ElectrodeContact ContactA { get; internal set; } = ElectrodeContact.Unknown;
     public ElectrodeContact ContactB { get; internal set; } = ElectrodeContact.Unknown;
     public OutputFrame Output { get; internal set; } = OutputFrame.Zero;
-    public byte? HardwareVersion
-    {
-        get; internal set;
-    }
-    public byte? SoftwareVersion
-    {
-        get; internal set;
-    }
-    public bool? LightEnabled
-    {
-        get; internal set;
-    }
-    public MotionReading? Motion
-    {
-        get; internal set;
-    }
-    public int? Steps
-    {
-        get; internal set;
-    }
-    public DeviceTelemetry? Telemetry
-    {
-        get; internal set;
-    }
-    public DateTimeOffset? TelemetryCapturedAt
-    {
-        get; internal set;
-    }
+    public byte? HardwareVersion { get; internal set; }
+    public byte? SoftwareVersion { get; internal set; }
+    public bool? LightEnabled { get; internal set; }
+    public MotionReading? Motion { get; internal set; }
+    public int? Steps { get; internal set; }
+    public DeviceTelemetry? Telemetry { get; internal set; }
+    public DateTimeOffset? TelemetryCapturedAt { get; internal set; }
     internal long MotionSequence;
     internal bool MotionStreaming;
 }
@@ -57,10 +36,7 @@ public sealed class DeviceController : IAsyncDisposable
     public IReadOnlyDictionary<string, DeviceConnection> Connections => _connections;
     public string TransportName => _transport.DisplayName;
     public bool IsSimulation => _transport.IsSimulation;
-    public TimeProvider Clock
-    {
-        get;
-    }
+    public TimeProvider Clock { get; }
     public bool IsDeviceBusy(string id) => _owners.ContainsKey(id);
     public Guid? DeviceOwner(string id) => _owners.TryGetValue(id, out var owner) ? owner : null;
     public event EventHandler? Changed;

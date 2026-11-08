@@ -39,18 +39,12 @@ internal interface IAudioPlaybackInput
 
 internal interface ITouchPlaybackInput
 {
-    IReadOnlyList<WaveformSample> Recording
-    {
-        get;
-    }
+    IReadOnlyList<WaveformSample> Recording { get; }
     void SetTouch(double frequency, double pulseWidth, bool held, double elapsed);
 }
 
 internal interface IMotionPlaybackInput
 {
-    int MovementCount
-    {
-        get;
-    }
+    int MovementCount { get; }
     void Recalibrate(double elapsed);
 }
