@@ -52,7 +52,8 @@
               <TextBlock Text="{Binding ReadingsLabel}" Classes="muted fine-print" HorizontalAlignment="Right" />
             </StackPanel>
           </Grid>
-          <components:DeviceFeaturesView IsVisible="{Binding IsBluetooth}" />
+          <components:DeviceFeaturesView IsVisible="{Binding HasDeviceFeatures}" />
+          <components:DeviceTelemetryView />
           </StackPanel>
         </Border>
       </StackPanel>
@@ -71,10 +72,12 @@
         <components:RestraintModeView DataContext="{Binding SelectedMode}" />
         <components:ExerciseModeView DataContext="{Binding SelectedMode}" />
         <components:SleepModeView DataContext="{Binding SelectedMode}" />
+        <components:PumpModeView x:Name="PumpModePanel" DataContext="{Binding SelectedMode}" />
+        <components:DgBalanceView DataContext="{Binding SelectedMode}" />
         <components:ReactiveInputView DataContext="{Binding SelectedMode}" />
-        <Grid Classes="columns" ColumnDefinitions="*,*">
+        <Grid Classes="columns" ColumnDefinitions="*,*" IsVisible="{Binding HasStrength}">
           <Border Classes="card channel">
-            <StackPanel Classes="field">
+            <StackPanel Classes="field" IsEnabled="{Binding HasChannelA}">
               <Grid ColumnDefinitions="*,Auto">
                 <TextBlock Text="{l:Loc Channel.A}" VerticalAlignment="Center" Classes="emphasis accent" />
                 <TextBlock Grid.Column="1" Text="{Binding ChannelA, StringFormat='{}{0:0}%'}" Classes="metric" />
@@ -95,17 +98,27 @@
           </Border>
         </Grid>
 
-        <components:EstimAutomationView />
+        <Border Classes="card channel" IsVisible="{Binding HasChannelC}">
+          <StackPanel Classes="field">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="{l:Loc Channel.C}" Classes="emphasis accent" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="1" Text="{Binding ChannelC, StringFormat='{}{0:0}%'}" Classes="metric" />
+            </Grid>
+            <Slider x:Name="ChannelCSlider" Minimum="0" Maximum="100" Value="{Binding ChannelC}" TickFrequency="1" IsSnapToTickEnabled="True" />
+            <TextBlock Text="{Binding SelectedOutputCLabel}" Classes="muted caption" />
+          </StackPanel>
+        </Border>
+        <components:EstimAutomationView IsVisible="{Binding HasStrength}" />
         <Border Classes="card session">
           <StackPanel Classes="items">
-            <Grid ColumnDefinitions="*,Auto">
+            <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding HasStrength}">
               <TextBlock Text="{l:Loc Device.Limit}" Classes="small emphasis" />
               <TextBlock Grid.Column="1" Text="{Binding SafetyLimit, StringFormat='{}{0:0}%'}" Classes="small accent" />
             </Grid>
-            <Slider x:Name="LimitSlider" Minimum="0" Maximum="100" Value="{Binding SafetyLimit}" TickFrequency="5" IsSnapToTickEnabled="True" />
+            <Slider x:Name="LimitSlider" Minimum="0" Maximum="100" Value="{Binding SafetyLimit}" TickFrequency="5" IsSnapToTickEnabled="True" IsVisible="{Binding HasStrength}" />
             <Grid ColumnDefinitions="*,Auto">
               <TextBlock Text="{Binding RoutingSummary}" Classes="muted caption" VerticalAlignment="Center" />
-              <CheckBox Grid.Column="1" IsChecked="{Binding OffsetChannelB}" IsEnabled="{Binding CanOffsetChannelB}" Content="{l:Loc Channel.Offset}" Classes="caption compact" />
+              <CheckBox Grid.Column="1" IsChecked="{Binding OffsetChannelB}" IsEnabled="{Binding CanOffsetChannelB}" IsVisible="{Binding HasStrength}" Content="{l:Loc Channel.Offset}" Classes="caption compact" />
             </Grid>
             <components:SessionTimerView />
             <Grid ColumnDefinitions="*,Auto" Classes="columns">

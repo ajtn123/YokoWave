@@ -5,6 +5,11 @@ public sealed partial class MainViewModel
 {
     public double ChannelA { get => SelectedMode.ChannelA; set => SelectedMode.ChannelA = value; }
     public double ChannelB { get => SelectedMode.ChannelB; set => SelectedMode.ChannelB = value; }
+    public double ChannelC { get => SelectedMode.ChannelC; set => SelectedMode.ChannelC = value; }
+    public bool HasChannelC => SelectedMode.HasChannelC;
+    public bool HasChannelA => SelectedMode.HasChannelA;
+    public bool HasStrength => SelectedMode.HasStrength;
+    public string SelectedOutputCLabel => SelectedMode.SelectedOutputCLabel;
     public double SafetyLimit { get => SelectedMode.SafetyLimit; set => SelectedMode.SafetyLimit = value; }
     public double SessionDurationSeconds { get => SelectedMode.SessionDurationSeconds; set => SelectedMode.SessionDurationSeconds = value; }
     public double StrengthInterval { get => SelectedMode.StrengthInterval; set => SelectedMode.StrengthInterval = value; }

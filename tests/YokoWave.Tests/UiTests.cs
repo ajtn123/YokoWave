@@ -196,7 +196,7 @@ public sealed class UiTests
         var view = new MainView { DataContext = vm };
         var window = new Window { Content = view, Width = 1200, Height = 1100 };
         window.Show(); await WaitForAsync(() => vm.Devices.Count == 5 && !vm.IsScanning);
-        foreach (var device in vm.Devices.Take(4)) await vm.ToggleConnectionAsync(device);
+        foreach (var device in vm.Devices.Where(device => device.Device.Kind != DeviceKind.Pump)) await vm.ToggleConnectionAsync(device);
         var first = vm.SelectedMode; first.Name = "Mode one";
         var assign = view.GetVisualDescendants().OfType<Button>().Single(button => button.Command == vm.Devices[0].AssignCommand);
         Click(window, assign);
@@ -206,13 +206,13 @@ public sealed class UiTests
         second.AssignTarget(vm.Devices[1].Id, true); second.ChannelA = 40; second.SafetyLimit = 50;
         await second.TogglePlaybackAsync();
         await vm.AddModeAsync(false); var third = vm.SelectedMode; third.Name = "Mode three";
-        third.AssignTarget(vm.Devices[2].Id, true); third.AssignTarget(vm.Devices[3].Id, true);
+        third.AssignTarget(vm.Devices[2].Id, true); third.AssignTarget(vm.Devices[4].Id, true);
         third.ChannelA = 15; third.SafetyLimit = 18; await third.TogglePlaybackAsync(); await vm.TickAsync();
         Assert.Equal(20, transport.Outputs[vm.Devices[0].Id].ChannelA);
         Assert.Equal(40, transport.Outputs[vm.Devices[1].Id].ChannelA);
         Assert.Equal(15, transport.Outputs[vm.Devices[2].Id].ChannelA);
-        Assert.Equal(15, transport.Outputs[vm.Devices[3].Id].ChannelA);
-        vm.SelectedMode = first; await vm.SelectDeviceAsync(vm.Devices[3]);
+        Assert.Equal(15, transport.Outputs[vm.Devices[4].Id].ChannelA);
+        vm.SelectedMode = first; await vm.SelectDeviceAsync(vm.Devices[4]);
         Assert.Equal(20, vm.ChannelA); Assert.Equal(25, vm.SafetyLimit);
         vm.SelectedMode = second; Assert.Equal(40, vm.ChannelA); Assert.Equal(50, vm.SafetyLimit);
         await vm.NavigateAsync("help"); await vm.TickAsync();
@@ -220,7 +220,7 @@ public sealed class UiTests
         await first.StopAsync(); await vm.TickAsync();
         Assert.Equal(0, transport.Outputs[vm.Devices[0].Id].ChannelA);
         Assert.Equal(40, transport.Outputs[vm.Devices[1].Id].ChannelA);
-        Assert.Equal(15, transport.Outputs[vm.Devices[3].Id].ChannelA);
+        Assert.Equal(15, transport.Outputs[vm.Devices[4].Id].ChannelA);
         await vm.AddModeAsync(true); var fourth = vm.SelectedMode;
         Assert.ThrowsAny<InvalidOperationException>(() => fourth.AssignTarget(vm.Devices[1].Id, true));
         await fourth.TogglePlaybackAsync(); Assert.False(fourth.IsRunning);
@@ -656,7 +656,8 @@ public sealed class UiTests
         vm.ChannelA = 10;
         await vm.TogglePlaybackAsync();
         var original = vm.SelectedPreset;
-        Find<ComboBox>(view, "PresetPicker").SelectedItem = vm.Presets.First(preset => preset.Preset.Family == WaveformFamily.Motor);
+        // Incompatible items are filtered from the picker; the model still rejects direct selection.
+        vm.SelectedPreset = vm.Presets.First(preset => preset.Preset.Family == WaveformFamily.Motor);
         await WaitForAsync(() => vm.IsError);
         Assert.Same(original, vm.SelectedPreset);
         Assert.Same(original, Find<ComboBox>(view, "PresetPicker").SelectedItem);
@@ -816,7 +817,7 @@ public sealed class UiTests
         var view = new MainView { DataContext = vm };
         var window = new Window { Content = view, Width = 1000, Height = 600 };
         window.Show();
-        await WaitForAsync(() => vm.Presets.Count == 22 && !vm.IsScanning);
+        await WaitForAsync(() => vm.Presets.Count == DefaultWaveformCatalog.Presets.Count && !vm.IsScanning);
         Assert.NotNull(Find<DeviceWorkspaceView>(view, "WorkspacePage"));
         Assert.NotNull(Find<WaveformLibraryView>(view, "WavesPage"));
         Assert.NotNull(Find<SessionHistoryView>(view, "HistoryPage"));
@@ -830,13 +831,13 @@ public sealed class UiTests
         await Assert.ThrowsAnyAsync<InvalidOperationException>(vm.DeleteWaveAsync);
         vm.EditWave();
         await vm.SaveWaveAsync();
-        Assert.Equal(23, vm.Presets.Count);
+        Assert.Equal(DefaultWaveformCatalog.Presets.Count + 1, vm.Presets.Count);
         Assert.False(vm.LibrarySelectedPreset!.IsBuiltIn);
         Assert.Equivalent(original.Samples, vm.LibrarySelectedPreset.Preset.Samples);
         Assert.True(vm.DeleteWaveCommand.CanExecute(null));
         Assert.True(Find<Button>(view, "DeleteWaveButton").IsEffectivelyEnabled);
         Click(window, Find<Button>(view, "DeleteWaveButton"));
-        await WaitForAsync(() => vm.Presets.Count == 22);
+        await WaitForAsync(() => vm.Presets.Count == DefaultWaveformCatalog.Presets.Count);
         Assert.False(vm.DeleteWaveCommand.CanExecute(null));
         Capture(window, "default-waveforms.png");
         window.Close();
@@ -1074,6 +1075,11 @@ public sealed class UiTests
 
     private static void Click(Window window, Button button)
     {
+        // Nested playlist scrolling handles its own bring request; reveal that viewport first.
+        foreach (var viewport in button.GetVisualAncestors().OfType<ScrollViewer>().Reverse())
+        {
+            viewport.BringIntoView(); Dispatcher.UIThread.RunJobs();
+        }
         button.BringIntoView();
         Dispatcher.UIThread.RunJobs();
         var point = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window);

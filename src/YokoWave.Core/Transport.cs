@@ -18,7 +18,7 @@ public sealed class DeviceStatusUpdate(string deviceId, int? battery = null,
     ElectrodeContact? contactA = null, ElectrodeContact? contactB = null,
     bool? outputAEnabled = null, bool? outputBEnabled = null,
     byte? hardwareVersion = null, byte? softwareVersion = null, bool? lightEnabled = null,
-    double? motionAngle = null, int? steps = null) : EventArgs
+    double? motionAngle = null, int? steps = null, int? channelMask = null, DeviceTelemetry? telemetry = null) : EventArgs
 {
     public string DeviceId { get; } = deviceId;
     public int? Battery { get; } = battery;
@@ -31,6 +31,8 @@ public sealed class DeviceStatusUpdate(string deviceId, int? battery = null,
     public bool? LightEnabled { get; } = lightEnabled;
     public double? MotionAngle { get; } = motionAngle;
     public int? Steps { get; } = steps;
+    public int? ChannelMask { get; } = channelMask;
+    public DeviceTelemetry? Telemetry { get; } = telemetry;
 }
 
 public sealed class DeviceTransportFault(string deviceId, bool disconnected, Exception error) : EventArgs
@@ -55,6 +57,11 @@ public interface IElectricalDeviceFeatures
 public interface IElectricalMotionSource
 {
     Task SetMotionStreamingAsync(string deviceId, bool enabled, CancellationToken cancellationToken = default);
+}
+
+public interface IInputDeviceFeatures
+{
+    Task ResetInputAsync(string deviceId, CancellationToken cancellationToken = default);
 }
 
 public sealed record MotionReading(double Angle, long Sequence, DateTimeOffset CapturedAt, int? Steps = null);

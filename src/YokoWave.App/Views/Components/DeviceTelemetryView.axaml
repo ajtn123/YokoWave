@@ -1,0 +1,19 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:YokoWave.App.ViewModels" xmlns:l="using:YokoWave.App.Localization"
+             x:Class="YokoWave.App.Views.Components.DeviceTelemetryView" x:DataType="vm:MainViewModel" IsVisible="{Binding HasTelemetry}">
+  <StackPanel Classes="items">
+    <TextBlock Text="{l:Loc Telemetry.Title}" Classes="card-title" />
+    <TextBlock Text="{Binding TelemetryTimestamp}" Classes="muted caption" />
+    <ItemsControl x:Name="TelemetryList" ItemsSource="{Binding TelemetryReadings}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:TelemetryRow">
+          <Grid Classes="columns" ColumnDefinitions="*,Auto">
+            <TextBlock Text="{Binding Label}" Classes="muted caption" TextWrapping="Wrap" />
+            <TextBlock Grid.Column="1" Text="{Binding Value}" Classes="caption" />
+          </Grid>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+    <Button x:Name="ResetPressureButton" IsVisible="{Binding CanResetPressure}" Command="{Binding ResetPressureCommand}" Content="{l:Loc Telemetry.ResetPressure}" Classes="small" />
+  </StackPanel>
+</UserControl>

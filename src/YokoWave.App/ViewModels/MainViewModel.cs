@@ -47,6 +47,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
     }
     private bool CanUseLibraryWave => SelectedMode.IsWaveformControl && LibrarySelectedPreset is { } preset &&
+        SelectedMode.AcceptsWaveform(preset.Preset) &&
         (!SelectedMode.UsesCustomPlaylist || SelectedMode.Playlist.Any(entry => entry.Id == preset.Preset.Id));
     public ObservableCollection<PlaybackModeViewModel> Modes { get; } = [];
     public ObservableCollection<SessionItem> Sessions { get; } = [];
@@ -119,7 +120,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     public string SelectedBattery => SelectedDevice?.Battery ?? "—";
     public string SelectedBatteryLabel => L10n.Format("Device.Battery", SelectedBattery);
     public string SelectedSignal => SelectedDevice?.Signal ?? "—";
-    public bool HasElectrodeReadings => IsBluetooth && SelectedConnected && ShowContacts;
+    public bool HasElectrodeReadings => IsBluetooth && SelectedConnected && ShowContacts && SelectedDevice?.Device.Profile?.Contacts == true;
     public string SelectedContacts
     {
         get
@@ -181,7 +182,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     public ICommand RemoveModeCommand { get; }
     public MainViewModel(DeviceController controller, WorkspaceStore store, Func<IDeviceTransport>? bluetoothFactory = null, IAudioInputFactory? audioInputFactory = null)
     {
-        _controller = controller; _store = store; _bluetoothFactory = bluetoothFactory ?? (() => new ElectricalBluetoothTransport(new UnsupportedBluetoothAdapter()));
+        _controller = controller; _store = store; _bluetoothFactory = bluetoothFactory ?? (() => new BluetoothDeviceTransport(new UnsupportedBluetoothAdapter()));
         AudioInputs = audioInputFactory ?? new UnavailableAudioInputFactory();
         _uiContext = SynchronizationContext.Current;
         _selectedTransport = TransportOptions.First(option => option.UseBluetooth == !controller.IsSimulation);
@@ -319,7 +320,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     }
     private void RefreshAssignableDevices()
     {
-        foreach (var device in Devices) device.CanAssign = SelectedMode.CanEditRouting && AssignedMode(device.Id) is null;
+        foreach (var device in Devices) device.CanAssign = SelectedMode.CanEditRouting && AssignedMode(device.Id) is null && SelectedMode.CanAssignDevice(device.Device);
     }
     public async Task ToggleConnectionAsync(DeviceItem device)
     {
@@ -465,6 +466,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         foreach (var name in new[] { nameof(ConnectedCount), nameof(ConnectedSummary), nameof(SelectedConnected), nameof(SelectedName), nameof(SelectedKind), nameof(SelectedId), nameof(HasSelection),
             nameof(SelectedBattery), nameof(SelectedBatteryLabel), nameof(SelectedSignal), nameof(SelectedContacts), nameof(HasElectrodeReadings) }) Raise(name);
         RefreshDeviceFeatures();
+        RefreshTelemetry();
     }
     private void RefreshTransport()
     {

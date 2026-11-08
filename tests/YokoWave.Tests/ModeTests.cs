@@ -15,7 +15,7 @@ public sealed class ModeTests
     }
 
     [Fact]
-    public async Task CustomPlaylistUsesItsOrderAndRejectsEmptyOrMixedFamiliesBeforeClaimingDevices()
+    public async Task CustomPlaylistUsesItsOrderAndRejectsEmptyOrInvalidEntriesBeforeClaimingDevices()
     {
         var transport = new RecordingTransport(); await using var controller = new DeviceController(transport);
         await Connect(controller, "one");
@@ -35,7 +35,7 @@ public sealed class ModeTests
         await engine.StopAsync();
         await Assert.ThrowsAnyAsync<InvalidOperationException>(() => engine.StartAsync(["one"], a, null, new(new(PlaybackOrder.Sequential), [])));
         await Assert.ThrowsAnyAsync<ArgumentException>(() => engine.StartAsync(["one"], a, null,
-            new(new(PlaybackOrder.Sequential), [a, b with { Family = WaveformFamily.Motor }])));
+            new(new(PlaybackOrder.Sequential), [a, b with { Shape = WaveShape.Sampled, Samples = [] }])));
         Assert.Null(controller.DeviceOwner("one")); Assert.False(engine.IsRunning);
     }
 

@@ -29,7 +29,7 @@ public sealed record EstimSettings(PlaybackOrder Order = PlaybackOrder.Repeat, S
 
 public sealed record SessionProgram(EstimSettings? Settings = null, IReadOnlyList<WaveformPreset>? Playlist = null,
     WaveformPreset? ChannelBWaveform = null, ModeKind Kind = ModeKind.Waveform, double OutputLimit = 60,
-    AudioSettings? Audio = null, ReactiveSettings? Reactive = null)
+    AudioSettings? Audio = null, ReactiveSettings? Reactive = null, PumpOutput? Pump = null, DgBalanceSettings? DgBalances = null)
 {
     public bool TouchControl => Kind == ModeKind.Touch;
     public bool NeedsMotion => Kind is ModeKind.Restraint or ModeKind.Exercise ||
@@ -52,7 +52,7 @@ internal sealed class WaveformTrack(WaveformPreset preset, IReadOnlyList<Wavefor
         Elapsed = elapsed - _started;
         if (Elapsed.TotalSeconds < Current.PeriodSeconds || order == PlaybackOrder.Repeat) return;
         if (order == PlaybackOrder.Once) { Completed = true; return; }
-        var candidates = playlist.Where(wave => (wave.Family == WaveformFamily.Motor) == (Current.Family == WaveformFamily.Motor)).ToArray();
+        var candidates = playlist.ToArray();
         if (candidates.Length == 0) { _started = elapsed; Elapsed = TimeSpan.Zero; return; }
         var index = Array.FindIndex(candidates, wave => wave.Id == Current.Id);
         if (order == PlaybackOrder.Sequential) index = (index + 1) % candidates.Length;

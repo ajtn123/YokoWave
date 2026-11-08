@@ -26,10 +26,13 @@ public static class DefaultWaveformCatalog
 
     private static IReadOnlyDictionary<Guid, Definition> Load()
     {
-        using var stream = typeof(DefaultWaveformCatalog).Assembly.GetManifestResourceStream("YokoWave.Core.Data.default-waveforms.json")
-            ?? throw new InvalidDataException("Default waveform catalog is missing.");
-        var entries = JsonSerializer.Deserialize<Definition[]>(stream, Options)
-            ?? throw new InvalidDataException("Default waveform catalog is empty.");
+        var entries = new[] { "default-waveforms", "dglab-waveforms" }.SelectMany(name =>
+        {
+            using var stream = typeof(DefaultWaveformCatalog).Assembly.GetManifestResourceStream($"YokoWave.Core.Data.{name}.json")
+                ?? throw new InvalidDataException("Default waveform catalog is missing.");
+            return JsonSerializer.Deserialize<Definition[]>(stream, Options)
+                ?? throw new InvalidDataException("Default waveform catalog is empty.");
+        }).ToArray();
         if (entries.Length == 0 || entries.Select(d => d.Id).Distinct().Count() != entries.Length)
             throw new InvalidDataException("Default waveform identifiers must be unique.");
         foreach (var entry in entries)

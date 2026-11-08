@@ -20,11 +20,12 @@ public sealed class DeviceItem : ObservableObject
     public string Signal => Device.Signal is { } signal ? $"{signal} dBm" : "—";
     public string Number { get; }
     public string Symbol => Device.Kind switch
-    { DeviceKind.DualChannel => "∿", DeviceKind.Vibration => "≋", DeviceKind.Pump => "◉", _ => "↕" };
+    { DeviceKind.DualChannel => "∿", DeviceKind.Vibration => "≋", DeviceKind.Pump => "◉", DeviceKind.Sensor => "⌖", _ => "↕" };
     public bool IsConnected { get => _connected; set { if (Set(ref _connected, value)) { Raise(nameof(Status)); Raise(nameof(ConnectionAction)); } } }
     public bool IsSelected { get => _selected; set => Set(ref _selected, value); }
     public string? ActiveModeName { get => _activeModeName; set { if (Set(ref _activeModeName, value)) Raise(nameof(Status)); } }
-    public string Status => ActiveModeName is { } name ? L10n.Format("Device.InMode", name) : L10n.Get(IsConnected ? "Device.Connected" : "Device.Available");
+    public string Status => !Device.IsSupported ? L10n.Get("Error.PawFirmware") : ActiveModeName is { } name ? L10n.Format("Device.InMode", name) : L10n.Get(IsConnected ? "Device.Connected" : "Device.Available");
+    public bool IsOutput => !Device.IsInput;
     public string ConnectionAction => L10n.Get(IsConnected ? "Device.Disconnect" : "Device.Connect");
     public double OutputA { get => _outputA; set { Set(ref _outputA, value); Raise(nameof(OutputALabel)); } }
     public double OutputB { get => _outputB; set { Set(ref _outputB, value); Raise(nameof(OutputBLabel)); } }
@@ -41,7 +42,7 @@ public sealed class DeviceItem : ObservableObject
         Device = device;
         Number = number.ToString("00");
         SelectCommand = new AsyncCommand(() => select(this), onError);
-        ConnectCommand = new AsyncCommand(() => connect(this), onError);
+        ConnectCommand = new AsyncCommand(() => connect(this), onError, () => Device.IsSupported);
         AssignCommand = new(() => { assign?.Invoke(this); return Task.CompletedTask; }, onError, () => CanAssign && assign is not null);
     }
 
@@ -82,7 +83,7 @@ public sealed class SessionItem(SessionRecord record) : ObservableObject
     {
         get
         {
-            if (Record.Kind is ModeKind.Audio or ModeKind.Restraint) return L10n.Get($"ModeKind.{Record.Kind}");
+            if (Record.Kind is ModeKind.Audio or ModeKind.Restraint or ModeKind.Pump) return L10n.Get($"ModeKind.{Record.Kind}");
             if (Record.TouchControl) return L10n.Get("Touch.Title");
             var a = Record.WaveformId is { } id && DefaultWaveformCatalog.Contains(id) ? DefaultWaveformCatalog.Name(id) : Record.WaveformName;
             if (Record.ChannelBWaveformName is not { } name) return a;
@@ -97,6 +98,7 @@ public sealed class SessionItem(SessionRecord record) : ObservableObject
         get
         {
             var detail = L10n.Format("History.Detail", Record.DeviceCount, Record.PeakA, Record.PeakB, new StoredReason(Record.Reason));
+            if (Record.PeakC > 0) detail = L10n.Format("History.WithChannelC", detail, Record.PeakC);
             return Record.ModeName is { } mode ? L10n.Format("History.ModeDetail", mode, detail) : detail;
         }
     }

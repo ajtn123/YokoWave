@@ -13,6 +13,8 @@ public sealed class DeviceConnection(DeviceDescriptor device)
     public bool? LightEnabled { get; internal set; }
     public MotionReading? Motion { get; internal set; }
     public int? Steps { get; internal set; }
+    public DeviceTelemetry? Telemetry { get; internal set; }
+    public DateTimeOffset? TelemetryCapturedAt { get; internal set; }
     internal long MotionSequence;
     internal bool MotionStreaming;
 }
@@ -81,6 +83,8 @@ public sealed class DeviceController : IAsyncDisposable
                 if (update.SoftwareVersion is { } software) connection.SoftwareVersion = software;
                 if (update.LightEnabled is { } light) connection.LightEnabled = light;
                 if (update.Steps is >= 0 and <= 65535) connection.Steps = update.Steps;
+                if (update.ChannelMask is >= 1 and <= 7) connection.Device = connection.Device with { ChannelMask = update.ChannelMask };
+                if (update.Telemetry is { } telemetry) { connection.Telemetry = (connection.Telemetry ?? new()).Merge(telemetry); connection.TelemetryCapturedAt = receivedAt; }
                 if (update.MotionAngle is { } angle && double.IsFinite(angle) && angle is >= 0 and <= 180)
                     connection.Motion = new(angle, ++connection.MotionSequence, receivedAt, connection.Steps);
             }
@@ -121,6 +125,7 @@ public sealed class DeviceController : IAsyncDisposable
         try
         {
             if (owner == Guid.Empty || ids.Count == 0 || ids.Any(id => !_connections.ContainsKey(id))) throw new LocalizedOperationException("Error.SelectConnected");
+            if (ids.Any(id => Get(id).Device.IsInput)) throw new LocalizedOperationException("Error.SensorOnly");
             if (ids.Any(id => _owners.TryGetValue(id, out var current) && current != owner)) throw new LocalizedOperationException("Error.DeviceInUse");
             foreach (var id in ids) _owners[id] = owner;
             try { foreach (var id in ids) await WriteCoreAsync(Get(id), OutputFrame.Zero, ct); }
@@ -221,6 +226,18 @@ public sealed class DeviceController : IAsyncDisposable
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
+    public async Task ResetInputAsync(string id, CancellationToken ct = default)
+    {
+        await _gate.WaitAsync(ct);
+        try
+        {
+            _ = Get(id);
+            if (_owners.ContainsKey(id) || _transport is not IInputDeviceFeatures features) throw new LocalizedOperationException("Error.DeviceFeatures");
+            await features.ResetInputAsync(id, ct);
+        }
+        finally { _gate.Release(); }
+    }
+
     public async Task SetLightAsync(string id, bool enabled, CancellationToken ct = default)
     {
         await _gate.WaitAsync(ct);
@@ -267,8 +284,9 @@ public sealed class DeviceController : IAsyncDisposable
     {
         var output = frame with
         {
-            ChannelA = Clamp(frame.ChannelA),
-            ChannelB = connection.Device.Kind == DeviceKind.DualChannel ? Clamp(frame.ChannelB) : 0,
+            ChannelA = connection.Device.HasChannel(0) ? Clamp(frame.ChannelA) : 0,
+            ChannelB = connection.Device.HasChannel(1) ? Clamp(frame.ChannelB) : 0,
+            ChannelC = connection.Device.HasChannel(2) ? Clamp(frame.ChannelC) : 0,
             Frequency = double.IsFinite(frame.Frequency) ? Math.Clamp(frame.Frequency, 1, 100) : 1
         };
         await _transport.SendAsync(connection.Device.Id, output, ct);

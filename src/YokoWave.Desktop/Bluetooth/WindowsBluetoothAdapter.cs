@@ -1,7 +1,7 @@
 #if WINDOWS
 using System.Collections.Concurrent;
-using System.Globalization;
 using System.Diagnostics;
+using System.Globalization;
 using Windows.Devices.Bluetooth;
 using Windows.Devices.Bluetooth.Advertisement;
 using Windows.Devices.Bluetooth.GenericAttributeProfile;
@@ -15,7 +15,6 @@ namespace YokoWave.Desktop.Bluetooth;
 internal sealed class WindowsBluetoothAdapter : IBluetoothAdapter
 {
     public Action<string>? Diagnostic { get; init; }
-
     public async Task<IReadOnlyList<BluetoothPeripheral>> ScanAsync(CancellationToken ct)
     {
         var adapter = await BluetoothAdapter.GetDefaultAsync().AsTask(ct);
@@ -23,7 +22,6 @@ internal sealed class WindowsBluetoothAdapter : IBluetoothAdapter
         var radio = await adapter.GetRadioAsync().AsTask(ct);
         if (radio is not null && radio.State != RadioState.On) throw new LocalizedOperationException("Error.BluetoothOff");
         var found = new ConcurrentDictionary<ulong, BluetoothPeripheral>();
-        var candidates = new ConcurrentDictionary<ulong, string>();
         var received = 0;
         var stopped = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var watcher = new BluetoothLEAdvertisementWatcher { ScanningMode = BluetoothLEScanningMode.Active };
@@ -31,81 +29,88 @@ internal sealed class WindowsBluetoothAdapter : IBluetoothAdapter
         {
             Interlocked.Increment(ref received);
             var name = e.Advertisement.LocalName?.Trim() ?? "";
-            if (e.Advertisement.ServiceUuids.Contains(V1Protocol.Service) ||
-                name.StartsWith("YYC-", StringComparison.OrdinalIgnoreCase) || name.StartsWith("YCY-", StringComparison.OrdinalIgnoreCase))
-                candidates[e.BluetoothAddress] = $"Candidate: name={name}, FF30={e.Advertisement.ServiceUuids.Contains(V1Protocol.Service)}, RSSI={e.RawSignalStrengthInDBm}";
-            if (ElectricalDeviceProfile.FromName(name) is not { } profile) return;
-            found[e.BluetoothAddress] = new($"ble:{e.BluetoothAddress:X12}", profile.Name, e.RawSignalStrengthInDBm);
+            var services = e.Advertisement.ServiceUuids.ToArray();
+            if (BluetoothDeviceProfiles.Identify(name, services) is null) return;
+            found[e.BluetoothAddress] = new($"ble:{e.BluetoothAddress:X12}", name.Length > 0 ? name : $"BLE {e.BluetoothAddress:X12}", e.RawSignalStrengthInDBm, services);
         }
         void OnStopped(BluetoothLEAdvertisementWatcher sender, BluetoothLEAdvertisementWatcherStoppedEventArgs e)
         {
             if (e.Error == BluetoothError.Success) stopped.TrySetResult();
             else
             {
-                var error = new LocalizedOperationException("Error.BluetoothScan");
-                error.Data["BluetoothError"] = e.Error;
+                var error = new LocalizedOperationException("Error.BluetoothScan"); error.Data["BluetoothError"] = e.Error;
                 stopped.TrySetException(error);
             }
         }
-        watcher.Received += OnReceived;
-        watcher.Stopped += OnStopped;
+        watcher.Received += OnReceived; watcher.Stopped += OnStopped;
         try
         {
-            watcher.Start();
-            var completion = await Task.WhenAny(Task.Delay(TimeSpan.FromSeconds(8), ct), stopped.Task);
-            await completion;
-            Diagnostic?.Invoke($"BLE advertisements received: {received}; related candidates: {candidates.Count}");
-            foreach (var candidate in candidates.Values) Diagnostic?.Invoke(candidate);
-            return found.Values.OrderByDescending(p => p.Signal).ToArray();
+            watcher.Start(); await await Task.WhenAny(Task.Delay(TimeSpan.FromSeconds(8), ct), stopped.Task);
+            Diagnostic?.Invoke($"BLE advertisements received: {received}; supported-profile candidates: {found.Count}");
+            return found.Values.OrderByDescending(peripheral => peripheral.Signal).ToArray();
         }
-        finally
-        {
-            watcher.Received -= OnReceived;
-            watcher.Stopped -= OnStopped;
-            watcher.Stop();
-        }
+        finally { watcher.Received -= OnReceived; watcher.Stopped -= OnStopped; watcher.Stop(); }
     }
-
     public async Task<IBluetoothConnection> ConnectAsync(BluetoothPeripheral peripheral, CancellationToken ct)
     {
-        if (ElectricalDeviceProfile.FromName(peripheral.Name) is null || !peripheral.Id.StartsWith("ble:", StringComparison.Ordinal) ||
+        var profile = BluetoothDeviceProfiles.Identify(peripheral.Name, peripheral.Services);
+        if (profile is null || !peripheral.Id.StartsWith("ble:", StringComparison.Ordinal) ||
             !ulong.TryParse(peripheral.Id.AsSpan(4), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var address))
             throw new LocalizedOperationException("Error.BluetoothRescan");
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeout.CancelAfter(TimeSpan.FromSeconds(20));
+        if (!profile.Supported) throw new LocalizedOperationException("Error.PawFirmware");
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct); timeout.CancelAfter(TimeSpan.FromSeconds(25));
         var token = timeout.Token;
-        BluetoothLEDevice? device = null;
-        GattDeviceService? service = null;
-        GattSession? session = null;
+        BluetoothLEDevice? device = null; GattSession? session = null;
+        List<GattDeviceService> ownedServices = [];
         WindowsBluetoothConnection? connection = null;
         try
         {
-            device = await BluetoothLEDevice.FromBluetoothAddressAsync(address).AsTask(token)
-                ?? throw new LocalizedOperationException("Error.BluetoothConnect");
+            device = await BluetoothLEDevice.FromBluetoothAddressAsync(address).AsTask(token) ?? throw new LocalizedOperationException("Error.BluetoothConnect");
             session = await GattSession.FromDeviceIdAsync(device.BluetoothDeviceId).AsTask(token);
             if (session is not null) session.MaintainConnection = true;
-            var services = await device.GetGattServicesForUuidAsync(V1Protocol.Service, BluetoothCacheMode.Uncached).AsTask(token);
-            if (services.Status != GattCommunicationStatus.Success || services.Services.Count == 0)
-                throw new LocalizedOperationException("Error.BluetoothService");
-            service = services.Services[0];
-            foreach (var unused in services.Services.Skip(1)) unused.Dispose();
-            var writes = await service.GetCharacteristicsForUuidAsync(V1Protocol.WriteCharacteristic, BluetoothCacheMode.Uncached).AsTask(token);
-            var notifications = await service.GetCharacteristicsForUuidAsync(V1Protocol.NotifyCharacteristic, BluetoothCacheMode.Uncached).AsTask(token);
-            var write = writes.Characteristics.FirstOrDefault();
-            var notify = notifications.Characteristics.FirstOrDefault();
-            Diagnostic?.Invoke($"GATT: write={write?.CharacteristicProperties}, notify={notify?.CharacteristicProperties}, MTU={session?.MaxPduSize}");
-            if (writes.Status != GattCommunicationStatus.Success || notifications.Status != GattCommunicationStatus.Success ||
-                write is null || notify is null || (write.CharacteristicProperties & (GattCharacteristicProperties.WriteWithoutResponse | GattCharacteristicProperties.Write)) == 0 ||
-                !notify.CharacteristicProperties.HasFlag(GattCharacteristicProperties.Notify))
-                throw new LocalizedOperationException("Error.BluetoothService");
-            connection = new(device, service, session, write, notify);
-            await connection.StartAsync(token);
-            return connection;
+            Dictionary<GattAddress, GattCharacteristic> attributes = [];
+            foreach (var group in profile.Endpoints.GroupBy(endpoint => endpoint.Address.Service))
+            {
+                var result = await device.GetGattServicesForUuidAsync(group.Key, BluetoothCacheMode.Uncached).AsTask(token);
+                if (result.Status != GattCommunicationStatus.Success || result.Services.Count == 0)
+                {
+                    if (group.Any(endpoint => endpoint.Required)) throw new LocalizedOperationException("Error.BluetoothService");
+                    continue;
+                }
+                var service = result.Services[0]; ownedServices.Add(service);
+                foreach (var extra in result.Services.Skip(1)) extra.Dispose();
+                foreach (var endpoint in group)
+                {
+                    var characteristics = await service.GetCharacteristicsForUuidAsync(endpoint.Address.Characteristic, BluetoothCacheMode.Uncached).AsTask(token);
+                    var characteristic = characteristics.Characteristics.FirstOrDefault();
+                    var properties = characteristic?.CharacteristicProperties ?? GattCharacteristicProperties.None;
+                    var valid = characteristics.Status == GattCommunicationStatus.Success && characteristic is not null &&
+                        (!endpoint.Write || (properties & (GattCharacteristicProperties.Write | GattCharacteristicProperties.WriteWithoutResponse)) != 0) &&
+                        (!endpoint.Read || properties.HasFlag(GattCharacteristicProperties.Read)) &&
+                        (!endpoint.Notify || properties.HasFlag(GattCharacteristicProperties.Notify) || !endpoint.Required);
+                    if (!valid) { if (endpoint.Required) throw new LocalizedOperationException("Error.BluetoothService"); continue; }
+                    attributes[endpoint.Address] = characteristic!;
+                    Diagnostic?.Invoke($"GATT {profile.Protocol}: service={group.Key}, characteristic={endpoint.Address.Characteristic}, properties={properties}, MTU={session?.MaxPduSize}");
+                }
+            }
+            connection = new(device, ownedServices, session, profile, attributes);
+            await connection.StartAsync(token); return connection;
         }
-        catch
+        catch (Exception error)
         {
-            if (connection is not null) await connection.DisposeAsync();
-            else { if (session is not null) { session.MaintainConnection = false; session.Dispose(); } service?.Dispose(); device?.Dispose(); }
+            List<Exception> errors = [];
+            void Release(Action action) { try { action(); } catch (Exception cleanupError) { errors.Add(cleanupError); } }
+            if (connection is not null)
+            {
+                try { await connection.DisposeAsync(); } catch (Exception cleanupError) { errors.Add(cleanupError); }
+            }
+            else
+            {
+                if (session is not null) { Release(() => session.MaintainConnection = false); Release(session.Dispose); }
+                foreach (var service in ownedServices) Release(service.Dispose);
+                if (device is not null) Release(device.Dispose);
+            }
+            if (errors.Count > 0) throw new LocalizedAggregateException("Error.Cleanup", [error, .. errors]);
             throw;
         }
     }
@@ -114,75 +119,68 @@ internal sealed class WindowsBluetoothAdapter : IBluetoothAdapter
 internal sealed class WindowsBluetoothConnection : IBluetoothConnection
 {
     private readonly BluetoothLEDevice _device;
-    private readonly GattDeviceService _service;
+    private readonly IReadOnlyList<GattDeviceService> _services;
     private readonly GattSession? _session;
-    private readonly GattCharacteristic _write;
-    private readonly GattCharacteristic _notify;
-    private readonly SemaphoreSlim _writeGate = new(1, 1);
-    private volatile bool _ready;
-    private volatile bool _closed;
+    private readonly BluetoothDeviceProfile _profile;
+    private readonly IReadOnlyDictionary<GattAddress, GattCharacteristic> _attributes;
+    private readonly List<(GattCharacteristic Characteristic, Windows.Foundation.TypedEventHandler<GattCharacteristic, GattValueChangedEventArgs> Handler)> _notifications = [];
+    private readonly SemaphoreSlim _gate = new(1, 1);
+    private volatile bool _ready, _closed;
     public event Action<byte[]>? NotificationReceived;
+    public event Action<GattNotification>? AdditionalNotificationReceived;
     public event Action? Disconnected;
-
-    public WindowsBluetoothConnection(BluetoothLEDevice device, GattDeviceService service, GattSession? session,
-        GattCharacteristic write, GattCharacteristic notify)
+    public WindowsBluetoothConnection(BluetoothLEDevice device, IReadOnlyList<GattDeviceService> services, GattSession? session,
+        BluetoothDeviceProfile profile, IReadOnlyDictionary<GattAddress, GattCharacteristic> attributes)
     {
-        _device = device; _service = service; _session = session; _write = write; _notify = notify;
+        _device = device; _services = services; _session = session; _profile = profile; _attributes = attributes;
         _device.ConnectionStatusChanged += OnConnectionChanged;
-        _notify.ValueChanged += OnValueChanged;
     }
-
     public async Task StartAsync(CancellationToken ct)
     {
-        var status = await _notify.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.Notify).AsTask(ct);
-        if (status != GattCommunicationStatus.Success || _device.ConnectionStatus != BluetoothConnectionStatus.Connected)
-            throw new LocalizedOperationException("Error.BluetoothSubscribe");
+        foreach (var endpoint in _profile.Endpoints.Where(endpoint => endpoint.Notify))
+        {
+            if (!_attributes.TryGetValue(endpoint.Address, out var characteristic) || !characteristic.CharacteristicProperties.HasFlag(GattCharacteristicProperties.Notify)) continue;
+            void OnValue(GattCharacteristic sender, GattValueChangedEventArgs args)
+            {
+                if (_closed) return;
+                using var reader = DataReader.FromBuffer(args.CharacteristicValue);
+                var bytes = new byte[args.CharacteristicValue.Length]; reader.ReadBytes(bytes);
+                if (endpoint.Address == _profile.Notify) NotificationReceived?.Invoke(bytes);
+                else AdditionalNotificationReceived?.Invoke(new(endpoint.Address, bytes));
+            }
+            characteristic.ValueChanged += OnValue; _notifications.Add((characteristic, OnValue));
+            var result = await characteristic.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.Notify).AsTask(ct);
+            if (result != GattCommunicationStatus.Success && endpoint.Required) throw new LocalizedOperationException("Error.BluetoothSubscribe");
+        }
+        if (_device.ConnectionStatus != BluetoothConnectionStatus.Connected) throw new LocalizedOperationException("Error.BluetoothConnect");
         _ready = true;
     }
-
-    private void OnValueChanged(GattCharacteristic sender, GattValueChangedEventArgs e)
-    {
-        if (_closed) return;
-        using var reader = DataReader.FromBuffer(e.CharacteristicValue);
-        var bytes = new byte[e.CharacteristicValue.Length];
-        reader.ReadBytes(bytes);
-        NotificationReceived?.Invoke(bytes);
-    }
-
     private void OnConnectionChanged(BluetoothLEDevice sender, object args)
     {
-        if (_ready && !_closed && sender.ConnectionStatus == BluetoothConnectionStatus.Disconnected)
-        { _ready = false; Disconnected?.Invoke(); }
+        if (_ready && !_closed && sender.ConnectionStatus == BluetoothConnectionStatus.Disconnected) { _ready = false; Disconnected?.Invoke(); }
     }
-
-    public async Task WriteAsync(byte[] packet, CancellationToken ct)
+    public Task WriteAsync(byte[] packet, CancellationToken ct) => WriteAsync(_profile.Write, packet, ct);
+    public async Task WriteAsync(GattAddress address, byte[] packet, CancellationToken ct)
     {
-        await _writeGate.WaitAsync(ct);
-        var properties = GattCharacteristicProperties.None;
-        ushort mtu = 23;
+        await _gate.WaitAsync(ct);
+        var properties = GattCharacteristicProperties.None; ushort mtu = 23;
         try
         {
-            if (_closed || !_ready || _device.ConnectionStatus != BluetoothConnectionStatus.Connected)
-                throw new LocalizedIOException("Error.BluetoothDisconnected");
-            properties = _write.CharacteristicProperties;
-            mtu = _session?.MaxPduSize ?? 23;
-            var option = properties.HasFlag(GattCharacteristicProperties.WriteWithoutResponse)
-                ? GattWriteOption.WriteWithoutResponse : GattWriteOption.WriteWithResponse;
-            var maxPayload = Math.Max(20, mtu - 3);
-            if (packet.Length == 0 || packet.Length > maxPayload) throw new LocalizedIOException("Error.BluetoothWrite");
-            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            timeout.CancelAfter(TimeSpan.FromSeconds(3));
+            CheckReady();
+            if (!_attributes.TryGetValue(address, out var characteristic)) throw new LocalizedOperationException("Error.BluetoothService");
+            properties = characteristic.CharacteristicProperties; mtu = _session?.MaxPduSize ?? 23;
+            var option = properties.HasFlag(GattCharacteristicProperties.WriteWithoutResponse) ? GattWriteOption.WriteWithoutResponse : GattWriteOption.WriteWithResponse;
+            if (packet.Length == 0 || packet.Length > Math.Max(20, mtu - 3)) throw new LocalizedIOException("Error.BluetoothWrite");
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct); timeout.CancelAfter(TimeSpan.FromSeconds(3));
             using var writer = new DataWriter(); writer.WriteBytes(packet);
             var buffer = writer.DetachBuffer();
             try
             {
-                var result = await _write.WriteValueWithResultAsync(buffer, option).AsTask(timeout.Token);
+                var result = await characteristic.WriteValueWithResultAsync(buffer, option).AsTask(timeout.Token);
                 if (result.Status != GattCommunicationStatus.Success)
                 {
                     var error = new LocalizedIOException("Error.BluetoothWrite");
-                    error.Data["GattStatus"] = result.Status;
-                    error.Data["GattProtocolError"] = result.ProtocolError;
-                    throw error;
+                    error.Data["GattStatus"] = result.Status; error.Data["GattProtocolError"] = result.ProtocolError; throw error;
                 }
             }
             finally { GC.KeepAlive(buffer); }
@@ -190,42 +188,62 @@ internal sealed class WindowsBluetoothConnection : IBluetoothConnection
         catch (ArgumentException error)
         {
             var failure = new LocalizedIOException("Error.BluetoothWrite", error);
-            failure.Data["Operation"] = "GattWriteValueWithResult";
-            failure.Data["PacketLength"] = packet.Length;
-            failure.Data["HResult"] = $"0x{error.HResult:X8}";
-            failure.Data["CharacteristicProperties"] = properties;
-            failure.Data["MTU"] = mtu;
-            Trace.TraceError("GATT write failed: HRESULT=0x{0:X8}, bytes={1}, properties={2}, MTU={3}", error.HResult, packet.Length, properties, mtu);
+            failure.Data["Characteristic"] = address.Characteristic; failure.Data["PacketLength"] = packet.Length;
+            failure.Data["HResult"] = $"0x{error.HResult:X8}"; failure.Data["CharacteristicProperties"] = properties; failure.Data["MTU"] = mtu;
+            Trace.TraceError("GATT write failed: UUID={0}, HRESULT=0x{1:X8}, bytes={2}, properties={3}, MTU={4}", address.Characteristic, error.HResult, packet.Length, properties, mtu);
             throw failure;
         }
-        finally { _writeGate.Release(); }
+        finally { _gate.Release(); }
     }
-
+    public async Task<byte[]?> ReadAsync(GattAddress address, CancellationToken ct)
+    {
+        await _gate.WaitAsync(ct);
+        try
+        {
+            CheckReady();
+            if (!_attributes.TryGetValue(address, out var characteristic)) return null;
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct); timeout.CancelAfter(TimeSpan.FromSeconds(3));
+            var result = await characteristic.ReadValueAsync(BluetoothCacheMode.Uncached).AsTask(timeout.Token);
+            if (result.Status != GattCommunicationStatus.Success)
+            {
+                if (_profile.Endpoints.Any(endpoint => endpoint.Address == address && endpoint.Required)) throw new LocalizedIOException("Error.BluetoothState");
+                return null;
+            }
+            using var reader = DataReader.FromBuffer(result.Value);
+            var bytes = new byte[result.Value.Length]; reader.ReadBytes(bytes); return bytes;
+        }
+        finally { _gate.Release(); }
+    }
+    private void CheckReady()
+    {
+        if (_closed || !_ready || _device.ConnectionStatus != BluetoothConnectionStatus.Connected) throw new LocalizedIOException("Error.BluetoothDisconnected");
+    }
     public async ValueTask DisposeAsync()
     {
-        await _writeGate.WaitAsync();
+        await _gate.WaitAsync();
         try
         {
             if (_closed) return;
-            _closed = true; _ready = false;
-            _notify.ValueChanged -= OnValueChanged;
-            _device.ConnectionStatusChanged -= OnConnectionChanged;
-            try
+            _closed = true; _ready = false; _device.ConnectionStatusChanged -= OnConnectionChanged;
+            foreach (var (characteristic, handler) in _notifications)
             {
-                if (_device.ConnectionStatus == BluetoothConnectionStatus.Connected)
+                characteristic.ValueChanged -= handler;
+                try
                 {
                     using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-                    await _notify.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.None).AsTask(timeout.Token);
+                    if (_device.ConnectionStatus == BluetoothConnectionStatus.Connected)
+                        await characteristic.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.None).AsTask(timeout.Token);
                 }
+                catch { /* Releasing a lost link must still close every native handle. */ }
             }
-            catch { /* Always release native handles, even after a radio loss. */ }
-            finally
-            {
-                try { if (_session is not null) { _session.MaintainConnection = false; _session.Dispose(); } }
-                finally { try { _service.Dispose(); } finally { _device.Dispose(); } }
-            }
+            List<Exception> errors = [];
+            void Release(Action action) { try { action(); } catch (Exception error) { errors.Add(error); } }
+            if (_session is not null) { Release(() => _session.MaintainConnection = false); Release(_session.Dispose); }
+            foreach (var service in _services) Release(service.Dispose);
+            Release(_device.Dispose);
+            if (errors.Count > 0) throw new LocalizedAggregateException("Error.Cleanup", errors);
         }
-        finally { _writeGate.Release(); }
+        finally { _gate.Release(); }
     }
 }
 #endif

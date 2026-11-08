@@ -66,7 +66,7 @@ public sealed class SessionJournal(string directory)
         if (record.Id == Guid.Empty || string.IsNullOrWhiteSpace(record.WaveformName) || record.Reason is null || !Enum.IsDefined(record.Kind) ||
             !double.IsFinite(record.DurationSeconds) || record.DurationSeconds < 0 || record.DurationSeconds > TimeSpan.MaxValue.TotalSeconds ||
             record.DeviceCount < 1 || !double.IsFinite(record.PeakA) || record.PeakA is < 0 or > 100 ||
-            !double.IsFinite(record.PeakB) || record.PeakB is < 0 or > 100)
+            !double.IsFinite(record.PeakB) || record.PeakB is < 0 or > 100 || !double.IsFinite(record.PeakC) || record.PeakC is < 0 or > 100)
             throw new LocalizedArgumentException("Error.InvalidRecords");
     }
 }

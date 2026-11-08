@@ -69,7 +69,7 @@
                 </Grid>
               </Button>
               <StackPanel Classes="field" Margin="{DynamicResource Margin.DeviceActions}">
-                <Button Content="{l:Loc Mode.Assign}" Command="{Binding AssignCommand}" Classes="small" HorizontalAlignment="Stretch" />
+                <Button Content="{l:Loc Mode.Assign}" Command="{Binding AssignCommand}" IsVisible="{Binding IsOutput}" Classes="small" HorizontalAlignment="Stretch" />
                 <Button Content="{Binding ConnectionAction}" Command="{Binding ConnectCommand}" HorizontalAlignment="Right"
                         Classes="small connection-action" Classes.primary="{Binding !IsConnected}" Classes.danger="{Binding IsConnected}" />
               </StackPanel>

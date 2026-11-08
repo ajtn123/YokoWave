@@ -8,15 +8,16 @@ namespace YokoWave.App.ViewModels;
 public sealed partial class PlaybackModeViewModel
 {
     private PresetItem? _playlistCandidate;
+    private bool _refreshingWaveformChoices;
+    private bool _automaticPlaylist;
     public ObservableCollection<PlaylistEntry> Playlist { get; } = [];
     public bool SupportsPlaylist => Kind is ModeKind.Waveform or ModeKind.SleepDeprivation;
     public IReadOnlyList<PresetItem> PlaybackPresets => UsesCustomPlaylist ? Playlist.Select(entry => entry.Preset).ToArray()
-        : Presets.Where(item => Kind == ModeKind.Waveform || item.Preset.Family != WaveformFamily.Motor).ToArray();
+        : Presets.Where(item => AcceptsWaveform(item.Preset)).ToArray();
     public string PlaylistHelp => L10n.Get(IsSleep ? "Playlist.SleepHelp" : "Playlist.Help");
     public System.Windows.Input.ICommand WavesCommand => _host.WavesCommand;
     public IReadOnlyList<PresetItem> PlaylistCandidates => Presets
-        .Where(item => (Kind == ModeKind.Waveform && _controller.IsSimulation || item.Preset.Family != WaveformFamily.Motor) &&
-            (Playlist.Count == 0 || (item.Preset.Family == WaveformFamily.Motor) == (Playlist[0].Preset.Preset.Family == WaveformFamily.Motor))).ToArray();
+        .Where(item => AcceptsWaveform(item.Preset)).ToArray();
     public PresetItem? PlaylistCandidate
     {
         get => _playlistCandidate ?? PlaylistCandidates.FirstOrDefault();
@@ -31,6 +32,7 @@ public sealed partial class PlaybackModeViewModel
     private void InitializePlaylist(List<Guid>? ids)
     {
         AddPlaylistCommand = new(() => { AddPlaylistWave(); return Task.CompletedTask; }, ShowError, () => CanAddPlaylist);
+        _automaticPlaylist = ids is null;
         if (!SupportsPlaylist) return;
         foreach (var id in ids ?? (SelectedPreset is { } preset ? [preset.Preset.Id] : []))
             if (Presets.FirstOrDefault(item => item.Preset.Id == id) is { } item) Playlist.Add(new(this, item));
@@ -39,11 +41,13 @@ public sealed partial class PlaybackModeViewModel
     public void AddPlaylistWave()
     {
         if (!CanAddPlaylist || PlaylistCandidate is not { } candidate) return;
+        _automaticPlaylist = false;
         Playlist.Add(new(this, candidate)); RefreshPlaylist();
     }
     internal void RemovePlaylistWave(Guid id)
     {
         if (!CanEditRouting) return;
+        if (Playlist.Any(item => item.Id == id)) _automaticPlaylist = false;
         foreach (var item in Playlist.Where(item => item.Id == id).ToArray()) Playlist.Remove(item);
         RefreshPlaylist();
     }
@@ -52,9 +56,16 @@ public sealed partial class PlaybackModeViewModel
         if (!CanEditRouting) return;
         var from = Playlist.IndexOf(item); var to = from + direction;
         if (from < 0 || to < 0 || to >= Playlist.Count) return;
+        _automaticPlaylist = false;
         Playlist.Move(from, to); RefreshPlaylist();
     }
     public void RefreshPlaylist()
+    {
+        _refreshingWaveformChoices = true;
+        try { RefreshPlaylistCore(); }
+        finally { _refreshingWaveformChoices = false; }
+    }
+    private void RefreshPlaylistCore()
     {
         foreach (var item in Playlist) item.Refresh();
         if (_playlistCandidate is { } candidate && !PlaylistCandidates.Contains(candidate)) _playlistCandidate = null;

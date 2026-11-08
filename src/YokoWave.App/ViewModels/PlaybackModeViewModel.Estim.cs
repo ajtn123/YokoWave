@@ -45,7 +45,7 @@ public sealed partial class PlaybackModeViewModel
     public bool IsRandomStrength => SelectedStrengthMode.Value == (int)StrengthMode.RandomIncrease;
     public bool IsStepStrength => SelectedStrengthMode.Value == (int)StrengthMode.StepIncrease;
     public bool IsAutomatedStrength => IsRandomStrength || IsStepStrength;
-    public bool SeparateWaveforms { get => _separateWaveforms; set { if (CanEditRouting && Set(ref _separateWaveforms, value)) { Raise(nameof(CanOffsetChannelB)); Raise(nameof(SelectedWaveformB)); Raise(nameof(ShowIndependentChannelB)); } } }
+    public bool SeparateWaveforms { get => _separateWaveforms; set { if (CanEditRouting && Set(ref _separateWaveforms, value)) { Raise(nameof(CanOffsetChannelB)); Raise(nameof(SelectedWaveformB)); Raise(nameof(ShowIndependentChannelB)); Raise(nameof(CanStart)); } } }
     public WaveformPreset? SelectedWaveformB => ShowIndependentChannelB ? SelectedPresetB?.Preset : null;
     public bool CanOffsetChannelB => UsesWaveforms && CanEditRouting && !ShowIndependentChannelB && !(IsSleep && IsRandomSleep);
     public bool GentleMode { get => _gentle; set { if (CanEditRouting) Set(ref _gentle, value); } }
@@ -89,8 +89,13 @@ public sealed partial class PlaybackModeViewModel
         get => _selectedPresetB;
         set
         {
+            if (value is not null && UsesWaveforms && !AcceptsWaveform(value.Preset))
+            {
+                _host.ShowValidationError("Error.WaveDeviceMismatch"); Raise(nameof(SelectedPresetB)); return;
+            }
             if (value is null || !Set(ref _selectedPresetB, value)) return;
             Raise(nameof(SelectedWaveformB));
+            Raise(nameof(CanStart));
             if (IsRunning && SeparateWaveforms) _ = GuardAsync(() => ApplyChannelBAsync(value));
         }
     }
@@ -134,7 +139,7 @@ public sealed partial class PlaybackModeViewModel
             : new[] { SelectedPreset?.Preset, b }.OfType<WaveformPreset>().DistinctBy(preset => preset.Id).ToArray();
         if (usesPlaylist && playlist.Length == 0)
             throw new LocalizedOperationException("Error.EmptyPlaylist");
-        return new(settings, playlist, b, Kind, SafetyLimit, _audioSettings, _reactiveSettings);
+        return new(settings, playlist, b, Kind, SafetyLimit, _audioSettings, _reactiveSettings, IsPump ? _pump : null, _balances);
     }
     public async Task TogglePauseAsync()
     {
@@ -156,8 +161,11 @@ public sealed partial class PlaybackModeViewModel
     {
         if (!CanSaveRecording) throw new LocalizedOperationException("Error.TouchRecording");
         var samples = _engine.Recording.ToArray();
+        var dg = TargetDescriptors().Any(device => device.Profile?.Protocol is Core.Bluetooth.BluetoothProtocol.CoyoteV2 or Core.Bluetooth.BluetoothProtocol.CoyoteV3);
+        var motor = TargetDescriptors().Any() && TargetDescriptors().All(device => device.Kind == DeviceKind.Vibration);
+        if (dg) samples = samples.Select(sample => sample with { FrequencyCode = 1000 / Math.Clamp(sample.FrequencyCode, 1, 100) }).ToArray();
         var preset = new WaveformPreset(Guid.NewGuid(), TouchRecordingName.Trim(), WaveShape.Sampled, samples.Length / 10.0,
-            samples[0].FrequencyCode, Samples: samples, Family: WaveformFamily.Electrical);
+            TouchFrequency, Samples: samples, Family: dg ? WaveformFamily.DgLab : motor ? WaveformFamily.Generic : WaveformFamily.Electrical);
         preset.Validate();
         await _host.SaveAsync(Presets.Select(item => item.Preset).Append(preset));
         var item = new PresetItem(preset); Presets.Add(item); SelectedPreset = item;

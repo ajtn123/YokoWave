@@ -11,16 +11,17 @@ public sealed class DefaultWaveformTests
     public void CatalogContainsAllSystemPatternsAndTheirFullSamples()
     {
         var presets = DefaultWaveformCatalog.Presets;
-        Assert.Equal(22, presets.Count);
+        Assert.Equal(24, presets.Count);
         Assert.Equal(12, presets.Count(p => p.Family == WaveformFamily.Electrical));
         Assert.Equal(10, presets.Count(p => p.Family == WaveformFamily.Motor));
-        Assert.Equal(1379, presets.Sum(p => p.Samples!.Length));
-        Assert.Equal(22, presets.Select(p => p.Id).Distinct().Count());
+        Assert.Equal(1379, presets.Where(p => p.Family != WaveformFamily.DgLab).Sum(p => p.Samples!.Length));
+        Assert.Equal(140, presets.Where(p => p.Family == WaveformFamily.DgLab).Sum(p => p.Samples!.Length));
+        Assert.Equal(24, presets.Select(p => p.Id).Distinct().Count());
         Assert.All(presets, preset =>
         {
             preset.Validate();
             Assert.Equal(WaveShape.Sampled, preset.Shape);
-            Assert.Equal(preset.Samples!.Length * 0.1, preset.PeriodSeconds, 8);
+            Assert.Equal(preset.Samples!.Length * (preset.Family == WaveformFamily.DgLab ? .025 : .1), preset.PeriodSeconds, 8);
         });
         Assert.True(Assert.IsAssignableFrom<ICollection<WaveformPreset>>(presets).IsReadOnly);
 

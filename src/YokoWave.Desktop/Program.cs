@@ -13,7 +13,9 @@ internal static class Program
         {
             var audioIndex = Array.IndexOf(args, "--zero-audio");
             var probeAudioPath = audioIndex >= 0 && audioIndex + 1 < args.Length ? args[audioIndex + 1] : null;
-            return ProbeAsync(args.Contains("--connect"), probeAudioPath).GetAwaiter().GetResult();
+            var profileIndex = Array.IndexOf(args, "--profile");
+            var profile = profileIndex >= 0 && profileIndex + 1 < args.Length ? args[profileIndex + 1] : null;
+            return ProbeAsync(args.Contains("--connect"), probeAudioPath, profile).GetAwaiter().GetResult();
         }
         if (args is ["--audio-probe", var audioPath]) return AudioProbeAsync(audioPath).GetAwaiter().GetResult();
         App.App.BluetoothAdapterFactory = BluetoothAdapterProvider.Create;
@@ -44,7 +46,7 @@ internal static class Program
         catch (Exception error) { Console.Error.WriteLine(error); return 1; }
     }
 
-    private static async Task<int> ProbeAsync(bool connect, string? audioPath)
+    private static async Task<int> ProbeAsync(bool connect, string? audioPath, string? profile)
     {
         try
         {
@@ -53,22 +55,22 @@ internal static class Program
 #else
             var adapter = BluetoothAdapterProvider.Create();
 #endif
-            await using var transport = new ElectricalBluetoothTransport(adapter);
+            await using var transport = new BluetoothDeviceTransport(adapter);
             transport.StatusChanged += (_, update) => Console.WriteLine($"Status: battery={update.Battery}, A={update.ContactA}, B={update.ContactB}, outputA={update.OutputAEnabled}, outputB={update.OutputBEnabled}");
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(35));
-            var devices = await transport.ScanAsync(timeout.Token);
-            Console.WriteLine($"Electrical devices found: {devices.Count}");
-            foreach (var device in devices) Console.WriteLine($"{device.Name} {device.Id} RSSI={device.Signal}");
-            if (connect && devices.Count != 1)
+            var devices = (await transport.ScanAsync(timeout.Token)).Where(device => profile is null || string.Equals(device.ProtocolId, profile, StringComparison.OrdinalIgnoreCase)).ToArray();
+            Console.WriteLine($"Bluetooth devices found: {devices.Length}");
+            foreach (var device in devices) Console.WriteLine($"{device.Name} {device.Id} profile={device.ProtocolId} RSSI={device.Signal}");
+            if (connect && devices.Length != 1)
             {
                 Console.Error.WriteLine("Connect probe requires exactly one matching device. Use the application to select a device.");
                 return 2;
             }
-            if (connect && devices.Count == 1)
+            if (connect && devices.Length == 1)
             {
                 await using var controller = new Core.DeviceController(transport);
                 await controller.ConnectAsync(devices[0], timeout.Token);
-                Console.WriteLine("Connected; device confirmed both outputs disabled.");
+                Console.WriteLine("Connected; protocol initialization completed. No nonzero output requested.");
                 if (audioPath is not null)
                 {
                     for (var cycle = 0; cycle < 5; cycle++)

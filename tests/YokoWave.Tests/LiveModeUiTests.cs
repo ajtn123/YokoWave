@@ -280,7 +280,7 @@ public sealed class LiveModeUiTests
             var view = new MainView { DataContext = vm }; window = new Window { Content = view, Width = 1200, Height = 1000 };
             window.Show(); await Wait(() => vm.Devices.Count == 5 && !vm.IsScanning);
             foreach (var kind in Enum.GetValues<ModeKind>().Skip(1)) await vm.AddModeAsync(kind);
-            Assert.Equal(6, vm.Modes.Count);
+            Assert.Equal(7, vm.Modes.Count);
             var restraint = vm.Modes.Single(mode => mode.IsRestraint); vm.SelectedMode = restraint;
             restraint.Name = "Own baseline"; restraint.SafeAngle = 5; restraint.RampAngle = 30;
             await vm.ToggleConnectionAsync(vm.Devices[0]); restraint.AssignTarget(vm.Devices[0].Id, true); restraint.ChannelA = 20;

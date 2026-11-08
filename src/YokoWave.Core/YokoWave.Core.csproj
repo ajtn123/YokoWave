@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <EmbeddedResource Include="Data/default-waveforms.json" LogicalName="YokoWave.Core.Data.default-waveforms.json" />
+    <EmbeddedResource Include="Data/dglab-waveforms.json" LogicalName="YokoWave.Core.Data.dglab-waveforms.json" />
     <EmbeddedResource Include="Locales/*.json" WithCulture="false">
       <LogicalName>YokoWave.Core.Locales.%(Filename)%(Extension)</LogicalName>
     </EmbeddedResource>

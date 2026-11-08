@@ -24,7 +24,7 @@ public sealed partial class App : Application
         var dataDirectory = Environment.GetEnvironmentVariable("YOKOWAVE_DATA_DIR")
             ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "YokoWave");
         var viewModel = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(dataDirectory),
-            () => new ElectricalBluetoothTransport(BluetoothAdapterFactory()), AudioInputFactory);
+            () => new BluetoothDeviceTransport(BluetoothAdapterFactory()), AudioInputFactory);
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var window = new MainWindow { DataContext = viewModel };

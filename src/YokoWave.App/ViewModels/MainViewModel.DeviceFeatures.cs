@@ -9,6 +9,7 @@ public sealed partial class MainViewModel
     private bool _featuresBusy;
     public bool CanReadDeviceFeatures => IsBluetooth && SelectedConnected && !_controller.IsDeviceBusy(SelectedDevice!.Id) && !_featuresBusy &&
         ElectricalDeviceProfile.FromName(SelectedDevice?.Name ?? "")?.Generation == ElectricalGeneration.CombinedV2;
+    public bool HasDeviceFeatures => SelectedDevice?.Device.Profile?.Light == true;
     public bool CanControlLight => CanReadDeviceFeatures && _controller.Connections.TryGetValue(SelectedDevice?.Id ?? "", out var connection) &&
         connection.HardwareVersion is > 0 && connection.SoftwareVersion is > 0 && connection.LightEnabled.HasValue;
     public string FirmwareLabel
@@ -39,7 +40,7 @@ public sealed partial class MainViewModel
     }
     private void RefreshDeviceFeatures()
     {
-        foreach (var name in new[] { nameof(CanReadDeviceFeatures), nameof(CanControlLight), nameof(FirmwareLabel), nameof(LightLabel), nameof(LightAction) }) Raise(name);
+        foreach (var name in new[] { nameof(HasDeviceFeatures), nameof(CanReadDeviceFeatures), nameof(CanControlLight), nameof(FirmwareLabel), nameof(LightLabel), nameof(LightAction) }) Raise(name);
         ReadDeviceFeaturesCommand?.NotifyCanExecuteChanged(); ToggleLightCommand?.NotifyCanExecuteChanged();
     }
 }

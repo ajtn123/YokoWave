@@ -9,7 +9,7 @@
       <Button Grid.Column="1" Content="{l:Loc Wave.Manage}" Classes="small" Background="{DynamicResource TransparentBrush}" Command="{Binding WavesCommand}" Margin="{DynamicResource Margin.BeforeSmall}" />
     </Grid>
     <CheckBox Content="{l:Loc Wave.SeparateB}" IsChecked="{Binding SeparateWaveforms}" IsEnabled="{Binding CanEditRouting}" IsVisible="{Binding !UsesCustomPlaylist}" />
-    <ComboBox x:Name="ChannelBWavePicker" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPresetB}" IsVisible="{Binding ShowIndependentChannelB}"
+    <ComboBox x:Name="ChannelBWavePicker" ItemsSource="{Binding PlaybackPresets}" SelectedItem="{Binding SelectedPresetB}" IsVisible="{Binding ShowIndependentChannelB}"
               IsEnabled="{Binding HasChannelB}" HorizontalAlignment="Stretch" AutomationProperties.Name="{l:Loc Wave.ChannelB}">
       <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PresetItem"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
     </ComboBox>

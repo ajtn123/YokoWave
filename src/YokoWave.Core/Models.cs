@@ -1,23 +1,34 @@
 using YokoWave.Core.Localization;
 namespace YokoWave.Core;
 
-public enum DeviceKind { DualChannel, Vibration, Pump, Linear }
+public enum DeviceKind { DualChannel, Vibration, Pump, Linear, Sensor }
 public enum WaveShape { Sine, Triangle, Pulse, Ramp, Custom, Sampled }
-public enum WaveformFamily { Generic, Electrical, Motor }
+public enum WaveformFamily { Generic, Electrical, Motor, DgLab }
 
-public sealed record DeviceDescriptor(string Id, string Name, DeviceKind Kind, int? Battery, int? Signal)
+public sealed record DeviceDescriptor(string Id, string Name, DeviceKind Kind, int? Battery, int? Signal,
+    string? ProtocolId = null, int? ChannelMask = null)
 {
-    public string KindLabel => Kind switch
+    public Bluetooth.BluetoothDeviceProfile? Profile => Bluetooth.BluetoothDeviceProfiles.FromId(ProtocolId);
+    public bool IsInput => Kind == DeviceKind.Sensor;
+    public bool IsSupported => Profile?.Supported ?? true;
+    public int OutputChannels => ChannelMask is { } mask ? mask >= 4 ? 3 : mask >= 2 ? 2 : mask == 1 ? 1 : 0
+        : Profile?.Channels ?? (Kind == DeviceKind.DualChannel ? 2 : IsInput ? 0 : 1);
+    public bool HasChannel(int index) => ChannelMask is { } mask ? (mask & (1 << index)) != 0 : index < OutputChannels;
+    public string KindLabel => Profile is { } profile ? L10n.Get(profile.NameKey) : Kind switch
     {
         DeviceKind.DualChannel => L10n.Get("Device.DualChannel"),
         DeviceKind.Vibration => L10n.Get("Device.Vibration"),
         DeviceKind.Pump => L10n.Get("Device.Pump"),
+        DeviceKind.Sensor => L10n.Get("Device.Sensor"),
         _ => L10n.Get("Device.Linear")
     };
 }
 
 public sealed record OutputFrame(double ChannelA, double ChannelB, double Frequency,
-    WaveformSample? ReferenceSample = null, WaveformSample? ReferenceSampleB = null, bool Gentle = false)
+    WaveformSample? ReferenceSample = null, WaveformSample? ReferenceSampleB = null, bool Gentle = false,
+    double ChannelC = 0, WaveformFamily FamilyA = WaveformFamily.Generic, WaveformFamily FamilyB = WaveformFamily.Generic,
+    IReadOnlyList<WaveformSample>? WindowA = null, IReadOnlyList<WaveformSample>? WindowB = null,
+    double OutputLimit = 100, PumpOutput? Pump = null, DgBalanceSettings? DgBalances = null)
 {
     public static OutputFrame Zero { get; } = new(0, 0, 1);
 }
@@ -47,6 +58,7 @@ public sealed record WaveformPreset(
         if (Id == Guid.Empty || string.IsNullOrWhiteSpace(Name) || Name.Length > 60)
             return "Error.WaveName";
         if (!Enum.IsDefined(Family)) return "Error.InvalidWave";
+        if (Family == WaveformFamily.DgLab && Shape != WaveShape.Sampled) return "Error.Samples";
         if (!Enum.IsDefined(Shape) || !double.IsFinite(PeriodSeconds) || PeriodSeconds is < 0.2 or > 60)
             return "Error.Period";
         if (!double.IsFinite(Frequency) || Frequency is < 1 or > 100)
@@ -56,7 +68,7 @@ public sealed record WaveformPreset(
             return "Error.Points";
         if (Shape == WaveShape.Sampled && (Samples is null || Samples.Length is < 2 or > 256 || Samples.Any(sample =>
             sample is null || !double.IsFinite(sample.Level) || sample.Level is < 0 or > 1 ||
-            !double.IsFinite(sample.FrequencyCode) || sample.FrequencyCode is < 0 or > 100 ||
+            !double.IsFinite(sample.FrequencyCode) || sample.FrequencyCode < (Family == WaveformFamily.DgLab ? 10 : 0) || sample.FrequencyCode > (Family == WaveformFamily.DgLab ? 1000 : 100) ||
             !double.IsFinite(sample.PulseWidthCode) || sample.PulseWidthCode is < 0 or > 100 ||
             sample.Motors is { } motors && (motors.Length != 3 || motors.Any(x => !double.IsFinite(x) || x is < -20 or > 20)))))
             return "Error.Samples";
@@ -102,7 +114,7 @@ public static class WaveformGenerator
 public sealed record SessionRecord(Guid Id, DateTimeOffset StartedAt, double DurationSeconds,
     string WaveformName, int DeviceCount, double PeakA, double PeakB, string Reason, Guid? WaveformId = null,
     Guid? ChannelBWaveformId = null, string? ChannelBWaveformName = null, bool TouchControl = false, bool Gentle = false,
-    Guid? ModeId = null, string? ModeName = null, ModeKind Kind = ModeKind.Waveform);
+    Guid? ModeId = null, string? ModeName = null, ModeKind Kind = ModeKind.Waveform, double PeakC = 0);
 
 public sealed record AppSettings(double DefaultLimit = 60, string? Language = null, bool UseBluetooth = false, int TimerLimitMinutes = 120);
 

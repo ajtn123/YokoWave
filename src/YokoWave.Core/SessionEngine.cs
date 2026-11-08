@@ -14,7 +14,7 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
     private EstimSettings _settings = new();
     private StrengthSettings _strength = new();
     private DateTimeOffset _startedAt;
-    private double _peakA, _peakB, _strengthEpoch, _randomAddition;
+    private double _peakA, _peakB, _peakC, _strengthEpoch, _randomAddition;
     private long _randomBucket;
     private bool _boostHeld, _touchHeld, _hasTouch;
     private WaveformSample _touch = new(0.5, 20, 50);
@@ -39,34 +39,39 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
     public IReadOnlyList<WaveformSample> Recording => _recording.ToArray();
     public double ChannelA { get; set; }
     public double ChannelB { get; set; }
+    public double ChannelC { get; set; }
+    public PumpOutput Pump { get; set; } = new();
     public bool OffsetChannelB { get; set; } = true;
     public event EventHandler<SessionRecord>? Completed;
 
     private void ValidateWaveform(WaveformPreset preset)
     {
         preset.Validate();
-        if (!controller.IsSimulation && preset.Family == WaveformFamily.Motor) throw new LocalizedArgumentException("Error.ElectricalWaveform");
+        foreach (var id in _targets)
+        {
+            if (!controller.Connections.TryGetValue(id, out var connection)) throw new LocalizedOperationException("Error.NotConnected");
+            if (!PlaybackCompatibility.Accepts(connection.Device, preset))
+                throw new LocalizedArgumentException("Error.WaveDeviceMismatch");
+        }
     }
 
     public async Task StartAsync(IEnumerable<string> targets, WaveformPreset preset, TimeSpan? duration, SessionProgram? program = null)
     {
-        ValidateWaveform(preset);
+        preset.Validate();
         program ??= new();
         var settings = program.Settings ?? new(); settings.Validate();
         if (!Enum.IsDefined(program.Kind)) throw new LocalizedArgumentException("Error.ModeSettings");
         program.Audio?.Validate(); program.Reactive?.Validate();
         if (program.Kind != ModeKind.Waveform) settings = settings with { Order = PlaybackOrder.Repeat };
         if (!double.IsFinite(program.OutputLimit) || program.OutputLimit is < 0 or > 100) throw new LocalizedArgumentException("Error.InvalidSettings");
-        if (program.ChannelBWaveform is { } b) ValidateWaveform(b);
-        foreach (var wave in program.Playlist ?? []) ValidateWaveform(wave);
+        if (program.ChannelBWaveform is { } b) b.Validate();
+        foreach (var wave in program.Playlist ?? []) wave.Validate();
+        if (program.Pump is { } pump && !Enum.IsDefined(pump.Direction)) throw new LocalizedArgumentException("Error.PumpSettings");
         if (program.Kind == ModeKind.SleepDeprivation && program.Reactive?.SleepCycle == SleepCycleKind.Random && program.Playlist is not { Count: > 0 })
             throw new LocalizedOperationException("Error.EmptyPlaylist");
         if (!program.TouchControl && settings.Order is PlaybackOrder.Sequential or PlaybackOrder.Random)
         {
             if (program.Playlist is not { Count: > 0 }) throw new LocalizedOperationException("Error.EmptyPlaylist");
-            if (program.Playlist.Any(wave => (wave.Family == WaveformFamily.Motor) != (preset.Family == WaveformFamily.Motor)) ||
-                program.ChannelBWaveform is { } channelB && (channelB.Family == WaveformFamily.Motor) != (preset.Family == WaveformFamily.Motor))
-                throw new LocalizedArgumentException("Error.PlaylistFamily");
         }
         await _gate.WaitAsync();
         try
@@ -74,6 +79,14 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
             if (IsRunning) throw new LocalizedOperationException("Error.AlreadyRunning");
             var ids = targets.Distinct().ToArray();
             if (ids.Length == 0 || ids.Any(id => !controller.Connections.ContainsKey(id))) throw new LocalizedOperationException("Error.SelectConnected");
+            foreach (var id in ids)
+            {
+                var device = controller.Connections[id].Device;
+                if (!PlaybackCompatibility.CanRun(device, program.Kind, program.Reactive)) throw new LocalizedOperationException("Error.ModeDeviceMismatch");
+                if (program.Kind is ModeKind.Waveform or ModeKind.Exercise or ModeKind.SleepDeprivation)
+                    foreach (var wave in new[] { preset, program.ChannelBWaveform }.OfType<WaveformPreset>().Concat(program.Playlist ?? []))
+                        if (!PlaybackCompatibility.Accepts(device, wave)) throw new LocalizedArgumentException("Error.WaveDeviceMismatch");
+            }
             if (duration is { } limit && (limit.TotalSeconds < 1 || limit.TotalSeconds > 7200)) throw new LocalizedArgumentException("Error.Duration");
             await controller.AcquireTargetsAsync(OwnerId, ids);
             if (program.NeedsMotion)
@@ -83,12 +96,13 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
             }
             _targets = ids; _program = program; _settings = settings; _strength = settings.Strength ?? new();
             _outputLimit = program.OutputLimit;
+            Pump = program.Pump ?? new();
             _reactive = program.Kind is ModeKind.Audio or ModeKind.Restraint or ModeKind.Exercise or ModeKind.SleepDeprivation
                 ? new(program, controller.Clock, _random) : null;
             var playlist = program.Playlist?.ToArray() ?? [preset];
             _a = new(preset, playlist); _b = program.ChannelBWaveform is { } separate ? new(separate, playlist) : null;
             Duration = duration; Elapsed = TimeSpan.Zero; _startedAt = DateTimeOffset.Now;
-            _peakA = _peakB = _strengthEpoch = _randomAddition = 0; _randomBucket = 0;
+            _peakA = _peakB = _peakC = _strengthEpoch = _randomAddition = 0; _randomBucket = 0;
             _boostHeld = _touchHeld = _hasTouch = IsPaused = false; _recording.Clear(); _recordBucket = -1;
             IsRunning = true;
         }
@@ -235,6 +249,7 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
         var phaseB = _b is null && OffsetChannelB ? 0.5 : 0;
         var a = _a.Completed && !_program.TouchControl ? 0 : Strength(ChannelA);
         var b = (_b?.Completed ?? _a.Completed) && !_program.TouchControl ? 0 : Strength(ChannelB);
+        var c = _a.Completed && !_program.TouchControl ? 0 : Strength(ChannelC);
         WaveformSample? sampleA, sampleB;
         if (_program.TouchControl)
         {
@@ -242,24 +257,34 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
                 : _settings.TouchPlayback == TouchPlayback.RecordedLoop && _recording.Count > 0
                     ? _recording[(int)Math.Floor((Elapsed.TotalSeconds - _touchReplayEpoch) * 10) % _recording.Count] : null;
             sampleA = sampleB = touch;
-            if (touch is null) a = b = 0;
+            if (touch is null) a = b = c = 0;
         }
         else
         {
             sampleA = WaveformGenerator.ReferenceSample(waveA, timeA); sampleB = WaveformGenerator.ReferenceSample(waveB, timeB, phaseB);
-            if (waveA.Family != WaveformFamily.Electrical) a *= WaveformGenerator.Sample(waveA, timeA);
-            if (waveB.Family != WaveformFamily.Electrical) b *= WaveformGenerator.Sample(waveB, timeB, phaseB);
+            if (waveA.Family == WaveformFamily.Generic) { var scale = WaveformGenerator.Sample(waveA, timeA); a *= scale; c *= scale; }
+            if (waveB.Family == WaveformFamily.Generic) b *= WaveformGenerator.Sample(waveB, timeB, phaseB);
             // A generated B wave needs its own frequency even when A has a different preset.
             if (_b is not null && sampleB is null) sampleB = new(1, waveB.Frequency, 100);
         }
         foreach (var id in _targets)
         {
-            var frame = new OutputFrame(a, b, waveA.Frequency, sampleA, sampleB, _settings.Gentle);
-            if (_reactive is not null) frame = _reactive.Render(id, Elapsed, frame, Strength(ChannelA), Strength(ChannelB), controller.Connections[id].Motion);
-            frame = frame with { ChannelA = Math.Min(frame.ChannelA, _outputLimit), ChannelB = Math.Min(frame.ChannelB, _outputLimit) };
+            if (!controller.Connections.TryGetValue(id, out var connection)) throw new LocalizedOperationException("Error.NotConnected");
+            var frame = new OutputFrame(a, b, waveA.Frequency, sampleA, sampleB, _settings.Gentle, c,
+                _program.TouchControl ? WaveformFamily.Generic : waveA.Family, _program.TouchControl ? WaveformFamily.Generic : waveB.Family,
+                _program.TouchControl ? null : PlaybackCompatibility.Window(waveA, timeA),
+                _program.TouchControl ? null : PlaybackCompatibility.Window(waveB, timeB, phaseB),
+                _outputLimit, _program.Kind == ModeKind.Pump ? Pump : null, _program.DgBalances);
+            if (_program.TouchControl && connection.Device.Profile?.Domain == Bluetooth.OutputDomain.Motor)
+            {
+                var scale = (sampleA?.PulseWidthCode ?? 0) / 100;
+                frame = frame with { ChannelA = a * scale, ChannelB = b * scale, ChannelC = c * scale };
+            }
+            if (_reactive is not null) frame = _reactive.Render(id, Elapsed, frame, Strength(ChannelA), Strength(ChannelB), connection.Motion, Strength(ChannelC));
+            frame = frame with { ChannelA = Math.Min(frame.ChannelA, _outputLimit), ChannelB = Math.Min(frame.ChannelB, _outputLimit), ChannelC = Math.Min(frame.ChannelC, _outputLimit) };
             await controller.SendOwnedAsync(OwnerId, id, frame);
-            var output = controller.Connections[id].Output;
-            _peakA = Math.Max(_peakA, output.ChannelA); _peakB = Math.Max(_peakB, output.ChannelB);
+            var output = connection.Output;
+            _peakA = Math.Max(_peakA, output.ChannelA); _peakB = Math.Max(_peakB, output.ChannelB); _peakC = Math.Max(_peakC, output.ChannelC);
         }
     }
 
@@ -284,9 +309,9 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
         {
             if (wasRunning && _a is not null)
                 Completed?.Invoke(this, new(Guid.NewGuid(), _startedAt, Elapsed.TotalSeconds,
-                    _program.Kind is ModeKind.Audio or ModeKind.Restraint or ModeKind.Touch ? L10n.Get($"ModeKind.{_program.Kind}") : _a.Current.Name, _targets.Length, _peakA, _peakB, reason,
+                    _program.Kind is ModeKind.Audio or ModeKind.Restraint or ModeKind.Touch or ModeKind.Pump ? L10n.Get($"ModeKind.{_program.Kind}") : _a.Current.Name, _targets.Length, _peakA, _peakB, reason,
                     _program.TouchControl ? null : _a.Current.Id, _program.TouchControl ? null : _b?.Current.Id,
-                    _program.TouchControl ? null : _b?.Current.Name, _program.TouchControl, _settings.Gentle, Kind: _program.Kind));
+                    _program.TouchControl ? null : _b?.Current.Name, _program.TouchControl, _settings.Gentle, Kind: _program.Kind, PeakC: _peakC));
         }
     }
 }
