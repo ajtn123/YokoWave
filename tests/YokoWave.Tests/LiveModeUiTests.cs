@@ -41,13 +41,82 @@ internal sealed class FakeAudioInputSession(TimeProvider clock) : IAudioInputSes
     public bool Ended { get; set; }
     public double Age { get; set; }
     public double Db { get; set; } = -6;
+    public bool FailPause { get; set; }
+    public bool FailDispose { get; set; }
     public AudioFeatureFrame? Latest => Disposed || Paused ? null : new(++_sequence, clock.GetUtcNow().AddSeconds(-Age), Db, Db, 1, 1);
-    public void SetPaused(bool paused) => Paused = paused;
-    public ValueTask DisposeAsync() { Disposed = true; return ValueTask.CompletedTask; }
+    public void SetPaused(bool paused)
+    {
+        if (FailPause) throw new LocalizedOperationException("Error.AudioInputLost");
+        Paused = paused;
+    }
+    public ValueTask DisposeAsync()
+    {
+        if (Disposed) return ValueTask.CompletedTask;
+        Disposed = true;
+        if (FailDispose) throw new LocalizedIOException("Error.AudioCleanup");
+        return ValueTask.CompletedTask;
+    }
 }
 
 public sealed class LiveModeUiTests
 {
+    [AvaloniaTheory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(100)]
+    public async Task MediaVolumeSliderAllowsMuteAndPreservesDeviceMapping(double volume)
+    {
+        using var folder = new TestFolder(); var transport = new SimulationTransport(); var factory = new FakeAudioInputFactory();
+        await using var vm = new MainViewModel(new DeviceController(transport), new WorkspaceStore(folder.Path), audioInputFactory: factory);
+        await vm.InitializeAsync(); await vm.ToggleConnectionAsync(vm.Devices[0]); await vm.AddModeAsync(ModeKind.Audio);
+        var mode = vm.SelectedMode;
+        mode.AssignTarget(vm.Devices[0].Id, true); mode.ChannelA = 20; mode.ChannelB = 0;
+        mode.SelectedAudioSource = mode.AudioSources.Single(option => option.Value == (int)AudioSourceKind.MediaFile);
+        mode.MediaPath = "local.wav";
+        var view = new AudioModeView { DataContext = mode }; var window = new Window { Content = view };
+        try
+        {
+            window.Show(); Dispatcher.UIThread.RunJobs();
+            var slider = view.FindControl<Slider>("PlaybackVolumeSlider"); Assert.NotNull(slider);
+            slider.Value = volume; Dispatcher.UIThread.RunJobs();
+            Assert.Equal(volume, mode.PlaybackVolume);
+            await mode.TogglePlaybackAsync(); await vm.TickAsync();
+            Assert.Equal(volume, Assert.Single(factory.Requests).PlaybackVolume);
+            Assert.True(mode.IsRunning); Assert.True(transport.Outputs[vm.Devices[0].Id].ChannelA > 0);
+            await mode.TogglePauseAsync(); await mode.TogglePauseAsync(); await vm.TickAsync();
+            Assert.True(mode.IsRunning); Assert.False(vm.IsError);
+            await mode.StopAsync(); Assert.True(Assert.Single(factory.Sessions).Disposed);
+        }
+        finally { window.Close(); }
+    }
+
+    [AvaloniaFact]
+    public async Task AudioPauseFailureStopsItsOutputAndReleasesInput()
+    {
+        using var folder = new TestFolder(); var transport = new SimulationTransport(); var factory = new FakeAudioInputFactory();
+        await using var vm = new MainViewModel(new DeviceController(transport), new WorkspaceStore(folder.Path), audioInputFactory: factory);
+        await vm.InitializeAsync(); await vm.ToggleConnectionAsync(vm.Devices[0]); await vm.AddModeAsync(ModeKind.Audio);
+        var mode = vm.SelectedMode; mode.AssignTarget(vm.Devices[0].Id, true); mode.ChannelA = 20;
+        await mode.TogglePlaybackAsync(); await vm.TickAsync();
+        var input = Assert.Single(factory.Sessions); input.FailPause = true;
+        await Assert.ThrowsAsync<LocalizedOperationException>(mode.TogglePauseAsync);
+        Assert.False(mode.IsRunning); Assert.True(input.Disposed); Assert.True(mode.CanEditRouting);
+        Assert.Equal(0, transport.Outputs[vm.Devices[0].Id].ChannelA);
+    }
+
+    [AvaloniaFact]
+    public async Task CalibrationCleanupFailureStillUnlocksTheModeAndReportsTheError()
+    {
+        using var folder = new TestFolder(); var factory = new FakeAudioInputFactory();
+        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path), audioInputFactory: factory);
+        await vm.InitializeAsync(); await vm.AddModeAsync(ModeKind.Audio);
+        vm.SelectedMode.CalibrateAudioCommand.Execute(null);
+        await Wait(() => factory.Sessions.Count == 1); factory.Sessions[0].FailDispose = true;
+        await Wait(() => !vm.SelectedMode.IsCalibrating);
+        Assert.True(vm.SelectedMode.CanEditRouting); Assert.True(vm.IsError);
+        Assert.Equal(L10n.Get("Error.AudioCleanup"), vm.Status);
+    }
+
     [AvaloniaTheory]
     [InlineData(AudioSourceKind.Microphone)]
     [InlineData(AudioSourceKind.MediaFile)]

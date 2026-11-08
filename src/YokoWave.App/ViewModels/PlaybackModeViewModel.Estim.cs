@@ -144,6 +144,12 @@ public sealed partial class PlaybackModeViewModel
             _audioSession?.SetPaused(IsPaused); _audioStartedAt = _controller.Clock.GetUtcNow();
             if (IsPaused || !IsRunning) _clock.Stop(); else _clock.Start();
         }
+        catch (Exception error)
+        {
+            try { await StopAsync("Reason.InputLost", false); }
+            catch (Exception stopError) { throw new LocalizedAggregateException("Error.StopUnconfirmed", [error, stopError]); }
+            throw;
+        }
         finally { RefreshPlayback(); }
     }
     public async Task SaveRecordingAsync()

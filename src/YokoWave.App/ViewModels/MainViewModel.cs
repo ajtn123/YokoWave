@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
 using System.Windows.Input;
@@ -466,6 +467,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     }
     public void ShowError(Exception exception)
     {
+        Trace.TraceError("{0}", exception);
         _status = exception switch
         {
             ILocalizedError error => error.LocalizedMessage,

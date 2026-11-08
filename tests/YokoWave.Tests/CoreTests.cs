@@ -1,5 +1,6 @@
 using System.Text.Json;
 using YokoWave.Core;
+using YokoWave.Core.Localization;
 using Xunit;
 
 namespace YokoWave.Tests;
@@ -107,7 +108,9 @@ public sealed class CoreTests
         var engine = new SessionEngine(controller) { ChannelA = 30 };
         await engine.StartAsync(["one", "two"], Sine(), TimeSpan.FromMinutes(1));
         transport.FailId = "two";
-        await Assert.ThrowsAnyAsync<Exception>(() => engine.AdvanceAsync(TimeSpan.FromSeconds(2)));
+        var failure = await Assert.ThrowsAsync<LocalizedAggregateException>(() => engine.AdvanceAsync(TimeSpan.FromSeconds(2)));
+        Assert.Equal(2, failure.Flatten().InnerExceptions.Count);
+        Assert.All(failure.Flatten().InnerExceptions, error => Assert.IsType<IOException>(error));
         Assert.False(engine.IsRunning);
         Assert.Equal(0, transport.Latest["one"].ChannelA);
         transport.FailId = null;

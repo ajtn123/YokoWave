@@ -6,6 +6,32 @@ namespace YokoWave.Tests;
 
 public sealed class LocalizationTests
 {
+    [Theory]
+    [InlineData("en")]
+    [InlineData("zh-CN")]
+    public void LocalizedExceptionsKeepTheirCauseAndTranslateWhenLanguageChanges(string language)
+    {
+        var previous = L10n.Current.Language;
+        try
+        {
+            L10n.Current.SetLanguage(language);
+            var cause = new ArgumentException("Original backend failure");
+            Exception[] errors = [new LocalizedArgumentException("Error.AudioSettings", cause),
+                new LocalizedOperationException("Error.AudioInputFailed", cause), new LocalizedIOException("Error.BluetoothWrite", cause),
+                new LocalizedAggregateException("Error.StopUnconfirmed", [cause])];
+            foreach (var error in errors)
+            {
+                Assert.Same(cause, error.InnerException);
+                Assert.Equal(((ILocalizedError)error).LocalizedMessage.Value, error.Message);
+                Assert.Contains(error.Message, error.ToString());
+            }
+            var messages = errors.Select(error => error.Message).ToArray();
+            L10n.Current.SetLanguage(language == "en" ? "zh-CN" : "en");
+            for (var index = 0; index < errors.Length; index++) Assert.NotEqual(messages[index], errors[index].Message);
+        }
+        finally { L10n.Current.SetLanguage(previous); }
+    }
+
     [Fact]
     public void CatalogsHaveMatchingKeysAndCompatibleFormatArguments()
     {

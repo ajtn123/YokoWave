@@ -124,7 +124,7 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
             if (paused)
                 foreach (var id in _targets) await controller.SendOwnedAsync(OwnerId, id, OutputFrame.Zero);
         }
-        catch { await StopCoreAsync("Reason.ConnectionError"); throw; }
+        catch (Exception error) { await StopAfterErrorAsync(error); throw; }
         finally { _gate.Release(); }
     }
 
@@ -132,7 +132,7 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
     {
         await _gate.WaitAsync();
         try { _boostHeld = held && IsRunning && !IsPaused; if (IsRunning && !IsPaused) await SendFrameAsync(); }
-        catch { await StopCoreAsync("Reason.ConnectionError"); throw; }
+        catch (Exception error) { await StopAfterErrorAsync(error); throw; }
         finally { _gate.Release(); }
     }
 
@@ -144,7 +144,7 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
             _strengthEpoch = Elapsed.TotalSeconds; _randomBucket = 0; _randomAddition = 0; _boostHeld = false;
             if (IsRunning && !IsPaused) await SendFrameAsync();
         }
-        catch { await StopCoreAsync("Reason.ConnectionError"); throw; }
+        catch (Exception error) { await StopAfterErrorAsync(error); throw; }
         finally { _gate.Release(); }
     }
 
@@ -153,7 +153,7 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
         if (!double.IsFinite(limit) || limit is < 0 or > 100) throw new LocalizedArgumentException("Error.InvalidSettings");
         await _gate.WaitAsync();
         try { _outputLimit = limit; if (IsRunning && !IsPaused) await SendFrameAsync(); }
-        catch { await StopCoreAsync("Reason.ConnectionError"); throw; }
+        catch (Exception error) { await StopAfterErrorAsync(error); throw; }
         finally { _gate.Release(); }
     }
 
@@ -168,7 +168,7 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
     {
         await _gate.WaitAsync();
         try { _reactive?.ResetInput(Elapsed.TotalSeconds, true); if (IsRunning && !IsPaused) await SendFrameAsync(); }
-        catch { await StopCoreAsync("Reason.ConnectionError"); throw; }
+        catch (Exception error) { await StopAfterErrorAsync(error); throw; }
         finally { _gate.Release(); }
     }
 
@@ -186,7 +186,7 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
             _touchHeld = held; _hasTouch |= held;
             await SendFrameAsync();
         }
-        catch { await StopCoreAsync("Reason.ConnectionError"); throw; }
+        catch (Exception error) { await StopAfterErrorAsync(error); throw; }
         finally { _gate.Release(); }
     }
 
@@ -209,7 +209,7 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
                 if (recordBucket != _recordBucket) { _recording.Add(_touch); _recordBucket = recordBucket; }
             }
             try { await SendFrameAsync(); if (_reactive?.GoalReached(_targets.Length) == true) await StopCoreAsync("Reason.MovementGoal"); }
-            catch { await StopCoreAsync("Reason.ConnectionError"); throw; }
+            catch (Exception error) { await StopAfterErrorAsync(error); throw; }
         }
         finally { _gate.Release(); }
     }
@@ -268,6 +268,12 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
         await _gate.WaitAsync();
         try { await StopCoreAsync(reason); }
         finally { _gate.Release(); }
+    }
+
+    private async Task StopAfterErrorAsync(Exception error)
+    {
+        try { await StopCoreAsync("Reason.ConnectionError"); }
+        catch (Exception stopError) { throw new LocalizedAggregateException("Error.StopUnconfirmed", [error, stopError]); }
     }
 
     private async Task StopCoreAsync(string reason)

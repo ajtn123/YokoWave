@@ -158,7 +158,11 @@ public sealed partial class PlaybackModeViewModel
             Raise(nameof(NoiseFloorDb)); Notify("Status.AudioCalibrated", NoiseFloorDb);
         }
         catch (OperationCanceledException) { }
-        finally { await ReleaseAudioAsync(); _calibrating = false; RefreshPlayback(); }
+        finally
+        {
+            try { await ReleaseAudioAsync(); }
+            finally { _calibrating = false; RefreshPlayback(); }
+        }
     }
     internal string SensorReading(string id)
     {

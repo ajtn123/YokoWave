@@ -211,7 +211,11 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
     {
         CancelAudioInput();
         try { await _engine.StopAsync(reason); }
-        finally { await ReleaseAudioAsync(); _clock.Stop(); RefreshPlayback(); }
+        finally
+        {
+            try { await ReleaseAudioAsync(); }
+            finally { _clock.Stop(); RefreshPlayback(); }
+        }
         if (notify) Notify("Status.ModeStopped", Name);
     }
     private void RefreshPlayback()

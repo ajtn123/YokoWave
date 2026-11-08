@@ -21,7 +21,7 @@
           <CheckBox Content="{l:Loc Audio.Loop}" IsChecked="{Binding LoopMedia}" />
           <StackPanel Classes="field">
             <TextBlock Text="{l:Loc Audio.PlaybackVolume}" Classes="field-label" />
-            <Slider Minimum="0" Maximum="100" Value="{Binding PlaybackVolume}" TickFrequency="1" />
+            <Slider x:Name="PlaybackVolumeSlider" Minimum="0" Maximum="100" Value="{Binding PlaybackVolume}" TickFrequency="1" />
           </StackPanel>
         </StackPanel>
         <StackPanel Classes="field">

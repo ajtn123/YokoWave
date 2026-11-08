@@ -159,8 +159,22 @@ internal sealed class WindowsBluetoothConnection : IBluetoothConnection
         timeout.CancelAfter(TimeSpan.FromSeconds(3));
         using var writer = new DataWriter();
         writer.WriteBytes(packet);
-        var status = await _write.WriteValueAsync(writer.DetachBuffer(), GattWriteOption.WriteWithoutResponse).AsTask(timeout.Token);
-        if (status != GattCommunicationStatus.Success) throw new LocalizedIOException("Error.BluetoothWrite");
+        try
+        {
+            var status = await _write.WriteValueAsync(writer.DetachBuffer(), GattWriteOption.WriteWithoutResponse).AsTask(timeout.Token);
+            if (status != GattCommunicationStatus.Success)
+            {
+                var error = new LocalizedIOException("Error.BluetoothWrite");
+                error.Data["GattStatus"] = status; throw error;
+            }
+        }
+        catch (ArgumentException error)
+        {
+            var failure = new LocalizedIOException("Error.BluetoothWrite", error);
+            failure.Data["Operation"] = "GattWriteWithoutResponse";
+            failure.Data["PacketLength"] = packet.Length;
+            throw failure;
+        }
     }
 
     public async ValueTask DisposeAsync()
