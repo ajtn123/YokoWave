@@ -17,7 +17,7 @@ public sealed record DeviceDescriptor(string Id, string Name, DeviceKind Kind, i
 }
 
 public sealed record OutputFrame(double ChannelA, double ChannelB, double Frequency,
-    WaveformSample? ReferenceSample = null, WaveformSample? ReferenceSampleB = null)
+    WaveformSample? ReferenceSample = null, WaveformSample? ReferenceSampleB = null, bool Gentle = false)
 {
     public static OutputFrame Zero { get; } = new(0, 0, 1);
 }
@@ -100,11 +100,12 @@ public static class WaveformGenerator
 }
 
 public sealed record SessionRecord(Guid Id, DateTimeOffset StartedAt, double DurationSeconds,
-    string WaveformName, int DeviceCount, double PeakA, double PeakB, string Reason, Guid? WaveformId = null);
+    string WaveformName, int DeviceCount, double PeakA, double PeakB, string Reason, Guid? WaveformId = null,
+    Guid? ChannelBWaveformId = null, string? ChannelBWaveformName = null, bool TouchControl = false, bool Gentle = false);
 
 public sealed record AppSettings(double DefaultLimit = 60, double SessionMinutes = 10,
     bool OffsetChannelB = true, string? Language = null, bool UseBluetooth = false,
-    bool TimerEnabled = true, int SessionSeconds = 0, int TimerLimitMinutes = 120);
+    bool TimerEnabled = true, int SessionSeconds = 0, int TimerLimitMinutes = 120, EstimSettings? Estim = null);
 
 public sealed record WorkspaceData(int SchemaVersion, List<WaveformPreset> Presets,
     List<SessionRecord> Sessions, AppSettings Settings, SessionStatistics? Statistics = null)

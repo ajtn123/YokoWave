@@ -121,6 +121,7 @@ public sealed class WorkspaceStore(string directory)
         if (data.Statistics is { } statistics && (statistics.SessionCount < 0 || !double.IsFinite(statistics.TotalDurationSeconds) || statistics.TotalDurationSeconds < 0))
             throw new LocalizedArgumentException("Error.InvalidRecords");
         var settings = data.Settings;
+        settings.Estim?.Validate();
         if (!double.IsFinite(settings.DefaultLimit) || settings.DefaultLimit is < 0 or > 100 ||
             !double.IsFinite(settings.SessionMinutes) || settings.SessionMinutes is < 0 or > 120 || settings.SessionSeconds is < 0 or > 59 ||
             settings.TimerLimitMinutes is < 1 or > 120 ||

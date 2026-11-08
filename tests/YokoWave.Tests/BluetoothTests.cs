@@ -165,6 +165,8 @@ internal sealed class FakeBluetoothAdapter : IBluetoothAdapter
 
 internal sealed class FakeBluetoothConnection : IBluetoothConnection
 {
+    public bool ReplyToFeatures { get; set; } = true;
+    public bool LightEnabled { get; private set; } = true;
     public bool ReplyToQueries { get; init; }
     public bool FailNextWrite { get; set; }
     public bool FailWrites { get; set; }
@@ -180,10 +182,13 @@ internal sealed class FakeBluetoothConnection : IBluetoothConnection
         if (FailWrites) throw new IOException("Injected disconnected radio");
         if (FailNextWrite) { FailNextWrite = false; throw new IOException("Injected write failure"); }
         Writes.Add(packet.ToArray());
+        if (ReplyToFeatures && packet.SequenceEqual(V2Protocol.QueryVersion())) Notify(V1Protocol.WithChecksum([0x36, 0x13, 1, 2]));
+        if (ReplyToFeatures && packet[1] == 0x15) LightEnabled = packet[2] == 1;
         if (ReplyToQueries && packet[1] == 0x71)
         {
             if (packet[2] == 4) Notify(V1Protocol.WithChecksum([0x35, 0x71, 4, 82]));
             else if (packet[2] is 1 or 2) Notify(V1Protocol.WithChecksum([0x35, 0x71, packet[2], 0, 0, 0, 0, 0]));
+            else if (packet[2] == 7 && ReplyToFeatures) Notify(V1Protocol.WithChecksum([0x35, 0x71, 7, (byte)(LightEnabled ? 1 : 0)]));
         }
         return Task.CompletedTask;
     }

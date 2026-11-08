@@ -3,7 +3,7 @@ using YokoWave.Core.Localization;
 
 namespace YokoWave.Core.Bluetooth;
 
-public sealed class ElectricalBluetoothTransport(IBluetoothAdapter adapter) : IDeviceTransport, IDeviceStatusSource
+public sealed class ElectricalBluetoothTransport(IBluetoothAdapter adapter) : IDeviceTransport, IDeviceStatusSource, IElectricalDeviceFeatures
 {
     private sealed class Connection(IBluetoothConnection link, ElectricalDeviceProfile profile)
     {
@@ -16,6 +16,9 @@ public sealed class ElectricalBluetoothTransport(IBluetoothAdapter adapter) : ID
         public bool AOff;
         public bool BOff;
         public TaskCompletionSource ZeroConfirmed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource VersionConfirmed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource<bool> LightConfirmed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public byte HardwareVersion, SoftwareVersion;
     }
 
     private readonly ConcurrentDictionary<string, Connection> _connections = new();
@@ -55,8 +58,14 @@ public sealed class ElectricalBluetoothTransport(IBluetoothAdapter adapter) : ID
                 if (status.OutputAEnabled is { } a) connection.AOff = !a;
                 if (status.OutputBEnabled is { } b) connection.BOff = !b;
                 if (connection.AOff && connection.BOff) connection.ZeroConfirmed.TrySetResult();
+                if (status.HardwareVersion is > 0 && status.SoftwareVersion is > 0)
+                {
+                    connection.HardwareVersion = status.HardwareVersion.Value; connection.SoftwareVersion = status.SoftwareVersion.Value;
+                    connection.VersionConfirmed.TrySetResult();
+                }
+                if (status.LightEnabled is { } light) connection.LightConfirmed.TrySetResult(light);
                 StatusChanged?.Invoke(this, new(device.Id, status.Battery, status.ContactA, status.ContactB,
-                    status.OutputAEnabled, status.OutputBEnabled));
+                    status.OutputAEnabled, status.OutputBEnabled, status.HardwareVersion, status.SoftwareVersion, status.LightEnabled));
             }
         };
         connection.DisconnectHandler = () =>
@@ -97,6 +106,47 @@ public sealed class ElectricalBluetoothTransport(IBluetoothAdapter adapter) : ID
             if (index > 0) await Task.Delay(10, cancellationToken);
             await connection.Link.WriteAsync(packets[index], cancellationToken);
         }
+    }
+
+    public async Task<ElectricalFeatureState> RefreshFeaturesAsync(string deviceId, CancellationToken cancellationToken = default)
+    {
+        var connection = FeatureConnection(deviceId);
+        if (!connection.VersionConfirmed.Task.IsCompletedSuccessfully)
+        {
+            await connection.Link.WriteAsync(V2Protocol.QueryVersion(), cancellationToken);
+            try { await connection.VersionConfirmed.Task.WaitAsync(TimeSpan.FromSeconds(2), cancellationToken); }
+            catch (TimeoutException) { throw new LocalizedIOException("Error.DeviceFeatures"); }
+        }
+        connection.LightConfirmed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        await connection.Link.WriteAsync(V2Protocol.QueryLight(), cancellationToken);
+        try
+        {
+            var light = await connection.LightConfirmed.Task.WaitAsync(TimeSpan.FromSeconds(2), cancellationToken);
+            return new(connection.HardwareVersion, connection.SoftwareVersion, light);
+        }
+        catch (TimeoutException) { throw new LocalizedIOException("Error.LightTimeout"); }
+    }
+
+    public async Task<bool> SetLightAsync(string deviceId, bool enabled, CancellationToken cancellationToken = default)
+    {
+        var connection = FeatureConnection(deviceId);
+        if (!connection.VersionConfirmed.Task.IsCompletedSuccessfully) throw new LocalizedOperationException("Error.DeviceFeatures");
+        connection.LightConfirmed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        await connection.Link.WriteAsync(V2Protocol.SetLight(enabled), cancellationToken);
+        await connection.Link.WriteAsync(V2Protocol.QueryLight(), cancellationToken);
+        bool actual;
+        try { actual = await connection.LightConfirmed.Task.WaitAsync(TimeSpan.FromSeconds(2), cancellationToken); }
+        catch (TimeoutException) { throw new LocalizedIOException("Error.LightTimeout"); }
+        if (actual != enabled) throw new LocalizedIOException("Error.LightTimeout");
+        return actual;
+    }
+
+    private Connection FeatureConnection(string deviceId)
+    {
+        if (!_connections.TryGetValue(deviceId, out var connection)) throw new LocalizedOperationException("Error.NotConnected");
+        if (connection.Profile.Generation != ElectricalGeneration.CombinedV2 || Volatile.Read(ref connection.Fault) is not null)
+            throw new LocalizedOperationException("Error.DeviceFeatures");
+        return connection;
     }
 
     public async Task DisconnectAsync(string deviceId, CancellationToken cancellationToken = default)

@@ -19,13 +19,13 @@ public static class V1Protocol
     {
         if (frame.ReferenceSample?.Motors is not null || frame.ReferenceSampleB?.Motors is not null)
             throw new LocalizedArgumentException("Error.ElectricalWaveform");
-        var a = Parameters(frame.ChannelA, frame.Frequency, frame.ReferenceSample);
-        var b = Parameters(frame.ChannelB, frame.Frequency, frame.ReferenceSampleB ?? frame.ReferenceSample);
+        var a = Parameters(frame.ChannelA, frame.Frequency, frame.ReferenceSample, frame.Gentle);
+        var b = Parameters(frame.ChannelB, frame.Frequency, frame.ReferenceSampleB ?? frame.ReferenceSample, frame.Gentle);
         return a == b ? [Channel(3, a.Strength, a.Frequency, a.PulseWidth)]
             : [Channel(1, a.Strength, a.Frequency, a.PulseWidth), Channel(2, b.Strength, b.Frequency, b.PulseWidth)];
     }
 
-    internal static (int Strength, int Frequency, int PulseWidth) Parameters(double strength, double frequency, WaveformSample? sample)
+    internal static (int Strength, int Frequency, int PulseWidth) Parameters(double strength, double frequency, WaveformSample? sample, bool gentle = false)
     {
         if (sample?.Motors is not null) throw new LocalizedArgumentException("Error.ElectricalWaveform");
         var level = double.IsFinite(strength) ? Math.Clamp(strength, 0, 100) : 0;
@@ -33,7 +33,8 @@ public static class V1Protocol
         var code = sample?.FrequencyCode ?? frequency;
         var pulse = sample?.PulseWidthCode ?? 100;
         if (!double.IsFinite(code) || !double.IsFinite(pulse)) throw new LocalizedArgumentException("Error.Samples");
-        var encodedStrength = (int)Math.Round(level * MaxStrength / 100, MidpointRounding.AwayFromZero);
+        var encodedStrength = gentle ? (int)Math.Floor(level * 180 / 100)
+            : (int)Math.Round(level * MaxStrength / 100, MidpointRounding.AwayFromZero);
         if (encodedStrength == 0) return (0, 0, 0);
         return (encodedStrength,
             (int)Math.Clamp(Math.Round(code), 1, 100), (int)Math.Clamp(Math.Round(pulse), 0, 100));
@@ -57,8 +58,11 @@ public static class V1Protocol
 
     public static V1Status? Parse(ReadOnlySpan<byte> packet)
     {
+        if (packet.Length == 5 && packet[0] == 0x36 && packet[1] == 0x13 &&
+            packet[2] > 0 && packet[3] > 0 && WithChecksum(packet[..^1])[^1] == packet[^1])
+            return new(HardwareVersion: packet[2], SoftwareVersion: packet[3]);
         if (packet.Length < 5 || packet[0] != 0x35 || packet[1] != 0x71) return null;
-        var expectedLength = packet[2] switch { 1 or 2 => 9, 3 or 4 or 0x55 => 5, 5 => 6, 6 => 16, _ => 0 };
+        var expectedLength = packet[2] switch { 1 or 2 => 9, 3 or 4 or 7 or 0x55 => 5, 5 => 6, 6 => 16, _ => 0 };
         if (packet.Length != expectedLength || WithChecksum(packet[..^1])[^1] != packet[^1]) return null;
         return packet[2] switch
         {
@@ -66,10 +70,12 @@ public static class V1Protocol
             1 when packet[3] <= 2 && packet[4] <= 1 => new(ContactA: (ElectrodeContact)packet[3], OutputAEnabled: packet[4] == 1),
             2 when packet[3] <= 2 && packet[4] <= 1 => new(ContactB: (ElectrodeContact)packet[3], OutputBEnabled: packet[4] == 1),
             0x55 => new(ErrorCode: packet[3]),
+            7 when packet[3] <= 1 => new(LightEnabled: packet[3] == 1),
             _ => null
         };
     }
 }
 
 public sealed record V1Status(int? Battery = null, ElectrodeContact? ContactA = null,
-    ElectrodeContact? ContactB = null, byte? ErrorCode = null, bool? OutputAEnabled = null, bool? OutputBEnabled = null);
+    ElectrodeContact? ContactB = null, byte? ErrorCode = null, bool? OutputAEnabled = null, bool? OutputBEnabled = null,
+    byte? HardwareVersion = null, byte? SoftwareVersion = null, bool? LightEnabled = null);

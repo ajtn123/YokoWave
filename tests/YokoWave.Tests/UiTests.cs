@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
@@ -38,6 +39,120 @@ public static class TestAppBuilder
 
 public sealed class UiTests
 {
+    [AvaloniaFact]
+    public async Task EstimControlsSupportIndependentWavesPauseAndPointerReleasedBoost()
+    {
+        using var folder = new TestFolder();
+        var adapter = new FakeBluetoothAdapter();
+        await new WorkspaceStore(folder.Path).SaveAsync(new(2, [], [], new(UseBluetooth: true)));
+        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path),
+            () => new ElectricalBluetoothTransport(adapter));
+        var view = new MainView { DataContext = vm };
+        var window = new Window { Content = view, Width = 1000, Height = 1000 };
+        window.Show();
+        await WaitForAsync(() => vm.Devices.Count == 1 && !vm.IsScanning);
+        await vm.ToggleConnectionAsync(vm.Devices[0]);
+        vm.SeparateWaveforms = true;
+        Find<ComboBox>(view, "ChannelBWavePicker").SelectedItem = vm.Presets[1];
+        Assert.Equal(vm.Presets[1].Preset, Find<WaveformPlot>(view, "MainPlot").PresetB);
+        vm.ChannelA = 20; vm.ChannelB = 10;
+        await vm.TogglePlaybackAsync(); await vm.TickAsync();
+        Assert.NotEqual(adapter.Links[vm.SelectedDevice!.Id].Writes[^1][6], adapter.Links[vm.SelectedDevice.Id].Writes[^1][10]);
+        var boost = Find<HoldButton>(view, "BoostButton");
+        Find<ToggleButton>(view, "StrengthOptionsToggle").IsChecked = true;
+        Dispatcher.UIThread.RunJobs();
+        boost.BringIntoView(); Dispatcher.UIThread.RunJobs();
+        var position = boost.TranslatePoint(new Point(boost.Bounds.Width / 2, boost.Bounds.Height / 2), window)!.Value;
+        window.MouseDown(position, MouseButton.Left);
+        Assert.True(boost.IsHeld, $"Boost was not held at {position}; bounds {boost.Bounds}, enabled {boost.IsEffectivelyEnabled}.");
+        Assert.True(vm.IsBoostHeld);
+        await WaitForAsync(() => vm.SelectedDevice.OutputA == 30);
+        Assert.Equal(20, vm.SelectedDevice.OutputB);
+        window.MouseUp(new Point(0, 0), MouseButton.Left);
+        await WaitForAsync(() => vm.SelectedDevice.OutputA == 20);
+        Assert.Equal(10, vm.SelectedDevice.OutputB);
+        Click(window, Find<Button>(view, "PauseButton")); await WaitForAsync(() => vm.IsPaused);
+        var clock = vm.Remaining;
+        await Task.Delay(200, TestContext.Current.CancellationToken); await vm.TickAsync();
+        Assert.Equal(clock, vm.Remaining); Assert.Equal(0, vm.SelectedDevice.OutputA);
+        Assert.False(boost.IsEffectivelyEnabled);
+        Click(window, Find<Button>(view, "PauseButton")); await WaitForAsync(() => !vm.IsPaused);
+        await vm.TickAsync(); Assert.True(vm.IsRunning); Assert.Equal(20, vm.SelectedDevice.OutputA);
+        Capture(window, "estim-automation.png");
+        var pane = Find<StackPanel>(view, "ControlPane");
+        var right = pane.TranslatePoint(new Point(pane.Bounds.Width, 0), window)!.Value.X;
+        Assert.True(right <= window.Width - ((Thickness)view.FindResource("Margin.Content")!).Right,
+            $"Control pane extends beyond the content area: {right}.");
+        await vm.StopAsync();
+        Assert.NotNull(Assert.Single(vm.Sessions).Record.ChannelBWaveformId);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public async Task TouchControlRecordsReplaysAndSavesACustomElectricalWaveform()
+    {
+        using var folder = new TestFolder();
+        var transport = new SimulationTransport();
+        await using var vm = new MainViewModel(new DeviceController(transport), new WorkspaceStore(folder.Path));
+        var view = new MainView { DataContext = vm };
+        var window = new Window { Content = view, Width = 1000, Height = 1000 };
+        window.Show(); await WaitForAsync(() => vm.Devices.Count == 5 && !vm.IsScanning);
+        await vm.ToggleConnectionAsync(vm.Devices[0]);
+        vm.UseTouchControl = true; vm.ChannelA = 20;
+        vm.SelectedTouchPlayback = vm.TouchPlaybackModes.First(option => option.Value == (int)TouchPlayback.RecordedLoop);
+        await vm.TogglePlaybackAsync(); await vm.TickAsync();
+        Assert.Equal(0, transport.Outputs[vm.SelectedDevice!.Id].ChannelA);
+        var pad = Find<ElectricalPad>(view, "FrequencyPad"); pad.BringIntoView(); Dispatcher.UIThread.RunJobs();
+        var position = pad.TranslatePoint(new Point(pad.Bounds.Width * 0.5, pad.Bounds.Height * 0.25), window)!.Value;
+        window.MouseDown(position, MouseButton.Left);
+        await WaitForAsync(() => vm.HasRecording);
+        Assert.Equal(75, vm.TouchPulseWidth);
+        Assert.InRange(vm.TouchFrequency, 50, 51);
+        window.MouseUp(position, MouseButton.Left);
+        await vm.TickAsync(); Assert.Equal(20, transport.Outputs[vm.SelectedDevice.Id].ChannelA);
+        Capture(window, "estim-touch.png");
+        await vm.StopAsync(); vm.TouchRecordingName = "Local touch recording";
+        Assert.True(vm.CanSaveRecording);
+        await vm.SaveRecordingAsync();
+        Assert.Equal(WaveformFamily.Electrical, vm.SelectedPreset!.Preset.Family);
+        Assert.InRange(vm.SelectedPreset.Preset.Samples!.Length, 2, SessionEngine.MaxRecordingFrames);
+        Assert.Equal("Local touch recording", Assert.Single((await new WorkspaceStore(folder.Path).LoadAsync()).Presets).Name);
+        Assert.True(Assert.Single(vm.Sessions).Record.TouchControl);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public async Task FirmwareReadEnablesConfirmedLightControlAndSettingsKeepEstimOptions()
+    {
+        using var folder = new TestFolder();
+        var adapter = new FakeBluetoothAdapter();
+        await new WorkspaceStore(folder.Path).SaveAsync(new(2, [], [], new(UseBluetooth: true)));
+        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path),
+            () => new ElectricalBluetoothTransport(adapter));
+        var view = new MainView { DataContext = vm };
+        var window = new Window { Content = view, Width = 1000, Height = 900 };
+        window.Show(); await WaitForAsync(() => vm.Devices.Count == 1 && !vm.IsScanning);
+        await vm.ToggleConnectionAsync(vm.Devices[0]);
+        var read = Find<Button>(view, "ReadDeviceFeaturesButton");
+        Assert.True(read.IsEffectivelyEnabled); Assert.False(vm.CanControlLight);
+        Click(window, read); await WaitForAsync(() => vm.CanControlLight);
+        Click(window, Find<Button>(view, "ToggleLightButton"));
+        await WaitForAsync(() => vm.LightLabel == L10n.Get("Device.LightOff"));
+        Capture(window, "estim-device-features.png");
+        await vm.NavigateAsync("settings");
+        vm.GentleMode = true; vm.ShowContacts = false;
+        vm.SelectedPlaybackOrder = vm.PlaybackOrders.First(option => option.Value == (int)PlaybackOrder.Sequential);
+        vm.SelectedStrengthMode = vm.StrengthModes.First(option => option.Value == (int)StrengthMode.StepIncrease);
+        vm.StrengthInterval = 4; vm.StrengthStep = 2; vm.StrengthCeiling = 45;
+        await vm.SaveSettingsAsync();
+        var settings = (await new WorkspaceStore(folder.Path).LoadAsync()).Settings.Estim!;
+        Assert.True(settings.Gentle); Assert.False(settings.ShowContacts);
+        Assert.Equal(PlaybackOrder.Sequential, settings.Order);
+        Assert.Equal(4, settings.Strength!.IntervalSeconds); Assert.Equal(2, settings.Strength.Step);
+        Assert.Equal(45, settings.Strength.Ceiling);
+        window.Close();
+    }
+
     [AvaloniaFact]
     public async Task HelpNavigationStopsOutputRetainsSelectionsAndLocalizesInBothLayouts()
     {

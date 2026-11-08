@@ -28,6 +28,17 @@
   <Style Selector="ComboBox.language-picker">
     <Setter Property="MinWidth" Value="{DynamicResource Size.LanguagePickerMinWidth}" />
   </Style>
+  <Style Selector="ToggleButton.section-toggle">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.section-toggle:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+  </Style>
   <Style Selector="NumericUpDown.setting-value">
     <Setter Property="Width" Value="{DynamicResource Size.SettingInputWidth}" />
   </Style>

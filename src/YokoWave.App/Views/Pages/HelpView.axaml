@@ -41,6 +41,7 @@
       <StackPanel Classes="items">
         <TextBlock Text="{l:Loc Help.WavesTitle}" Classes="section-title" />
         <TextBlock Text="{l:Loc Help.LiveWave}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Playback}" Classes="help" />
         <TextBlock Text="{l:Loc Help.Waves}" Classes="muted help" />
       </StackPanel>
     </Border>
@@ -48,6 +49,19 @@
       <StackPanel Classes="items">
         <TextBlock Text="{l:Loc Help.StorageTitle}" Classes="section-title" />
         <TextBlock Text="{l:Loc Help.Storage}" Classes="help" />
+      </StackPanel>
+    </Border>
+    <Border Classes="card">
+      <StackPanel Classes="items">
+        <TextBlock Text="{l:Loc Estim.StrengthProgram}" Classes="section-title" />
+        <TextBlock Text="{l:Loc Help.StrengthProgram}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.DeviceFeatures}" Classes="muted help" />
+      </StackPanel>
+    </Border>
+    <Border Classes="card">
+      <StackPanel Classes="items">
+        <TextBlock Text="{l:Loc Touch.Title}" Classes="section-title" />
+        <TextBlock Text="{l:Loc Help.Touch}" Classes="help" />
       </StackPanel>
     </Border>
   </StackPanel>

@@ -76,8 +76,17 @@ public sealed class PresetItem(WaveformPreset preset) : ObservableObject
 public sealed class SessionItem(SessionRecord record) : ObservableObject
 {
     public SessionRecord Record { get; } = record;
-    public string Name => Record.WaveformId is { } id && DefaultWaveformCatalog.Contains(id)
-        ? DefaultWaveformCatalog.Name(id) : Record.WaveformName;
+    public string Name
+    {
+        get
+        {
+            if (Record.TouchControl) return L10n.Get("Touch.Title");
+            var a = Record.WaveformId is { } id && DefaultWaveformCatalog.Contains(id) ? DefaultWaveformCatalog.Name(id) : Record.WaveformName;
+            if (Record.ChannelBWaveformName is not { } name) return a;
+            var b = Record.ChannelBWaveformId is { } bId && DefaultWaveformCatalog.Contains(bId) ? DefaultWaveformCatalog.Name(bId) : name;
+            return L10n.Format("History.ChannelWaves", a, b);
+        }
+    }
     public string Date => Record.StartedAt.ToLocalTime().ToString(L10n.Get("History.DateFormat"), L10n.Current.Culture);
     public string Duration => TimeSpan.FromSeconds(Record.DurationSeconds).ToString(Record.DurationSeconds >= 3600 ? @"h\:mm\:ss" : @"mm\:ss");
     public string Detail => L10n.Format("History.Detail", Record.DeviceCount, Record.PeakA, Record.PeakB, new StoredReason(Record.Reason));

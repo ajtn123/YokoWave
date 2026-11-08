@@ -82,6 +82,7 @@
 
       <StackPanel x:Name="ControlPane" Grid.Column="1" Classes="group">
         <Border Classes="card detail">
+          <StackPanel Classes="group">
           <Grid ColumnDefinitions="*,Auto">
             <StackPanel Classes="field">
               <TextBlock Text="{Binding SelectedName}" Classes="title" />
@@ -94,6 +95,8 @@
               <TextBlock Text="{Binding ReadingsLabel}" Classes="muted fine-print" HorizontalAlignment="Right" />
             </StackPanel>
           </Grid>
+          <components:DeviceFeaturesView IsVisible="{Binding IsBluetooth}" />
+          </StackPanel>
         </Border>
 
         <Border Classes="card output">
@@ -108,7 +111,8 @@
                 <TextBlock Text="● B" Classes="label channel-b" />
               </StackPanel>
             </Grid>
-            <Grid RowDefinitions="*,Auto" Classes="chart">
+            <CheckBox Content="{l:Loc Touch.Title}" IsChecked="{Binding UseTouchControl}" IsEnabled="{Binding CanEditRouting}" />
+            <Grid RowDefinitions="*,Auto" Classes="chart" IsVisible="{Binding IsWaveformControl}">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="{DynamicResource Column.ChartAxis}" />
                 <ColumnDefinition Width="*" />
@@ -118,7 +122,7 @@
                 <TextBlock Grid.Row="1" Text="50" VerticalAlignment="Center" Classes="fine-print muted" />
                 <TextBlock Grid.Row="2" Text="0" VerticalAlignment="Bottom" Classes="fine-print muted" />
               </Grid>
-              <controls:WaveformPlot Grid.Column="1" x:Name="MainPlot" Preset="{Binding SelectedWaveform}"
+              <controls:WaveformPlot Grid.Column="1" x:Name="MainPlot" Preset="{Binding SelectedWaveform}" PresetB="{Binding SelectedWaveformB}"
                   AmplitudeA="{Binding ChannelA}" AmplitudeB="{Binding ChannelB}" Offset="{Binding OffsetChannelB}" Playhead="{Binding Playhead}" />
               <Grid Grid.Column="1" Grid.Row="1" ColumnDefinitions="*,*,*,*" Margin="{DynamicResource Margin.AboveSmall}">
                 <TextBlock Text="0s" Classes="fine-print muted" />
@@ -127,12 +131,8 @@
                 <TextBlock Grid.Column="3" Text="12s" HorizontalAlignment="Right" Classes="fine-print muted" />
               </Grid>
             </Grid>
-            <Grid ColumnDefinitions="*,Auto">
-              <ComboBox x:Name="PresetPicker" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" HorizontalAlignment="Stretch">
-                <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PresetItem"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
-              </ComboBox>
-              <Button Grid.Column="1" Content="{l:Loc Wave.Manage}" Classes="small" Background="{DynamicResource TransparentBrush}" Command="{Binding WavesCommand}" Margin="{DynamicResource Margin.BeforeSmall}" />
-            </Grid>
+            <components:WaveformPlaybackView IsVisible="{Binding IsWaveformControl}" />
+            <components:TouchControlView IsVisible="{Binding UseTouchControl}" />
           </StackPanel>
         </Border>
 
@@ -159,6 +159,7 @@
           </Border>
         </Grid>
 
+        <components:EstimAutomationView />
         <Border Classes="card session">
           <StackPanel Classes="items">
             <Grid ColumnDefinitions="*,Auto">
@@ -168,10 +169,13 @@
             <Slider x:Name="LimitSlider" Minimum="0" Maximum="100" Value="{Binding SafetyLimit}" TickFrequency="5" IsSnapToTickEnabled="True" IsEnabled="{Binding SelectedConnected}" />
             <Grid ColumnDefinitions="*,Auto">
               <TextBlock Text="{Binding RoutingSummary}" Classes="muted caption" VerticalAlignment="Center" />
-              <CheckBox Grid.Column="1" IsChecked="{Binding OffsetChannelB}" IsEnabled="{Binding CanEditRouting}" Content="{l:Loc Channel.Offset}" Classes="caption compact" />
+              <CheckBox Grid.Column="1" IsChecked="{Binding OffsetChannelB}" IsEnabled="{Binding CanOffsetChannelB}" Content="{l:Loc Channel.Offset}" Classes="caption compact" />
             </Grid>
             <components:SessionTimerView />
-            <Button x:Name="PlaybackButton" Classes="primary" Command="{Binding PlaybackCommand}" Content="{Binding PlaybackLabel}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+            <Grid ColumnDefinitions="*,Auto" Classes="columns">
+              <Button x:Name="PlaybackButton" Classes="primary" Command="{Binding PlaybackCommand}" Content="{Binding PlaybackLabel}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+              <Button Grid.Column="1" x:Name="PauseButton" Command="{Binding PauseCommand}" Content="{Binding PauseLabel}" />
+            </Grid>
           </StackPanel>
         </Border>
         <TextBlock Text="{Binding DeviceHelp}" Classes="caption muted help" />

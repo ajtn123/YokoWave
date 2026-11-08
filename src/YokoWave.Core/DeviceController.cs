@@ -9,6 +9,9 @@ public sealed class DeviceConnection(DeviceDescriptor device, double limit)
     public ElectrodeContact ContactB { get; internal set; } = ElectrodeContact.Unknown;
     public double Limit { get; internal set; } = limit;
     public OutputFrame Output { get; internal set; } = OutputFrame.Zero;
+    public byte? HardwareVersion { get; internal set; }
+    public byte? SoftwareVersion { get; internal set; }
+    public bool? LightEnabled { get; internal set; }
 }
 
 /// <summary>Single serialized gateway to all outputs, including stop and disconnect.</summary>
@@ -65,6 +68,9 @@ public sealed class DeviceController : IAsyncDisposable
                 if (update.Battery is >= 0 and <= 100) connection.Device = connection.Device with { Battery = update.Battery };
                 if (update.ContactA is { } a) connection.ContactA = a;
                 if (update.ContactB is { } b) connection.ContactB = b;
+                if (update.HardwareVersion is { } hardware) connection.HardwareVersion = hardware;
+                if (update.SoftwareVersion is { } software) connection.SoftwareVersion = software;
+                if (update.LightEnabled is { } light) connection.LightEnabled = light;
             }
             finally { _gate.Release(); }
             Changed?.Invoke(this, EventArgs.Empty);
@@ -95,6 +101,35 @@ public sealed class DeviceController : IAsyncDisposable
     }
 
     public Task<IReadOnlyList<DeviceDescriptor>> ScanAsync(CancellationToken ct = default) => _transport.ScanAsync(ct);
+
+    public async Task RefreshFeaturesAsync(string id, CancellationToken ct = default)
+    {
+        await _gate.WaitAsync(ct);
+        try
+        {
+            var connection = Get(id);
+            if (_transport is not IElectricalDeviceFeatures features) throw new LocalizedOperationException("Error.DeviceFeatures");
+            var state = await features.RefreshFeaturesAsync(id, ct);
+            connection.HardwareVersion = state.HardwareVersion; connection.SoftwareVersion = state.SoftwareVersion;
+            connection.LightEnabled = state.LightEnabled;
+        }
+        finally { _gate.Release(); }
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    public async Task SetLightAsync(string id, bool enabled, CancellationToken ct = default)
+    {
+        await _gate.WaitAsync(ct);
+        try
+        {
+            var connection = Get(id);
+            if (connection.HardwareVersion is not > 0 || connection.SoftwareVersion is not > 0 || _transport is not IElectricalDeviceFeatures features)
+                throw new LocalizedOperationException("Error.DeviceFeatures");
+            connection.LightEnabled = await features.SetLightAsync(id, enabled, ct);
+        }
+        finally { _gate.Release(); }
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
 
     public async Task ConnectAsync(DeviceDescriptor device, double limit = 60, CancellationToken ct = default)
     {
