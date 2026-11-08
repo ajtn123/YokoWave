@@ -6,6 +6,10 @@ updates:
       interval: "weekly"
     commit-message:
       prefix: "deps"
+    ignore:
+      # Remove once Avalonia.Headless.XUnit supports the xUnit 4.x extensibility API.
+      - dependency-name: "xunit.v3"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
