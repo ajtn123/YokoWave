@@ -247,9 +247,12 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     { get; }
     public ICommand RemoveModeCommand
     { get; }
+    public DeviceTelemetryViewModel Telemetry { get; }
+    private void RefreshTelemetry() => Telemetry.SelectDevice(SelectedDevice?.Device);
     public MainViewModel(DeviceController controller, WorkspaceStore store, Func<IDeviceTransport>? bluetoothFactory = null, IAudioInputFactory? audioInputFactory = null)
     {
         _controller = controller;
+        Telemetry = new(controller, ShowError);
         _store = store;
         _bluetoothFactory = bluetoothFactory ?? (() => new BluetoothDeviceTransport(new UnsupportedBluetoothAdapter()));
         AudioInputs = audioInputFactory ?? new UnavailableAudioInputFactory();

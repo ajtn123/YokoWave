@@ -22,6 +22,8 @@ internal abstract class BluetoothProtocolDriver(string id, BluetoothDeviceProfil
     {
         command.Validate();
         if (!Profile.Supports(command.Capability)) throw new LocalizedOperationException("Error.DeviceFeatures");
+        if (command is ConfigureSensorStream { IndicatorColor: not 1 } && Profile.Protocol != BluetoothProtocol.Paw)
+            throw new LocalizedArgumentException("Error.ProtocolSettings");
         if (command is QueryDevice query && !Profile.SupportedQueries.Contains(query.Query)) throw new LocalizedOperationException("Error.DeviceFeatures");
         return (_commands ??= CreateCommandHandlers()).ExecuteAsync(command, ct);
     }

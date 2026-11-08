@@ -52,9 +52,9 @@ public static class BluetoothDeviceProfiles
         new(BluetoothProtocol.CoyoteV2, "Hardware.CoyoteV2", OutputDomain.Electrical, 2,
             [new(V2Strength, Write: true, Notify: true, Read: true), new(V2WaveA, Write: true, Read: true), new(V2WaveB, Write: true, Read: true), new(V2Battery, Read: true, Notify: true, Required: false)], DeviceCapability.StatusQuery | DeviceCapability.RawPulse),
         new(BluetoothProtocol.CoyoteV3, "Hardware.CoyoteV3", OutputDomain.Electrical, 2, Dg(), DeviceCapability.StatusQuery | DeviceCapability.RelativeStrength | DeviceCapability.ChannelLimits | DeviceCapability.Balance),
-        new(BluetoothProtocol.Opossum, "Hardware.Opossum", OutputDomain.Motor, 2, Dg(), DeviceCapability.StatusQuery | DeviceCapability.SensorStream | DeviceCapability.IndicatorColor | DeviceCapability.DisplaySync),
+        new(BluetoothProtocol.Opossum, "Hardware.Opossum", OutputDomain.Motor, 2, Dg(), DeviceCapability.StatusQuery | DeviceCapability.SensorStream | DeviceCapability.DisplaySync),
         new(BluetoothProtocol.Paw, "Hardware.Paw", OutputDomain.Input, 0, Dg(false), DeviceCapability.SensorStream | DeviceCapability.IndicatorColor | DeviceCapability.PawTriggers | DeviceCapability.PawCalibration | DeviceCapability.ShoulderLight),
-        new(BluetoothProtocol.Civet, "Hardware.Civet", OutputDomain.Input, 0, Dg(), DeviceCapability.StatusQuery | DeviceCapability.SensorStream | DeviceCapability.IndicatorColor | DeviceCapability.PressureReset | DeviceCapability.ScreenOrientation),
+        new(BluetoothProtocol.Civet, "Hardware.Civet", OutputDomain.Input, 0, Dg(), DeviceCapability.StatusQuery | DeviceCapability.SensorStream | DeviceCapability.PressureReset | DeviceCapability.ScreenOrientation),
         new(BluetoothProtocol.UnsupportedPaw, "Hardware.PawOld", OutputDomain.Input, 0, Dg(false), Supported: false)
     ];
     private const DeviceCapability ElectricalCapabilities = DeviceCapability.StatusQuery | DeviceCapability.Motion | DeviceCapability.Contacts |

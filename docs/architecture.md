@@ -37,7 +37,7 @@
 
 `PlaybackModeViewModel.Estim` 处理玩法内的播放配置，`MainViewModel.DeviceFeatures` 处理实体设备固件功能；玩法控件直接绑定 `SelectedMode`，不经主视图模型代理属性；播放命令由玩法持有。玩法编辑、波形选择、自动强度、滑动面板和设备功能各有独立组件。灯光通过 `IElectricalDeviceFeatures` 与状态回报确认，只有兼容且版本已确认的二代设备可用；设备被玩法占用时禁用固件操作。
 
-`NativeProgramEditorViewModel` 与 `HardwareOutputEditorViewModel` 分别持有玩法的设备原生程序和硬件输出草稿，独立组件直接绑定。`ProtocolFeaturesViewModel` 持有非输出命令的临时表单，能力与可用查询集中在 `BluetoothDeviceProfile`；`DeviceCommand` 使用类型化参数和处理器登记，配置指令经 `DeviceController` 所有权校验后进入同一 GATT 串行门。表单编辑类型化命令的标量字段，不反射广播 VM，也不保存设备配置。输入解码由各协议负责，爪印逐事件维护活动与参数状态。`ProgramPacketWriter` 避免重复启动固定程序；`BufferedFrequencyWriter` 按 MTU 和活动时间发送序列，二者均为每连接状态。
+`NativeProgramEditorViewModel` 与 `HardwareOutputEditorViewModel` 分别持有玩法的设备原生程序和硬件输出草稿，独立组件直接绑定。`DeviceTelemetryViewModel` 直接提供设备解码读数、单位换算和压力归零命令；`ProtocolFeaturesViewModel` 持有非输出命令的临时表单，能力与可用查询集中在 `BluetoothDeviceProfile`；`DeviceCommand` 使用类型化参数和处理器登记，配置指令经 `DeviceController` 所有权校验后进入同一 GATT 串行门。表单编辑类型化命令的标量字段，不反射广播 VM，也不保存设备配置。输入解码由各协议负责，爪印逐事件维护活动与参数状态。`ProgramPacketWriter` 避免重复启动固定程序；`BufferedFrequencyWriter` 按 MTU 和活动时间发送序列，二者均为每连接状态。
 
 `PlaybackModeViewModel.Playlist` 管理玩法内的有序、去重列表，最多 100 个波形；`ModePlaylistView` 提供添加、移除、上下移动和有界滚动列表。顺序与随机模式只使用列表快照，并从首项开始，A/B 共用列表曲线；运行中选择器也只展示列表内波形，核心动态切换入口再次验证成员资格。停止时可编辑，播放不回退到整个波形库。单曲与仅播放当前保留独立 A/B 波形。所有来源的统一波形可以混合入队，播放时由目标设备编码器转换。全局库编辑同步刷新列表引用，运行中引用的波形禁止编辑和删除。
 

@@ -14,8 +14,8 @@ public static class V2Protocol
         settings.Validate();
         var a = settings.PresetA == 0 ? 0 : V1Protocol.Parameters(frame, 0).Strength;
         var b = settings.PresetB == 0 ? 0 : V1Protocol.Parameters(frame, 1).Strength;
-        return V1Protocol.WithChecksum([0x35, 0x11, 1, (byte)(a >> 8), (byte)a, (byte)settings.PresetA,
-            (byte)(b >> 8), (byte)b, (byte)settings.PresetB]);
+        return V1Protocol.WithChecksum([0x35, 0x11, 1, (byte)(a >> 8), (byte)a, (byte)Math.Max(1, settings.PresetA),
+            (byte)(b >> 8), (byte)b, (byte)Math.Max(1, settings.PresetB)]);
     }
     public static byte[] Buffered(int channel, int strength, IReadOnlyList<FrequencyPulse> samples)
     {

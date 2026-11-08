@@ -69,9 +69,9 @@ public static class PawProtocol
     }
     private static void Dynamics(Span<byte> data, PawParameterDynamics dynamics)
     {
-        data[0] = (byte)dynamics.IncreaseSeconds;
+        data[0] = (byte)dynamics.IncreaseTimeCode;
         data[1] = (byte)dynamics.CancelDecrease;
-        data[2] = (byte)dynamics.DecreaseSeconds;
+        data[2] = (byte)dynamics.DecreaseTimeCode;
         data[3] = (byte)dynamics.TriggerIncrease;
     }
     private static void Word(Span<byte> data, int offset, int value) => BinaryPrimitives.WriteUInt16BigEndian(data.Slice(offset, 2), (ushort)value);

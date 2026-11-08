@@ -85,11 +85,11 @@ public sealed class HardwareUiTests
             Assert.False(paw.IsOutput); Assert.False(paw.CanAssign);
             Assert.Throws<LocalizedOperationException>(() => pumpMode.AssignTarget(paw.Id, true));
             await vm.ToggleConnectionAsync(paw); Dispatcher.UIThread.RunJobs();
-            Assert.True(vm.HasTelemetry); Assert.Contains(vm.TelemetryReadings, row => row.Label == L10n.Get("Telemetry.Acceleration"));
+            Assert.True(vm.Telemetry.IsVisible); Assert.Contains(vm.Telemetry.Readings, row => row.Label == L10n.Get("Telemetry.Acceleration"));
             vm.SelectedLanguage = vm.Languages.Single(option => option.Code == "en"); Dispatcher.UIThread.RunJobs();
             Assert.Equal("V3 settings", waveMode.Name); Assert.Equal(12, waveMode.ChannelA); Assert.Equal(42, waveMode.FrequencyBalanceA);
             Assert.Equal(37, motorMode.ChannelC); Assert.Equal(PumpDirection.Reverse, pumpMode.ToConfig().Pump!.Direction);
-            Assert.Contains(vm.TelemetryReadings, row => row.Label == "Acceleration (raw)");
+            Assert.Contains(vm.Telemetry.Readings, row => row.Label == "Acceleration (raw)");
             await vm.SaveAsync(); var data = await store.LoadAsync();
             Assert.Equal(42, data.Modes!.Single(mode => mode.Id == waveMode.Id).DgBalances!.FrequencyA);
             Assert.Equal(201, data.Modes!.Single(mode => mode.Id == waveMode.Id).DgBalances!.WidthB);

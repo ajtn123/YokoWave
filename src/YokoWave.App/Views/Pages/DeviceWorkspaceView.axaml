@@ -53,7 +53,7 @@
             </StackPanel>
           </Grid>
           <components:DeviceFeaturesView IsVisible="{Binding HasDeviceFeatures}" />
-          <components:DeviceTelemetryView />
+          <components:DeviceTelemetryView DataContext="{Binding Telemetry}" />
           <components:ProtocolFeaturesView DataContext="{Binding ProtocolFeatures}" />
           </StackPanel>
         </Border>

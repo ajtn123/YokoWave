@@ -33,6 +33,7 @@ public sealed class ProtocolParameter : ObservableObject
     public IReadOnlyList<SessionOption> Choices
     { get; private init; } = [];
     private string[] _enumNames = [];
+    private bool _numericChoices;
     public double Number
     {
         get => _number;
@@ -54,7 +55,8 @@ public sealed class ProtocolParameter : ObservableObject
         get => _selected;
         set
         {
-            if (value is not null && Set(ref _selected, value)) _write(JsonValue.Create(_enumNames[value.Value]));
+            if (value is not null && Set(ref _selected, value))
+                _write(_numericChoices ? JsonValue.Create(value.Value) : JsonValue.Create(_enumNames[value.Value]));
         }
     }
     private ProtocolParameter(string name, string group, Action<JsonNode?> write)
@@ -75,6 +77,12 @@ public sealed class ProtocolParameter : ObservableObject
             Choices = names.Select((entry, index) => new SessionOption(index, $"ProtocolEnum.{name}.{entry}")).ToArray()
         };
         parameter._selected = parameter.Choices.First(option => names[option.Value] == value);
+        return parameter;
+    }
+    internal static ProtocolParameter NumericChoiceField(string name, string group, int value, IReadOnlyList<SessionOption> choices, Action<JsonNode?> write)
+    {
+        var parameter = new ProtocolParameter(name, group, write) { _numericChoices = true, Choices = choices };
+        parameter._selected = choices.First(option => option.Value == value);
         return parameter;
     }
     public void Refresh()
@@ -103,6 +111,7 @@ internal static class ProtocolParameterForm
             if (node is not JsonObject obj) return;
             foreach (var (name, value) in obj)
             {
+                if (name == "IndicatorColor" && profile?.Protocol != BluetoothProtocol.Paw) continue;
                 if (value is JsonObject or JsonArray)
                 {
                     Visit(value, group.Length == 0 ? name : $"{group} / {name}");
@@ -120,7 +129,11 @@ internal static class ProtocolParameterForm
                 else if (value.GetValueKind() == System.Text.Json.JsonValueKind.Number)
                 {
                     var (min, max) = Range(name, group, commandKey);
-                    fields.Add(ProtocolParameter.NumberField(name, displayGroup, value.GetValue<double>(), min, max, Write));
+                    var choices = name is "IncreaseTimeCode" or "DecreaseTimeCode" ? ProtocolParameterChoices.RampDurations()
+                        : profile?.Protocol == BluetoothProtocol.Paw && name is "IndicatorColor" or "Color" or "AlternateColor"
+                            ? ProtocolParameterChoices.PawColors(min, max) : null;
+                    fields.Add(choices is null ? ProtocolParameter.NumberField(name, displayGroup, value.GetValue<double>(), min, max, Write)
+                        : ProtocolParameter.NumericChoiceField(name, displayGroup, value.GetValue<int>(), choices, Write));
                 }
                 else if (Enums(name) is { } names)
                     fields.Add(ProtocolParameter.ChoiceField(name, displayGroup, value.GetValue<string>(),
@@ -148,7 +161,7 @@ internal static class ProtocolParameterForm
         "Probability" => (0, 200),
         "MinimumSeconds" or "MaximumSeconds" or "ReactionSeconds" => (1, 65535),
         "CooldownSeconds" => (0, 65535),
-        "IncreaseSeconds" or "DecreaseSeconds" => (0, 120),
+        "IncreaseTimeCode" or "DecreaseTimeCode" => (0, 120),
         "AccelerationThreshold" => (0, 400),
         "TriggerDebounce" or "CancelDebounce" => (0, 7),
         "Minimum" or "Maximum" => (-128, 127),

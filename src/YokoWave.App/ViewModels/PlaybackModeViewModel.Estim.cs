@@ -374,11 +374,11 @@ public sealed partial class PlaybackModeViewModel
     }
 }
 
-public sealed class SessionOption(int value, string key) : ObservableObject
+public sealed class SessionOption(int value, string key, params object?[] arguments) : ObservableObject
 {
     public int Value
     { get; } = value;
-    public string Label => L10n.Get(key);
+    public string Label => arguments.Length == 0 ? L10n.Get(key) : L10n.Format(key, arguments);
     public override string ToString() => Label;
     public void RefreshLocalization() => Raise(nameof(Label));
 }

@@ -1,12 +1,12 @@
 namespace YokoWave.Core.Bluetooth;
 
-public sealed record PawParameterDynamics(int IncreaseSeconds = 0, int CancelDecrease = 255, int DecreaseSeconds = 0, int TriggerIncrease = 255)
+public sealed record PawParameterDynamics(int IncreaseTimeCode = 0, int CancelDecrease = 255, int DecreaseTimeCode = 0, int TriggerIncrease = 255)
 {
     public void Validate()
     {
-        ProtocolGuard.Byte(IncreaseSeconds, 0, 120);
+        ProtocolGuard.Byte(IncreaseTimeCode, 0, 120);
         ProtocolGuard.Byte(CancelDecrease);
-        ProtocolGuard.Byte(DecreaseSeconds, 0, 120);
+        ProtocolGuard.Byte(DecreaseTimeCode, 0, 120);
         ProtocolGuard.Byte(TriggerIncrease);
     }
 }

@@ -4,11 +4,11 @@ namespace YokoWave.Core.Bluetooth;
 
 public static class CivetProtocol
 {
-    public static byte[] Stream(bool enabled, int indicatorColor = 1)
+    public static byte[] Stream(bool enabled)
     {
         byte[] data = new byte[17];
         data[0] = 0x50;
-        data[1] = ProtocolGuard.Byte(indicatorColor, 1, 6);
+        data[1] = 1;
         data[2] = enabled ? (byte)0xd0 : (byte)0;
         return data;
     }

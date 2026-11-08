@@ -346,7 +346,12 @@ internal sealed class HardwareGattLink(BluetoothDeviceProfile profile) : IBlueto
             _levelB = Apply(_levelB, packet[1] & 3, packet[3]);
             Notify([0xb1, (byte)(packet[1] >> 4), (byte)_levelA, (byte)_levelB]);
         }
-        if (profile.Protocol == BluetoothProtocol.Opossum && packet[0] == 0xb3) Notify([0xb3, packet[1], packet[2]]);
+        if (profile.Protocol == BluetoothProtocol.Opossum && packet[0] == 0xb3)
+        {
+            if (packet[1] != 255) _levelA = packet[1];
+            if (packet[2] != 255) _levelB = packet[2];
+            Notify([0xb3, (byte)_levelA, (byte)_levelB]);
+        }
         if (profile.Protocol == BluetoothProtocol.Paw && packet[0] == 0x50) { Notify([0x51, 1, 3, 80]); Notify([0xd0, 1, 1, 0, 2, 3, 4, 5, 6]); }
         if (profile.Protocol == BluetoothProtocol.Civet && packet[0] == 0x50) Notify([0xd0, 1, 0, 0, 0, 0, 0, 0, 123, 0]);
         if (profile.Protocol == BluetoothProtocol.YokonexMotor && packet[1] == 0x10) Notify(V1Protocol.WithChecksum([0x35, 0x10, 1, 1, 5, 5, 5, 0, 0]));

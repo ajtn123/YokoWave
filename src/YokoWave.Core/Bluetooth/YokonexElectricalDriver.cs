@@ -107,6 +107,7 @@ internal sealed class YokonexElectricalDriver(string id, BluetoothDeviceProfile 
         if (notification.Address != Profile.Notify || V1Protocol.Parse(notification.Data) is not { } status) return;
         if (status.ErrorCode is > 0)
         {
+            Publish(new(Id, telemetry: new(ProtocolErrorCode: status.ErrorCode)));
             Reject("Error.BluetoothRejected");
             return;
         }
