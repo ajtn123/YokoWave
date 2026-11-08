@@ -5,6 +5,13 @@
   <StackPanel Classes="section reading">
     <Border Classes="card">
       <StackPanel Classes="items">
+        <TextBlock Text="{l:Loc ModeKind.WebSocketServer}" Classes="section-title" />
+        <TextBlock Text="{l:Loc Remote.ServerHelp}" Classes="help" />
+        <TextBlock Text="{l:Loc Remote.ClientHelp}" Classes="muted help" />
+      </StackPanel>
+    </Border>
+    <Border Classes="card">
+      <StackPanel Classes="items">
         <TextBlock Text="{l:Loc Help.HardwareTitle}" Classes="section-title" />
         <TextBlock Text="{l:Loc Help.Hardware}" Classes="help" />
         <TextBlock Text="{l:Loc Help.HardwareWaves}" Classes="muted help" />

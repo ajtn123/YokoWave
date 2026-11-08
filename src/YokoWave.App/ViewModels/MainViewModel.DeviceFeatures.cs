@@ -8,7 +8,7 @@ public sealed partial class MainViewModel
     public ProtocolFeaturesViewModel ProtocolFeatures
     { get; private set; } = null!;
     private bool _featuresBusy;
-    public bool CanReadDeviceFeatures => IsBluetooth && SelectedConnected && !_controller.IsDeviceBusy(SelectedDevice!.Id) && !_featuresBusy &&
+    public bool CanReadDeviceFeatures => SelectedDevice?.Device.Simulated != true && SelectedConnected && !_controller.IsDeviceBusy(SelectedDevice!.Id) && !_featuresBusy &&
         SelectedDevice?.Device.Profile?.Light == true;
     public bool HasDeviceFeatures => SelectedDevice?.Device.Profile?.Light == true;
     public bool CanControlLight => CanReadDeviceFeatures && _controller.Connections.TryGetValue(SelectedDevice?.Id ?? "", out var connection) &&

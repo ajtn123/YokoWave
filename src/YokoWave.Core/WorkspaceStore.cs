@@ -125,6 +125,11 @@ public sealed class WorkspaceStore(string directory)
         if (data.Statistics is { } statistics && (statistics.SessionCount < 0 || !double.IsFinite(statistics.TotalDurationSeconds) || statistics.TotalDurationSeconds < 0))
             throw new LocalizedArgumentException("Error.InvalidRecords");
         var settings = data.Settings;
+        if (settings.RemoteEndpoints is { } endpoints)
+        {
+            if (endpoints.Count > 16 || endpoints.Any(endpoint => endpoint is null) || endpoints.Select(endpoint => endpoint.Id).Distinct().Count() != endpoints.Count) throw new LocalizedArgumentException("Error.RemoteSettings");
+            foreach (var endpoint in endpoints) endpoint.Validate();
+        }
         if (!double.IsFinite(settings.DefaultLimit) || settings.DefaultLimit is < 0 or > 100 ||
             settings.TimerLimitMinutes is < 1 or > 120)
             throw new LocalizedArgumentException("Error.InvalidSettings");

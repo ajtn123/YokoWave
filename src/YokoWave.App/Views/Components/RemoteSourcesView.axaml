@@ -1,0 +1,34 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:YokoWave.App.ViewModels" xmlns:l="using:YokoWave.App.Localization"
+             x:Class="YokoWave.App.Views.Components.RemoteSourcesView" x:DataType="vm:RemoteSourcesViewModel" >
+  <Border Classes="card">
+    <StackPanel Classes="items">
+      <TextBlock Text="{l:Loc Remote.Sources}" Classes="title" />
+      <TextBlock Text="{l:Loc Remote.Name}" Classes="field-label" />
+      <TextBox Text="{Binding Name}" MaxLength="60" />
+      <TextBlock Text="{l:Loc Remote.Url}" Classes="field-label" />
+      <TextBox Text="{Binding Url}" MaxLength="2048" />
+      <TextBlock Text="{l:Loc Remote.Token}" Classes="field-label" />
+      <TextBox Text="{Binding Token}" PasswordChar="●" MaxLength="256" />
+      <Button Content="{l:Loc Remote.Add}" Command="{Binding AddCommand}" Classes="primary" />
+      <TextBlock Text="{l:Loc Remote.ClientHelp}" Classes="muted caption help" />
+      <ItemsControl ItemsSource="{Binding Sources}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:RemoteSourceItem">
+            <Border Classes="card compact list-item">
+              <StackPanel Classes="field">
+                <TextBlock Text="{Binding Name}" Classes="emphasis" />
+                <SelectableTextBlock Text="{Binding Url}" TextWrapping="Wrap" Classes="muted caption" />
+                <TextBox Text="{Binding Token}" PasswordChar="●" PlaceholderText="{l:Loc Remote.Token}" MaxLength="256" IsEnabled="{Binding !IsConnected}" />
+                <StackPanel Classes="inline">
+                  <Button Content="{Binding ConnectionAction}" Command="{Binding ConnectCommand}" Classes="small connection-action" Classes.primary="{Binding !IsConnected}" Classes.danger="{Binding IsConnected}" />
+                  <Button Content="{l:Loc Remote.Remove}" Command="{Binding RemoveCommand}" Classes="small" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </Border>
+</UserControl>

@@ -4,6 +4,8 @@ public static class PlaybackCompatibility
 {
     public static bool CanRun(DeviceDescriptor device, ModeKind kind, ReactiveSettings? reactive = null)
     {
+        if (kind == ModeKind.WebSocketServer)
+            return device.Origin == DeviceOrigin.Local && device.Simulated != true && device.Profile is { Supported: true };
         if (!device.IsSupported || device.IsInput) return false;
         var definition = PlaybackModeDefinition.For(kind);
         if ((device.Kind == DeviceKind.Pump) != definition.IsPump) return false;

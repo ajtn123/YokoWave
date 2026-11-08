@@ -12,8 +12,9 @@ public enum WaveShape
     Sine, Triangle, Pulse, Ramp, Custom, Sampled
 }
 
+public enum DeviceOrigin { Local, Remote }
 public sealed record DeviceDescriptor(string Id, string Name, DeviceKind Kind, int? Battery, int? Signal,
-    string? ProtocolId = null, int? ChannelMask = null)
+    string? ProtocolId = null, int? ChannelMask = null, DeviceOrigin Origin = DeviceOrigin.Local, bool? Simulated = null)
 {
     public Bluetooth.BluetoothDeviceProfile? Profile => Bluetooth.BluetoothDeviceProfiles.FromId(ProtocolId);
     public bool IsInput => Kind == DeviceKind.Sensor;
@@ -21,7 +22,8 @@ public sealed record DeviceDescriptor(string Id, string Name, DeviceKind Kind, i
     public int ChannelCount => ChannelMask is { } mask ? BitOperations.PopCount((uint)(mask & 7))
         : Profile?.Channels ?? (Kind == DeviceKind.DualChannel ? 2 : IsInput ? 0 : 1);
     public bool HasChannel(int index) => index is >= 0 and < 3 && (ChannelMask is { } mask ? (mask & (1 << index)) != 0 : index < ChannelCount);
-    public string KindLabel => Profile is { } profile ? L10n.Get(profile.NameKey) : Kind switch
+    public string KindLabel => Origin == DeviceOrigin.Remote ? L10n.Format("Remote.DeviceKind", LocalKindLabel) : LocalKindLabel;
+    private string LocalKindLabel => Profile is { } profile ? L10n.Get(profile.NameKey) : Kind switch
     {
         DeviceKind.DualChannel => L10n.Get("Device.DualChannel"),
         DeviceKind.Vibration => L10n.Get("Device.Vibration"),
@@ -142,7 +144,8 @@ public sealed record SessionRecord(Guid Id, DateTimeOffset StartedAt, double Dur
     Guid? ChannelBWaveformId = null, string? ChannelBWaveformName = null, bool TouchControl = false, bool Gentle = false,
     Guid? ModeId = null, string? ModeName = null, ModeKind Kind = ModeKind.Waveform, double PeakC = 0);
 
-public sealed record AppSettings(double DefaultLimit = 60, string? Language = null, bool UseBluetooth = false, int TimerLimitMinutes = 120);
+public sealed record AppSettings(double DefaultLimit = 60, string? Language = null, bool UseBluetooth = false, int TimerLimitMinutes = 120,
+    List<RemoteEndpointSettings>? RemoteEndpoints = null);
 
 public sealed record WorkspaceData(int SchemaVersion, List<WaveformPreset> Presets,
     List<SessionRecord> Sessions, AppSettings Settings, SessionStatistics? Statistics = null, List<PlaybackModeConfig>? Modes = null)

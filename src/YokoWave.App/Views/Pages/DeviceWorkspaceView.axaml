@@ -63,6 +63,7 @@
         <components:ModeWorkspaceView />
 
         <StackPanel DataContext="{Binding SelectedMode}" x:DataType="vm:PlaybackModeViewModel" Classes="group">
+          <components:RemoteServerModeView />
           <components:WaveformModeView x:Name="WaveformModePanel" IsVisible="{Binding IsWaveformControl}" />
           <Border x:Name="TouchModePanel" Classes="card output" IsVisible="{Binding UseTouchControl}">
             <StackPanel Classes="group">
@@ -127,7 +128,7 @@
               <components:SessionTimerView />
               <Grid ColumnDefinitions="*,Auto" Classes="columns">
                 <Button x:Name="PlaybackButton" Classes="primary" Command="{Binding PlaybackCommand}" Content="{Binding PlaybackLabel}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
-                <Button Grid.Column="1" x:Name="PauseButton" Command="{Binding PauseCommand}" Content="{Binding PauseLabel}" />
+                <Button Grid.Column="1" x:Name="PauseButton" IsVisible="{Binding !IsServerMode}" Command="{Binding PauseCommand}" Content="{Binding PauseLabel}" />
               </Grid>
             </StackPanel>
           </Border>

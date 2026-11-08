@@ -82,7 +82,7 @@ public sealed class HardwareUiTests
             Assert.False(vm.SelectedMode.HasStrength); Assert.True(view.GetVisualDescendants().OfType<PumpModeView>().Single().IsVisible);
             Dispatcher.UIThread.RunJobs(); view.GetVisualDescendants().OfType<PumpModeView>().Single().BringIntoView(); Capture(window, "pump-control.png");
             var paw = vm.Devices.Single(device => device.Device.IsInput && device.Device.Profile?.Protocol == BluetoothProtocol.Paw);
-            Assert.False(paw.IsOutput); Assert.False(paw.CanAssign);
+            Assert.False(paw.CanAssign);
             Assert.Throws<LocalizedOperationException>(() => pumpMode.AssignTarget(paw.Id, true));
             await vm.ToggleConnectionAsync(paw); Dispatcher.UIThread.RunJobs();
             Assert.True(vm.Telemetry.IsVisible); Assert.Contains(vm.Telemetry.Readings, row => row.Label == L10n.Get("Telemetry.Acceleration"));

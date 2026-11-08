@@ -21,6 +21,7 @@ public sealed record PlaybackModeDefinition(ModeKind Kind, bool UsesWaveforms = 
         [ModeKind.Exercise] = new(ModeKind.Exercise, UsesWaveforms: true, UsesReactiveSettings: true, AlwaysNeedsMotion: true),
         [ModeKind.SleepDeprivation] = new(ModeKind.SleepDeprivation, UsesWaveforms: true, SupportsPlaylist: true, UsesReactiveSettings: true),
         [ModeKind.Pump] = new(ModeKind.Pump, IsPump: true),
-        [ModeKind.NativeProgram] = new(ModeKind.NativeProgram)
+        [ModeKind.NativeProgram] = new(ModeKind.NativeProgram),
+        [ModeKind.WebSocketServer] = new(ModeKind.WebSocketServer)
     };
 }

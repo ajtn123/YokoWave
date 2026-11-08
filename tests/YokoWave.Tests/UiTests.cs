@@ -684,7 +684,7 @@ public sealed class UiTests
         await vm.NavigateAsync("settings");
         Find<ComboBox>(view, "TransportPicker").SelectedItem = vm.TransportOptions.Single(option => option.UseBluetooth);
         Click(window, Find<Button>(view, "SaveSettingsButton"));
-        await WaitForAsync(() => vm.IsBluetooth && vm.Devices.Count == 1 && !vm.IsScanning);
+        await WaitForAsync(() => vm.UsesLocalBluetooth && vm.Devices.Count == 1 && !vm.IsScanning);
         Assert.Empty(simulation.Outputs);
         Assert.Equal(30, vm.SelectedMode.ChannelA);
         Assert.Equal("YCY-DJ", vm.SelectedDevice!.Name);
@@ -707,7 +707,7 @@ public sealed class UiTests
         vm.SelectedTransport = vm.TransportOptions.Single(option => !option.UseBluetooth);
         await vm.SaveSettingsAsync();
         Assert.False(vm.SelectedMode.IsRunning);
-        Assert.False(vm.IsBluetooth);
+        Assert.False(vm.UsesLocalBluetooth);
         Assert.Equal(20, vm.SelectedMode.ChannelA);
         Assert.Equal(5, vm.Devices.Count);
         Assert.True(link.Closed);
@@ -727,7 +727,7 @@ public sealed class UiTests
         var view = new MainView { DataContext = vm };
         var window = new Window { Content = view, Width = 1000, Height = 600 };
         window.Show();
-        await WaitForAsync(() => vm.IsBluetooth && vm.Devices.Count == 2 && !vm.IsScanning);
+        await WaitForAsync(() => vm.UsesLocalBluetooth && vm.Devices.Count == 2 && !vm.IsScanning);
         Assert.Equal(0, vm.ConnectedCount);
         await vm.ToggleConnectionAsync(vm.Devices[0]);
         vm.SelectedMode.AssignTarget(vm.Devices[0].Id, true);

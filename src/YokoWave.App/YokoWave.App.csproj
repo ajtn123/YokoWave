@@ -5,6 +5,7 @@
   <ItemGroup>
     <AvaloniaResource Include="Assets/YokoWave.ico" />
     <ProjectReference Include="../YokoWave.Core/YokoWave.Core.csproj" />
+    <ProjectReference Include="../YokoWave.Remote/YokoWave.Remote.csproj" />
     <PackageReference Include="Avalonia" Version="$(AvaloniaVersion)" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="$(AvaloniaVersion)" />
   </ItemGroup>

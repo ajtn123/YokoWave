@@ -45,7 +45,9 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
     { get; }
     internal void RefreshSelection() => Raise(nameof(IsSelected));
     public IReadOnlyCollection<string> TargetIds => _targets;
-    public bool IsRunning => _engine.IsRunning;
+    public bool IsServerMode => Kind == ModeKind.WebSocketServer;
+    public RemoteServerEditorViewModel ServerEditor { get; }
+    public bool IsRunning => IsServerMode ? ServerEditor.IsRunning : _engine.IsRunning;
     public bool CanEditRouting => !IsRunning && !_starting && !IsCalibrating && !_targets.Any(id => _controller.DeviceOwner(id) == Id);
     public bool UsesWaveform(Guid id) => _engine.UsesWaveform(id) || IsRunning && SupportsPlaylist && Playlist.Any(entry => entry.Id == id);
     public bool CanStart => CanEditRouting && StartValidationError is null;
@@ -59,17 +61,17 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
     public string RoutingSummary => L10n.Format("Mode.TargetCount", _targets.Count);
     public string SessionState => L10n.Get(IsPaused ? "Session.Paused" : IsRunning ? "Session.Running" : "Session.Idle");
     public string PlaybackLabel => L10n.Get(IsRunning ? "Session.Stop" : "Session.Start");
-    public string Elapsed => FormatDuration(_engine.Elapsed);
+    public string Elapsed => FormatDuration(IsServerMode ? ServerEditor.Elapsed : _engine.Elapsed);
     private TimeSpan? ConfiguredDuration => TimerEnabled ? TimeSpan.FromSeconds(SessionDurationSeconds) : null;
-    public bool IsTimedSession => _hasSessionClock ? _engine.Duration.HasValue : TimerEnabled;
+    public bool IsTimedSession => _hasSessionClock ? (IsServerMode ? ServerEditor.Duration : _engine.Duration).HasValue : TimerEnabled;
     public bool CanEditDuration => CanEditRouting && TimerEnabled;
-    public string Remaining => (_hasSessionClock ? _engine.Remaining : ConfiguredDuration) is { } remaining
+    public string Remaining => (_hasSessionClock ? (IsServerMode ? ServerEditor.Remaining : _engine.Remaining) : ConfiguredDuration) is { } remaining
         ? FormatDuration(TimeSpan.FromSeconds(Math.Ceiling(remaining.TotalSeconds))) : L10n.Get("Session.NoTimer");
     public string SessionClock => IsTimedSession ? Remaining : Elapsed;
     public string SessionTimeLabel => L10n.Get(IsTimedSession ? "Session.Remaining" : "Session.Elapsed");
     public bool ShowTimerProgress => IsRunning && IsTimedSession;
-    public double TimerProgress => _engine.Duration is { TotalSeconds: > 0 } duration
-        ? Math.Clamp((_engine.Remaining?.TotalSeconds ?? 0) / duration.TotalSeconds, 0, 1) : 0;
+    public double TimerProgress => (IsServerMode ? ServerEditor.Duration : _engine.Duration) is { TotalSeconds: > 0 } duration
+        ? Math.Clamp(((IsServerMode ? ServerEditor.Remaining : _engine.Remaining)?.TotalSeconds ?? 0) / duration.TotalSeconds, 0, 1) : 0;
     public string TimerReadout => !TimerEnabled ? L10n.Get("Session.NoTimer") : ShowTimerProgress ? Remaining : FormatDuration(TimeSpan.FromSeconds(SessionDurationSeconds));
     public double Playhead => IsRunning ? _engine.WaveformElapsed.TotalSeconds / 12 % 1 : 0;
     public string PresetSummary => SelectedPreset?.Detail ?? L10n.Get("Wave.Select");
@@ -230,6 +232,7 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
         Kind = config.Kind;
         Definition = PlaybackModeDefinition.For(Kind);
         _engine = new(controller, ownerId: Id);
+        ServerEditor = new(Id, controller, config.Server, () => CanEditRouting, ShowError);
         NativeEditor = new(config.NativeProgram, () => CanEditRouting);
         HardwareEditor = new(config.Hardware, () => CanEditRouting);
         InitializeEstimCommands();
@@ -276,12 +279,13 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
                 PlaybackCommand.NotifyCanExecuteChanged();
             }
         };
+        ServerEditor.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(RemoteServerEditorViewModel.IsRunning)) RefreshPlayback(); };
         RefreshTargets();
     }
 
     public PlaybackModeConfig ToConfig() => new(Id, Name, Kind, ChannelA, ChannelB, OutputLimit, TimerEnabled,
         (int)SessionDurationSeconds, SelectedPreset?.Preset.Id, SelectedPresetB?.Preset.Id, CreateEstimSettings(), _targets.ToList(), OffsetChannelB,
-        Playlist.Select(item => item.Id).ToList(), IsAudio ? _audioSettings : null, IsReactive ? _reactiveSettings : null, ChannelC, IsPump ? _pump : null, _balances, IsNativeProgram ? NativeEditor.Settings : null, HardwareEditor.Settings);
+        Playlist.Select(item => item.Id).ToList(), IsAudio ? _audioSettings : null, IsReactive ? _reactiveSettings : null, ChannelC, IsPump ? _pump : null, _balances, IsNativeProgram ? NativeEditor.Settings : null, HardwareEditor.Settings, IsServerMode ? ServerEditor.Settings : null);
     public void AssignTarget(string id, bool selected)
     {
         if (!CanEditRouting)
@@ -343,6 +347,23 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
             _host.ShowValidationError(validationError);
             return;
         }
+        if (IsServerMode)
+        {
+            _starting = true;
+            RefreshPlayback();
+            try
+            {
+                await ServerEditor.StartAsync(_targets.ToArray(), ConfiguredDuration);
+                _hasSessionClock = true;
+                Notify("Status.ModeStarted", Name);
+            }
+            finally
+            {
+                _starting = false;
+                RefreshPlayback();
+            }
+            return;
+        }
         var program = CreateSessionProgram();
         var waveform = !UsesWaveforms ? new WaveformPreset(Guid.NewGuid(), KindLabel, WaveShape.Pulse, 1, 20)
             : UsesCustomPlaylist
@@ -376,6 +397,12 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
     }
     public async Task TickAsync()
     {
+        if (IsServerMode)
+        {
+            ServerEditor.Refresh();
+            RefreshPlayback();
+            return;
+        }
         if (_tickBusy || !IsRunning || IsPaused)
             return;
         _tickBusy = true;
@@ -406,6 +433,12 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
     }
     public async Task StopAsync(string reason = "Reason.Manual", bool notify = true)
     {
+        if (IsServerMode)
+        {
+            await ServerEditor.StopAsync();
+            RefreshPlayback();
+            return;
+        }
         CancelInput();
         try
         {

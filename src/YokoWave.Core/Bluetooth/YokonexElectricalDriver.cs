@@ -16,6 +16,7 @@ internal sealed class YokonexElectricalDriver(string id, BluetoothDeviceProfile 
     private ProgramPacketWriter? _programWriter;
     protected override DeviceCommandHandlers CreateCommandHandlers() => new DeviceCommandHandlers()
         .Add<QueryDevice>(QueryAsync)
+        .Add<ConfigureLight>(async (command, ct) => { await RefreshFeatures(ct); await SetLight(command.Enabled, ct); })
         .Add<ControlStepCounter>((command, ct) => Write(V1Protocol.WithChecksum([0x35, 0x13, (byte)command.Action]), ct))
         .Add<ConfigureMotionStream>((command, ct) => SetMotion(command.Enabled, ct));
 

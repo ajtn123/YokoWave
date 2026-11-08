@@ -3,7 +3,7 @@ using YokoWave.Core.Localization;
 namespace YokoWave.Core;
 
 /// <summary>Serializes session lifecycle and device output. Mode instances own rendering and input state.</summary>
-public sealed class SessionEngine(DeviceController controller, Random? random = null, Guid? ownerId = null)
+public sealed class SessionEngine(DeviceController controller, Random? random = null, Guid? ownerId = null, bool retainOwnership = false)
 {
     public Guid OwnerId
     { get; } = ownerId ?? Guid.NewGuid();
@@ -97,7 +97,11 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
             if (program.Kind == ModeKind.NativeProgram)
                 new NativeProgramOutput(program.NativeProgram ?? new(), 0, null).ValidateOutput(new(ChannelA, ChannelB, 20,
                     ChannelC: ChannelC, OutputLimit: program.OutputLimit, Hardware: program.Hardware));
-            await controller.AcquireTargetsAsync(OwnerId, ids);
+            if (retainOwnership)
+            {
+                if (ids.Any(id => controller.DeviceOwner(id) != OwnerId)) throw new LocalizedOperationException("Error.DeviceInUse");
+            }
+            else await controller.AcquireTargetsAsync(OwnerId, ids);
             if (program.NeedsMotion)
             {
                 try
@@ -109,7 +113,7 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
                 {
                     try
                     {
-                        await controller.StopOwnedAsync(OwnerId);
+                        await controller.StopOwnedAsync(OwnerId, scope: retainOwnership ? ids : null, release: !retainOwnership);
                     }
                     catch (Exception stopError)
                     {
@@ -418,7 +422,7 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
         _mode?.Suspend();
         try
         {
-            await controller.StopOwnedAsync(OwnerId);
+            await controller.StopOwnedAsync(OwnerId, scope: retainOwnership ? _targets : null, release: !retainOwnership);
         }
         finally
         {

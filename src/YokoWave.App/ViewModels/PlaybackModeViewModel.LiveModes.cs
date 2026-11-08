@@ -29,7 +29,7 @@ public sealed partial class PlaybackModeViewModel
     public bool IsSystemAudio => _audioSettings.Source == AudioSourceKind.SystemAudio;
     public bool IsRandomSleep => _reactiveSettings.SleepCycle == SleepCycleKind.Random;
     public bool UsesMotion => Definition.NeedsMotion(_reactiveSettings);
-    public bool ShowSimulationInput => UsesMotion && _controller.IsSimulation;
+    public bool ShowSimulationInput => UsesMotion && _controller.AreSimulated(_targets);
     public bool IsCalibrating => _calibrating;
     public bool HasLiveInput => IsRunning || IsCalibrating;
     public string CurrentContentTitle => L10n.Get(UsesWaveforms ? "Wave.Current" : "Mode.Current");

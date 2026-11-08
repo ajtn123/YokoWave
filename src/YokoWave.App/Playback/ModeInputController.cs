@@ -17,7 +17,7 @@ internal class ModeInputController : IAsyncDisposable
     {
         if (definition.UsesAudio) return new AudioModeInputController(audioFactory, audio, devices.Clock);
         if (definition.Kind == ModeKind.Touch) return new TouchModeInputController(touch);
-        if (definition.UsesReactiveSettings && devices.IsSimulation)
+        if (definition.UsesReactiveSettings)
             return new SimulatedMotionInputController(devices, owner, () => definition.NeedsMotion(reactive()), angle);
         return new ModeInputController();
     }
@@ -34,5 +34,5 @@ internal sealed class TouchModeInputController(Func<(double Frequency, double Wi
 
 internal sealed class SimulatedMotionInputController(DeviceController devices, Guid owner, Func<bool> enabled, Func<double> angle) : ModeInputController
 {
-    public override Task UpdateAsync(SessionEngine engine) => enabled() ? devices.SetSimulatedMotionAsync(owner, angle()) : Task.CompletedTask;
+    public override Task UpdateAsync(SessionEngine engine) => enabled() && devices.AreSimulated(devices.Connections.Keys.Where(id => devices.DeviceOwner(id) == owner)) ? devices.SetSimulatedMotionAsync(owner, angle()) : Task.CompletedTask;
 }

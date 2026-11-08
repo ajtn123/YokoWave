@@ -74,12 +74,16 @@ public sealed class DeviceController : IAsyncDisposable
     private readonly DeviceOperationLocks _operations = new();
     private readonly SemaphoreSlim _lifecycleGate = new(1, 1);
     private readonly object _disposeSync = new();
-    private IDeviceTransport _transport;
+    private readonly RoutedDeviceTransport _transport;
+    public IRawGattTransport RawGatt => _transport;
     private volatile bool _disposed;
     private Task? _disposeTask;
     public IReadOnlyDictionary<string, DeviceConnection> Connections => _connections;
     public string TransportName => _transport.DisplayName;
     public bool IsSimulation => _transport.IsSimulation;
+    public bool IsLocalSimulation => _transport.IsLocalSimulation;
+    public bool AreSimulated(IEnumerable<string> ids) => ids.All(id => _connections.TryGetValue(id, out var connection)
+        ? connection.Device.Simulated ?? _transport.IsSimulated(id) : IsSimulation);
     public TimeProvider Clock
     { get; }
     public bool IsDeviceBusy(string id) => _owners.ContainsKey(id);
@@ -89,9 +93,9 @@ public sealed class DeviceController : IAsyncDisposable
 
     public DeviceController(IDeviceTransport transport, TimeProvider? timeProvider = null)
     {
-        _transport = transport;
+        _transport = transport as RoutedDeviceTransport ?? new(transport);
         Clock = timeProvider ?? TimeProvider.System;
-        Subscribe(transport, true);
+        Subscribe(_transport, true);
     }
 
     private void Subscribe(IDeviceTransport transport, bool add)
@@ -118,17 +122,43 @@ public sealed class DeviceController : IAsyncDisposable
             ThrowIfDisposed();
             if (!_connections.IsEmpty)
                 throw new LocalizedOperationException("Error.TransportConnected");
-            var previous = _transport;
-            Subscribe(previous, false);
-            _transport = next;
-            Subscribe(next, true);
-            await previous.DisposeAsync();
+            await _transport.ReplaceLocalAsync(next);
         }
         finally
         {
             _lifecycleGate.Release();
         }
         NotifyChanged();
+    }
+
+    public async Task AddSourceAsync(string key, IDeviceTransport source, CancellationToken ct = default)
+    {
+        await _lifecycleGate.WaitAsync(ct);
+        try
+        {
+            ThrowIfDisposed();
+            _transport.Add(key, source);
+        }
+        finally { _lifecycleGate.Release(); }
+    }
+    public IReadOnlyList<string> SourceDeviceIds(string key) => _transport.DeviceIds(key);
+    public async Task RemoveSourceAsync(string key, CancellationToken ct = default)
+    {
+        await _lifecycleGate.WaitAsync(ct);
+        try
+        {
+            ThrowIfDisposed();
+            List<Exception> errors = [];
+            foreach (var id in _transport.DeviceIds(key))
+            {
+                try { await DisconnectAsync(id, ct); }
+                catch (Exception error) { errors.Add(error); }
+            }
+            try { await _transport.RemoveAsync(key); }
+            catch (Exception error) { errors.Add(error); }
+            if (errors.Count > 0) throw new LocalizedAggregateException("Error.Cleanup", errors);
+        }
+        finally { _lifecycleGate.Release(); }
     }
 
     private void OnStatusChanged(object? sender, DeviceStatusUpdate update)
@@ -260,7 +290,7 @@ public sealed class DeviceController : IAsyncDisposable
         }
     }
 
-    public async Task AcquireTargetsAsync(Guid owner, IReadOnlyList<string> ids, CancellationToken ct = default)
+    public async Task AcquireTargetsAsync(Guid owner, IReadOnlyList<string> ids, CancellationToken ct = default, bool allowInputs = false)
     {
         if (owner == Guid.Empty || ids.Count == 0 || ids.Any(string.IsNullOrWhiteSpace))
             throw new LocalizedOperationException("Error.SelectConnected");
@@ -270,7 +300,7 @@ public sealed class DeviceController : IAsyncDisposable
             ThrowIfDisposed();
             if (targets.Any(id => !_connections.ContainsKey(id)))
                 throw new LocalizedOperationException("Error.SelectConnected");
-            if (targets.Any(id => Get(id).Device.IsInput))
+            if (!allowInputs && targets.Any(id => Get(id).Device.IsInput))
                 throw new LocalizedOperationException("Error.SensorOnly");
             if (targets.Any(id => DeviceOwner(id) is { } current && current != owner))
                 throw new LocalizedOperationException("Error.DeviceInUse");
@@ -278,7 +308,7 @@ public sealed class DeviceController : IAsyncDisposable
                 _owners[id] = owner;
             try
             {
-                await Task.WhenAll(targets.Select(id => WriteCoreAsync(Get(id), OutputFrame.Zero, ct)));
+                await Task.WhenAll(targets.Select(id => StopConnectionAsync(Get(id), ct)));
             }
             catch (Exception error)
             {
@@ -287,7 +317,7 @@ public sealed class DeviceController : IAsyncDisposable
                 {
                     try
                     {
-                        await WriteCoreAsync(Get(id), OutputFrame.Zero, CancellationToken.None);
+                        await StopConnectionAsync(Get(id), CancellationToken.None);
                         _owners.TryRemove(id, out _);
                     }
                     catch (Exception cleanupError)
@@ -316,9 +346,9 @@ public sealed class DeviceController : IAsyncDisposable
         NotifyChanged();
     }
 
-    public async Task StopOwnedAsync(Guid owner, CancellationToken ct = default)
+    public async Task StopOwnedAsync(Guid owner, CancellationToken ct = default, IReadOnlyList<string>? scope = null, bool release = true)
     {
-        var targets = _owners.Where(pair => pair.Value == owner).Select(pair => pair.Key).ToArray();
+        var targets = _owners.Where(pair => pair.Value == owner && (scope is null || scope.Contains(pair.Key))).Select(pair => pair.Key).ToArray();
         var errors = await Task.WhenAll(targets.Select(id => CaptureErrorAsync(async () =>
         {
             using (await _operations.AcquireAsync([id], ct))
@@ -327,12 +357,9 @@ public sealed class DeviceController : IAsyncDisposable
                     return;
                 if (_connections.TryGetValue(id, out var connection))
                 {
-                    await WriteCoreAsync(connection, OutputFrame.Zero, ct);
-                    if (connection.MotionStreaming && _transport is IElectricalMotionSource motion)
-                        await motion.SetMotionStreamingAsync(id, false, ct);
-                    connection.MotionStreaming = false;
+                    await StopConnectionAsync(connection, ct);
                 }
-                _owners.TryRemove(id, out _);
+                if (release) _owners.TryRemove(id, out _);
             }
         })));
         NotifyChanged();
@@ -347,7 +374,7 @@ public sealed class DeviceController : IAsyncDisposable
             if (DeviceOwner(id) != owner)
                 throw new LocalizedOperationException("Error.DeviceInUse");
             var connection = Get(id);
-            if (!IsSimulation && connection.Device.Profile?.Motion != true)
+            if (!AreSimulated([id]) && connection.Device.Profile?.Motion != true)
                 throw new LocalizedOperationException("Error.MotionUnavailable");
             connection.Motion = null;
             if (_transport is IElectricalMotionSource motion)
@@ -355,7 +382,7 @@ public sealed class DeviceController : IAsyncDisposable
                 connection.MotionStreaming = true;
                 await motion.SetMotionStreamingAsync(id, true);
             }
-            else if (!IsSimulation)
+            else if (!AreSimulated([id]))
                 throw new LocalizedOperationException("Error.MotionUnavailable");
             connection.MotionStreaming = true;
         }
@@ -363,13 +390,13 @@ public sealed class DeviceController : IAsyncDisposable
 
     public async Task SetSimulatedMotionAsync(Guid owner, double angle)
     {
-        if (!IsSimulation || !double.IsFinite(angle) || angle is < 0 or > 180)
+        if (!double.IsFinite(angle) || angle is < 0 or > 180)
             throw new LocalizedArgumentException("Error.MotionInput");
         var targets = _owners.Where(pair => pair.Value == owner).Select(pair => pair.Key).ToArray();
         using (await _operations.AcquireAsync(targets))
         {
             ThrowIfDisposed();
-            if (!IsSimulation)
+            if (!AreSimulated(targets))
                 throw new LocalizedArgumentException("Error.MotionInput");
             foreach (var id in targets)
             {
@@ -508,13 +535,36 @@ public sealed class DeviceController : IAsyncDisposable
     }
 
     public Task StopAllAsync(CancellationToken ct = default) => StopAllCoreAsync(ct);
+    private async Task StopConnectionAsync(DeviceConnection connection, CancellationToken ct)
+    {
+        var id = connection.Device.Id;
+        List<Exception> errors = [];
+        try { await WriteCoreAsync(connection, OutputFrame.Zero, ct); }
+        catch (Exception error) { errors.Add(error); }
+        if (connection.Device.IsInput && connection.Device.Profile?.Supports(DeviceCapability.SensorStream) == true)
+        {
+            try { await _transport.ExecuteCommandAsync(id, new ConfigureSensorStream(false), ct); }
+            catch (Exception error) { errors.Add(error); }
+        }
+        if (connection.MotionStreaming)
+        {
+            try
+            {
+                await _transport.SetMotionStreamingAsync(id, false, ct);
+                connection.MotionStreaming = false;
+            }
+            catch (Exception error) { errors.Add(error); }
+        }
+        if (errors.Count == 1) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(errors[0]).Throw();
+        ThrowErrors(errors, "Error.StopUnconfirmed");
+    }
     private async Task StopAllCoreAsync(CancellationToken ct = default)
     {
         var errors = await Task.WhenAll(_connections.Keys.Select(id => CaptureErrorAsync(async () =>
         {
             using (await _operations.AcquireAsync([id], ct))
                 if (_connections.TryGetValue(id, out var connection))
-                    await WriteCoreAsync(connection, OutputFrame.Zero, ct);
+                    await StopConnectionAsync(connection, ct);
         })));
         NotifyChanged();
         ThrowErrors(errors, "Error.StopUnconfirmed");

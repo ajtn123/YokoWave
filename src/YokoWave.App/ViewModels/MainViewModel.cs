@@ -136,13 +136,14 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
                 _ = GuardAsync(() => SaveAsync());
         }
     }
-    public bool IsBluetooth => !_controller.IsSimulation;
+    public bool UsesLocalBluetooth => !_controller.IsLocalSimulation;
     public string TransportName => _controller.TransportName;
     public string ModeLabel => $"●  {TransportName}";
     public string DriverLabel => L10n.Format("Settings.DriverFormat", TransportName);
-    public string DeviceHelp => L10n.Get(IsBluetooth ? "Device.BluetoothHelp" : "Device.SimulationHelp");
-    public string TransportHelp => L10n.Get(IsBluetooth ? "Settings.BluetoothHelp" : "Settings.SimulationHelp");
-    public string ReadingsLabel => L10n.Get(IsBluetooth ? "Device.HardwareReadings" : "Device.Readings");
+    public string DeviceHelp => L10n.Get(SelectedDevice?.Device.Origin == DeviceOrigin.Remote ? "Remote.DeviceHelp" :
+        (SelectedDevice?.Device.Simulated ?? _controller.IsLocalSimulation) ? "Device.SimulationHelp" : "Device.BluetoothHelp");
+    public string TransportHelp => L10n.Get(UsesLocalBluetooth ? "Settings.BluetoothHelp" : "Settings.SimulationHelp");
+    public string ReadingsLabel => L10n.Get((SelectedDevice?.Device.Simulated ?? _controller.IsLocalSimulation) ? "Device.Readings" : "Device.HardwareReadings");
     public string StoragePath => _store.DirectoryPath;
     public long SessionCount => _statistics.SessionCount;
     public string TotalTime => L10n.Format("History.TotalFormat", _statistics.TotalDurationSeconds / 60);
@@ -179,7 +180,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     public string SelectedBattery => SelectedDevice?.Battery ?? "—";
     public string SelectedBatteryLabel => L10n.Format("Device.Battery", SelectedBattery);
     public string SelectedSignal => SelectedDevice?.Signal ?? "—";
-    public bool HasElectrodeReadings => IsBluetooth && SelectedConnected && SelectedMode.ShowContacts && SelectedDevice?.Device.Profile?.Contacts == true;
+    public bool HasElectrodeReadings => SelectedDevice?.Device.Simulated != true && SelectedConnected && SelectedMode.ShowContacts && SelectedDevice?.Device.Profile?.Contacts == true;
     public string SelectedContacts
     {
         get
@@ -248,16 +249,18 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     public ICommand RemoveModeCommand
     { get; }
     public DeviceTelemetryViewModel Telemetry { get; }
+    public RemoteSourcesViewModel RemoteSources { get; }
     private void RefreshTelemetry() => Telemetry.SelectDevice(SelectedDevice?.Device);
     public MainViewModel(DeviceController controller, WorkspaceStore store, Func<IDeviceTransport>? bluetoothFactory = null, IAudioInputFactory? audioInputFactory = null)
     {
         _controller = controller;
+        RemoteSources = new(controller, ScanAsync, () => SaveAsync(), id => StopModesForDeviceAsync(id, "Reason.ConnectionChanged"), ShowError);
         Telemetry = new(controller, ShowError);
         _store = store;
         _bluetoothFactory = bluetoothFactory ?? (() => new BluetoothDeviceTransport(new UnsupportedBluetoothAdapter()));
         AudioInputs = audioInputFactory ?? new UnavailableAudioInputFactory();
         _uiContext = SynchronizationContext.Current;
-        _selectedTransport = TransportOptions.First(option => option.UseBluetooth == !controller.IsSimulation);
+        _selectedTransport = TransportOptions.First(option => option.UseBluetooth == !controller.IsLocalSimulation);
         _selectedLanguage = Languages.First(language => language.Code == L10n.Current.Language);
         WorkspaceCommand = new AsyncCommand(() => NavigateAsync("workspace"), ShowError);
         WavesCommand = new AsyncCommand(() => NavigateAsync("waves"), ShowError);
@@ -310,6 +313,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             return;
         var data = await _store.LoadAsync();
         SelectedLanguage = Languages.First(language => language.Code == JsonLocalizer.NormalizeLanguage(data.Settings.Language ?? JsonLocalizer.SystemLanguage));
+        RemoteSources.Load(data.Settings.RemoteEndpoints ?? []);
         DefaultLimit = data.Settings.DefaultLimit;
         TimerLimitMinutes = data.Settings.TimerLimitMinutes;
         SelectedTransport = TransportOptions.First(option => option.UseBluetooth == data.Settings.UseBluetooth);
@@ -413,7 +417,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             }
             SelectedDevice ??= Devices.FirstOrDefault();
             RefreshDevices();
-            Notify(IsBluetooth ? "Status.BluetoothDiscovered" : "Status.Discovered", found.Count);
+            Notify(UsesLocalBluetooth ? "Status.BluetoothDiscovered" : "Status.Discovered", found.Count);
         }
         finally
         {
@@ -432,7 +436,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     }
     private async Task<bool> ApplyTransportAsync()
     {
-        if (SelectedTransport is null || SelectedTransport.UseBluetooth == IsBluetooth)
+        if (SelectedTransport is null || SelectedTransport.UseBluetooth == UsesLocalBluetooth)
             return false;
         _changingTransport = true;
         try
@@ -615,7 +619,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         if (Presets.Count == 0)
             return;
         await _store.SaveAsync(new(WorkspaceData.CurrentSchema, (presets ?? Presets.Select(item => item.Preset)).Where(preset => !DefaultWaveformCatalog.Contains(preset.Id)).ToList(),
-            _records.ToList(), new(DefaultLimit, SelectedLanguage?.Code, IsBluetooth, (int)TimerLimitMinutes), _statistics, Modes.Select(mode => mode.ToConfig()).ToList()));
+            _records.ToList(), new(DefaultLimit, SelectedLanguage?.Code, UsesLocalBluetooth, (int)TimerLimitMinutes, RemoteSources.ToSettings()), _statistics, Modes.Select(mode => mode.ToConfig()).ToList()));
         _statistics = new(Math.Max(_statistics.SessionCount, _store.Statistics.SessionCount), Math.Max(_statistics.TotalDurationSeconds, _store.Statistics.TotalDurationSeconds));
         _records.RemoveAll(record => _store.Journal.IsDiscarded(record.Id));
         foreach (var item in Sessions.Where(item => _store.Journal.IsDiscarded(item.Record.Id)).ToArray())
@@ -665,14 +669,14 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
         RefreshModeGroups();
         foreach (var name in new[] { nameof(ConnectedCount), nameof(ConnectedSummary), nameof(SelectedConnected), nameof(SelectedName), nameof(SelectedKind), nameof(SelectedId), nameof(HasSelection),
-            nameof(SelectedBattery), nameof(SelectedBatteryLabel), nameof(SelectedSignal), nameof(SelectedContacts), nameof(HasElectrodeReadings) })
+            nameof(SelectedBattery), nameof(SelectedBatteryLabel), nameof(SelectedSignal), nameof(SelectedContacts), nameof(HasElectrodeReadings), nameof(DeviceHelp), nameof(ReadingsLabel) })
             Raise(name);
         RefreshDeviceFeatures();
         RefreshTelemetry();
     }
     private void RefreshTransport()
     {
-        foreach (var name in new[] { nameof(IsBluetooth), nameof(TransportName), nameof(ModeLabel), nameof(DriverLabel), nameof(DeviceHelp), nameof(TransportHelp), nameof(ReadingsLabel) })
+        foreach (var name in new[] { nameof(UsesLocalBluetooth), nameof(TransportName), nameof(ModeLabel), nameof(DriverLabel), nameof(DeviceHelp), nameof(TransportHelp), nameof(ReadingsLabel) })
             Raise(name);
         RefreshDevices();
     }
@@ -734,6 +738,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         foreach (var kind in ModeTypes)
             kind.RefreshLocalization();
         ProtocolFeatures.RefreshLocalization();
+        RemoteSources.RefreshLocalization();
         RefreshTransport();
         RefreshModeSelection();
         foreach (var name in new[] { nameof(PageTitle), nameof(ScanLabel), nameof(Status), nameof(TotalTime), nameof(RunningModesSummary) })

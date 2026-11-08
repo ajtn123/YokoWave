@@ -1,6 +1,19 @@
 namespace YokoWave.Core.Bluetooth;
 
 /// <summary>Configuration and read requests, without direct output control. Output belongs to an owning playback mode.</summary>
+[System.Text.Json.Serialization.JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
+[System.Text.Json.Serialization.JsonDerivedType(typeof(QueryDevice), "query")]
+[System.Text.Json.Serialization.JsonDerivedType(typeof(ConfigureMotionStream), "motion")]
+[System.Text.Json.Serialization.JsonDerivedType(typeof(ControlStepCounter), "steps")]
+[System.Text.Json.Serialization.JsonDerivedType(typeof(ConfigureSensorStream), "stream")]
+[System.Text.Json.Serialization.JsonDerivedType(typeof(ConfigureIndicator), "indicator")]
+[System.Text.Json.Serialization.JsonDerivedType(typeof(ConfigureShoulderLight), "shoulder")]
+[System.Text.Json.Serialization.JsonDerivedType(typeof(CalibratePawAngles), "calibrate")]
+[System.Text.Json.Serialization.JsonDerivedType(typeof(ResetPawParameters), "resetPaw")]
+[System.Text.Json.Serialization.JsonDerivedType(typeof(ConfigurePressureSensor), "pressure")]
+[System.Text.Json.Serialization.JsonDerivedType(typeof(SynchronizeDisplay), "display")]
+[System.Text.Json.Serialization.JsonDerivedType(typeof(ConfigurePaw), "paw")]
+[System.Text.Json.Serialization.JsonDerivedType(typeof(ConfigureLight), "light")]
 public abstract record DeviceCommand
 {
     protected DeviceCommand(DeviceCapability capability) => Capability = capability;
@@ -89,4 +102,9 @@ internal sealed class DeviceCommandHandlers
     }
     public Task ExecuteAsync(DeviceCommand command, CancellationToken ct) => _handlers.TryGetValue(command.GetType(), out var handler)
         ? handler(command, ct) : throw new Localization.LocalizedOperationException("Error.DeviceFeatures");
+}
+
+public sealed record ConfigureLight(bool Enabled) : DeviceCommand(DeviceCapability.Light)
+{
+    public override void Validate() { }
 }

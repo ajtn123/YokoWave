@@ -28,7 +28,7 @@ public sealed partial class PlaybackModeViewModel
     }
     public bool HasAnalogChannelC => HasChannelC && !IsNativeMotor;
     public bool HasAuxiliaryMotor => TargetDescriptors().Any(device => device.Profile?.Supports(DeviceCapability.AuxiliaryMotor) == true);
-    public bool HasHardwareOptions => HasAuxiliaryMotor || HasDgBalances;
+    public bool HasHardwareOptions => !IsServerMode && (HasAuxiliaryMotor || HasDgBalances);
     private void RefreshNativeStrength(string property)
     {
         if (!IsNativeProgram) return;

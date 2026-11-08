@@ -3,15 +3,17 @@ using YokoWave.Core.Localization;
 
 namespace YokoWave.Core.Bluetooth;
 
-public class BluetoothDeviceTransport(IBluetoothAdapter adapter) : IDeviceTransport, IDeviceStatusSource,
-    IElectricalDeviceFeatures, IElectricalMotionSource, IInputDeviceFeatures, IDeviceCommandTransport
+public partial class BluetoothDeviceTransport(IBluetoothAdapter adapter) : IDeviceTransport, IDeviceStatusSource,
+    IElectricalDeviceFeatures, IElectricalMotionSource, IInputDeviceFeatures, IDeviceCommandTransport, IRawGattTransport
 {
     private sealed class Connection(IBluetoothConnection link, BluetoothProtocolDriver driver)
     {
         public IBluetoothConnection Link
         { get; } = link;
-        public BluetoothProtocolDriver Driver
-        { get; } = driver;
+        public BluetoothProtocolDriver Driver { get; set; } = driver;
+        public Guid? RawLease;
+        public bool Restoring;
+        public int Generation;
         public SemaphoreSlim Gate
         { get; } = new(1, 1);
         public TaskCompletionSource Initialized
@@ -45,7 +47,7 @@ public class BluetoothDeviceTransport(IBluetoothAdapter adapter) : IDeviceTransp
                 OutputDomain.Input => DeviceKind.Sensor,
                 _ => DeviceKind.DualChannel
             };
-            devices.Add(new(peripheral.Id, peripheral.Name, kind, null, peripheral.Signal, profile.Protocol.ToString()));
+            devices.Add(new(peripheral.Id, peripheral.Name, kind, null, peripheral.Signal, profile.Protocol.ToString(), Origin: peripheral.Origin, Simulated: peripheral.Simulated));
         }
         return devices;
     }
@@ -65,15 +67,15 @@ public class BluetoothDeviceTransport(IBluetoothAdapter adapter) : IDeviceTransp
         void Fault(Exception error) => Faulted?.Invoke(this, new(device.Id, false, error));
         var driver = BluetoothProtocolDriverFactory.Create(device.Id, profile, link, Publish, Fault);
         var connection = new Connection(link, driver);
-        connection.CommandRequested = command => _ = ExecuteRequestedCommandAsync(connection, command);
+        connection.CommandRequested = command => _ = ExecuteRequestedCommandAsync(connection, command, connection.Generation);
         driver.CommandRequested += connection.CommandRequested;
         connection.Primary = bytes =>
         {
-            if (!connection.Closed) driver.OnNotification(new(profile.Notify, bytes));
+            DispatchNotification(device.Id, connection, new(profile.Notify, bytes));
         };
         connection.Additional = value =>
         {
-            if (!connection.Closed) driver.OnNotification(value);
+            DispatchNotification(device.Id, connection, value);
         };
         connection.Disconnected = () =>
         {
@@ -128,7 +130,7 @@ public class BluetoothDeviceTransport(IBluetoothAdapter adapter) : IDeviceTransp
     }
     private Connection Get(string id) => _connections.TryGetValue(id, out var connection) && !connection.Closing
         ? connection : throw new LocalizedOperationException("Error.NotConnected");
-    private async Task ExecuteRequestedCommandAsync(Connection connection, DeviceCommand command)
+    private async Task ExecuteRequestedCommandAsync(Connection connection, DeviceCommand command, int generation)
     {
         try
         {
@@ -136,7 +138,7 @@ public class BluetoothDeviceTransport(IBluetoothAdapter adapter) : IDeviceTransp
             await connection.Gate.WaitAsync();
             try
             {
-                if (!connection.Closing && !connection.Closed) await connection.Driver.ExecuteCommand(command, CancellationToken.None);
+                if (!connection.Closing && !connection.Closed && connection.RawLease is null && generation == connection.Generation) await connection.Driver.ExecuteCommand(command, CancellationToken.None);
             }
             finally
             {
@@ -149,7 +151,7 @@ public class BluetoothDeviceTransport(IBluetoothAdapter adapter) : IDeviceTransp
             System.Diagnostics.Trace.TraceError("Protocol maintenance failed: {0}", error);
         }
     }
-    private async Task<T> WithConnection<T>(string id, Func<BluetoothProtocolDriver, Task<T>> action, CancellationToken ct)
+    private async Task<T> WithConnection<T>(string id, Func<BluetoothProtocolDriver, Task<T>> action, CancellationToken ct, bool stopRaw = false)
     {
         var connection = Get(id);
         await connection.Initialized.Task.WaitAsync(ct);
@@ -158,6 +160,11 @@ public class BluetoothDeviceTransport(IBluetoothAdapter adapter) : IDeviceTransp
         {
             if (connection.Closing)
                 throw new LocalizedIOException("Error.BluetoothDisconnected");
+            if (connection.RawLease is not null)
+            {
+                if (!stopRaw) throw new LocalizedOperationException("Error.RemoteRawOwned");
+                await RestoreDriver(connection, id, ct);
+            }
             return await action(connection.Driver);
         }
         finally
@@ -183,7 +190,7 @@ public class BluetoothDeviceTransport(IBluetoothAdapter adapter) : IDeviceTransp
         else
             await driver.Send(frame, cancellationToken);
         return true;
-    }, cancellationToken);
+    }, cancellationToken, frame == OutputFrame.Zero);
     public Task<ElectricalFeatureState> RefreshFeaturesAsync(string deviceId, CancellationToken cancellationToken = default) =>
         WithConnection(deviceId, driver => driver.RefreshFeatures(cancellationToken), cancellationToken);
     public Task<bool> SetLightAsync(string deviceId, bool enabled, CancellationToken cancellationToken = default) =>
@@ -216,6 +223,7 @@ public class BluetoothDeviceTransport(IBluetoothAdapter adapter) : IDeviceTransp
             connection.Closing = true;
             try
             {
+                if (connection.RawLease is not null) await RestoreDriver(connection, deviceId, cancellationToken);
                 await connection.Driver.Shutdown(cancellationToken);
             }
             finally
@@ -249,6 +257,11 @@ public class BluetoothDeviceTransport(IBluetoothAdapter adapter) : IDeviceTransp
             {
                 errors.Add(error);
             }
+        if (adapter is IAsyncDisposable disposable)
+        {
+            try { await disposable.DisposeAsync(); }
+            catch (Exception error) { errors.Add(error); }
+        }
         if (errors.Count > 0)
             throw new LocalizedAggregateException("Error.Cleanup", errors);
     }

@@ -138,6 +138,11 @@ internal sealed class WindowsBluetoothAdapter : IBluetoothAdapter
 
 internal sealed class WindowsBluetoothConnection : IBluetoothConnection
 {
+    public IReadOnlyList<GattAttribute> Attributes => _attributes.Select(pair => new GattAttribute(pair.Key,
+        pair.Value.CharacteristicProperties.HasFlag(GattCharacteristicProperties.Read),
+        pair.Value.CharacteristicProperties.HasFlag(GattCharacteristicProperties.Write),
+        pair.Value.CharacteristicProperties.HasFlag(GattCharacteristicProperties.WriteWithoutResponse),
+        pair.Value.CharacteristicProperties.HasFlag(GattCharacteristicProperties.Notify))).ToArray();
     public int MaximumWriteLength => Math.Max(0, (_session?.MaxPduSize ?? 23) - 3);
     private readonly BluetoothLEDevice _device;
     private readonly IReadOnlyList<GattDeviceService> _services;
@@ -197,7 +202,9 @@ internal sealed class WindowsBluetoothConnection : IBluetoothConnection
         }
     }
     public Task WriteAsync(byte[] packet, CancellationToken ct) => WriteAsync(_profile.Write, packet, ct);
-    public async Task WriteAsync(GattAddress address, byte[] packet, CancellationToken ct)
+    public Task WriteAsync(GattAddress address, byte[] packet, CancellationToken ct) => WriteCoreAsync(address, packet, GattWriteMode.Auto, ct);
+    public Task WriteAsync(GattWrite write, CancellationToken ct) => WriteCoreAsync(write.Address, write.Data, write.Mode, ct);
+    private async Task WriteCoreAsync(GattAddress address, byte[] packet, GattWriteMode mode, CancellationToken ct)
     {
         await _gate.WaitAsync(ct);
         var properties = GattCharacteristicProperties.None;
@@ -209,7 +216,10 @@ internal sealed class WindowsBluetoothConnection : IBluetoothConnection
                 throw new LocalizedOperationException("Error.BluetoothService");
             properties = characteristic.CharacteristicProperties;
             mtu = _session?.MaxPduSize ?? 23;
-            var option = properties.HasFlag(GattCharacteristicProperties.WriteWithoutResponse) ? GattWriteOption.WriteWithoutResponse : GattWriteOption.WriteWithResponse;
+            var option = mode == GattWriteMode.WithResponse ? GattWriteOption.WriteWithResponse
+                : mode == GattWriteMode.WithoutResponse || properties.HasFlag(GattCharacteristicProperties.WriteWithoutResponse) ? GattWriteOption.WriteWithoutResponse : GattWriteOption.WriteWithResponse;
+            if (option == GattWriteOption.WriteWithResponse && !properties.HasFlag(GattCharacteristicProperties.Write) ||
+                option == GattWriteOption.WriteWithoutResponse && !properties.HasFlag(GattCharacteristicProperties.WriteWithoutResponse)) throw new LocalizedIOException("Error.BluetoothWrite");
             if (packet.Length == 0 || packet.Length > Math.Max(20, mtu - 3))
                 throw new LocalizedIOException("Error.BluetoothWrite");
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);

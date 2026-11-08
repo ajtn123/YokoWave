@@ -28,17 +28,17 @@ internal sealed class CoyoteV2Driver(string id, BluetoothDeviceProfile profile, 
     }
     public override async Task Send(OutputFrame frame, CancellationToken ct)
     {
-        await Link.WriteAsync(BluetoothDeviceProfiles.V2Strength, DgLabProtocol.V2Strength(WaveformRendering.Strength(frame, 0), WaveformRendering.Strength(frame, 1), frame.Gentle), ct);
-        await WriteWaves(frame, ct);
+        await Link.WriteBatchAsync([new(BluetoothDeviceProfiles.V2Strength, DgLabProtocol.V2Strength(WaveformRendering.Strength(frame, 0), WaveformRendering.Strength(frame, 1), frame.Gentle)), .. WavePackets(frame)], ct);
     }
-    private async Task WriteWaves(OutputFrame frame, CancellationToken ct)
+    private Task WriteWaves(OutputFrame frame, CancellationToken ct) => Link.WriteBatchAsync(WavePackets(frame), ct);
+    private static IReadOnlyList<GattWrite> WavePackets(OutputFrame frame)
     {
         var native = frame.NativeProgram?.Settings;
         var a = native is { Kind: NativeProgramKind.CoyoteV2Pulse } ? DgLabProtocol.V2Pulse(frame.ChannelA > 0 ? native.PulseA ?? new() : new(0, 0, 0)) : DgLabProtocol.V2Pulse(frame, false);
         var b = native is { Kind: NativeProgramKind.CoyoteV2Pulse } ? DgLabProtocol.V2Pulse(frame.ChannelB > 0 ? native.PulseB ?? new() : new(0, 0, 0)) : DgLabProtocol.V2Pulse(frame, true);
-        await Link.WriteAsync(BluetoothDeviceProfiles.V2WaveA, a, ct);
-        await Link.WriteAsync(BluetoothDeviceProfiles.V2WaveB, b, ct);
+        return [new(BluetoothDeviceProfiles.V2WaveA, a), new(BluetoothDeviceProfiles.V2WaveB, b)];
     }
+
     protected override (int A, int B)? ParseLevels(byte[] bytes) => DgLabProtocol.ParseV2Strength(bytes);
     public override void OnNotification(GattNotification notification)
     {

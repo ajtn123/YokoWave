@@ -25,7 +25,6 @@ public sealed class DeviceItem : ObservableObject
     public bool IsSelected { get => _selected; set => Set(ref _selected, value); }
     public string? ActiveModeName { get => _activeModeName; set { if (Set(ref _activeModeName, value)) Raise(nameof(Status)); } }
     public string Status => !Device.IsSupported ? L10n.Get("Error.PawFirmware") : ActiveModeName is { } name ? L10n.Format("Device.InMode", name) : L10n.Get(IsConnected ? "Device.Connected" : "Device.Available");
-    public bool IsOutput => !Device.IsInput;
     public string ConnectionAction => L10n.Get(IsConnected ? "Device.Disconnect" : "Device.Connect");
     public double OutputA { get => _outputA; set { Set(ref _outputA, value); Raise(nameof(OutputALabel)); } }
     public double OutputB { get => _outputB; set { Set(ref _outputB, value); Raise(nameof(OutputBLabel)); } }

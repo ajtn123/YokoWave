@@ -11,10 +11,10 @@ public sealed partial class PlaybackModeViewModel
     private static readonly SessionOption[] PumpOptions = Options<PumpDirection>("PumpDirection");
     public IReadOnlyList<SessionOption> PumpDirections => PumpOptions;
     public bool IsPump => Definition.IsPump;
-    public bool HasStrength => !IsPump && !IsNativeMotor;
-    public bool HasDgBalances => TargetDescriptors().Any(device => device.Profile?.Protocol == BluetoothProtocol.CoyoteV3);
+    public bool HasStrength => !IsPump && !IsNativeMotor && !IsServerMode;
+    public bool HasDgBalances => !IsServerMode && TargetDescriptors().Any(device => device.Profile?.Protocol == BluetoothProtocol.CoyoteV3);
     public bool HasChannelA => _targets.Count == 0 || TargetDescriptors().Any(device => device.HasChannel(0));
-    public bool HasChannelC => TargetDescriptors().Any(device => device.HasChannel(2));
+    public bool HasChannelC => !IsServerMode && TargetDescriptors().Any(device => device.HasChannel(2));
     public double ChannelC
     {
         get => _channelC;
@@ -98,13 +98,14 @@ public sealed partial class PlaybackModeViewModel
     }
     private IEnumerable<DeviceDescriptor> TargetDescriptors() => _targets.Select(id =>
         _controller.Connections.TryGetValue(id, out var connection) ? connection.Device : Device(id)?.Device).OfType<DeviceDescriptor>();
-    public bool CanAssignDevice(DeviceDescriptor device) => PlaybackCompatibility.CanRun(device, Kind, _reactiveSettings) &&
+    public bool CanAssignDevice(DeviceDescriptor device) => IsServerMode ? PlaybackCompatibility.CanRun(device, Kind) : PlaybackCompatibility.CanRun(device, Kind, _reactiveSettings) &&
         (!IsNativeProgram || NativeEditor.ValidationError is null && NativeEditor.Settings.Accepts(device));
     public bool AcceptsWaveform(WaveformPreset preset) => TargetDescriptors().All(device => PlaybackCompatibility.Accepts(device, preset));
     private string? HardwareValidationError
     {
         get
         {
+            if (IsServerMode) return TargetDescriptors().Any(device => !CanAssignDevice(device)) ? "Error.RemoteLocalDevices" : null;
             if (IsNativeProgram && NativeEditor.ValidationError is { } error) return error;
             if (IsNativeMotor && (OutputLimit != 100 || ChannelA is > 0 and < 100 || ChannelB is > 0 and < 100 || ChannelC is > 0 and < 100 || HardwareEditor.LimitA != 100 || HardwareEditor.LimitB != 100)) return "Error.NativeMotorLimit";
             if (TargetDescriptors().Any(device => !CanAssignDevice(device) || !HardwareEditor.Settings.Accepts(device, Definition.NeedsMotion(_reactiveSettings))))

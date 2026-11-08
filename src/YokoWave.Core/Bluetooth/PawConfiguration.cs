@@ -11,6 +11,13 @@ public sealed record PawParameterDynamics(int IncreaseTimeCode = 0, int CancelDe
     }
 }
 
+[System.Text.Json.Serialization.JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
+[System.Text.Json.Serialization.JsonDerivedType(typeof(PawNoTrigger), "none")]
+[System.Text.Json.Serialization.JsonDerivedType(typeof(PawLiveData), "live")]
+[System.Text.Json.Serialization.JsonDerivedType(typeof(PawRandomReaction), "random")]
+[System.Text.Json.Serialization.JsonDerivedType(typeof(PawProbability), "probability")]
+[System.Text.Json.Serialization.JsonDerivedType(typeof(PawVoltage), "voltage")]
+[System.Text.Json.Serialization.JsonDerivedType(typeof(PawButtonMotion), "buttonMotion")]
 public abstract record PawTrigger
 {
     public abstract void Validate();

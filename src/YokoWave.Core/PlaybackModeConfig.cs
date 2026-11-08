@@ -8,7 +8,7 @@ public sealed record PlaybackModeConfig(Guid Id, string Name, ModeKind Kind = Mo
     EstimSettings? Estim = null, List<string>? TargetDeviceIds = null, bool OffsetChannelB = true,
     List<Guid>? PlaylistWaveformIds = null, AudioSettings? Audio = null, ReactiveSettings? Reactive = null,
     double ChannelC = 0, PumpOutput? Pump = null, DgBalanceSettings? DgBalances = null,
-    NativeProgramSettings? NativeProgram = null, HardwareOutputSettings? Hardware = null)
+    NativeProgramSettings? NativeProgram = null, HardwareOutputSettings? Hardware = null, RemoteServerSettings? Server = null)
 {
     public void Validate()
     {
@@ -25,5 +25,6 @@ public sealed record PlaybackModeConfig(Guid Id, string Name, ModeKind Kind = Mo
         if (Kind == ModeKind.NativeProgram)
             new NativeProgramOutput(NativeProgram ?? new(), 0, null).ValidateOutput(new(ChannelA, ChannelB, 20, ChannelC: ChannelC, OutputLimit: OutputLimit, Hardware: Hardware));
         Pump?.Validate();
+        Server?.Validate();
     }
 }
