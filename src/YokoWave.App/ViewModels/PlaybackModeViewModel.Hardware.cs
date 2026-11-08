@@ -10,7 +10,7 @@ public sealed partial class PlaybackModeViewModel
     private DgBalanceSettings _balances = new();
     private static readonly SessionOption[] PumpOptions = Options<PumpDirection>("PumpDirection");
     public IReadOnlyList<SessionOption> PumpDirections => PumpOptions;
-    public bool IsPump => Kind == ModeKind.Pump;
+    public bool IsPump => Definition.IsPump;
     public bool HasStrength => !IsPump;
     public bool HasDgBalances => TargetDescriptors().Any(device => device.Profile?.Protocol == BluetoothProtocol.CoyoteV3);
     public bool HasChannelA => _targets.Count == 0 || TargetDescriptors().Any(device => device.HasChannel(0));

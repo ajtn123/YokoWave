@@ -20,7 +20,19 @@
 
 `ChangeWaveformAsync` 与计时推进、停止使用同一异步锁。运行中切换时只替换对应通道波形，并在下一次输出从新波形的第一帧开始，不重置设备、强度、全局时间或定时期限，也不结束会话。无效格式被拒绝；所有有效的统一波形均可用于电击／震动输出。会话记录保存结束时的 A/B 波形和输出模式。
 
-`SessionProgram` 描述播放顺序、独立 B 波形、强度策略、滑动控制和玩法输出上限；各通道的 `WaveformTrack` 独立推进。自动增量和临时增量计算后，`SessionEngine` 按自身玩法上限裁剪最终输出。暂停只归零自身目标，VM 停止自身单调时钟，继续后不计入暂停时长。滑动轨迹只保留 256 个采样帧，可另存为自定义电击波形。操作范围见 [离线电刺激控制](estim.md)。
+`SessionProgram` 是播放配置快照，保留现有存储格式。`SessionEngine` 只管理串行门、设备占用、会话计时、最终上限、峰值和停止收尾；渲染交给 `Playback/` 中的 `PlaybackModeRuntime`。每次开始创建新的玩法对象，停止后可保留录制用于另存，重新开始时不会复用输入状态或计数。输入更新通过音频、触控、运动三个小能力接口传递，不要求所有玩法实现无关操作。非波形玩法的会话记录不保存虚构波形 ID。
+
+| 玩法类 | 独立职责 |
+| --- | --- |
+| `WaveformModeRuntime` | 波形轨道与播放顺序 |
+| `TouchModeRuntime` | 按住状态、最多 256 帧的轨迹录制、松手／循环／保持 |
+| `AudioModeRuntime` | 双通道包络、音频帧序列和有效期 |
+| `RestraintModeRuntime` | 各目标的基准角度与偏差映射 |
+| `ExerciseModeRuntime` | 动作阈值、空闲等待与动作目标 |
+| `SleepModeRuntime` | 固定／随机／活动重置周期和本地随机池 |
+| `PumpModeRuntime` | 泵方向与水路输出 |
+
+`WaveformPlayback` 组合独立 A/B 的 `WaveformTrack`；`StrengthAutomation` 处理自动和临时增量；`MotionTracker` 处理每个目标的读数有效期、校准与动作采样；运动和睡眠通过 `ActivityModeRuntime` 复用 `BurstCycle` 的等待／输出计时。只有这些确实共用的状态形成抽象，不为纯协议函数或配置记录增加接口。`PlaybackModeDefinition` 集中提供波形、播放列表、输入与设备能力要求，编辑器、路由校验和引擎共享定义。暂停只归零自身目标，VM 停止自身单调时钟，继续后不计入暂停时长。操作范围见 [离线电刺激控制](estim.md)。
 
 `PlaybackModeViewModel.Estim` 处理玩法内的播放配置，`MainViewModel.DeviceFeatures` 处理实体设备固件功能；`MainViewModel.ModeBindings` 为当前选中玩法提供界面绑定。玩法编辑、波形选择、自动强度、滑动面板和设备功能各有独立组件。灯光通过 `IElectricalDeviceFeatures` 与状态回报确认，只有兼容且版本已确认的二代设备可用；设备被玩法占用时禁用固件操作。
 
@@ -28,9 +40,11 @@
 
 波形资料库使用独立的 `LibrarySelectedPreset`，浏览、复制或保存新波形不会切换玩法输出；只有明确执行「用于控制」才将波形应用到当前波形玩法。列表模式仅允许应用列表成员，滑动玩法不提供此操作。
 
-`ReactivePlayback` 持有本会话的音频包络、传感器基准、动作计数和等待／输出状态。`SessionEngine` 在采样后、最终上限之前应用感应结果；过期输入归零，调度中断不补发旧输出。禁锢按偏差映射，运动按活动重置等待并检查动作目标，睡眠按固定／随机／活动重置周期调度。每台目标的运行时基准和计数均不写入设备配置。详见 [声控与感应玩法](live-modes.md)。
+`WaveformEditorViewModel` 独立持有草稿、类型选择、采样 JSON 解析和预览，编辑组件直接绑定该对象。主视图模型只协调保存、引用刷新及播放中的编辑限制，保留转发属性供现有调用使用；编辑器不依赖设备、会话或存储服务。
 
-Core 定义 `IAudioInputFactory` / `IAudioInputSession`，Desktop 用 SoundFlow/MiniAudio 实现。只有显式开始或校准才初始化音频设备；实时 PCM 转成 50 ms 特征后不保存。`PlaybackModeViewModel.LiveModes` 管理每个实例的音频资源、启动取消和校准；结束或异常释放资源。系统 loopback 仅 Windows 可用，文件与默认麦克风使用跨平台后端。自动测试注入替身，不打开真实采集设备。
+感应状态由对应玩法对象持有，`SessionEngine` 在最终上限之前调用玩法渲染；过期输入归零，调度中断不补发旧输出。每台目标的运行时基准和计数均不写入设备配置。详见 [声控与感应玩法](live-modes.md)。
+
+Core 定义 `IAudioInputFactory` / `IAudioInputSession`，Desktop 用 SoundFlow/MiniAudio 实现。App 的 `Playback/ModeInputController` 在实例创建时选择输入控制器，统一启动、每帧更新、暂停、取消与释放入口；音频、模拟角度和触控各自实现。`AudioModeInputController` 独占采集资源、启动取消和噪声校准；ViewModel 保留界面绑定与通知。只有显式开始或校准才初始化音频设备；实时 PCM 转成 50 ms 特征后不保存。结束或真实异常释放资源，无 PCM、过期帧、静音及媒体结束保持监听并归零。系统 loopback 仅 Windows 可用，文件与默认麦克风使用跨平台后端。自动测试注入替身，不打开真实采集设备。
 
 `ElectricalBluetoothTransport` 支持角度流开关及校验后的加速度／计步通知，`DeviceController` 记录接收时间与序列；感应引擎只消费新鲜读数。真实连接拒绝模拟输入；模拟来源的角度滑块明确标记，使用同一套核心状态机。
 
@@ -38,7 +52,7 @@ Core 定义 `IAudioInputFactory` / `IAudioInputSession`，Desktop 用 SoundFlow/
 
 每个引擎的推进与停止由同一个异步锁串行化，避免停止后被计时回调再次写入非零输出。定时结束、断连及输出故障只停止所属玩法。切换页面、查看设备、选择其他玩法均不结束已有会话；切换玩法会清除原玩法的临时按住状态。「全部停止」、Esc、切换设备来源和关闭应用遍历全部玩法。关闭应用在清理设备前等待停止与本地保存。
 
-`SimulationTransport` 提供本地内存模拟，`BluetoothDeviceTransport` 通过可替换的 `IBluetoothAdapter` 接入多种设备。`BluetoothDeviceProfiles` 定义型号识别、输出域、通道数、GATT 特征与所需能力；每个连接创建独立的协议驱动、串行门和状态。YOKONEX 电击器、震动／泵、DG-LAB 使用各自编码器。Windows 原生适配器位于 Desktop 项目，负责多个服务与特征的发现、权限检查、主／附加通知、电量读取及所有 GATT 句柄的生命周期；Core 不引用 Windows SDK。停止期间仍处理确认通知，关闭完成后才解绑。`ElectricalBluetoothTransport` 保留为兼容旧调用的薄封装。
+`SimulationTransport` 提供本地内存模拟，`BluetoothDeviceTransport` 通过可替换的 `IBluetoothAdapter` 接入多种设备。`BluetoothDeviceProfiles` 定义型号识别、输出域、通道数、GATT 特征与所需能力；`BluetoothProtocolDriverFactory` 是协议到驱动的唯一构造入口。郊狼 V2/V3、负鼠、Paw、Civet、YOKONEX 电击器、震动器和泵各自拥有驱动；V2/V3/负鼠仅共用强度通知与停止确认，Paw/Civet 共用输入流生命周期。传输层不再按设备类型分派每次发送或通知。每个连接拥有独立的驱动、串行门和状态。Windows 原生适配器位于 Desktop 项目，负责多个服务与特征的发现、权限检查、主／附加通知、电量读取及所有 GATT 句柄的生命周期；Core 不引用 Windows SDK。停止期间仍处理确认通知，关闭完成后才解绑。`ElectricalBluetoothTransport` 保留为兼容旧调用的薄封装。
 
 `DeviceController` 统一管理传输、连接和玩法占用，串行处理后台通知，并通过事件传递状态与故障；`MainViewModel` 将后台事件调度回 UI 线程。切换设备来源先停止所有玩法并断开全部连接，再替换驱动。玩法参数保留，旧目标标识显示为不可用，需显式重新选择，不自动改派设备。来源保存在偏好设置中，不恢复连接或输出。
 

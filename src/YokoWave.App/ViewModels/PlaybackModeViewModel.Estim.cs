@@ -146,7 +146,7 @@ public sealed partial class PlaybackModeViewModel
         try
         {
             await _engine.SetPausedAsync(!IsPaused);
-            _audioSession?.SetPaused(IsPaused);
+            _input.SetPaused(IsPaused);
             if (IsPaused || !IsRunning) _clock.Stop(); else _clock.Start();
         }
         catch (Exception error)

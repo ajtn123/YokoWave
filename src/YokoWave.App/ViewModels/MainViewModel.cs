@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Globalization;
 using System.Text.Json;
 using System.Windows.Input;
 using YokoWave.Core;
@@ -27,10 +26,8 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private PlaybackModeViewModel? _selectedMode;
     private PresetItem? _librarySelectedPreset;
     private double _defaultLimit = 60, _timerLimitMinutes = 120;
-    private string _editorName = "", _editorPoints = "0, 0.2, 0.8, 1, 0.8, 0.2, 0", _editorSamples = "[]", _transferJson = "";
-    private WaveShape _editorShape = WaveShape.Sine;
-    private double _editorPeriod = 4, _editorFrequency = 20;
-    private Guid? _editingId;
+    private string _transferJson = "";
+    public WaveformEditorViewModel WaveEditor { get; } = new();
     private readonly List<SessionRecord> _records = [];
     private SessionStatistics _statistics = new();
     public ObservableCollection<DeviceItem> Devices { get; } = [];
@@ -51,7 +48,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     public ObservableCollection<PlaybackModeViewModel> Modes { get; } = [];
     public ObservableCollection<SessionItem> Sessions { get; } = [];
     public ObservableCollection<ActivityItem> Activities { get; } = [];
-    public IReadOnlyList<ShapeItem> Shapes { get; } = Enum.GetValues<WaveShape>().Select(shape => new ShapeItem(shape)).ToArray();
+    public IReadOnlyList<ShapeItem> Shapes => WaveEditor.Shapes;
     public IReadOnlyList<LanguageOption> Languages { get; } = [new("en", L10n.Current.English["Language.en"]), new("zh-CN", L10n.Current.English["Language.zh-CN"])];
     public IReadOnlyList<TransportOption> TransportOptions { get; } = [new(false), new(true)];
     public IReadOnlyList<SessionOption> ModeTypes { get; } = Enum.GetValues<ModeKind>().Select(kind => new SessionOption((int)kind, $"ModeKind.{kind}")).ToArray();
@@ -138,25 +135,17 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             RefreshDevices();
         }
     }
-    public string EditorName { get => _editorName; set { Set(ref _editorName, value); Raise(nameof(EditorPreview)); } }
-    public WaveShape EditorShape { get => _editorShape; set { Set(ref _editorShape, value); Raise(nameof(SelectedShape)); Raise(nameof(EditorPreview)); Raise(nameof(IsSampledEditor)); Raise(nameof(IsGeneratedEditor)); } }
-    public bool IsSampledEditor => EditorShape == WaveShape.Sampled;
-    public bool IsGeneratedEditor => !IsSampledEditor;
-    public ShapeItem? SelectedShape { get => Shapes.FirstOrDefault(s => s.Shape == EditorShape); set { if (value is not null) EditorShape = value.Shape; } }
-    public double EditorPeriod { get => _editorPeriod; set { Set(ref _editorPeriod, value); Raise(nameof(EditorPreview)); } }
-    public double EditorFrequency { get => _editorFrequency; set { Set(ref _editorFrequency, value); Raise(nameof(EditorPreview)); } }
-    public string EditorPoints { get => _editorPoints; set { Set(ref _editorPoints, value); Raise(nameof(EditorPreview)); } }
-    public string EditorSamples { get => _editorSamples; set { Set(ref _editorSamples, value); Raise(nameof(EditorPreview)); } }
+    public string EditorName { get => WaveEditor.EditorName; set => WaveEditor.EditorName = value; }
+    public WaveShape EditorShape { get => WaveEditor.EditorShape; set => WaveEditor.EditorShape = value; }
+    public bool IsSampledEditor => WaveEditor.IsSampledEditor;
+    public bool IsGeneratedEditor => WaveEditor.IsGeneratedEditor;
+    public ShapeItem? SelectedShape { get => WaveEditor.SelectedShape; set => WaveEditor.SelectedShape = value; }
+    public double EditorPeriod { get => WaveEditor.EditorPeriod; set => WaveEditor.EditorPeriod = value; }
+    public double EditorFrequency { get => WaveEditor.EditorFrequency; set => WaveEditor.EditorFrequency = value; }
+    public string EditorPoints { get => WaveEditor.EditorPoints; set => WaveEditor.EditorPoints = value; }
+    public string EditorSamples { get => WaveEditor.EditorSamples; set => WaveEditor.EditorSamples = value; }
     public string TransferJson { get => _transferJson; set => Set(ref _transferJson, value); }
-    public WaveformPreset? EditorPreview
-    {
-        get
-        {
-            try { var preset = BuildEditorPreset(); return preset.TryValidate(out _) ? preset : null; }
-            catch (Exception e) when (e is ArgumentException or FormatException or OverflowException or JsonException) { return null; }
-        }
-    }
-
+    public WaveformPreset? EditorPreview => WaveEditor.EditorPreview;
 
     public ICommand WorkspaceCommand { get; }
     public ICommand WavesCommand { get; }
@@ -184,6 +173,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         _controller = controller; _store = store; _bluetoothFactory = bluetoothFactory ?? (() => new BluetoothDeviceTransport(new UnsupportedBluetoothAdapter()));
         AudioInputs = audioInputFactory ?? new UnavailableAudioInputFactory();
         _uiContext = SynchronizationContext.Current;
+        WaveEditor.PropertyChanged += (_, args) => Raise(args.PropertyName);
         _selectedTransport = TransportOptions.First(option => option.UseBluetooth == !controller.IsSimulation);
         _selectedLanguage = Languages.First(language => language.Code == L10n.Current.Language);
         WorkspaceCommand = new AsyncCommand(() => NavigateAsync("workspace"), ShowError);
@@ -358,29 +348,17 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         foreach (var property in new[] { nameof(IsWorkspace), nameof(IsWaves), nameof(IsHistory), nameof(IsSettings), nameof(IsHelp), nameof(PageTitle) }) Raise(property);
         return Task.CompletedTask;
     }
-    public void NewWave()
-    {
-        _editingId = null;
-        EditorName = ""; EditorSamples = "[]";
-        EditorShape = WaveShape.Sine; EditorPeriod = 4; EditorFrequency = 20;
-    }
-
+    public void NewWave() => WaveEditor.Clear();
     public void EditWave()
     {
         if (LibrarySelectedPreset is not { } selected) return;
-        var preset = selected.Preset;
-        _editingId = selected.IsBuiltIn ? null : preset.Id;
-        EditorName = selected.IsBuiltIn ? L10n.Format("Wave.CopyName", preset.Name) : preset.Name;
-        EditorShape = preset.Shape;
-        EditorSamples = JsonSerializer.Serialize(preset.Samples ?? [], new JsonSerializerOptions { WriteIndented = true });
-        EditorPeriod = preset.PeriodSeconds; EditorFrequency = preset.Frequency;
-        EditorPoints = string.Join(", ", preset.Points?.Select(p => p.ToString("0.###", CultureInfo.InvariantCulture)) ?? ["0", "1", "0"]);
+        WaveEditor.Load(selected);
         Notify(selected.IsBuiltIn ? "Status.CopyBuiltIn" : "Status.Editing");
     }
 
     public async Task SaveWaveAsync()
     {
-        var preset = BuildEditorPreset();
+        var preset = WaveEditor.BuildPreset();
         preset.Validate();
         if (Modes.Any(mode => mode.UsesWaveform(preset.Id))) throw new LocalizedOperationException("Error.WaveInUse");
         var references = Modes.Select(mode => (Mode: mode, A: mode.SelectedPreset?.Preset.Id == preset.Id, B: mode.SelectedPresetB?.Preset.Id == preset.Id)).ToArray();
@@ -388,19 +366,9 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         await SaveAsync(next);
         var old = Presets.FirstOrDefault(p => p.Preset.Id == preset.Id);
         if (old is not null) Presets.Remove(old);
-        var item = new PresetItem(preset); Presets.Add(item); LibrarySelectedPreset = item; _editingId = preset.Id;
+        var item = new PresetItem(preset); Presets.Add(item); LibrarySelectedPreset = item; WaveEditor.MarkSaved(preset.Id);
         foreach (var reference in references) { if (reference.A) reference.Mode.SelectedPreset = item; if (reference.B) reference.Mode.SelectedPresetB = item; }
         Notify("Status.WaveSaved", preset.Name);
-    }
-
-    private WaveformPreset BuildEditorPreset()
-    {
-        var points = EditorShape == WaveShape.Custom ? EditorPoints.Split([',', '，', ' ', '\n'], StringSplitOptions.RemoveEmptyEntries)
-            .Select(s => double.Parse(s, CultureInfo.InvariantCulture)).ToArray() : null;
-        var samples = IsSampledEditor ? JsonSerializer.Deserialize<WaveformSample[]>(EditorSamples,
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) : null;
-        return new(_editingId ?? Guid.NewGuid(), EditorName.Trim(), EditorShape,
-            EditorPeriod, EditorFrequency, points, samples);
     }
 
     public async Task DeleteWaveAsync()

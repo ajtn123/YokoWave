@@ -2,41 +2,34 @@ using YokoWave.Core.Localization;
 
 namespace YokoWave.Core;
 
-/// <summary>Caller supplies active monotonic time. Output and all lifecycle changes share one gate.</summary>
+/// <summary>Serializes session lifecycle and device output. Mode instances own rendering and input state.</summary>
 public sealed class SessionEngine(DeviceController controller, Random? random = null, Guid? ownerId = null)
 {
     public Guid OwnerId { get; } = ownerId ?? Guid.NewGuid();
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly Random _random = random ?? new();
     private string[] _targets = [];
-    private WaveformTrack? _a, _b;
+    private PlaybackModeRuntime? _mode;
+    private WaveformPreset? _preset;
     private SessionProgram _program = new();
-    private EstimSettings _settings = new();
-    private StrengthSettings _strength = new();
+    private StrengthAutomation _strength = new(new(), random ?? new());
     private DateTimeOffset _startedAt;
-    private double _peakA, _peakB, _peakC, _strengthEpoch, _randomAddition;
-    private long _randomBucket;
-    private bool _boostHeld, _touchHeld, _hasTouch;
-    private WaveformSample _touch = new(1, 20, .5);
-    private readonly List<WaveformSample> _recording = [];
-    private long _recordBucket = -1;
-    private double _touchReplayEpoch;
-    private double _outputLimit = 60;
-    private ReactivePlayback? _reactive;
-    public IReadOnlyDictionary<string, ReactiveStatus> InputStatus => _reactive?.Status ?? new Dictionary<string, ReactiveStatus>();
-    public int MovementCount => _reactive?.MovementCount ?? 0;
-    public const int MaxRecordingFrames = 256;
+    private double _peakA, _peakB, _peakC, _outputLimit = 60;
+    public IReadOnlyDictionary<string, ReactiveStatus> InputStatus => _mode?.Status ?? EmptyStatus;
+    private static readonly IReadOnlyDictionary<string, ReactiveStatus> EmptyStatus = new Dictionary<string, ReactiveStatus>();
+    public int MovementCount => (_mode as IMotionPlaybackInput)?.MovementCount ?? 0;
+    public const int MaxRecordingFrames = TouchModeRuntime.MaxRecordingFrames;
     public bool IsRunning { get; private set; }
     public bool IsPaused { get; private set; }
     public TimeSpan Elapsed { get; private set; }
     public TimeSpan? Duration { get; private set; }
     public TimeSpan? Remaining => Duration is { } duration ? (duration > Elapsed ? duration - Elapsed : TimeSpan.Zero) : null;
-    public TimeSpan WaveformElapsed => _a?.Elapsed ?? TimeSpan.Zero;
-    public WaveformPreset? CurrentWaveform => _a?.Current;
-    public WaveformPreset? CurrentWaveformB => _b?.Current ?? _a?.Current;
-    public bool UsesWaveform(Guid id) => IsRunning && _program.Kind is ModeKind.Waveform or ModeKind.Exercise or ModeKind.SleepDeprivation &&
+    public TimeSpan WaveformElapsed => _mode?.Waveforms?.Elapsed ?? TimeSpan.Zero;
+    public WaveformPreset? CurrentWaveform => _mode?.Waveforms?.Current ?? _preset;
+    public WaveformPreset? CurrentWaveformB => _mode?.Waveforms?.CurrentB ?? _preset;
+    public bool UsesWaveform(Guid id) => IsRunning && _mode?.Waveforms is not null &&
         (CurrentWaveform?.Id == id || CurrentWaveformB?.Id == id || (_program.Playlist?.Any(wave => wave.Id == id) ?? false));
-    public IReadOnlyList<WaveformSample> Recording => _recording.ToArray();
+    public IReadOnlyList<WaveformSample> Recording => (_mode as ITouchPlaybackInput)?.Recording ?? [];
     public double ChannelA { get; set; }
     public double ChannelB { get; set; }
     public double ChannelC { get; set; }
@@ -50,29 +43,15 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
         foreach (var id in _targets)
         {
             if (!controller.Connections.TryGetValue(id, out var connection)) throw new LocalizedOperationException("Error.NotConnected");
-            if (!PlaybackCompatibility.Accepts(connection.Device, preset))
-                throw new LocalizedArgumentException("Error.WaveDeviceMismatch");
+            if (!PlaybackCompatibility.Accepts(connection.Device, preset)) throw new LocalizedArgumentException("Error.WaveDeviceMismatch");
         }
     }
 
     public async Task StartAsync(IEnumerable<string> targets, WaveformPreset preset, TimeSpan? duration, SessionProgram? program = null)
     {
-        preset.Validate();
-        program ??= new();
-        var settings = program.Settings ?? new(); settings.Validate();
-        if (!Enum.IsDefined(program.Kind)) throw new LocalizedArgumentException("Error.ModeSettings");
-        program.Audio?.Validate(); program.Reactive?.Validate();
-        if (program.Kind != ModeKind.Waveform) settings = settings with { Order = PlaybackOrder.Repeat };
-        if (!double.IsFinite(program.OutputLimit) || program.OutputLimit is < 0 or > 100) throw new LocalizedArgumentException("Error.InvalidSettings");
-        if (program.ChannelBWaveform is { } b) b.Validate();
-        foreach (var wave in program.Playlist ?? []) wave.Validate();
-        if (program.Pump is { } pump && !Enum.IsDefined(pump.Direction)) throw new LocalizedArgumentException("Error.PumpSettings");
-        if (program.Kind == ModeKind.SleepDeprivation && program.Reactive?.SleepCycle == SleepCycleKind.Random && program.Playlist is not { Count: > 0 })
-            throw new LocalizedOperationException("Error.EmptyPlaylist");
-        if (!program.TouchControl && settings.Order is PlaybackOrder.Sequential or PlaybackOrder.Random)
-        {
-            if (program.Playlist is not { Count: > 0 }) throw new LocalizedOperationException("Error.EmptyPlaylist");
-        }
+        preset.Validate(); program ??= new(); program = program with { Playlist = program.Playlist?.ToArray() }; program.Validate();
+        var mode = PlaybackModeRuntime.Create(program, preset, controller.Clock, _random); mode.Validate();
+        if (duration is { } limit && (limit.TotalSeconds < 1 || limit.TotalSeconds > 7200)) throw new LocalizedArgumentException("Error.Duration");
         await _gate.WaitAsync();
         try
         {
@@ -83,28 +62,21 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
             {
                 var device = controller.Connections[id].Device;
                 if (!PlaybackCompatibility.CanRun(device, program.Kind, program.Reactive)) throw new LocalizedOperationException("Error.ModeDeviceMismatch");
-                if (program.Kind is ModeKind.Waveform or ModeKind.Exercise or ModeKind.SleepDeprivation)
+                if (mode.Waveforms is not null)
                     foreach (var wave in new[] { preset, program.ChannelBWaveform }.OfType<WaveformPreset>().Concat(program.Playlist ?? []))
                         if (!PlaybackCompatibility.Accepts(device, wave)) throw new LocalizedArgumentException("Error.WaveDeviceMismatch");
             }
-            if (duration is { } limit && (limit.TotalSeconds < 1 || limit.TotalSeconds > 7200)) throw new LocalizedArgumentException("Error.Duration");
             await controller.AcquireTargetsAsync(OwnerId, ids);
             if (program.NeedsMotion)
             {
                 try { foreach (var id in ids) await controller.StartMotionOwnedAsync(OwnerId, id); }
                 catch { await controller.StopOwnedAsync(OwnerId); throw; }
             }
-            _targets = ids; _program = program; _settings = settings; _strength = settings.Strength ?? new();
-            _outputLimit = program.OutputLimit;
-            Pump = program.Pump ?? new();
-            _reactive = program.Kind is ModeKind.Audio or ModeKind.Restraint or ModeKind.Exercise or ModeKind.SleepDeprivation
-                ? new(program, controller.Clock, _random) : null;
-            var playlist = program.Playlist?.ToArray() ?? [preset];
-            _a = new(preset, playlist); _b = program.ChannelBWaveform is { } separate ? new(separate, playlist) : null;
+            _targets = ids; _program = program; _mode = mode; _preset = preset;
+            _strength = new((program.Settings ?? new()).Strength ?? new(), _random);
+            _outputLimit = program.OutputLimit; Pump = program.Pump ?? new();
             Duration = duration; Elapsed = TimeSpan.Zero; _startedAt = DateTimeOffset.Now;
-            _peakA = _peakB = _peakC = _strengthEpoch = _randomAddition = 0; _randomBucket = 0;
-            _boostHeld = _touchHeld = _hasTouch = IsPaused = false; _recording.Clear(); _recordBucket = -1;
-            IsRunning = true;
+            _peakA = _peakB = _peakC = 0; IsPaused = false; IsRunning = true;
         }
         finally { _gate.Release(); }
     }
@@ -116,13 +88,8 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
         await _gate.WaitAsync();
         try
         {
-            if (!IsRunning) return false;
-            ValidateWaveform(preset);
-            if (_settings.Order is PlaybackOrder.Sequential or PlaybackOrder.Random &&
-                !(_program.Playlist?.Any(wave => wave.Id == preset.Id) ?? false)) throw new LocalizedOperationException("Error.PlaylistWave");
-            if (channelB) { _b ??= new(preset, _program.Playlist ?? [preset]); _b.Change(preset); }
-            else _a!.Change(preset);
-            return true;
+            if (!IsRunning || _mode?.Waveforms is not { } waves) return false;
+            ValidateWaveform(preset); waves.Change(preset, channelB); return true;
         }
         finally { _gate.Release(); }
     }
@@ -133,10 +100,8 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
         try
         {
             if (!IsRunning || IsPaused == paused) return;
-            IsPaused = paused; _boostHeld = _touchHeld = false;
-            _reactive?.Suspend();
-            if (paused)
-                foreach (var id in _targets) await controller.SendOwnedAsync(OwnerId, id, OutputFrame.Zero);
+            IsPaused = paused; _strength.BoostHeld = false; _mode?.Suspend();
+            if (paused) foreach (var id in _targets) await controller.SendOwnedAsync(OwnerId, id, OutputFrame.Zero);
         }
         catch (Exception error) { await StopAfterErrorAsync(error); throw; }
         finally { _gate.Release(); }
@@ -145,7 +110,7 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
     public async Task SetBoostAsync(bool held)
     {
         await _gate.WaitAsync();
-        try { _boostHeld = held && IsRunning && !IsPaused; if (IsRunning && !IsPaused) await SendFrameAsync(); }
+        try { _strength.BoostHeld = held && IsRunning && !IsPaused; if (IsRunning && !IsPaused) await SendFrameAsync(); }
         catch (Exception error) { await StopAfterErrorAsync(error); throw; }
         finally { _gate.Release(); }
     }
@@ -153,11 +118,7 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
     public async Task ResetStrengthAsync()
     {
         await _gate.WaitAsync();
-        try
-        {
-            _strengthEpoch = Elapsed.TotalSeconds; _randomBucket = 0; _randomAddition = 0; _boostHeld = false;
-            if (IsRunning && !IsPaused) await SendFrameAsync();
-        }
+        try { _strength.Reset(Elapsed.TotalSeconds); if (IsRunning && !IsPaused) await SendFrameAsync(); }
         catch (Exception error) { await StopAfterErrorAsync(error); throw; }
         finally { _gate.Release(); }
     }
@@ -174,14 +135,14 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
     public async Task SetAudioFrameAsync(AudioFeatureFrame? frame)
     {
         await _gate.WaitAsync();
-        try { if (IsRunning && !IsPaused) _reactive?.SetAudio(frame); }
+        try { if (IsRunning && !IsPaused) (_mode as IAudioPlaybackInput)?.SetAudio(frame); }
         finally { _gate.Release(); }
     }
 
     public async Task RecalibrateMotionAsync()
     {
         await _gate.WaitAsync();
-        try { _reactive?.ResetInput(Elapsed.TotalSeconds, true); if (IsRunning && !IsPaused) await SendFrameAsync(); }
+        try { (_mode as IMotionPlaybackInput)?.Recalibrate(Elapsed.TotalSeconds); if (IsRunning && !IsPaused) await SendFrameAsync(); }
         catch (Exception error) { await StopAfterErrorAsync(error); throw; }
         finally { _gate.Release(); }
     }
@@ -193,12 +154,8 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
         await _gate.WaitAsync();
         try
         {
-            _touch = new(1, frequency, pulseWidth / 100);
-            if (!IsRunning || IsPaused || !_program.TouchControl) { _touchHeld = false; return; }
-            if (held && !_touchHeld) { _recording.Clear(); _recordBucket = -1; }
-            if (!held && _touchHeld) _touchReplayEpoch = Elapsed.TotalSeconds;
-            _touchHeld = held; _hasTouch |= held;
-            await SendFrameAsync();
+            if (!IsRunning || IsPaused || _mode is not ITouchPlaybackInput touch) return;
+            touch.SetTouch(frequency, pulseWidth, held, Elapsed.TotalSeconds); await SendFrameAsync();
         }
         catch (Exception error) { await StopAfterErrorAsync(error); throw; }
         finally { _gate.Release(); }
@@ -209,73 +166,39 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
         await _gate.WaitAsync();
         try
         {
-            if (!IsRunning || IsPaused || _a is null) return;
+            if (!IsRunning || IsPaused || _mode is null) return;
             if (elapsed < Elapsed) throw new LocalizedArgumentException("Error.Clock");
             Elapsed = elapsed;
             if (Duration is { } duration && elapsed >= duration) { Elapsed = duration; await StopCoreAsync("Reason.Timer"); return; }
-            _a.Advance(elapsed, _settings.Order, _random); _b?.Advance(elapsed, _settings.Order, _random);
-            if (!_program.TouchControl && _a.Completed && (_b?.Completed ?? true)) { await StopCoreAsync("Reason.WaveComplete"); return; }
-            var bucket = (long)Math.Floor((elapsed.TotalSeconds - _strengthEpoch) / _strength.IntervalSeconds);
-            if (bucket > _randomBucket) { _randomBucket = bucket; _randomAddition = _random.NextDouble() * _strength.RandomAddition; }
-            if (_program.TouchControl && _touchHeld && _recording.Count < MaxRecordingFrames)
+            if (_mode.Advance(elapsed) is { } completion) { await StopCoreAsync(completion); return; }
+            _strength.Advance(elapsed.TotalSeconds);
+            try
             {
-                var recordBucket = (long)Math.Floor(elapsed.TotalSeconds * 10);
-                if (recordBucket != _recordBucket) { _recording.Add(_touch); _recordBucket = recordBucket; }
+                await SendFrameAsync();
+                if (_mode.CompletionReason(_targets.Length) is { } reason) await StopCoreAsync(reason);
             }
-            try { await SendFrameAsync(); if (_reactive?.GoalReached(_targets.Length) == true) await StopCoreAsync("Reason.MovementGoal"); }
             catch (Exception error) { await StopAfterErrorAsync(error); throw; }
         }
         finally { _gate.Release(); }
     }
 
-    private double Strength(double level)
-    {
-        if (!double.IsFinite(level) || level <= 0) return 0;
-        var addition = _strength.Mode switch
-        {
-            StrengthMode.RandomIncrease => _randomAddition,
-            StrengthMode.StepIncrease => Math.Min(Math.Max(level, _strength.Ceiling) - level,
-                Math.Floor((Elapsed.TotalSeconds - _strengthEpoch) / _strength.IntervalSeconds) * _strength.Step),
-            _ => 0
-        };
-        return Math.Clamp(level + addition + (_boostHeld ? _strength.Boost : 0), 0, 100);
-    }
-
     private async Task SendFrameAsync()
     {
-        if (!IsRunning || IsPaused || _a is null) return;
-        var waveA = _a.Current; var waveB = _b?.Current ?? waveA;
-        var timeA = _a.Elapsed.TotalSeconds; var timeB = _b?.Elapsed.TotalSeconds ?? timeA;
-        var phaseB = _b is null && OffsetChannelB ? 0.5 : 0;
-        var a = _a.Completed && !_program.TouchControl ? 0 : Strength(ChannelA);
-        var b = (_b?.Completed ?? _a.Completed) && !_program.TouchControl ? 0 : Strength(ChannelB);
-        var c = _a.Completed && !_program.TouchControl ? 0 : Strength(ChannelC);
-        WaveformSample? sampleA, sampleB;
-        if (_program.TouchControl)
-        {
-            var touch = _touchHeld || _hasTouch && _settings.TouchPlayback == TouchPlayback.HoldLast ? _touch
-                : _settings.TouchPlayback == TouchPlayback.RecordedLoop && _recording.Count > 0
-                    ? _recording[(int)Math.Floor((Elapsed.TotalSeconds - _touchReplayEpoch) * 10) % _recording.Count] : null;
-            sampleA = sampleB = touch;
-            if (touch is null) a = b = c = 0;
-        }
-        else
-        {
-            sampleA = WaveformGenerator.At(waveA, timeA); sampleB = WaveformGenerator.At(waveB, timeB, phaseB);
-        }
+        if (!IsRunning || IsPaused || _mode is null) return;
+        var settings = _program.Settings ?? new();
+        var frame = new OutputFrame(_strength.Apply(ChannelA, Elapsed.TotalSeconds), _strength.Apply(ChannelB, Elapsed.TotalSeconds),
+            _preset?.Frequency ?? 20, Gentle: settings.Gentle, ChannelC: _strength.Apply(ChannelC, Elapsed.TotalSeconds),
+            OutputLimit: _outputLimit, DgBalances: _program.DgBalances);
         foreach (var id in _targets)
         {
             if (!controller.Connections.TryGetValue(id, out var connection)) throw new LocalizedOperationException("Error.NotConnected");
-            var frame = new OutputFrame(a, b, waveA.Frequency, sampleA, sampleB, _settings.Gentle, c,
-                _program.TouchControl ? null : WaveformGenerator.Window(waveA, timeA, repeat: _settings.Order != PlaybackOrder.Once, remainingSeconds: Remaining?.TotalSeconds),
-                _program.TouchControl ? null : WaveformGenerator.Window(waveB, timeB, phaseB, _settings.Order != PlaybackOrder.Once, Remaining?.TotalSeconds),
-                _outputLimit, _program.Kind == ModeKind.Pump ? Pump : null, _program.DgBalances);
-            if (_reactive is not null) frame = _reactive.Render(id, Elapsed, frame, Strength(ChannelA), Strength(ChannelB), connection.Motion, Strength(ChannelC));
-            if (Remaining is { } remaining) frame = WaveformRendering.WithRemaining(frame, remaining.TotalSeconds);
-            frame = frame with { ChannelA = Math.Min(frame.ChannelA, _outputLimit), ChannelB = Math.Min(frame.ChannelB, _outputLimit), ChannelC = Math.Min(frame.ChannelC, _outputLimit) };
-            await controller.SendOwnedAsync(OwnerId, id, frame);
-            var output = connection.Output;
-            _peakA = Math.Max(_peakA, WaveformRendering.Strength(output, 0)); _peakB = Math.Max(_peakB, WaveformRendering.Strength(output, 1)); _peakC = Math.Max(_peakC, WaveformRendering.Strength(output, 2));
+            var output = _mode.Render(new(id, Elapsed, connection.Motion, OffsetChannelB, Remaining?.TotalSeconds, Pump), frame);
+            if (Remaining is { } remaining) output = WaveformRendering.WithRemaining(output, remaining.TotalSeconds);
+            output = output with { ChannelA = Math.Min(output.ChannelA, _outputLimit), ChannelB = Math.Min(output.ChannelB, _outputLimit), ChannelC = Math.Min(output.ChannelC, _outputLimit) };
+            await controller.SendOwnedAsync(OwnerId, id, output);
+            _peakA = Math.Max(_peakA, WaveformRendering.Strength(connection.Output, 0));
+            _peakB = Math.Max(_peakB, WaveformRendering.Strength(connection.Output, 1));
+            _peakC = Math.Max(_peakC, WaveformRendering.Strength(connection.Output, 2));
         }
     }
 
@@ -294,15 +217,18 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
 
     private async Task StopCoreAsync(string reason)
     {
-        var wasRunning = IsRunning; IsRunning = IsPaused = _boostHeld = _touchHeld = false;
+        var wasRunning = IsRunning; IsRunning = IsPaused = _strength.BoostHeld = false; _mode?.Suspend();
         try { await controller.StopOwnedAsync(OwnerId); }
         finally
         {
-            if (wasRunning && _a is not null)
+            if (wasRunning && _mode is not null)
+            {
+                var waves = _mode.Waveforms;
                 Completed?.Invoke(this, new(Guid.NewGuid(), _startedAt, Elapsed.TotalSeconds,
-                    _program.Kind is ModeKind.Audio or ModeKind.Restraint or ModeKind.Touch or ModeKind.Pump ? L10n.Get($"ModeKind.{_program.Kind}") : _a.Current.Name, _targets.Length, _peakA, _peakB, reason,
-                    _program.TouchControl ? null : _a.Current.Id, _program.TouchControl ? null : _b?.Current.Id,
-                    _program.TouchControl ? null : _b?.Current.Name, _program.TouchControl, _settings.Gentle, Kind: _program.Kind, PeakC: _peakC));
+                    waves?.Current.Name ?? L10n.Get($"ModeKind.{_program.Kind}"), _targets.Length, _peakA, _peakB, reason,
+                    waves?.Current.Id, waves?.SeparateB?.Id, waves?.SeparateB?.Name,
+                    _program.TouchControl, (_program.Settings ?? new()).Gentle, Kind: _program.Kind, PeakC: _peakC));
+            }
         }
     }
 }

@@ -18,6 +18,7 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
     private PresetItem? _selectedPreset;
     public Guid Id { get; }
     public ModeKind Kind { get; }
+    public PlaybackModeDefinition Definition { get; }
     public string Name
     {
         get => _name;
@@ -130,6 +131,7 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
     public PlaybackModeViewModel(MainViewModel host, DeviceController controller, PlaybackModeConfig config)
     {
         _host = host; _controller = controller; Id = config.Id; _name = config.Name; Kind = config.Kind;
+        Definition = PlaybackModeDefinition.For(Kind);
         _engine = new(controller, ownerId: Id); InitializeEstimCommands();
         SelectCommand = new(() => _host.SelectedMode = this);
         _safetyLimit = config.OutputLimit; ChannelA = config.ChannelA; ChannelB = config.ChannelB; ChannelC = config.ChannelC;
@@ -142,7 +144,7 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
         InitializePlaylist(config.PlaylistWaveformIds);
         foreach (var id in config.TargetDeviceIds ?? []) _targets.Add(id);
         PropertyChanged += (_, e) => { if (e.PropertyName == nameof(CanStart)) { Raise(nameof(HasStartIssue)); Raise(nameof(StartIssue)); } };
-        _engine.Completed += (_, record) => { _ = GuardAsync(ReleaseAudioAsync); _host.AddModeSession(record with { ModeId = Id, ModeName = Name }); };
+        _engine.Completed += (_, record) => { _ = GuardAsync(ReleaseInputAsync); _host.AddModeSession(record with { ModeId = Id, ModeName = Name }); };
         RefreshTargets();
     }
 
@@ -198,13 +200,13 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
         _starting = true; RefreshPlayback();
         try
         {
-            await StartAudioAsync();
+            await StartInputAsync();
             await _engine.StartAsync(_targets, waveform, ConfiguredDuration, program);
             if (!IsRunning) return;
             _hasSessionClock = true; _clock.Restart(); Notify("Status.ModeStarted", Name);
         }
-        catch (OperationCanceledException) { await ReleaseAudioAsync(); }
-        catch { await ReleaseAudioAsync(); throw; }
+        catch (OperationCanceledException) { await ReleaseInputAsync(); }
+        catch { await ReleaseInputAsync(); throw; }
         finally { _starting = false; RefreshPlayback(); }
     }
     public async Task TickAsync()
@@ -214,7 +216,6 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
         try
         {
             await UpdateLiveInputAsync();
-            if (UseTouchControl && IsTouchHeld) await _engine.SetTouchAsync(TouchFrequency, TouchPulseWidth, true);
             await _engine.AdvanceAsync(_clock.Elapsed); RefreshPlayback();
         }
         catch (Exception error)
@@ -228,11 +229,11 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
     }
     public async Task StopAsync(string reason = "Reason.Manual", bool notify = true)
     {
-        CancelAudioInput();
+        CancelInput();
         try { await _engine.StopAsync(reason); }
         finally
         {
-            try { await ReleaseAudioAsync(); }
+            try { await ReleaseInputAsync(); }
             finally { _clock.Stop(); RefreshPlayback(); }
         }
         if (notify) Notify("Status.ModeStopped", Name);

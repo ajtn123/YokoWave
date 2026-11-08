@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
-using YokoWave.Core;
 using YokoWave.Core.Localization;
 
 namespace YokoWave.App.ViewModels;
@@ -10,7 +9,7 @@ public sealed partial class PlaybackModeViewModel
     private PresetItem? _playlistCandidate;
     private bool _refreshingWaveformChoices;
     public ObservableCollection<PlaylistEntry> Playlist { get; } = [];
-    public bool SupportsPlaylist => Kind is ModeKind.Waveform or ModeKind.SleepDeprivation;
+    public bool SupportsPlaylist => Definition.SupportsPlaylist;
     public IReadOnlyList<PresetItem> PlaybackPresets => UsesCustomPlaylist ? Playlist.Select(entry => entry.Preset).ToArray()
         : Presets;
     public string PlaylistHelp => L10n.Get(IsSleep ? "Playlist.SleepHelp" : "Playlist.Help");

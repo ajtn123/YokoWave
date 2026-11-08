@@ -45,12 +45,7 @@ public class BluetoothDeviceTransport(IBluetoothAdapter adapter) : IDeviceTransp
         var link = await adapter.ConnectAsync(peripheral, cancellationToken);
         void Publish(DeviceStatusUpdate update) => StatusChanged?.Invoke(this, update);
         void Fault(Exception error) => Faulted?.Invoke(this, new(device.Id, false, error));
-        BluetoothProtocolDriver driver = profile.Protocol switch
-        {
-            BluetoothProtocol.YokonexV1 or BluetoothProtocol.YokonexV2 => new YokonexElectricalDriver(device.Id, profile, link, Publish, Fault),
-            BluetoothProtocol.YokonexMotor or BluetoothProtocol.YokonexPump => new YokonexToyDriver(device.Id, profile, link, Publish, Fault),
-            _ => new DgLabDriver(device.Id, profile, link, Publish, Fault)
-        };
+        var driver = BluetoothProtocolDriverFactory.Create(device.Id, profile, link, Publish, Fault);
         var connection = new Connection(link, driver);
         connection.Primary = bytes => { if (!connection.Closed) driver.OnNotification(new(profile.Notify, bytes)); };
         connection.Additional = value => { if (!connection.Closed) driver.OnNotification(value); };
