@@ -44,7 +44,7 @@
 | 原应用电机 f1 系统波形 | 10 条 | `Level=1`、`PulseWidth=1`，三路有符号值除以 20 保存为 `Channels`；源数据没有脉冲频率，使用默认 20 Hz |
 | 郊狼公开呼吸／潮汐示例 | 2 条，48／92 个采样 | 周期毫秒转换为 `1000 / period` Hz；幅度除以 100，`Level=1`；每组 100 ms 展开为四个 25 ms 采样 |
 
-原应用 22 条数据共 1,379 帧，2026-11-06 经授权核对系统列表接口取得，未收录用户分享波形。f2 及其他设备分类当时未返回系统波形。郊狼两条示例来自厂商的 [V3 波形示例](https://github.com/dungeonlab-open/dglab-bluetooth-protocol/blob/main/coyote/v3/example_cn.md)，不代表其应用全部系统波形。总计 24 条、1,519 帧，均不可删除或覆盖，可复制后编辑。
+原系统数据共 22 条（1,379 帧），未收录用户分享波形及 f2 分类波形。郊狼两条示例来自厂商的 [V3 波形示例](https://github.com/dungeonlab-open/dglab-bluetooth-protocol/blob/main/coyote/v3/example_cn.md)，不代表其全部系统波形。总计 24 条、1,519 帧，均不可删除或覆盖，可复制后编辑。
 
 YOKONEX 频率和脉冲时间单位依据厂商 [V1／V2 蓝牙文档](https://github.com/YCY-YOKONEX/YCY-YOKONEX-OpenSource/tree/main/Bluetooth)。波形数据内置，无需登录或联网，应用不读取本地参考账号凭据。
 
@@ -62,4 +62,4 @@ YOKONEX 频率和脉冲时间单位依据厂商 [V1／V2 蓝牙文档](https://g
 
 `presets.json` 仅保存统一格式的自定义波形，玩法只引用波形 ID；不保存按设备转换的副本。配置和会话存储继续使用紧凑 JSON，导出文件可以缩进便于编辑。
 
-工作区升级为 Schema 6。开发阶段不迁移 Schema 1–5，读取时只重置已知应用数据文件，保留同目录其他文件。旧导出需要重新制作为统一格式。参考 APK、原始 PDF、提取源码、研究脚本和账号凭据始终留在 Git 忽略的本地目录。
+工作区使用 Schema 6。开发阶段不迁移旧版 Schema，格式不匹配时只重置已知应用数据文件，保留同目录其他文件。导入导出统一使用当前格式。参考 APK、原始 PDF、提取源码、研究脚本和账号凭据始终留在 Git 忽略的本地目录。

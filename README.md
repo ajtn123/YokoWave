@@ -2,7 +2,7 @@
 
 面向 YOKONEX 使用场景重新设计的跨平台设备工作台。使用 **.NET 10 + Avalonia 12**，首版聚焦多设备管理、双通道控制和波形管理。
 
-支持本地模拟及 **Windows 原生 BLE 连接**：YOKONEX 电击器、震动器、灌肠机，郊狼 V2／V3、负鼠，以及爪印 V1.1／灵猫输入设备。各型号使用独立协议驱动和特征白名单，设备能力限制玩法与波形选择。新增型号目前通过协议与 GATT 替身测试，郊狼 V3 实机验证按用户安排稍后进行；此前 `YCY-DJ` 已验证连接、归零与状态读取，并获用户运行可用反馈。支持矩阵和限制见 [蓝牙说明](docs/bluetooth.md)。
+支持本地模拟及 **Windows 原生 BLE 连接**：YOKONEX 电击器、震动器、灌肠机，郊狼 V2／V3、负鼠，以及爪印 V1.1／灵猫输入设备。各型号使用独立协议驱动和特征白名单，设备能力限制玩法与波形选择。支持矩阵和限制见 [蓝牙说明](docs/bluetooth.md)。
 
 ## 运行
 
@@ -13,7 +13,7 @@ dotnet restore YokoWave.slnx
 dotnet run --project src/YokoWave.Desktop
 ```
 
-Windows、macOS 和 Linux 共用同一个桌面入口。真实 BLE 后端目前支持 Windows 10 2004 及以上；macOS、Linux 可运行模拟模式，尚未接入原生蓝牙、也未进行实机验证。Android、iOS 不在本次交付范围内。
+Windows、macOS 和 Linux 共用同一个桌面入口。真实 BLE 后端目前支持 Windows 10 2004 及以上；macOS、Linux 可运行模拟模式，尚未接入原生蓝牙、也未进行实机验证。暂不支持 Android 与 iOS。
 
 ## 使用
 
@@ -50,7 +50,7 @@ Windows、macOS 和 Linux 共用同一个桌面入口。真实 BLE 后端目前�
 
 应用图标的矢量源为 `src/YokoWave.App/Assets/YokoWave.svg`；同目录的多尺寸 `YokoWave.ico` 同时用于桌面窗口和 Windows EXE，普通构建即可嵌入图标。
 
-数据目录默认为 `LocalApplicationData/YokoWave/`，准确路径显示在设置页，也可用 `YOKOWAVE_DATA_DIR` 指定。`workspace.json` 只存版本与基础累计统计，全局设置存入 `settings.json`，自定义波形存入 `presets.json`，玩法类型、参数、目标标识和播放列表顺序存入 `modes.json`；这些文件均为紧凑 JSON。玩法预设会恢复，但不会自动连接设备、打开音频输入或启动输出。会话逐条写入 `sessions.jsonl`，每个文件最大 128 KiB，仅保留一个滚动旧文件 `sessions.1.jsonl`。历史列表显示两份日志中仍保留的记录，累计统计不会随滚动减少。开发阶段不迁移旧格式，读取到 Schema 1–5 时重置应用数据文件，不删除其他文件。
+数据目录默认为 `LocalApplicationData/YokoWave/`，准确路径显示在设置页，也可用 `YOKOWAVE_DATA_DIR` 指定。`workspace.json` 只存版本与基础累计统计，全局设置存入 `settings.json`，自定义波形存入 `presets.json`，玩法类型、参数、目标标识和播放列表顺序存入 `modes.json`；这些文件均为紧凑 JSON。玩法预设会恢复，但不会自动连接设备、打开音频输入或启动输出。会话逐条写入 `sessions.jsonl`，每个文件最大 128 KiB，仅保留一个滚动旧文件 `sessions.1.jsonl`。历史列表显示两份日志中仍保留的记录，累计统计不会随滚动减少。开发阶段不迁移旧数据格式，Schema 不匹配时重置应用数据文件，不删除其他文件。
 
 ## 开发验证
 
