@@ -39,6 +39,59 @@ public static class TestAppBuilder
 public sealed class UiTests
 {
     [AvaloniaFact]
+    public async Task PlaybackButtonRequiresEveryAssignedDeviceAndUpdatesWhenTheModeChanges()
+    {
+        using var folder = new TestFolder();
+        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path));
+        var view = new MainView { DataContext = vm }; var window = new Window { Content = view, Width = 1200, Height = 1000 };
+        try
+        {
+            window.Show(); await WaitForAsync(() => vm.Devices.Count == 5 && !vm.IsScanning);
+            var playback = Find<Button>(view, "PlaybackButton"); var first = vm.SelectedMode;
+            Assert.False(playback.IsEffectivelyEnabled);
+            await vm.ToggleConnectionAsync(vm.Devices[0]);
+            Assert.False(playback.IsEffectivelyEnabled); // Connection alone does not assign the device.
+            first.AssignTarget(vm.Devices[0].Id, true); Dispatcher.UIThread.RunJobs();
+            Assert.True(playback.IsEffectivelyEnabled);
+            first.AssignTarget(vm.Devices[1].Id, true); Dispatcher.UIThread.RunJobs();
+            Assert.False(playback.IsEffectivelyEnabled); // A partially connected target set cannot start.
+            await vm.TogglePlaybackAsync(); Assert.False(first.IsRunning); Assert.True(vm.IsError);
+            await vm.ToggleConnectionAsync(vm.Devices[1]); Dispatcher.UIThread.RunJobs();
+            Assert.True(playback.IsEffectivelyEnabled);
+            await vm.AddModeAsync(ModeKind.Touch); Dispatcher.UIThread.RunJobs();
+            Assert.False(playback.IsEffectivelyEnabled);
+            vm.SelectedMode = first; Dispatcher.UIThread.RunJobs(); Assert.True(playback.IsEffectivelyEnabled);
+            Assert.Equal(0, first.ChannelA); Assert.Equal(0, first.ChannelB);
+            await vm.TogglePlaybackAsync(); Dispatcher.UIThread.RunJobs();
+            Assert.True(first.IsRunning); Assert.True(playback.IsEffectivelyEnabled); // Stop remains available at zero strength.
+            await vm.TogglePlaybackAsync(); Assert.False(first.IsRunning);
+            await vm.ToggleConnectionAsync(vm.Devices[0]); Dispatcher.UIThread.RunJobs();
+            Assert.False(playback.IsEffectivelyEnabled);
+        }
+        finally { window.Close(); }
+    }
+
+    [AvaloniaFact]
+    public async Task ExplicitDisconnectClosesAFailedLinkAndReconnectStartsWithANewConnection()
+    {
+        using var folder = new TestFolder(); var adapter = new FakeBluetoothAdapter();
+        await new WorkspaceStore(folder.Path).SaveAsync(new(5, [], [], new(UseBluetooth: true)));
+        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path),
+            () => new ElectricalBluetoothTransport(adapter));
+        await vm.InitializeAsync(); var device = Assert.Single(vm.Devices); await vm.ToggleConnectionAsync(device);
+        vm.SelectedMode.AssignTarget(device.Id, true); await vm.TogglePlaybackAsync();
+        var oldLink = adapter.Links[device.Id]; oldLink.FailWrites = true;
+        await Assert.ThrowsAsync<LocalizedAggregateException>(() => vm.ToggleConnectionAsync(device));
+        Assert.True(oldLink.Closed); Assert.False(device.IsConnected); Assert.False(vm.IsRunning);
+        Assert.True(vm.SelectedMode.CanEditRouting); Assert.False(vm.PlaybackCommand.CanExecute(null));
+        await vm.ToggleConnectionAsync(device);
+        Assert.NotSame(oldLink, adapter.Links[device.Id]); Assert.True(vm.PlaybackCommand.CanExecute(null));
+        await vm.TogglePlaybackAsync(); Assert.True(vm.IsRunning);
+        Assert.Equal(0, device.OutputA); Assert.Equal(0, device.OutputB);
+        await vm.StopAsync();
+    }
+
+    [AvaloniaFact]
     public async Task GroupedDevicesHaveOneModeEvenWhileIdleAndUseTypeSpecificControls()
     {
         using var folder = new TestFolder();
@@ -129,7 +182,10 @@ public sealed class UiTests
         Assert.False(restored.IsRunning);
         while (restored.SelectedMode.Playlist.Count > 0) restored.SelectedMode.Playlist[0].RemoveCommand.Execute(null);
         Assert.Null(restored.SelectedPreset);
-        await Assert.ThrowsAnyAsync<InvalidOperationException>(restored.TogglePlaybackAsync);
+        await restored.ToggleConnectionAsync(restored.Devices.Single(device => restored.SelectedMode.TargetIds.Contains(device.Id)));
+        Assert.False(restored.PlaybackCommand.CanExecute(null));
+        await restored.TogglePlaybackAsync(); Assert.False(restored.IsRunning);
+        Assert.True(restored.IsError); Assert.Equal(L10n.Get("Error.EmptyPlaylist"), restored.Status);
     }
 
     [AvaloniaFact]
@@ -167,7 +223,8 @@ public sealed class UiTests
         Assert.Equal(15, transport.Outputs[vm.Devices[3].Id].ChannelA);
         await vm.AddModeAsync(true); var fourth = vm.SelectedMode;
         Assert.ThrowsAny<InvalidOperationException>(() => fourth.AssignTarget(vm.Devices[1].Id, true));
-        await Assert.ThrowsAnyAsync<InvalidOperationException>(fourth.TogglePlaybackAsync);
+        await fourth.TogglePlaybackAsync(); Assert.False(fourth.IsRunning);
+        Assert.True(vm.IsError); Assert.Equal(L10n.Get("Error.SelectConnected"), vm.Status);
         Assert.True(second.IsRunning); Assert.Equal(40, transport.Outputs[vm.Devices[1].Id].ChannelA);
         await vm.NavigateAsync("workspace");
         vm.SelectedMode = third;

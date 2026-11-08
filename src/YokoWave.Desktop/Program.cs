@@ -9,7 +9,12 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
-        if (args.Contains("--bluetooth-probe")) return ProbeAsync(args.Contains("--connect")).GetAwaiter().GetResult();
+        if (args.Contains("--bluetooth-probe"))
+        {
+            var audioIndex = Array.IndexOf(args, "--zero-audio");
+            var probeAudioPath = audioIndex >= 0 && audioIndex + 1 < args.Length ? args[audioIndex + 1] : null;
+            return ProbeAsync(args.Contains("--connect"), probeAudioPath).GetAwaiter().GetResult();
+        }
         if (args is ["--audio-probe", var audioPath]) return AudioProbeAsync(audioPath).GetAwaiter().GetResult();
         App.App.BluetoothAdapterFactory = BluetoothAdapterProvider.Create;
         App.App.AudioInputFactory = new Audio.MiniAudioInputFactory();
@@ -39,7 +44,7 @@ internal static class Program
         catch (Exception error) { Console.Error.WriteLine(error); return 1; }
     }
 
-    private static async Task<int> ProbeAsync(bool connect)
+    private static async Task<int> ProbeAsync(bool connect, string? audioPath)
     {
         try
         {
@@ -61,16 +66,38 @@ internal static class Program
             }
             if (connect && devices.Count == 1)
             {
-                await transport.ConnectAsync(devices[0], timeout.Token);
+                await using var controller = new Core.DeviceController(transport);
+                await controller.ConnectAsync(devices[0], timeout.Token);
                 Console.WriteLine("Connected; device confirmed both outputs disabled.");
+                if (audioPath is not null)
+                {
+                    for (var cycle = 0; cycle < 5; cycle++)
+                    {
+                        await using var input = await new Audio.MiniAudioInputFactory().StartAsync(
+                            new(Core.AudioSourceKind.MediaFile, audioPath, PlaybackVolume: 0), timeout.Token);
+                        var engine = new Core.SessionEngine(controller) { ChannelA = 0, ChannelB = 0 };
+                        try
+                        {
+                            await engine.StartAsync([devices[0].Id], Core.DefaultWaveformCatalog.Presets[0], TimeSpan.FromSeconds(2), new(Kind: Core.ModeKind.Audio));
+                            for (var tick = 1; tick <= 5; tick++)
+                            {
+                                await Task.Delay(100, timeout.Token);
+                                await engine.SetAudioFrameAsync(input.Latest);
+                                await engine.AdvanceAsync(TimeSpan.FromMilliseconds(tick * 100));
+                            }
+                        }
+                        finally { await engine.StopAsync(); }
+                        Console.WriteLine($"Zero-strength audio session {cycle + 1}: started and stopped; no nonzero output sent.");
+                    }
+                }
                 await Task.Delay(1500, timeout.Token);
-                await transport.DisconnectAsync(devices[0].Id, timeout.Token);
+                await controller.DisconnectAsync(devices[0].Id, timeout.Token);
             }
             return 0;
         }
         catch (Exception error)
         {
-            Console.Error.WriteLine(error.Message);
+            Console.Error.WriteLine(error);
             foreach (System.Collections.DictionaryEntry detail in error.Data) Console.Error.WriteLine($"{detail.Key}: {detail.Value}");
             return 1;
         }

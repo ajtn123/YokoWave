@@ -60,7 +60,7 @@ public sealed partial class PlaybackModeViewModel
         if (_playlistCandidate is { } candidate && !PlaylistCandidates.Contains(candidate)) _playlistCandidate = null;
         Raise(nameof(PlaylistCandidates)); Raise(nameof(PlaylistCandidate)); Raise(nameof(HasPlaylist));
         if (UsesCustomPlaylist && (Playlist.Count == 0 || Playlist.All(entry => entry.Id != SelectedPreset?.Preset.Id))) SelectedPreset = Playlist.FirstOrDefault()?.Preset;
-        Raise(nameof(PlaybackPresets)); Raise(nameof(SelectedPreset)); Raise(nameof(PlaylistHelp));
+        Raise(nameof(PlaybackPresets)); Raise(nameof(SelectedPreset)); Raise(nameof(PlaylistHelp)); Raise(nameof(CanStart));
         RefreshPlaylistCommands();
     }
     private void RefreshPlaylistCommands()

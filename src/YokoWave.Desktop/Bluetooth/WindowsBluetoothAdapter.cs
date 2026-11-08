@@ -1,6 +1,7 @@
 #if WINDOWS
 using System.Collections.Concurrent;
 using System.Globalization;
+using System.Diagnostics;
 using Windows.Devices.Bluetooth;
 using Windows.Devices.Bluetooth.Advertisement;
 using Windows.Devices.Bluetooth.GenericAttributeProfile;
@@ -92,8 +93,9 @@ internal sealed class WindowsBluetoothAdapter : IBluetoothAdapter
             var notifications = await service.GetCharacteristicsForUuidAsync(V1Protocol.NotifyCharacteristic, BluetoothCacheMode.Uncached).AsTask(token);
             var write = writes.Characteristics.FirstOrDefault();
             var notify = notifications.Characteristics.FirstOrDefault();
+            Diagnostic?.Invoke($"GATT: write={write?.CharacteristicProperties}, notify={notify?.CharacteristicProperties}, MTU={session?.MaxPduSize}");
             if (writes.Status != GattCommunicationStatus.Success || notifications.Status != GattCommunicationStatus.Success ||
-                write is null || notify is null || !write.CharacteristicProperties.HasFlag(GattCharacteristicProperties.WriteWithoutResponse) ||
+                write is null || notify is null || (write.CharacteristicProperties & (GattCharacteristicProperties.WriteWithoutResponse | GattCharacteristicProperties.Write)) == 0 ||
                 !notify.CharacteristicProperties.HasFlag(GattCharacteristicProperties.Notify))
                 throw new LocalizedOperationException("Error.BluetoothService");
             connection = new(device, service, session, write, notify);
@@ -116,8 +118,9 @@ internal sealed class WindowsBluetoothConnection : IBluetoothConnection
     private readonly GattSession? _session;
     private readonly GattCharacteristic _write;
     private readonly GattCharacteristic _notify;
-    private bool _ready;
-    private bool _closed;
+    private readonly SemaphoreSlim _writeGate = new(1, 1);
+    private volatile bool _ready;
+    private volatile bool _closed;
     public event Action<byte[]>? NotificationReceived;
     public event Action? Disconnected;
 
@@ -154,49 +157,75 @@ internal sealed class WindowsBluetoothConnection : IBluetoothConnection
 
     public async Task WriteAsync(byte[] packet, CancellationToken ct)
     {
-        if (_closed || !_ready) throw new LocalizedIOException("Error.BluetoothDisconnected");
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeout.CancelAfter(TimeSpan.FromSeconds(3));
-        using var writer = new DataWriter();
-        writer.WriteBytes(packet);
+        await _writeGate.WaitAsync(ct);
+        var properties = GattCharacteristicProperties.None;
+        ushort mtu = 23;
         try
         {
-            var status = await _write.WriteValueAsync(writer.DetachBuffer(), GattWriteOption.WriteWithoutResponse).AsTask(timeout.Token);
-            if (status != GattCommunicationStatus.Success)
+            if (_closed || !_ready || _device.ConnectionStatus != BluetoothConnectionStatus.Connected)
+                throw new LocalizedIOException("Error.BluetoothDisconnected");
+            properties = _write.CharacteristicProperties;
+            mtu = _session?.MaxPduSize ?? 23;
+            var option = properties.HasFlag(GattCharacteristicProperties.WriteWithoutResponse)
+                ? GattWriteOption.WriteWithoutResponse : GattWriteOption.WriteWithResponse;
+            var maxPayload = Math.Max(20, mtu - 3);
+            if (packet.Length == 0 || packet.Length > maxPayload) throw new LocalizedIOException("Error.BluetoothWrite");
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeout.CancelAfter(TimeSpan.FromSeconds(3));
+            using var writer = new DataWriter(); writer.WriteBytes(packet);
+            var buffer = writer.DetachBuffer();
+            try
             {
-                var error = new LocalizedIOException("Error.BluetoothWrite");
-                error.Data["GattStatus"] = status; throw error;
+                var result = await _write.WriteValueWithResultAsync(buffer, option).AsTask(timeout.Token);
+                if (result.Status != GattCommunicationStatus.Success)
+                {
+                    var error = new LocalizedIOException("Error.BluetoothWrite");
+                    error.Data["GattStatus"] = result.Status;
+                    error.Data["GattProtocolError"] = result.ProtocolError;
+                    throw error;
+                }
             }
+            finally { GC.KeepAlive(buffer); }
         }
         catch (ArgumentException error)
         {
             var failure = new LocalizedIOException("Error.BluetoothWrite", error);
-            failure.Data["Operation"] = "GattWriteWithoutResponse";
+            failure.Data["Operation"] = "GattWriteValueWithResult";
             failure.Data["PacketLength"] = packet.Length;
+            failure.Data["HResult"] = $"0x{error.HResult:X8}";
+            failure.Data["CharacteristicProperties"] = properties;
+            failure.Data["MTU"] = mtu;
+            Trace.TraceError("GATT write failed: HRESULT=0x{0:X8}, bytes={1}, properties={2}, MTU={3}", error.HResult, packet.Length, properties, mtu);
             throw failure;
         }
+        finally { _writeGate.Release(); }
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (_closed) return;
-        _closed = true;
-        _notify.ValueChanged -= OnValueChanged;
-        _device.ConnectionStatusChanged -= OnConnectionChanged;
+        await _writeGate.WaitAsync();
         try
         {
-            if (_device.ConnectionStatus == BluetoothConnectionStatus.Connected)
+            if (_closed) return;
+            _closed = true; _ready = false;
+            _notify.ValueChanged -= OnValueChanged;
+            _device.ConnectionStatusChanged -= OnConnectionChanged;
+            try
             {
-                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-                await _notify.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.None).AsTask(timeout.Token);
+                if (_device.ConnectionStatus == BluetoothConnectionStatus.Connected)
+                {
+                    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+                    await _notify.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.None).AsTask(timeout.Token);
+                }
+            }
+            catch { /* Always release native handles, even after a radio loss. */ }
+            finally
+            {
+                try { if (_session is not null) { _session.MaintainConnection = false; _session.Dispose(); } }
+                finally { try { _service.Dispose(); } finally { _device.Dispose(); } }
             }
         }
-        catch { /* Always release native handles, even after a radio loss. */ }
-        finally
-        {
-            if (_session is not null) { _session.MaintainConnection = false; _session.Dispose(); }
-            _service.Dispose(); _device.Dispose();
-        }
+        finally { _writeGate.Release(); }
     }
 }
 #endif

@@ -192,7 +192,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         SettingsCommand = new AsyncCommand(() => NavigateAsync("settings"), ShowError);
         HelpCommand = new AsyncCommand(() => NavigateAsync("help"), ShowError);
         ScanCommand = new AsyncCommand(ScanAsync, ShowError);
-        PlaybackCommand = new AsyncCommand(TogglePlaybackAsync, ShowError, () => SelectedMode.IsRunning || SelectedMode.CanEditRouting);
+        PlaybackCommand = new AsyncCommand(TogglePlaybackAsync, ShowError, () => SelectedMode.IsRunning || SelectedMode.CanStart);
         EmergencyStopCommand = new AsyncCommand(() => StopAllModesAsync("Reason.AllStopped"), ShowError);
         SaveWaveCommand = new AsyncCommand(SaveWaveAsync, ShowError); NewWaveCommand = new ActionCommand(NewWave); EditWaveCommand = new ActionCommand(EditWave);
         DeleteWaveCommand = new AsyncCommand(DeleteWaveAsync, ShowError, () => LibrarySelectedPreset is { IsBuiltIn: false } selected && !Modes.Any(mode => mode.UsesWaveform(selected.Preset.Id)));
@@ -325,8 +325,14 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     {
         if (device.IsConnected)
         {
-            await StopModesForDeviceAsync(device.Id, "Reason.ConnectionChanged");
-            await _controller.DisconnectAsync(device.Id); Notify("Status.Disconnected", device.Name);
+            List<Exception> errors = [];
+            try { await StopModesForDeviceAsync(device.Id, "Reason.ConnectionChanged"); }
+            catch (Exception error) { errors.Add(error); }
+            try { await _controller.DisconnectAsync(device.Id); }
+            catch (Exception error) { errors.Add(error); }
+            finally { RefreshDevices(); }
+            if (errors.Count > 0) throw new LocalizedAggregateException("Error.StopUnconfirmed", errors);
+            Notify("Status.Disconnected", device.Name);
         }
         else
         {
@@ -476,6 +482,10 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             _ => new(exception.Message, [], true)
         };
         IsError = true; Raise(nameof(Status)); Log(_status);
+    }
+    internal void ShowValidationError(string key)
+    {
+        _status = new(key, []); IsError = true; Raise(nameof(Status)); Log(_status);
     }
     public void Notify(string key, params object?[] arguments)
     {

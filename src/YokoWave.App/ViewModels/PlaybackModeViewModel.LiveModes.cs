@@ -105,7 +105,7 @@ public sealed partial class PlaybackModeViewModel
     {
         if (!CanEditRouting) return;
         var next = change(_reactiveSettings); next.Validate(); _reactiveSettings = next;
-        Raise(property);
+        Raise(property); Raise(nameof(CanStart));
         foreach (var name in new[] { nameof(IsRandomSleep), nameof(UsesMotion), nameof(ShowSimulationInput), nameof(MaximumIntervalSeconds), nameof(MaximumBurstSeconds), nameof(MaximumStrengthPercent) }) Raise(name);
     }
     private async Task StartAudioAsync()

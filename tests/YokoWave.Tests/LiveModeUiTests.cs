@@ -152,7 +152,9 @@ public sealed class LiveModeUiTests
         using var folder = new TestFolder(); var factory = new FakeAudioInputFactory { BlockStart = true };
         await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path), audioInputFactory: factory);
         await vm.InitializeAsync(); await vm.AddModeAsync(ModeKind.Audio);
-        await Assert.ThrowsAnyAsync<InvalidOperationException>(vm.TogglePlaybackAsync); Assert.Empty(factory.Requests);
+        Assert.False(vm.PlaybackCommand.CanExecute(null));
+        await vm.TogglePlaybackAsync(); Assert.Empty(factory.Requests);
+        Assert.False(vm.IsRunning); Assert.True(vm.IsError); Assert.Equal(L10n.Get("Error.SelectConnected"), vm.Status);
         await vm.ToggleConnectionAsync(vm.Devices[0]); vm.SelectedMode.AssignTarget(vm.Devices[0].Id, true);
         var start = vm.TogglePlaybackAsync(); await factory.Entered.Task;
         await vm.StopAllModesAsync(); await start;

@@ -35,6 +35,11 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
     public bool CanEditRouting => !IsRunning && !_starting && !IsCalibrating && !_targets.Any(id => _controller.DeviceOwner(id) == Id);
     public bool UsesWaveform(Guid id) => _engine.UsesWaveform(id) || IsRunning && SupportsPlaylist && Playlist.Any(entry => entry.Id == id);
     public bool SelectedConnected => _targets.Any(_controller.Connections.ContainsKey);
+    public bool CanStart => CanEditRouting && StartValidationError is null;
+    private string? StartValidationError => _targets.Count == 0 || _targets.Any(id => !_controller.Connections.ContainsKey(id))
+        ? "Error.SelectConnected"
+        : (UsesCustomPlaylist || IsSleep && IsRandomSleep) && !HasPlaylist ? "Error.EmptyPlaylist"
+        : UsesWaveforms && !UsesCustomPlaylist && SelectedPreset is null ? "Error.SelectWave" : null;
     public bool HasChannelB => _targets.Count == 0 || _targets.Any(id => _controller.Connections.TryGetValue(id, out var connection) && connection.Device.Kind == DeviceKind.DualChannel);
     public bool HasElectrodeReadings => _host.IsBluetooth && _host.SelectedConnected && ShowContacts;
     public string RoutingSummary => L10n.Format("Mode.TargetCount", _targets.Count);
@@ -69,7 +74,7 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
         {
             if (UsesCustomPlaylist && (value is null ? Playlist.Count > 0 : Playlist.All(entry => entry.Id != value.Preset.Id))) { Raise(nameof(SelectedPreset)); return; }
             if (!Set(ref _selectedPreset, value)) return;
-            Raise(nameof(PresetSummary)); Raise(nameof(SelectedPresetName)); Raise(nameof(SelectedWaveform)); DeleteWaveCommand.NotifyCanExecuteChanged();
+            Raise(nameof(PresetSummary)); Raise(nameof(SelectedPresetName)); Raise(nameof(SelectedWaveform)); Raise(nameof(CanStart)); DeleteWaveCommand.NotifyCanExecuteChanged();
             if (IsRunning && UsesWaveforms) _ = GuardAsync(() => ApplySelectedWaveformAsync(value));
         }
     }
@@ -151,7 +156,7 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
             if (item is null) Targets.Add(new(this, id)); else item.Refresh();
         }
         foreach (var property in new[] { nameof(SelectedConnected), nameof(HasChannelB), nameof(RoutingSummary), nameof(SelectedOutputALabel), nameof(SelectedOutputBLabel) }) Raise(property);
-        Raise(nameof(HasTargets));
+        Raise(nameof(HasTargets)); Raise(nameof(CanStart));
     }
     internal DeviceItem? Device(string id) => _host.Devices.FirstOrDefault(device => device.Id == id);
     internal async Task SelectDeviceAsync(string id)
@@ -170,8 +175,10 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
     {
         if (_starting || IsCalibrating) return;
         if (IsRunning) { await StopAsync(); return; }
-        if (_targets.Count == 0 || _targets.Any(id => !_controller.Connections.ContainsKey(id))) throw new LocalizedOperationException("Error.SelectConnected");
-        if (UsesWaveforms && !UsesCustomPlaylist && SelectedPreset is null) throw new LocalizedOperationException("Error.SelectWave");
+        if (StartValidationError is { } validationError)
+        {
+            _host.ShowValidationError(validationError); return;
+        }
         var program = CreateSessionProgram();
         var waveform = !UsesWaveforms ? Presets.First(item => item.Preset.Family == WaveformFamily.Electrical).Preset
             : UsesCustomPlaylist

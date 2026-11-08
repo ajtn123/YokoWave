@@ -9,7 +9,7 @@
 | `YYC-DJ` | 旧版 V1 | 单通道配置；参数相同时合并为 AB 控制 |
 | `YCY-DJ`、`YYC-DJV2`、`YYC-DJ-V2` | 新版 V2 | 实时模式，一个包包含 A / B 配置 |
 
-广播名和产品代际不应混为一谈。两种线协议共用 FF30 服务、FF31 无响应写入特征、FF32 通知特征；连接时会核对 UUID 和特征权限，不通过枚举到的任意可写特征发送数据。当前只接受表中的已知广播名。
+广播名和产品代际不应混为一谈。两种线协议共用 FF30 服务、FF31 写入特征、FF32 通知特征；连接时会核对 UUID 和特征权限，不通过枚举到的任意可写特征发送数据。优先选择特征支持的无响应写入，仅支持响应写入时使用对应模式。当前只接受表中的已知广播名。
 
 协议依据：[厂商开源蓝牙协议目录](https://github.com/YCY-YOKONEX/YCY-YOKONEX-OpenSource/tree/main/Bluetooth)、[V1 文档](https://github.com/YCY-YOKONEX/YCY-YOKONEX-OpenSource/blob/main/Bluetooth/%E7%94%B5%E5%87%BB%E5%99%A8%E4%B8%80%E4%BB%A3.pdf)、[V2 文档](https://github.com/YCY-YOKONEX/YCY-YOKONEX-OpenSource/blob/main/Bluetooth/%E7%94%B5%E5%87%BB%E5%99%A8%E4%BA%8C%E4%BB%A3.pdf)。Windows API 使用方式见 [Microsoft GATT Client](https://learn.microsoft.com/en-us/windows/apps/develop/devices-sensors/gatt-client)。实现是独立编写的 C# 编码器；参考 APK、提取源码和原始 PDF 保留在 Git 忽略的研究目录。
 
@@ -25,6 +25,8 @@
 - 感应玩法使用 `35 14 01 4A` 开启角度上报，停止时发送 `35 14 00 49`。`35 71 06` 包中的有符号加速度数据换算为倾斜量，`35 71 05` 计步通知作为可选活动读数；长度、校验、零向量及新鲜度均需有效。没有新鲜传感器数据时归零，不根据经过时间伪造读数。该输入链路已用 GATT 替身验证，尚待对应实机确认。
 - 控制命令串行执行，同一设备同时只允许一个运行中的玩法写入；暂停期间保留占用。停止或计时结束只关闭该玩法目标，页面、查看设备与选中玩法切换不会中断其他玩法。全部停止、Esc、切换设备来源及关闭应用会停止所有玩法。设备拒绝指令后禁止继续发送非零输出，但仍允许关闭指令；同一故障只上报一次。
 - 意外断连会释放连接并停止所属玩法的其他目标，不影响独立运行的其他玩法，不会自动恢复输出。已经失联的设备无法继续接收关闭指令，也无法确认其物理输出。
+- Windows 写入使用 [WriteValueWithResultAsync](https://learn.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.genericattributeprofile.gattcharacteristic.writevaluewithresultasync)，记录系统状态与 ATT 协议错误；按协商 MTU 检查包长，并串行执行原生写入和资源释放。异常保留内部堆栈，参数异常会额外输出 HRESULT、包长、权限及 MTU。
+- 无设备归属或任一目标未连接时禁用开始按钮；两路 0% 仍可开始。停止未确认会保留玩法占用；用户主动断开时，即使停止写入失败，也继续释放旧 GATT 连接并报告未确认状态，以便重新连接。重连不会恢复旧会话。
 
 ## 使用与诊断
 
@@ -44,6 +46,14 @@ dotnet run --project src/YokoWave.Desktop -- --bluetooth-probe --connect
 
 诊断模式不会发送非零强度。多台设备需通过界面选择，不自动猜选。扫描未发现设备时，先检查开机、距离、系统蓝牙和其他应用是否仍持有连接。
 
+用本地音频重复验证五次静音媒体初始化、归零、零强度声控会话及停止：
+
+```sh
+dotnet run --project src/YokoWave.Desktop -- --bluetooth-probe --connect --zero-audio /path/to/audio.wav
+```
+
+此检查将扬声器音量和 A/B 强度固定为 0%，不使用应用保存的强度配置。
+
 Windows 桌面目标会自动使用 `net10.0-windows10.0.19041.0`；非 Windows RID 仍使用通用 `net10.0`。需要在 Windows 上构建通用模拟入口时可设置 `-p:YokoWaveWindowsBluetooth=false`。这只是构建选择，不会给非 Windows 平台增加原生蓝牙能力。
 
 ## 验证记录
@@ -51,5 +61,7 @@ Windows 桌面目标会自动使用 `net10.0-windows10.0.19041.0`；非 Windows 
 2026-11-07：在 Windows 上实际发现并连接 `YCY-DJ`，读取到电量 82%、A / B 电极未接入，且设备明确回报两路输出关闭，之后主动断开。未发送非零强度，因此尚未验证实际刺激输出、强度标定或长时间硬件播放。旧版 `YYC-DJ` 编码器通过协议测试，尚无旧版实机验证。
 
 用户随后反馈实机运行可用。后续定时、动态波形切换与存储调整通过模拟传输和 GATT 替身测试，开发验证没有自动发送非零硬件输出。
+
+2026-11-07：针对 Windows GATT 参数异常，实机确认 `YCY-DJ` 的 FF31 权限为 `WriteWithoutResponse`、FF32 为 `Notify`，协商 MTU 为 512。修改后的写入路径完成五轮静音媒体与零强度会话，设备持续回报两路关闭。原始间歇性异常未在这些检查中复现，不能据此确认其唯一根因。
 
 自动测试使用假的 GATT 链路核对精确控制包、关闭确认、校验与范围、连接失败释放、故障锁定、后台通知到 UI 的调度、设备来源保存与恢复，以及断连只停止所属玩法的目标、其他玩法继续输出。测试中的非零强度仅写入内存链路。
