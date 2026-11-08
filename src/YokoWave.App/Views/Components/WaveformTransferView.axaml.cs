@@ -17,7 +17,8 @@ public sealed partial class WaveformTransferView : UserControl
         {
             var files = await storage.OpenFilePickerAsync(new()
             {
-                Title = L10n.Get("Dialog.Import"), AllowMultiple = false,
+                Title = L10n.Get("Dialog.Import"),
+                AllowMultiple = false,
                 FileTypeFilter = [new(L10n.Get("Dialog.Json")) { Patterns = ["*.json"] }]
             });
             if (files.Count == 0) return;
@@ -40,8 +41,10 @@ public sealed partial class WaveformTransferView : UserControl
         {
             var file = await storage.SaveFilePickerAsync(new()
             {
-                Title = L10n.Get("Dialog.Export"), SuggestedFileName = "yokowave-presets.json",
-                DefaultExtension = "json", FileTypeChoices = [new(L10n.Get("Dialog.Json")) { Patterns = ["*.json"] }]
+                Title = L10n.Get("Dialog.Export"),
+                SuggestedFileName = "yokowave-presets.json",
+                DefaultExtension = "json",
+                FileTypeChoices = [new(L10n.Get("Dialog.Json")) { Patterns = ["*.json"] }]
             });
             if (file is null) return;
             await using var stream = await file.OpenWriteAsync();
