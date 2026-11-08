@@ -12,6 +12,14 @@
     <Setter Property="AreaBrush" Value="{DynamicResource AccentAreaBrush}" />
     <Setter Property="PlayheadBrush" Value="{DynamicResource TextPrimaryBrush}" />
   </Style>
+  <Style Selector="controls|ElectricalPad">
+    <Setter Property="PadBrush" Value="{DynamicResource InputBrush}" />
+    <Setter Property="GridBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="CursorBrush" Value="{DynamicResource AccentTextBrush}" />
+    <Setter Property="CursorRadius" Value="{DynamicResource Size.PadCursorRadius}" />
+    <Setter Property="Height" Value="{DynamicResource Size.ChartHeight}" />
+    <Setter Property="ClipToBounds" Value="True" />
+  </Style>
   <Style Selector="Window">
     <Setter Property="Background" Value="{DynamicResource CanvasBrush}" />
     <Setter Property="FontFamily" Value="{DynamicResource FontFamily.Ui}" />

@@ -1,0 +1,79 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:YokoWave.App.ViewModels" xmlns:l="using:YokoWave.App.Localization"
+             x:Class="YokoWave.App.Views.Components.ModeDeviceListView" x:DataType="vm:MainViewModel">
+  <StackPanel Classes="items">
+    <Grid ColumnDefinitions="*,Auto" Classes="columns">
+      <TextBlock Text="{l:Loc Mode.Devices}" Classes="section-title" VerticalAlignment="Center" />
+      <Button Grid.Column="1" x:Name="ScanButton" Content="{Binding ScanLabel}" Command="{Binding ScanCommand}" Classes="small" />
+    </Grid>
+    <ItemsControl x:Name="ModeGroups" ItemsSource="{Binding Modes}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:PlaybackModeViewModel">
+          <Border Classes="list-item card compact mode-group" Classes.active="{Binding IsSelected}">
+            <StackPanel Classes="items">
+              <Button Command="{Binding SelectCommand}" Classes="mode-select">
+                <StackPanel Classes="field">
+                  <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" Classes="small emphasis" />
+                  <Grid ColumnDefinitions="*,Auto" Classes="columns">
+                    <TextBlock Text="{Binding KindLabel}" Classes="muted caption" />
+                    <TextBlock Grid.Column="1" Text="{Binding SessionState}" Classes="accent caption" />
+                  </Grid>
+                </StackPanel>
+              </Button>
+              <ItemsControl ItemsSource="{Binding Targets}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ModeTargetItem">
+                    <Border Classes="list-item device-card" Classes.active="{Binding IsSelected}">
+                      <StackPanel Classes="field">
+                        <Button Classes="device" Command="{Binding SelectCommand}">
+                          <StackPanel Classes="field">
+                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" Classes="small emphasis" />
+                            <TextBlock Text="{Binding Status}" ToolTip.Tip="{Binding Status}" TextTrimming="CharacterEllipsis" Classes="muted caption" />
+                          </StackPanel>
+                        </Button>
+                        <Grid ColumnDefinitions="*,Auto" Classes="columns" Margin="{DynamicResource Margin.DeviceActions}">
+                          <Button Content="{l:Loc Mode.Detach}" Command="{Binding DetachCommand}" Classes="small" />
+                          <Button Grid.Column="1" Content="{Binding ConnectionAction}" Command="{Binding ConnectCommand}"
+                                  Classes="small connection-action" Classes.primary="{Binding !IsConnected}" Classes.danger="{Binding IsConnected}" />
+                        </Grid>
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock Text="{l:Loc Mode.NoDevices}" IsVisible="{Binding !HasTargets}" Classes="muted caption help" />
+            </StackPanel>
+          </Border>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+    <Button Content="{l:Loc Mode.AddWave}" Command="{Binding AddWaveModeCommand}" Classes="small" HorizontalAlignment="Stretch" />
+    <Button Content="{l:Loc Mode.AddTouch}" Command="{Binding AddTouchModeCommand}" Classes="small" HorizontalAlignment="Stretch" />
+    <TextBlock Text="{l:Loc Mode.Unassigned}" Classes="small emphasis" />
+    <ItemsControl x:Name="UnassignedDeviceList" ItemsSource="{Binding UnassignedDevices}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:DeviceItem">
+          <Border Classes="list-item device-card" Classes.active="{Binding IsSelected}">
+            <StackPanel Classes="field">
+              <Button Classes="device" Command="{Binding SelectCommand}">
+                <Grid ColumnDefinitions="Auto,*" Classes="columns">
+                  <TextBlock Text="{Binding Symbol}" Classes="icon accent" VerticalAlignment="Center" />
+                  <StackPanel Grid.Column="1" Classes="field">
+                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" Classes="small emphasis" />
+                    <TextBlock Text="{Binding Status}" Classes="muted caption" />
+                  </StackPanel>
+                </Grid>
+              </Button>
+              <StackPanel Classes="field" Margin="{DynamicResource Margin.DeviceActions}">
+                <Button Content="{l:Loc Mode.Assign}" Command="{Binding AssignCommand}" Classes="small" HorizontalAlignment="Stretch" />
+                <Button Content="{Binding ConnectionAction}" Command="{Binding ConnectCommand}" HorizontalAlignment="Right"
+                        Classes="small connection-action" Classes.primary="{Binding !IsConnected}" Classes.danger="{Binding IsConnected}" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+    <TextBlock Text="{l:Loc Mode.NoUnassigned}" IsVisible="{Binding !HasUnassignedDevices}" Classes="muted caption" />
+  </StackPanel>
+</UserControl>

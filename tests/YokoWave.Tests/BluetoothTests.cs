@@ -51,14 +51,14 @@ public sealed class BluetoothTests
         await using var controller = new DeviceController(new ElectricalBluetoothTransport(adapter));
         var device = Assert.Single(await controller.ScanAsync(TestContext.Current.CancellationToken));
         Assert.Null(device.Battery);
-        await controller.ConnectAsync(device, 40, TestContext.Current.CancellationToken);
+        await controller.ConnectAsync(device, TestContext.Current.CancellationToken);
         var link = adapter.Links[device.Id];
         Assert.Equal(V2Protocol.Stop(), link.Writes[0]);
         Assert.All(link.Writes.Where(p => p[1] == 0x11), packet => Assert.Equal(V2Protocol.Stop(), packet));
         await WaitAsync(() => controller.Connections[device.Id].Device.Battery == 82);
         Assert.Equal(ElectrodeContact.NotConnected, controller.Connections[device.Id].ContactA);
         await controller.SendAsync(device.Id, new(90, 90, 20), TestContext.Current.CancellationToken);
-        Assert.Equal(110, BinaryPrimitives.ReadUInt16BigEndian(link.Writes[^1].AsSpan(3, 2)));
+        Assert.Equal(248, BinaryPrimitives.ReadUInt16BigEndian(link.Writes[^1].AsSpan(3, 2)));
         await controller.DisconnectAsync(device.Id, TestContext.Current.CancellationToken);
         Assert.True(link.Closed);
         Assert.Equal(V2Protocol.Stop(), link.Writes[^1]);
@@ -165,6 +165,8 @@ internal sealed class FakeBluetoothAdapter : IBluetoothAdapter
 
 internal sealed class FakeBluetoothConnection : IBluetoothConnection
 {
+    public bool ReplyToFeatures { get; set; } = true;
+    public bool LightEnabled { get; private set; } = true;
     public bool ReplyToQueries { get; init; }
     public bool FailNextWrite { get; set; }
     public bool FailWrites { get; set; }
@@ -180,10 +182,13 @@ internal sealed class FakeBluetoothConnection : IBluetoothConnection
         if (FailWrites) throw new IOException("Injected disconnected radio");
         if (FailNextWrite) { FailNextWrite = false; throw new IOException("Injected write failure"); }
         Writes.Add(packet.ToArray());
+        if (ReplyToFeatures && packet.SequenceEqual(V2Protocol.QueryVersion())) Notify(V1Protocol.WithChecksum([0x36, 0x13, 1, 2]));
+        if (ReplyToFeatures && packet[1] == 0x15) LightEnabled = packet[2] == 1;
         if (ReplyToQueries && packet[1] == 0x71)
         {
             if (packet[2] == 4) Notify(V1Protocol.WithChecksum([0x35, 0x71, 4, 82]));
             else if (packet[2] is 1 or 2) Notify(V1Protocol.WithChecksum([0x35, 0x71, packet[2], 0, 0, 0, 0, 0]));
+            else if (packet[2] == 7 && ReplyToFeatures) Notify(V1Protocol.WithChecksum([0x35, 0x71, 7, (byte)(LightEnabled ? 1 : 0)]));
         }
         return Task.CompletedTask;
     }

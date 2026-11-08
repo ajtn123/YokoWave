@@ -53,8 +53,8 @@ public sealed class SessionTests
     {
         var transport = new RecordingTransport();
         await using var controller = new DeviceController(transport);
-        await controller.ConnectAsync(new("one", "one", DeviceKind.DualChannel, 90, -40), 30, TestContext.Current.CancellationToken);
-        await controller.ConnectAsync(new("two", "two", DeviceKind.DualChannel, 90, -40), 5, TestContext.Current.CancellationToken);
+        await controller.ConnectAsync(new("one", "one", DeviceKind.DualChannel, 90, -40), TestContext.Current.CancellationToken);
+        await controller.ConnectAsync(new("two", "two", DeviceKind.DualChannel, 90, -40), TestContext.Current.CancellationToken);
         var engine = new SessionEngine(controller) { ChannelA = 20, OffsetChannelB = false };
         var completed = 0;
         engine.Completed += (_, _) => completed++;
@@ -73,7 +73,7 @@ public sealed class SessionTests
         Assert.Equal(40, transport.Latest["two"].Frequency);
         await engine.AdvanceAsync(TimeSpan.FromSeconds(2.5));
         Assert.Equal(10, transport.Latest["one"].ChannelA);
-        Assert.Equal(5, transport.Latest["two"].ChannelA);
+        Assert.Equal(10, transport.Latest["two"].ChannelA);
         await engine.AdvanceAsync(TimeSpan.FromSeconds(5));
         Assert.False(engine.IsRunning);
         Assert.Equal(1, completed);

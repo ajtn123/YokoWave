@@ -1,0 +1,17 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:YokoWave.App.ViewModels" xmlns:l="using:YokoWave.App.Localization"
+             x:Class="YokoWave.App.Views.Components.ModeWorkspaceView" x:DataType="vm:MainViewModel">
+  <Border Classes="card compact">
+    <StackPanel Classes="items">
+      <Grid ColumnDefinitions="*,Auto" Classes="columns">
+        <TextBlock Text="{Binding SelectedMode.KindLabel}" Classes="section-title" />
+        <TextBlock Grid.Column="1" Text="{Binding SessionState}" Classes="muted caption" VerticalAlignment="Center" />
+      </Grid>
+      <TextBox x:Name="ModeNameInput" Text="{Binding SelectedMode.Name}" MaxLength="60" AutomationProperties.Name="{l:Loc Mode.Name}" />
+      <Grid ColumnDefinitions="*,*" Classes="columns">
+        <Button Content="{l:Loc Mode.Save}" Command="{Binding SaveModesCommand}" Classes="small" HorizontalAlignment="Stretch" />
+        <Button Grid.Column="1" Content="{l:Loc Mode.Remove}" Command="{Binding RemoveModeCommand}" Classes="small danger" HorizontalAlignment="Stretch" />
+      </Grid>
+    </StackPanel>
+  </Border>
+</UserControl>

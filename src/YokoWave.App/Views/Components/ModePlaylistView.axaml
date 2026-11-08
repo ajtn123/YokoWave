@@ -1,0 +1,37 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:YokoWave.App.ViewModels" xmlns:l="using:YokoWave.App.Localization"
+             x:Class="YokoWave.App.Views.Components.ModePlaylistView" x:DataType="vm:PlaybackModeViewModel">
+  <StackPanel Classes="items">
+    <TextBlock Text="{l:Loc Playlist.Title}" Classes="section-title" />
+    <Grid ColumnDefinitions="*,Auto" Classes="columns">
+      <ComboBox x:Name="PlaylistWavePicker" ItemsSource="{Binding PlaylistCandidates}" SelectedItem="{Binding PlaylistCandidate}"
+                IsEnabled="{Binding CanEditRouting}" HorizontalAlignment="Stretch" AutomationProperties.Name="{l:Loc Playlist.SelectWave}">
+        <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PresetItem"><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
+      <Button Grid.Column="1" x:Name="AddPlaylistWaveButton" Content="{l:Loc Playlist.Add}" Command="{Binding AddPlaylistCommand}" Classes="small" />
+    </Grid>
+    <ScrollViewer Classes="playlist">
+    <ItemsControl x:Name="PlaylistEntries" ItemsSource="{Binding Playlist}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:PlaylistEntry">
+          <Border Classes="list-item inset-panel">
+            <StackPanel Classes="field">
+              <Grid ColumnDefinitions="Auto,*" Classes="columns">
+                <TextBlock Text="{Binding Number}" Classes="muted small" />
+                <TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis" Classes="small emphasis" />
+              </Grid>
+              <StackPanel Classes="actions">
+                <Button Content="↑" Command="{Binding MoveUpCommand}" Classes="small" AutomationProperties.Name="{l:Loc Playlist.MoveUp}" ToolTip.Tip="{l:Loc Playlist.MoveUp}" />
+                <Button Content="↓" Command="{Binding MoveDownCommand}" Classes="small" AutomationProperties.Name="{l:Loc Playlist.MoveDown}" ToolTip.Tip="{l:Loc Playlist.MoveDown}" />
+                <Button Content="{l:Loc Playlist.Remove}" Command="{Binding RemoveCommand}" Classes="small" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+    </ScrollViewer>
+    <TextBlock Text="{l:Loc Playlist.Empty}" IsVisible="{Binding !HasPlaylist}" Classes="muted caption help" />
+    <TextBlock Text="{l:Loc Playlist.Help}" Classes="muted caption help" />
+  </StackPanel>
+</UserControl>

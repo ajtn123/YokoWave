@@ -16,7 +16,7 @@ public sealed partial class MainWindow : Window
             if (e.Key == Key.Escape && DataContext is MainViewModel vm)
             {
                 e.Handled = true;
-                try { await vm.StopAsync("Reason.Shortcut"); }
+                try { await vm.StopAllModesAsync("Reason.Shortcut"); }
                 catch (Exception error) { vm.ShowError(error); }
             }
         };

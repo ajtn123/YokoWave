@@ -28,6 +28,17 @@
   <Style Selector="ComboBox.language-picker">
     <Setter Property="MinWidth" Value="{DynamicResource Size.LanguagePickerMinWidth}" />
   </Style>
+  <Style Selector="ToggleButton.section-toggle">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.section-toggle:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+  </Style>
   <Style Selector="NumericUpDown.setting-value">
     <Setter Property="Width" Value="{DynamicResource Size.SettingInputWidth}" />
   </Style>
@@ -109,5 +120,27 @@
   <Style Selector="Border.device-card.active">
     <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource AccentTextBrush}" />
+  </Style>
+  <Style Selector="TextBlock.device-status">
+    <Setter Property="MaxWidth" Value="{DynamicResource Size.DeviceStatusMaxWidth}" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+  </Style>
+  <Style Selector="TextBlock.mode-name">
+    <Setter Property="MaxWidth" Value="{DynamicResource Size.ModeNameMaxWidth}" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+  </Style>
+  <Style Selector="Border.mode-group.active">
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentTextBrush}" />
+    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+  </Style>
+  <Style Selector="Button.mode-select">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+  </Style>
+  <Style Selector="ScrollViewer.playlist">
+    <Setter Property="MaxHeight" Value="{DynamicResource Size.PlaylistMaxHeight}" />
+    <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
+    <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
   </Style>
 </Styles>

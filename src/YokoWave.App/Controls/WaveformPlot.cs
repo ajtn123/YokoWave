@@ -9,6 +9,8 @@ public sealed class WaveformPlot : Control
 {
     public static readonly StyledProperty<WaveformPreset?> PresetProperty =
         AvaloniaProperty.Register<WaveformPlot, WaveformPreset?>(nameof(Preset));
+    public static readonly StyledProperty<WaveformPreset?> PresetBProperty =
+        AvaloniaProperty.Register<WaveformPlot, WaveformPreset?>(nameof(PresetB));
     public static readonly StyledProperty<double> AmplitudeAProperty =
         AvaloniaProperty.Register<WaveformPlot, double>(nameof(AmplitudeA), 70);
     public static readonly StyledProperty<double> AmplitudeBProperty =
@@ -30,10 +32,11 @@ public sealed class WaveformPlot : Control
     public static readonly StyledProperty<IBrush?> PlayheadBrushProperty =
         AvaloniaProperty.Register<WaveformPlot, IBrush?>(nameof(PlayheadBrush));
 
-    static WaveformPlot() => AffectsRender<WaveformPlot>(PresetProperty, AmplitudeAProperty, AmplitudeBProperty,
+    static WaveformPlot() => AffectsRender<WaveformPlot>(PresetProperty, PresetBProperty, AmplitudeAProperty, AmplitudeBProperty,
         OffsetProperty, PlayheadProperty, ShowGridProperty, GridBrushProperty, ChannelABrushProperty,
         ChannelBBrushProperty, AreaBrushProperty, PlayheadBrushProperty);
     public WaveformPreset? Preset { get => GetValue(PresetProperty); set => SetValue(PresetProperty, value); }
+    public WaveformPreset? PresetB { get => GetValue(PresetBProperty); set => SetValue(PresetBProperty, value); }
     public double AmplitudeA { get => GetValue(AmplitudeAProperty); set => SetValue(AmplitudeAProperty, value); }
     public double AmplitudeB { get => GetValue(AmplitudeBProperty); set => SetValue(AmplitudeBProperty, value); }
     public bool Offset { get => GetValue(OffsetProperty); set => SetValue(OffsetProperty, value); }
@@ -60,7 +63,7 @@ public sealed class WaveformPlot : Control
         }
         var preset = Preset;
         if (preset is null) return;
-        DrawWave(context, preset, width, height, AmplitudeB, Offset ? 0.5 : 0, ChannelBBrush, false);
+        DrawWave(context, PresetB ?? preset, width, height, AmplitudeB, PresetB is null && Offset ? 0.5 : 0, ChannelBBrush, false);
         DrawWave(context, preset, width, height, AmplitudeA, 0, ChannelABrush, true);
         if (Playhead > 0)
         {

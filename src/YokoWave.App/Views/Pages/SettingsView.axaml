@@ -42,11 +42,10 @@
         <StackPanel Classes="field">
           <TextBlock Text="{l:Loc Settings.TimerLimit}" Classes="field-label" />
           <StackPanel Classes="inline">
-            <NumericUpDown x:Name="TimerLimitInput" Value="{Binding TimerLimitMinutes}" Minimum="1" Maximum="120" Increment="1" FormatString="0" Classes="setting-value" />
+            <NumericUpDown x:Name="TimerLimitInput" Value="{Binding TimerLimitMinutes}" Minimum="1" Maximum="120" Increment="1" FormatString="0" IsEnabled="{Binding !IsAnyRunning}" Classes="setting-value" />
             <TextBlock Text="{l:Loc Unit.Minutes}" Classes="muted label" VerticalAlignment="Center" />
           </StackPanel>
         </StackPanel>
-        <CheckBox Content="{l:Loc Settings.Offset}" IsChecked="{Binding OffsetChannelB}" />
         <Button x:Name="SaveSettingsButton" Classes="primary" Command="{Binding SaveSettingsCommand}" Content="{l:Loc Settings.Save}" />
       </StackPanel>
     </Border>

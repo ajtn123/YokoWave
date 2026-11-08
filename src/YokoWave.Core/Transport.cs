@@ -16,7 +16,8 @@ public enum ElectrodeContact { NotConnected, Delivering, Connected, Unknown }
 
 public sealed class DeviceStatusUpdate(string deviceId, int? battery = null,
     ElectrodeContact? contactA = null, ElectrodeContact? contactB = null,
-    bool? outputAEnabled = null, bool? outputBEnabled = null) : EventArgs
+    bool? outputAEnabled = null, bool? outputBEnabled = null,
+    byte? hardwareVersion = null, byte? softwareVersion = null, bool? lightEnabled = null) : EventArgs
 {
     public string DeviceId { get; } = deviceId;
     public int? Battery { get; } = battery;
@@ -24,6 +25,9 @@ public sealed class DeviceStatusUpdate(string deviceId, int? battery = null,
     public ElectrodeContact? ContactB { get; } = contactB;
     public bool? OutputAEnabled { get; } = outputAEnabled;
     public bool? OutputBEnabled { get; } = outputBEnabled;
+    public byte? HardwareVersion { get; } = hardwareVersion;
+    public byte? SoftwareVersion { get; } = softwareVersion;
+    public bool? LightEnabled { get; } = lightEnabled;
 }
 
 public sealed class DeviceTransportFault(string deviceId, bool disconnected, Exception error) : EventArgs
@@ -38,6 +42,14 @@ public interface IDeviceStatusSource
     event EventHandler<DeviceStatusUpdate>? StatusChanged;
     event EventHandler<DeviceTransportFault>? Faulted;
 }
+
+public interface IElectricalDeviceFeatures
+{
+    Task<ElectricalFeatureState> RefreshFeaturesAsync(string deviceId, CancellationToken cancellationToken = default);
+    Task<bool> SetLightAsync(string deviceId, bool enabled, CancellationToken cancellationToken = default);
+}
+
+public sealed record ElectricalFeatureState(byte HardwareVersion, byte SoftwareVersion, bool LightEnabled);
 
 /// <summary>Deterministic local peripherals; never accesses the system Bluetooth adapter.</summary>
 public sealed class SimulationTransport : IDeviceTransport

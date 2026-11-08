@@ -13,7 +13,7 @@
       </StackPanel>
       <Button Grid.Column="1" Classes="primary" Command="{Binding NewWaveCommand}" Content="{l:Loc Wave.New}" VerticalAlignment="Center" />
     </Grid>
-    <ListBox x:Name="WaveList" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" Classes="wave-library">
+    <ListBox x:Name="WaveList" ItemsSource="{Binding Presets}" SelectedItem="{Binding LibrarySelectedPreset}" Classes="wave-library">
       <ListBox.ItemsPanel><ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate></ListBox.ItemsPanel>
       <ListBox.ItemTemplate>
         <DataTemplate x:DataType="vm:PresetItem">

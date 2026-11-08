@@ -6,11 +6,12 @@ namespace YokoWave.Core;
 
 public sealed class WorkspaceStore(string directory)
 {
-    private sealed record Metadata(int SchemaVersion = 2, long SessionCount = 0, double TotalDurationSeconds = 0);
+    private sealed record Metadata(int SchemaVersion = 4, long SessionCount = 0, double TotalDurationSeconds = 0);
     public string DirectoryPath { get; } = Path.GetFullPath(directory);
     public string FilePath => Path.Combine(DirectoryPath, "workspace.json");
     public string SettingsPath => Path.Combine(DirectoryPath, "settings.json");
     public string PresetsPath => Path.Combine(DirectoryPath, "presets.json");
+    public string ModesPath => Path.Combine(DirectoryPath, "modes.json");
     public SessionJournal Journal { get; } = new(Path.GetFullPath(directory));
     public SessionStatistics Statistics { get; private set; } = new();
     private readonly SemaphoreSlim _gate = new(1, 1);
@@ -39,27 +40,29 @@ public sealed class WorkspaceStore(string directory)
                 using var document = JsonDocument.Parse(json);
                 if (!document.RootElement.TryGetProperty("SchemaVersion", out var schema) || schema.ValueKind != JsonValueKind.Number || !schema.TryGetInt32(out var version))
                     throw new LocalizedArgumentException("Error.UnsupportedData");
-                if (version == 1)
+                if (version is 1 or 2 or 3)
                 {
                     // Development format change: intentionally reset old data, without migration.
-                    foreach (var path in new[] { FilePath, SettingsPath, PresetsPath, Journal.FilePath, Journal.PreviousFilePath }) File.Delete(path);
+                    foreach (var path in new[] { FilePath, SettingsPath, PresetsPath, ModesPath, Journal.FilePath, Journal.PreviousFilePath }) File.Delete(path);
                     Statistics = new();
                     await Journal.LoadAsync(JsonOptions);
                     return WorkspaceData.Empty;
                 }
                 metadata = JsonSerializer.Deserialize<Metadata>(json, JsonOptions) ?? throw new JsonException("Invalid workspace statistics.");
             }
-            if (metadata.SchemaVersion != 2 || metadata.SessionCount < 0 || !double.IsFinite(metadata.TotalDurationSeconds) || metadata.TotalDurationSeconds < 0)
+            if (metadata.SchemaVersion != 4 || metadata.SessionCount < 0 || !double.IsFinite(metadata.TotalDurationSeconds) || metadata.TotalDurationSeconds < 0)
                 throw new LocalizedArgumentException("Error.UnsupportedData");
             var settings = File.Exists(SettingsPath)
                 ? JsonSerializer.Deserialize<AppSettings>(await File.ReadAllTextAsync(SettingsPath), JsonOptions) ?? throw new JsonException("Invalid settings.") : new();
             var presets = File.Exists(PresetsPath)
                 ? JsonSerializer.Deserialize<List<WaveformPreset>>(await File.ReadAllTextAsync(PresetsPath), JsonOptions) ?? throw new JsonException("Invalid presets.") : [];
+            var modes = File.Exists(ModesPath)
+                ? JsonSerializer.Deserialize<List<PlaybackModeConfig>>(await File.ReadAllTextAsync(ModesPath), JsonOptions) ?? throw new JsonException("Invalid modes.") : [];
             await Journal.LoadAsync(JsonOptions);
             var sessions = Journal.Retained.ToList();
             Statistics = new(Math.Max(metadata.SessionCount, sessions.Count),
                 Math.Max(metadata.TotalDurationSeconds, sessions.Sum(record => record.DurationSeconds)));
-            var data = new WorkspaceData(2, presets, sessions, settings, Statistics);
+            var data = new WorkspaceData(4, presets, sessions, settings, Statistics, modes);
             Validate(data);
             return data;
         }
@@ -81,11 +84,12 @@ public sealed class WorkspaceStore(string directory)
             Directory.CreateDirectory(DirectoryPath);
             await WriteAtomicAsync(SettingsPath, data.Settings);
             await WriteAtomicAsync(PresetsPath, data.Presets);
+            await WriteAtomicAsync(ModesPath, data.Modes ?? []);
             await Journal.AppendAsync(data.Sessions, JsonOptions, record => Statistics = Statistics.Add(record));
             if (data.Statistics is { } statistics)
                 Statistics = new(Math.Max(Statistics.SessionCount, statistics.SessionCount),
                     Math.Max(Statistics.TotalDurationSeconds, statistics.TotalDurationSeconds));
-            await WriteAtomicAsync(FilePath, new Metadata(2, Statistics.SessionCount, Statistics.TotalDurationSeconds));
+            await WriteAtomicAsync(FilePath, new Metadata(4, Statistics.SessionCount, Statistics.TotalDurationSeconds));
         }
         finally { _gate.Release(); }
     }
@@ -111,7 +115,7 @@ public sealed class WorkspaceStore(string directory)
 
     private static void Validate(WorkspaceData data)
     {
-        if (data.SchemaVersion is not (1 or 2) || data.Presets is null || data.Sessions is null || data.Settings is null)
+        if (data.SchemaVersion is not (1 or 2 or 3 or 4) || data.Presets is null || data.Sessions is null || data.Settings is null)
             throw new LocalizedArgumentException("Error.UnsupportedData");
         foreach (var preset in data.Presets) { if (preset is null) throw new LocalizedArgumentException("Error.InvalidWave"); preset.Validate(); }
         if (data.Presets.Select(preset => preset.Id).Distinct().Count() != data.Presets.Count || data.Sessions.Any(record => record is null) ||
@@ -122,10 +126,15 @@ public sealed class WorkspaceStore(string directory)
             throw new LocalizedArgumentException("Error.InvalidRecords");
         var settings = data.Settings;
         if (!double.IsFinite(settings.DefaultLimit) || settings.DefaultLimit is < 0 or > 100 ||
-            !double.IsFinite(settings.SessionMinutes) || settings.SessionMinutes is < 0 or > 120 || settings.SessionSeconds is < 0 or > 59 ||
-            settings.TimerLimitMinutes is < 1 or > 120 ||
-            settings.SessionMinutes * 60 + settings.SessionSeconds > settings.TimerLimitMinutes * 60 ||
-            settings.TimerEnabled && settings.SessionMinutes * 60 + settings.SessionSeconds < 1)
+            settings.TimerLimitMinutes is < 1 or > 120)
             throw new LocalizedArgumentException("Error.InvalidSettings");
+        if (data.Modes is { } modes)
+        {
+            if (modes.Count > 32 || modes.Any(mode => mode is null) || modes.Select(mode => mode.Id).Distinct().Count() != modes.Count)
+                throw new LocalizedArgumentException("Error.ModeSettings");
+            foreach (var mode in modes) { mode.Validate(); if (mode.DurationSeconds > settings.TimerLimitMinutes * 60) throw new LocalizedArgumentException("Error.ModeSettings"); }
+            var assigned = modes.SelectMany(mode => mode.TargetDeviceIds ?? []).ToArray();
+            if (assigned.Distinct().Count() != assigned.Length) throw new LocalizedArgumentException("Error.DeviceAssigned");
+        }
     }
 }

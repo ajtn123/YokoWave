@@ -1,238 +1,138 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Globalization;
-using System.Windows.Input;
 using System.Text.Json;
+using System.Windows.Input;
 using YokoWave.Core;
-using YokoWave.Core.Localization;
 using YokoWave.Core.Bluetooth;
+using YokoWave.Core.Localization;
 
 namespace YokoWave.App.ViewModels;
 
-public sealed class MainViewModel : ObservableObject, IAsyncDisposable
+public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 {
     private readonly DeviceController _controller;
-    private readonly SessionEngine _engine;
     private readonly WorkspaceStore _store;
     private readonly Func<IDeviceTransport> _bluetoothFactory;
     private readonly SynchronizationContext? _uiContext;
-    private bool _changingTransport;
-    private TransportOption? _selectedTransport;
-    private readonly Stopwatch _clock = new();
-    private bool _tickBusy;
-    private bool _scanBusy;
-    private bool _disposed;
+    private bool _changingTransport, _scanBusy, _disposed, _settingsLoaded;
     private string _page = "workspace";
     private LocalizedMessage _status = new("Status.NoDevice", []);
-    private bool _settingsLoaded;
-    private LanguageOption? _selectedLanguage;
     private bool _isError;
+    private LanguageOption? _selectedLanguage;
+    private TransportOption? _selectedTransport;
     private DeviceItem? _selectedDevice;
-    private PresetItem? _selectedPreset;
-    private double _channelA;
-    private double _channelB;
-    private double _safetyLimit = 60;
-    private double _defaultLimit = 60;
-    private double _sessionDurationSeconds = 600;
-    private double _timerLimitMinutes = 120;
-    private bool _timerEnabled = true;
-    private bool _hasSessionClock;
-    private bool _offsetChannelB = true;
-    private bool _linkMode;
-    private string _editorName = "";
+    private PlaybackModeViewModel? _selectedMode;
+    private PresetItem? _librarySelectedPreset;
+    private double _defaultLimit = 60, _timerLimitMinutes = 120;
+    private string _editorName = "", _editorPoints = "0, 0.2, 0.8, 1, 0.8, 0.2, 0", _editorSamples = "[]", _transferJson = "";
     private WaveShape _editorShape = WaveShape.Sine;
-    private double _editorPeriod = 4;
-    private double _editorFrequency = 20;
-    private string _editorPoints = "0, 0.2, 0.8, 1, 0.8, 0.2, 0";
-    private string _editorSamples = "[]";
     private WaveformFamily _editorFamily;
+    private double _editorPeriod = 4, _editorFrequency = 20;
     private Guid? _editingId;
-    private string _transferJson = "";
     private readonly List<SessionRecord> _records = [];
     private SessionStatistics _statistics = new();
-
     public ObservableCollection<DeviceItem> Devices { get; } = [];
+    public ObservableCollection<DeviceItem> UnassignedDevices { get; } = [];
     public ObservableCollection<PresetItem> Presets { get; } = [];
+    public PresetItem? LibrarySelectedPreset
+    {
+        get => _librarySelectedPreset ?? Presets.FirstOrDefault();
+        set
+        {
+            Set(ref _librarySelectedPreset, value);
+            DeleteWaveCommand.NotifyCanExecuteChanged(); (UseWaveCommand as AsyncCommand)?.NotifyCanExecuteChanged();
+        }
+    }
+    private bool CanUseLibraryWave => SelectedMode.IsWaveformControl && LibrarySelectedPreset is { } preset &&
+        (!SelectedMode.UsesCustomPlaylist || SelectedMode.Playlist.Any(entry => entry.Id == preset.Preset.Id));
+    public ObservableCollection<PlaybackModeViewModel> Modes { get; } = [];
     public ObservableCollection<SessionItem> Sessions { get; } = [];
     public ObservableCollection<ActivityItem> Activities { get; } = [];
-    public IReadOnlyList<ShapeItem> Shapes { get; } = Enum.GetValues<WaveShape>().Select(s => new ShapeItem(s)).ToArray();
-    public IReadOnlyList<LanguageOption> Languages { get; } =
-        [new("en", L10n.Current.English["Language.en"]), new("zh-CN", L10n.Current.English["Language.zh-CN"])];
+    public IReadOnlyList<ShapeItem> Shapes { get; } = Enum.GetValues<WaveShape>().Select(shape => new ShapeItem(shape)).ToArray();
+    public IReadOnlyList<LanguageOption> Languages { get; } = [new("en", L10n.Current.English["Language.en"]), new("zh-CN", L10n.Current.English["Language.zh-CN"])];
     public IReadOnlyList<TransportOption> TransportOptions { get; } = [new(false), new(true)];
+    public PlaybackModeViewModel SelectedMode
+    {
+        get => _selectedMode ?? Modes[0];
+        set
+        {
+            if (value is null || !Modes.Contains(value) || value == _selectedMode) return;
+            if (_selectedMode is { } previous) { previous.IsBoostHeld = false; previous.IsTouchHeld = false; }
+            Set(ref _selectedMode, value);
+            foreach (var mode in Modes) mode.RefreshSelection();
+            RefreshModeGroups();
+            RefreshModeBindings();
+        }
+    }
+    public bool IsAnyRunning => Modes.Any(mode => !mode.CanEditRouting);
+    public string RunningModesSummary => L10n.Format("Mode.RunningCount", Modes.Count(mode => mode.IsRunning));
+    public bool HasUnassignedDevices => UnassignedDevices.Count > 0;
+    public double DefaultLimit { get => _defaultLimit; set { if (double.IsFinite(value)) Set(ref _defaultLimit, Math.Clamp(value, 0, 100)); } }
+    public double TimerLimitMinutes
+    {
+        get => _timerLimitMinutes;
+        set
+        {
+            if (IsAnyRunning || !double.IsFinite(value) || !Set(ref _timerLimitMinutes, Math.Clamp(Math.Truncate(value), 1, 120))) return;
+            foreach (var mode in Modes) mode.OnTimerLimitChanged();
+        }
+    }
     public TransportOption? SelectedTransport { get => _selectedTransport; set { if (value is not null) Set(ref _selectedTransport, value); } }
+    public LanguageOption? SelectedLanguage
+    {
+        get => _selectedLanguage;
+        set { if (value is null || !Set(ref _selectedLanguage, value)) return; L10n.Current.SetLanguage(value.Code); if (_settingsLoaded) _ = GuardAsync(() => SaveAsync()); }
+    }
     public bool IsBluetooth => !_controller.IsSimulation;
+    public string TransportName => _controller.TransportName;
     public string ModeLabel => $"●  {TransportName}";
     public string DriverLabel => L10n.Format("Settings.DriverFormat", TransportName);
     public string DeviceHelp => L10n.Get(IsBluetooth ? "Device.BluetoothHelp" : "Device.SimulationHelp");
     public string TransportHelp => L10n.Get(IsBluetooth ? "Settings.BluetoothHelp" : "Settings.SimulationHelp");
     public string ReadingsLabel => L10n.Get(IsBluetooth ? "Device.HardwareReadings" : "Device.Readings");
-    public bool HasElectrodeReadings => IsBluetooth && SelectedConnected;
-    public string SelectedContacts
-    {
-        get
-        {
-            _controller.Connections.TryGetValue(SelectedDevice?.Id ?? "", out var connection);
-            return L10n.Format("Device.Contacts", L10n.Get($"Contact.{connection?.ContactA ?? ElectrodeContact.Unknown}"),
-                L10n.Get($"Contact.{connection?.ContactB ?? ElectrodeContact.Unknown}"));
-        }
-    }
-    public LanguageOption? SelectedLanguage
-    {
-        get => _selectedLanguage;
-        set
-        {
-            if (value is null || !Set(ref _selectedLanguage, value)) return;
-            L10n.Current.SetLanguage(value.Code);
-            if (_settingsLoaded) _ = GuardAsync(() => SaveAsync());
-        }
-    }
+    public string StoragePath => _store.DirectoryPath;
+    public long SessionCount => _statistics.SessionCount;
+    public string TotalTime => L10n.Format("History.TotalFormat", _statistics.TotalDurationSeconds / 60);
     public bool IsWorkspace => _page == "workspace";
     public bool IsWaves => _page == "waves";
     public bool IsHistory => _page == "history";
     public bool IsSettings => _page == "settings";
     public bool IsHelp => _page == "help";
-    public string PageTitle => _page switch { "waves" => L10n.Get("Page.Waves"), "history" => L10n.Get("Page.History"), "settings" => L10n.Get("Page.Settings"), "help" => L10n.Get("Page.Help"), _ => L10n.Get("Page.Devices") };
+    public string PageTitle => L10n.Get(_page switch { "waves" => "Page.Waves", "history" => "Page.History", "settings" => "Page.Settings", "help" => "Page.Help", _ => "Page.Devices" });
     public bool IsScanning { get => _scanBusy; private set { Set(ref _scanBusy, value); Raise(nameof(ScanLabel)); (SaveSettingsCommand as AsyncCommand)?.NotifyCanExecuteChanged(); } }
     public string ScanLabel => L10n.Get(IsScanning ? "Device.Scanning" : "Device.Scan");
     public string Status => _status.Value;
     public bool IsError { get => _isError; private set => Set(ref _isError, value); }
-    public bool IsRunning => _engine.IsRunning;
-    public bool CanEditRouting => !IsRunning;
-    public int ConnectedCount => Devices.Count(d => d.IsConnected);
+    public int ConnectedCount => Devices.Count(device => device.IsConnected);
     public string ConnectedSummary => $"{ConnectedCount:00} / {Devices.Count:00}";
-    public string SessionState => IsRunning ? L10n.Get("Session.Running") : L10n.Get("Session.Idle");
-    public string PlaybackLabel => IsRunning ? L10n.Get("Session.Stop") : L10n.Get("Session.Start");
-    public string Elapsed => FormatDuration(_engine.Elapsed);
-    private TimeSpan? ConfiguredDuration => TimerEnabled ? TimeSpan.FromSeconds(SessionDurationSeconds) : null;
-    public bool IsTimedSession => _hasSessionClock ? _engine.Duration.HasValue : TimerEnabled;
-    public bool CanEditDuration => !IsRunning && TimerEnabled;
-    public string Remaining => (_hasSessionClock ? _engine.Remaining : ConfiguredDuration) is { } remaining
-        ? FormatDuration(TimeSpan.FromSeconds(Math.Ceiling(remaining.TotalSeconds))) : L10n.Get("Session.NoTimer");
-    public string SessionClock => IsTimedSession ? Remaining : Elapsed;
-    public string SessionTimeLabel => L10n.Get(IsTimedSession ? "Session.Remaining" : "Session.Elapsed");
-    public bool ShowTimerProgress => IsRunning && IsTimedSession;
-    public double TimerProgress => _engine.Duration is { TotalSeconds: > 0 } duration
-        ? Math.Clamp((_engine.Remaining?.TotalSeconds ?? 0) / duration.TotalSeconds, 0, 1) : 0;
-    public string TimerReadout => !TimerEnabled ? L10n.Get("Session.NoTimer")
-        : ShowTimerProgress ? Remaining : FormatDuration(TimeSpan.FromSeconds(SessionDurationSeconds));
-    public double Playhead => IsRunning ? _engine.WaveformElapsed.TotalSeconds / 12 % 1 : 0;
-    public string TransportName => _controller.TransportName;
-    public string StoragePath => _store.DirectoryPath;
-    public long SessionCount => _statistics.SessionCount;
-    public string TotalTime => L10n.Format("History.TotalFormat", _statistics.TotalDurationSeconds / 60);
+    public bool HasSelection => SelectedDevice is not null;
+    public bool SelectedConnected => SelectedDevice?.IsConnected == true;
     public string SelectedName => SelectedDevice?.Name ?? L10n.Get("Device.None");
     public string SelectedKind => SelectedDevice?.Kind ?? L10n.Get("Device.ConnectHelp");
     public string SelectedId => SelectedDevice?.Id ?? L10n.Get("Device.NoneId");
-    public bool HasSelection => SelectedDevice is not null;
-    public bool SelectedConnected => SelectedDevice?.IsConnected == true;
-    public bool HasChannelB => SelectedDevice?.Device.Kind == DeviceKind.DualChannel;
     public string SelectedBattery => SelectedDevice?.Battery ?? "—";
     public string SelectedBatteryLabel => L10n.Format("Device.Battery", SelectedBattery);
     public string SelectedSignal => SelectedDevice?.Signal ?? "—";
-    public string SelectedOutputALabel => SelectedDevice?.OutputALabel ?? L10n.Format("Device.Output", 0);
-    public string SelectedOutputBLabel => SelectedDevice?.OutputBLabel ?? L10n.Format("Device.Output", 0);
-    public string RoutingSummary => LinkMode ? L10n.Format("Device.LinkedCount", Devices.Count(d => d.IsConnected && d.IsIncluded)) : L10n.Get("Device.CurrentOnly");
-    public string PresetSummary => SelectedPreset?.Detail ?? L10n.Get("Wave.Select");
-    public string SelectedPresetName => SelectedPreset?.Name ?? L10n.Get("Wave.Select");
-    public WaveformPreset? SelectedWaveform => SelectedPreset?.Preset;
-
+    public bool HasElectrodeReadings => IsBluetooth && SelectedConnected && ShowContacts;
+    public string SelectedContacts
+    {
+        get
+        {
+            _controller.Connections.TryGetValue(SelectedDevice?.Id ?? "", out var connection);
+            return L10n.Format("Device.Contacts", L10n.Get($"Contact.{connection?.ContactA ?? ElectrodeContact.Unknown}"), L10n.Get($"Contact.{connection?.ContactB ?? ElectrodeContact.Unknown}"));
+        }
+    }
     public DeviceItem? SelectedDevice
     {
         get => _selectedDevice;
         private set
         {
             if (_selectedDevice is not null) _selectedDevice.IsSelected = false;
-            Set(ref _selectedDevice, value);
-            if (value is not null) value.IsSelected = true;
-            foreach (var property in new[] { nameof(SelectedName), nameof(SelectedKind), nameof(SelectedId), nameof(HasSelection),
-                nameof(SelectedConnected), nameof(HasChannelB), nameof(SelectedBattery), nameof(SelectedBatteryLabel), nameof(SelectedSignal),
-                nameof(SelectedOutputALabel), nameof(SelectedOutputBLabel), nameof(SelectedContacts), nameof(HasElectrodeReadings) }) Raise(property);
+            Set(ref _selectedDevice, value); if (value is not null) value.IsSelected = true;
+            RefreshDevices();
         }
     }
-    public PresetItem? SelectedPreset
-    {
-        get => _selectedPreset;
-        set
-        {
-            if (!Set(ref _selectedPreset, value)) return;
-            Raise(nameof(PresetSummary));
-            Raise(nameof(SelectedPresetName)); Raise(nameof(SelectedWaveform));
-            DeleteWaveCommand.NotifyCanExecuteChanged();
-            if (IsRunning) _ = GuardAsync(() => ApplySelectedWaveformAsync(value));
-        }
-    }
-
-    private async Task ApplySelectedWaveformAsync(PresetItem? selected)
-    {
-        if (selected is null) { await StopAsync("Reason.WaveChanged", false); return; }
-        try
-        {
-            if (await _engine.ChangeWaveformAsync(selected.Preset))
-            {
-                RefreshPlayback();
-                Notify("Status.WaveChanged", selected);
-            }
-        }
-        catch
-        {
-            if (SelectedPreset == selected)
-            {
-                _selectedPreset = Presets.FirstOrDefault(p => p.Preset.Id == _engine.CurrentWaveform?.Id);
-                foreach (var property in new[] { nameof(SelectedPreset), nameof(SelectedPresetName), nameof(SelectedWaveform), nameof(PresetSummary) }) Raise(property);
-                DeleteWaveCommand.NotifyCanExecuteChanged();
-            }
-            throw;
-        }
-    }
-    public double ChannelA { get => _channelA; set { Set(ref _channelA, Math.Clamp(value, 0, SafetyLimit)); _engine.ChannelA = _channelA; } }
-    public double ChannelB { get => _channelB; set { Set(ref _channelB, Math.Clamp(value, 0, SafetyLimit)); _engine.ChannelB = _channelB; } }
-    public double SafetyLimit
-    {
-        get => _safetyLimit;
-        set
-        {
-            if (!Set(ref _safetyLimit, Math.Clamp(value, 0, 100))) return;
-            ChannelA = Math.Min(ChannelA, value);
-            ChannelB = Math.Min(ChannelB, value);
-            if (SelectedDevice is { IsConnected: true } device)
-                _ = GuardAsync(() => _controller.SetLimitAsync(device.Id, _safetyLimit));
-        }
-    }
-    public double DefaultLimit { get => _defaultLimit; set => Set(ref _defaultLimit, Math.Clamp(value, 0, 100)); }
-    public bool TimerEnabled
-    {
-        get => _timerEnabled;
-        set { if (!IsRunning && Set(ref _timerEnabled, value)) OnTimerSettingsChanged(); }
-    }
-    public double SessionDurationSeconds
-    {
-        get => _sessionDurationSeconds;
-        set { if (!IsRunning && double.IsFinite(value) && Set(ref _sessionDurationSeconds, Math.Clamp(Math.Round(value), 1, MaximumDurationSeconds))) OnTimerSettingsChanged(); }
-    }
-    public double MaximumDurationSeconds => TimerLimitMinutes * 60;
-    public double TimerLimitMinutes
-    {
-        get => _timerLimitMinutes;
-        set
-        {
-            if (IsRunning || !double.IsFinite(value) || !Set(ref _timerLimitMinutes, Math.Clamp(Math.Truncate(value), 1, 120))) return;
-            if (_sessionDurationSeconds > MaximumDurationSeconds)
-            {
-                _sessionDurationSeconds = MaximumDurationSeconds;
-                Raise(nameof(SessionDurationSeconds));
-            }
-            Raise(nameof(MaximumDurationSeconds));
-            OnTimerSettingsChanged();
-        }
-    }
-    private void OnTimerSettingsChanged()
-    {
-        _hasSessionClock = false;
-        foreach (var property in new[] { nameof(CanEditDuration), nameof(IsTimedSession), nameof(Remaining), nameof(SessionClock), nameof(SessionTimeLabel), nameof(ShowTimerProgress), nameof(TimerReadout) }) Raise(property);
-    }
-    public bool OffsetChannelB { get => _offsetChannelB; set { Set(ref _offsetChannelB, value); _engine.OffsetChannelB = value; } }
-    public bool LinkMode { get => _linkMode; set { Set(ref _linkMode, value); Raise(nameof(RoutingSummary)); } }
     public string EditorName { get => _editorName; set { Set(ref _editorName, value); Raise(nameof(EditorPreview)); } }
     public WaveShape EditorShape { get => _editorShape; set { Set(ref _editorShape, value); Raise(nameof(SelectedShape)); Raise(nameof(EditorPreview)); Raise(nameof(IsSampledEditor)); Raise(nameof(IsGeneratedEditor)); } }
     public bool IsSampledEditor => EditorShape == WaveShape.Sampled;
@@ -252,6 +152,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+
     public ICommand WorkspaceCommand { get; }
     public ICommand WavesCommand { get; }
     public ICommand HistoryCommand { get; }
@@ -268,20 +169,16 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public ICommand ImportCommand { get; }
     public ICommand SaveSettingsCommand { get; }
     public ICommand UseWaveCommand { get; }
-
+    public ICommand AddWaveModeCommand { get; }
+    public ICommand AddTouchModeCommand { get; }
+    public ICommand SaveModesCommand { get; }
+    public ICommand RemoveModeCommand { get; }
     public MainViewModel(DeviceController controller, WorkspaceStore store, Func<IDeviceTransport>? bluetoothFactory = null)
     {
-        _controller = controller;
-        _store = store;
-        _bluetoothFactory = bluetoothFactory ?? (() => new ElectricalBluetoothTransport(new UnsupportedBluetoothAdapter()));
+        _controller = controller; _store = store; _bluetoothFactory = bluetoothFactory ?? (() => new ElectricalBluetoothTransport(new UnsupportedBluetoothAdapter()));
         _uiContext = SynchronizationContext.Current;
         _selectedTransport = TransportOptions.First(option => option.UseBluetooth == !controller.IsSimulation);
-        _selectedLanguage = Languages.First(l => l.Code == L10n.Current.Language);
-        L10n.Current.PropertyChanged += OnLanguageChanged;
-        _engine = new(controller);
-        _controller.Changed += OnDeviceChanged;
-        _controller.Faulted += OnTransportFaulted;
-        _engine.Completed += OnSessionCompleted;
+        _selectedLanguage = Languages.First(language => language.Code == L10n.Current.Language);
         WorkspaceCommand = new AsyncCommand(() => NavigateAsync("workspace"), ShowError);
         WavesCommand = new AsyncCommand(() => NavigateAsync("waves"), ShowError);
         HistoryCommand = new AsyncCommand(() => NavigateAsync("history"), ShowError);
@@ -289,39 +186,80 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         HelpCommand = new AsyncCommand(() => NavigateAsync("help"), ShowError);
         ScanCommand = new AsyncCommand(ScanAsync, ShowError);
         PlaybackCommand = new AsyncCommand(TogglePlaybackAsync, ShowError);
-        EmergencyStopCommand = new AsyncCommand(() => StopAsync("Reason.AllStopped"), ShowError);
-        SaveWaveCommand = new AsyncCommand(SaveWaveAsync, ShowError);
-        NewWaveCommand = new ActionCommand(NewWave);
-        EditWaveCommand = new ActionCommand(EditWave);
-        DeleteWaveCommand = new AsyncCommand(DeleteWaveAsync, ShowError, () => SelectedPreset is { IsBuiltIn: false });
-        ExportCommand = new ActionCommand(() => { TransferJson = WorkspaceStore.ExportPresets(Presets.Select(p => p.Preset)); Notify("Status.Generated"); });
+        EmergencyStopCommand = new AsyncCommand(() => StopAllModesAsync("Reason.AllStopped"), ShowError);
+        SaveWaveCommand = new AsyncCommand(SaveWaveAsync, ShowError); NewWaveCommand = new ActionCommand(NewWave); EditWaveCommand = new ActionCommand(EditWave);
+        DeleteWaveCommand = new AsyncCommand(DeleteWaveAsync, ShowError, () => LibrarySelectedPreset is { IsBuiltIn: false } selected && !Modes.Any(mode => mode.UsesWaveform(selected.Preset.Id)));
+        ExportCommand = new ActionCommand(() => { TransferJson = WorkspaceStore.ExportPresets(Presets.Select(item => item.Preset)); Notify("Status.Generated"); });
         ImportCommand = new AsyncCommand(() => ImportAsync(TransferJson), ShowError);
         SaveSettingsCommand = new AsyncCommand(SaveSettingsAsync, ShowError, () => !IsScanning);
-        UseWaveCommand = new AsyncCommand(() => NavigateAsync("workspace"), ShowError);
+        UseWaveCommand = new AsyncCommand(async () =>
+        {
+            if (!CanUseLibraryWave) return;
+            SelectedPreset = LibrarySelectedPreset; await NavigateAsync("workspace");
+        }, ShowError, () => CanUseLibraryWave);
+        AddWaveModeCommand = new AsyncCommand(() => AddModeAsync(false), ShowError); AddTouchModeCommand = new AsyncCommand(() => AddModeAsync(true), ShowError);
+        SaveModesCommand = new AsyncCommand(async () => { await SaveAsync(); Notify("Status.ModesSaved"); }, ShowError);
+        RemoveModeCommand = new AsyncCommand(RemoveSelectedModeAsync, ShowError, () => Modes.Count > 1);
+        InitializeDeviceFeatureCommands();
+        AddMode(new(Guid.NewGuid(), L10n.Format("Mode.WaveName", 1)));
+        _selectedMode = Modes[0];
+        Presets.CollectionChanged += (_, _) => { foreach (var mode in Modes) mode.RefreshPlaylist(); };
+        _controller.Changed += OnDeviceChanged; _controller.Faulted += OnTransportFaulted;
+        L10n.Current.PropertyChanged += OnLanguageChanged;
     }
-
     public async Task InitializeAsync()
     {
+        if (_settingsLoaded) return;
         var data = await _store.LoadAsync();
-        SelectedLanguage = Languages.First(l => l.Code == JsonLocalizer.NormalizeLanguage(data.Settings.Language ?? JsonLocalizer.SystemLanguage));
-        DefaultLimit = data.Settings.DefaultLimit;
-        TimerEnabled = data.Settings.TimerEnabled;
-        TimerLimitMinutes = data.Settings.TimerLimitMinutes;
-        SessionDurationSeconds = data.Settings.SessionMinutes * 60 + data.Settings.SessionSeconds;
-        OffsetChannelB = data.Settings.OffsetChannelB;
-        SelectedTransport = TransportOptions.First(option => option.UseBluetooth == data.Settings.UseBluetooth);
-        await ApplyTransportAsync();
+        SelectedLanguage = Languages.First(language => language.Code == JsonLocalizer.NormalizeLanguage(data.Settings.Language ?? JsonLocalizer.SystemLanguage));
+        DefaultLimit = data.Settings.DefaultLimit; TimerLimitMinutes = data.Settings.TimerLimitMinutes;
+        SelectedTransport = TransportOptions.First(option => option.UseBluetooth == data.Settings.UseBluetooth); await ApplyTransportAsync();
         foreach (var preset in WaveformPreset.BuiltIn) Presets.Add(new(preset));
-        foreach (var preset in data.Presets.Where(p => !WaveformPreset.BuiltIn.Any(b => b.Id == p.Id))) Presets.Add(new(preset));
-        foreach (var record in data.Sessions.OrderByDescending(r => r.StartedAt)) { _records.Add(record); Sessions.Add(new(record)); }
+        foreach (var preset in data.Presets.Where(preset => !WaveformPreset.BuiltIn.Any(builtIn => builtIn.Id == preset.Id))) Presets.Add(new(preset));
+        Modes.Clear();
+        foreach (var config in data.Modes ?? []) AddMode(config);
+        if (Modes.Count == 0) AddMode(new(Guid.NewGuid(), L10n.Format("Mode.WaveName", 1), OutputLimit: DefaultLimit));
+        SelectedMode = Modes[0];
+        foreach (var record in data.Sessions.OrderByDescending(record => record.StartedAt)) { _records.Add(record); Sessions.Add(new(record)); }
         _statistics = data.Statistics ?? new(data.Sessions.Count, data.Sessions.Sum(record => record.DurationSeconds));
-        SelectedPreset = Presets.First();
-        _settingsLoaded = true;
-        Raise(nameof(SessionCount)); Raise(nameof(TotalTime));
-        await ScanAsync();
+        _settingsLoaded = true; Raise(nameof(SessionCount)); Raise(nameof(TotalTime)); await ScanAsync();
         if (_store.LoadWarning is not null) ShowError(new LocalizedIOException("Error.CorruptWorkspace"));
     }
-
+    private void AddMode(PlaybackModeConfig config)
+    {
+        var mode = new PlaybackModeViewModel(this, _controller, config); Modes.Add(mode);
+        (RemoveModeCommand as AsyncCommand)?.NotifyCanExecuteChanged();
+        mode.PropertyChanged += (_, e) =>
+        {
+            if (mode == SelectedMode && e.PropertyName is { } name) Raise(name);
+            Raise(nameof(IsAnyRunning)); Raise(nameof(RunningModesSummary));
+            if (e.PropertyName == nameof(PlaybackModeViewModel.ShowContacts)) Raise(nameof(HasElectrodeReadings));
+            if (e.PropertyName == nameof(PlaybackModeViewModel.CanEditRouting)) RefreshAssignableDevices();
+            DeleteWaveCommand.NotifyCanExecuteChanged(); RefreshDeviceFeatures();
+            (UseWaveCommand as AsyncCommand)?.NotifyCanExecuteChanged();
+        };
+    }
+    public async Task AddModeAsync(bool touch)
+    {
+        if (Modes.Count >= 32) throw new LocalizedOperationException("Error.ModeCount");
+        AddMode(new(Guid.NewGuid(), L10n.Format(touch ? "Mode.TouchName" : "Mode.WaveName", Modes.Count + 1), touch,
+            OutputLimit: DefaultLimit, DurationSeconds: Math.Min(600, (int)TimerLimitMinutes * 60)));
+        SelectedMode = Modes[^1]; await SaveAsync();
+    }
+    private async Task RemoveSelectedModeAsync()
+    {
+        if (Modes.Count == 1) throw new LocalizedOperationException("Error.LastMode");
+        var mode = SelectedMode; await mode.StopAsync("Reason.ModeRemoved", false);
+        Modes.Remove(mode); SelectedMode = Modes[0]; RefreshModeGroups(); await SaveAsync();
+    }
+    private void RefreshModeBindings()
+    {
+        foreach (var property in typeof(PlaybackModeViewModel).GetProperties()) Raise(property.Name);
+        Raise(nameof(SelectedMode)); Raise(nameof(HasElectrodeReadings));
+        (RemoveModeCommand as AsyncCommand)?.NotifyCanExecuteChanged();
+        DeleteWaveCommand.NotifyCanExecuteChanged(); RefreshDeviceFeatures();
+        (UseWaveCommand as AsyncCommand)?.NotifyCanExecuteChanged();
+    }
     public async Task ScanAsync()
     {
         if (IsScanning || _changingTransport) return;
@@ -329,124 +267,81 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         try
         {
             var found = await _controller.ScanAsync();
-            var foundIds = found.Select(device => device.Id).ToHashSet();
-            foreach (var stale in Devices.Where(device => !device.IsConnected && !foundIds.Contains(device.Id)).ToArray())
+            foreach (var device in Devices.Where(device => !device.IsConnected && found.All(item => item.Id != device.Id)).ToArray()) Devices.Remove(device);
+            foreach (var info in found)
             {
-                if (SelectedDevice == stale) SelectedDevice = null;
-                Devices.Remove(stale);
+                var existing = Devices.FirstOrDefault(device => device.Id == info.Id);
+                if (existing is not null) { existing.UpdateReadings(info); continue; }
+                Devices.Add(new(info, Devices.Count + 1, SelectDeviceAsync, ToggleConnectionAsync, ShowError,
+                    device => SelectedMode.AssignTarget(device.Id, true)));
             }
-            foreach (var item in found)
-            {
-                if (Devices.FirstOrDefault(d => d.Id == item.Id) is { } existing)
-                { existing.UpdateReadings(item with { Battery = item.Battery ?? existing.Device.Battery }); continue; }
-                var device = new DeviceItem(item, Devices.Count + 1, SelectDeviceAsync, ToggleConnectionAsync, ShowError);
-                device.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(DeviceItem.IsIncluded)) Raise(nameof(RoutingSummary)); };
-                Devices.Add(device);
-            }
-            if (SelectedDevice is null && Devices.Count > 0) SelectedDevice = Devices[0];
-            Notify(IsBluetooth ? "Status.BluetoothDiscovered" : "Status.Discovered", found.Count);
-            Raise(nameof(ConnectedSummary));
+            SelectedDevice ??= Devices.FirstOrDefault(); RefreshDevices(); Notify(IsBluetooth ? "Status.BluetoothDiscovered" : "Status.Discovered", found.Count);
         }
         finally { IsScanning = false; }
     }
-
     public async Task SaveSettingsAsync()
     {
         if (IsScanning) throw new LocalizedOperationException("Error.BluetoothBusy");
-        var changed = await ApplyTransportAsync();
-        await SaveAsync();
-        Notify("Status.SettingsSaved");
-        if (changed) await ScanAsync();
+        var changed = await ApplyTransportAsync(); await SaveAsync(); Notify("Status.SettingsSaved"); if (changed) await ScanAsync();
     }
-
     private async Task<bool> ApplyTransportAsync()
     {
         if (SelectedTransport is null || SelectedTransport.UseBluetooth == IsBluetooth) return false;
         _changingTransport = true;
         try
         {
-            await StopAsync("Reason.TransportChanged", false);
+            await StopAllModesAsync("Reason.TransportChanged");
             foreach (var id in _controller.Connections.Keys.ToArray()) await _controller.DisconnectAsync(id);
             await _controller.ChangeTransportAsync(SelectedTransport.UseBluetooth ? _bluetoothFactory() : new SimulationTransport());
-            SelectedDevice = null;
-            Devices.Clear();
-            ChannelA = ChannelB = 0;
-            RefreshTransport();
-            return true;
+            SelectedDevice = null; Devices.Clear(); RefreshTransport(); return true;
         }
         finally { _changingTransport = false; }
     }
-
-    private void RefreshTransport()
+    public Task SelectDeviceAsync(DeviceItem device) { SelectedDevice = device; return Task.CompletedTask; }
+    internal PlaybackModeViewModel? AssignedMode(string id) => Modes.FirstOrDefault(mode => mode.TargetIds.Contains(id));
+    internal void RefreshModeGroups()
     {
-        foreach (var property in new[] { nameof(IsBluetooth), nameof(ModeLabel), nameof(TransportName), nameof(DriverLabel),
-            nameof(DeviceHelp), nameof(TransportHelp), nameof(ReadingsLabel), nameof(HasElectrodeReadings), nameof(SelectedContacts) }) Raise(property);
-        RefreshDevices();
+        foreach (var mode in Modes) mode.RefreshTargets();
+        var available = Devices.Where(device => AssignedMode(device.Id) is null).ToArray();
+        foreach (var device in UnassignedDevices.Where(device => !available.Contains(device)).ToArray()) UnassignedDevices.Remove(device);
+        foreach (var device in available) if (!UnassignedDevices.Contains(device)) UnassignedDevices.Add(device);
+        RefreshAssignableDevices(); Raise(nameof(HasUnassignedDevices));
     }
-
-    public async Task SelectDeviceAsync(DeviceItem device)
+    private void RefreshAssignableDevices()
     {
-        if (SelectedDevice == device) return;
-        await StopAsync("Reason.DeviceChanged", false);
-        SelectedDevice = device;
-        SafetyLimit = _controller.Connections.TryGetValue(device.Id, out var connection) ? connection.Limit : DefaultLimit;
-        ChannelA = ChannelB = 0;
+        foreach (var device in Devices) device.CanAssign = SelectedMode.CanEditRouting && AssignedMode(device.Id) is null;
     }
-
     public async Task ToggleConnectionAsync(DeviceItem device)
     {
-        await StopAsync("Reason.ConnectionChanged", false);
         if (device.IsConnected)
         {
-            await _controller.DisconnectAsync(device.Id);
-            Notify("Status.Disconnected", device.Name);
+            await StopModesForDeviceAsync(device.Id, "Reason.ConnectionChanged");
+            await _controller.DisconnectAsync(device.Id); Notify("Status.Disconnected", device.Name);
         }
         else
         {
-            await _controller.ConnectAsync(device.Device, DefaultLimit);
-            await SelectDeviceAsync(device);
+            await _controller.ConnectAsync(device.Device); SelectedDevice = device;
             Notify("Status.Connected", device.Name);
         }
         RefreshDevices();
     }
-
-    public async Task TogglePlaybackAsync()
+    public Task TogglePlaybackAsync() => SelectedMode.TogglePlaybackAsync();
+    public async Task TickAsync() { if (_disposed) return; foreach (var mode in Modes.ToArray()) await mode.TickAsync(); }
+    public Task StopAsync(string reason = "Reason.Manual", bool notify = true) => SelectedMode.StopAsync(reason, notify);
+    public async Task StopAllModesAsync(string reason = "Reason.AllStopped")
     {
-        if (IsRunning) { await StopAsync(); return; }
-        if (SelectedPreset is null) throw new LocalizedOperationException("Error.SelectWave");
-        var targets = LinkMode ? Devices.Where(d => d.IsConnected && d.IsIncluded).Select(d => d.Id).ToArray()
-            : SelectedDevice is { IsConnected: true } device ? [device.Id] : Array.Empty<string>();
-        await _engine.StartAsync(targets, SelectedPreset.Preset, ConfiguredDuration);
-        _hasSessionClock = true;
-        _clock.Restart();
-        RefreshPlayback();
-        Notify("Status.Started", SelectedPreset, targets.Length);
+        List<Exception> errors = [];
+        foreach (var mode in Modes.ToArray()) try { await mode.StopAsync(reason, false); } catch (Exception error) { errors.Add(error); }
+        if (errors.Count > 0) throw new LocalizedAggregateException("Error.StopUnconfirmed", errors);
     }
-
-    public async Task TickAsync()
+    private async Task StopModesForDeviceAsync(string id, string reason)
+    { foreach (var mode in Modes.Where(mode => mode.TargetIds.Contains(id)).ToArray()) await mode.StopAsync(reason, false); }
+    public Task NavigateAsync(string page)
     {
-        if (_tickBusy || _disposed || !IsRunning) return;
-        _tickBusy = true;
-        try { await _engine.AdvanceAsync(_clock.Elapsed); RefreshPlayback(); }
-        catch (Exception e) { ShowError(e); RefreshPlayback(); }
-        finally { _tickBusy = false; }
-    }
-
-    public async Task StopAsync(string reason = "Reason.Manual", bool notify = true)
-    {
-        await _engine.StopAsync(reason);
-        _clock.Stop();
-        RefreshPlayback();
-        if (notify) Notify("Status.Stopped");
-    }
-
-    public async Task NavigateAsync(string page)
-    {
-        await StopAsync("Reason.PageChanged", false);
         _page = page;
         foreach (var property in new[] { nameof(IsWorkspace), nameof(IsWaves), nameof(IsHistory), nameof(IsSettings), nameof(IsHelp), nameof(PageTitle) }) Raise(property);
+        return Task.CompletedTask;
     }
-
     public void NewWave()
     {
         _editingId = null;
@@ -456,26 +351,29 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
     public void EditWave()
     {
-        if (SelectedPreset is null) return;
-        var preset = SelectedPreset.Preset;
-        _editingId = SelectedPreset.IsBuiltIn ? null : preset.Id;
-        EditorName = SelectedPreset.IsBuiltIn ? L10n.Format("Wave.CopyName", preset.Name) : preset.Name;
+        if (LibrarySelectedPreset is not { } selected) return;
+        var preset = selected.Preset;
+        _editingId = selected.IsBuiltIn ? null : preset.Id;
+        EditorName = selected.IsBuiltIn ? L10n.Format("Wave.CopyName", preset.Name) : preset.Name;
         EditorShape = preset.Shape; _editorFamily = preset.Family;
         EditorSamples = JsonSerializer.Serialize(preset.Samples ?? [], new JsonSerializerOptions { WriteIndented = true });
         EditorPeriod = preset.PeriodSeconds; EditorFrequency = preset.Frequency;
         EditorPoints = string.Join(", ", preset.Points?.Select(p => p.ToString("0.###", CultureInfo.InvariantCulture)) ?? ["0", "1", "0"]);
-        Notify(SelectedPreset.IsBuiltIn ? "Status.CopyBuiltIn" : "Status.Editing");
+        Notify(selected.IsBuiltIn ? "Status.CopyBuiltIn" : "Status.Editing");
     }
 
     public async Task SaveWaveAsync()
     {
         var preset = BuildEditorPreset();
         preset.Validate();
+        if (Modes.Any(mode => mode.UsesWaveform(preset.Id))) throw new LocalizedOperationException("Error.WaveInUse");
+        var references = Modes.Select(mode => (Mode: mode, A: mode.SelectedPreset?.Preset.Id == preset.Id, B: mode.SelectedPresetB?.Preset.Id == preset.Id)).ToArray();
         var next = Presets.Select(p => p.Preset).Where(p => p.Id != preset.Id).Append(preset).ToArray();
         await SaveAsync(next);
         var old = Presets.FirstOrDefault(p => p.Preset.Id == preset.Id);
         if (old is not null) Presets.Remove(old);
-        var item = new PresetItem(preset); Presets.Add(item); SelectedPreset = item; _editingId = preset.Id;
+        var item = new PresetItem(preset); Presets.Add(item); LibrarySelectedPreset = item; _editingId = preset.Id;
+        foreach (var reference in references) { if (reference.A) reference.Mode.SelectedPreset = item; if (reference.B) reference.Mode.SelectedPresetB = item; }
         Notify("Status.WaveSaved", preset.Name);
     }
 
@@ -491,11 +389,17 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
     public async Task DeleteWaveAsync()
     {
-        if (SelectedPreset is null) return;
-        if (SelectedPreset.IsBuiltIn) throw new LocalizedOperationException("Error.DeleteBuiltIn");
-        var selected = SelectedPreset;
+        if (LibrarySelectedPreset is not { } selected) return;
+        if (selected.IsBuiltIn) throw new LocalizedOperationException("Error.DeleteBuiltIn");
+        if (Modes.Any(mode => mode.UsesWaveform(selected.Preset.Id))) throw new LocalizedOperationException("Error.WaveInUse");
+        foreach (var mode in Modes)
+        {
+            mode.RemovePlaylistWave(selected.Preset.Id);
+            if (mode.SelectedPreset == selected) mode.SelectedPreset = Presets[0];
+            if (mode.SelectedPresetB == selected) mode.SelectedPresetB = Presets[0];
+        }
         await SaveAsync(Presets.Where(p => p != selected).Select(p => p.Preset));
-        SelectedPreset = Presets[0]; Presets.Remove(selected); NewWave(); Notify("Status.WaveDeleted");
+        LibrarySelectedPreset = Presets[0]; Presets.Remove(selected); NewWave(); Notify("Status.WaveDeleted");
     }
 
     public async Task ImportAsync(string json)
@@ -508,65 +412,49 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         Notify("Status.Imported", added.Length, imported.Count - added.Length);
     }
 
+
     public async Task SaveAsync(IEnumerable<WaveformPreset>? presets = null)
     {
-        await _store.SaveAsync(new(2,
-            (presets ?? Presets.Select(p => p.Preset)).Where(p => !WaveformPreset.BuiltIn.Any(b => b.Id == p.Id)).ToList(),
-            _records.ToList(), new(DefaultLimit, Math.Floor(SessionDurationSeconds / 60), OffsetChannelB, SelectedLanguage?.Code,
-                IsBluetooth, TimerEnabled, (int)SessionDurationSeconds % 60, (int)TimerLimitMinutes), _statistics));
-        _statistics = new(Math.Max(_statistics.SessionCount, _store.Statistics.SessionCount),
-            Math.Max(_statistics.TotalDurationSeconds, _store.Statistics.TotalDurationSeconds));
+        if (Presets.Count == 0) return;
+        await _store.SaveAsync(new(4, (presets ?? Presets.Select(item => item.Preset)).Where(preset => !DefaultWaveformCatalog.Contains(preset.Id)).ToList(),
+            _records.ToList(), new(DefaultLimit, SelectedLanguage?.Code, IsBluetooth, (int)TimerLimitMinutes), _statistics, Modes.Select(mode => mode.ToConfig()).ToList()));
+        _statistics = new(Math.Max(_statistics.SessionCount, _store.Statistics.SessionCount), Math.Max(_statistics.TotalDurationSeconds, _store.Statistics.TotalDurationSeconds));
         _records.RemoveAll(record => _store.Journal.IsDiscarded(record.Id));
-        foreach (var session in Sessions.Where(session => _store.Journal.IsDiscarded(session.Record.Id)).ToArray()) Sessions.Remove(session);
+        foreach (var item in Sessions.Where(item => _store.Journal.IsDiscarded(item.Record.Id)).ToArray()) Sessions.Remove(item);
         Raise(nameof(SessionCount)); Raise(nameof(TotalTime));
     }
-
+    internal void AddModeSession(SessionRecord record)
+    {
+        _records.Insert(0, record); Sessions.Insert(0, new(record)); _statistics = _statistics.Add(record);
+        Raise(nameof(SessionCount)); Raise(nameof(TotalTime)); _ = GuardAsync(() => SaveAsync()); Notify("Status.SessionSaved", new StoredReason(record.Reason));
+    }
     private void OnDeviceChanged(object? sender, EventArgs e) => RunOnUi(RefreshDevices);
     private void OnTransportFaulted(object? sender, DeviceTransportFault fault) => RunOnUi(() => _ = GuardAsync(async () =>
-    {
-        await StopAsync("Reason.ConnectionError", false);
-        ShowError(fault.Error);
-    }));
+    { await StopModesForDeviceAsync(fault.DeviceId, "Reason.ConnectionError"); RefreshDevices(); ShowError(fault.Error); }));
     private void RunOnUi(Action action)
     {
         if (_disposed) return;
-        if (_uiContext is not null && SynchronizationContext.Current != _uiContext)
-            _uiContext.Post(_ => { if (!_disposed) action(); }, null);
-        else action();
+        if (_uiContext is not null && SynchronizationContext.Current != _uiContext) _uiContext.Post(_ => { if (!_disposed) action(); }, null); else action();
     }
-    private void OnSessionCompleted(object? sender, SessionRecord record)
-    {
-        _records.Insert(0, record); Sessions.Insert(0, new(record));
-        _statistics = _statistics.Add(record);
-        Raise(nameof(SessionCount)); Raise(nameof(TotalTime));
-        _ = GuardAsync(() => SaveAsync());
-        Notify("Status.SessionSaved", new StoredReason(record.Reason));
-    }
-
     private void RefreshDevices()
     {
         foreach (var device in Devices)
         {
-            device.CanEditRouting = !IsRunning;
             device.IsConnected = _controller.Connections.TryGetValue(device.Id, out var connection);
-            device.OutputA = connection?.Output.ChannelA ?? 0;
-            device.OutputB = connection?.Output.ChannelB ?? 0;
+            device.OutputA = connection?.Output.ChannelA ?? 0; device.OutputB = connection?.Output.ChannelB ?? 0;
+            device.ActiveModeName = _controller.DeviceOwner(device.Id) is { } owner ? Modes.FirstOrDefault(mode => mode.Id == owner)?.Name : null;
             if (connection is not null) device.UpdateReadings(connection.Device);
         }
-        Raise(nameof(ConnectedCount)); Raise(nameof(ConnectedSummary)); Raise(nameof(SelectedConnected)); Raise(nameof(RoutingSummary));
-        Raise(nameof(SelectedOutputALabel)); Raise(nameof(SelectedOutputBLabel));
-        Raise(nameof(SelectedBattery)); Raise(nameof(SelectedBatteryLabel)); Raise(nameof(SelectedSignal));
-        Raise(nameof(SelectedContacts)); Raise(nameof(HasElectrodeReadings));
+        RefreshModeGroups();
+        foreach (var name in new[] { nameof(ConnectedCount), nameof(ConnectedSummary), nameof(SelectedConnected), nameof(SelectedName), nameof(SelectedKind), nameof(SelectedId), nameof(HasSelection),
+            nameof(SelectedBattery), nameof(SelectedBatteryLabel), nameof(SelectedSignal), nameof(SelectedContacts), nameof(HasElectrodeReadings) }) Raise(name);
+        RefreshDeviceFeatures();
     }
-
-    private void RefreshPlayback()
+    private void RefreshTransport()
     {
-        foreach (var property in new[] { nameof(IsRunning), nameof(CanEditRouting), nameof(CanEditDuration), nameof(IsTimedSession),
-            nameof(SessionState), nameof(PlaybackLabel), nameof(Elapsed), nameof(Remaining), nameof(SessionClock), nameof(SessionTimeLabel),
-            nameof(ShowTimerProgress), nameof(TimerProgress), nameof(TimerReadout), nameof(Playhead) }) Raise(property);
+        foreach (var name in new[] { nameof(IsBluetooth), nameof(TransportName), nameof(ModeLabel), nameof(DriverLabel), nameof(DeviceHelp), nameof(TransportHelp), nameof(ReadingsLabel) }) Raise(name);
         RefreshDevices();
     }
-
     public void ShowError(Exception exception)
     {
         _status = exception switch
@@ -587,44 +475,27 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         Activities.Insert(0, new(DateTime.Now.ToString("HH:mm:ss"), text));
         while (Activities.Count > 20) Activities.RemoveAt(Activities.Count - 1);
     }
+
     private void OnLanguageChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName != nameof(JsonLocalizer.Language)) return;
-        _selectedLanguage = Languages.First(l => l.Code == L10n.Current.Language);
-        Raise(nameof(SelectedLanguage));
-        foreach (var item in Devices) item.RefreshLocalization();
-        foreach (var item in Presets) item.RefreshLocalization();
-        foreach (var item in Shapes) item.RefreshLocalization();
-        foreach (var item in Sessions) item.RefreshLocalization();
-        foreach (var item in Activities) item.RefreshLocalization();
-        foreach (var item in TransportOptions) item.RefreshLocalization();
-        RefreshTransport();
-        foreach (var property in new[] { nameof(Remaining), nameof(SessionTimeLabel), nameof(SessionClock), nameof(TimerReadout) }) Raise(property);
-        foreach (var name in new[] { nameof(PageTitle), nameof(ScanLabel), nameof(Status), nameof(SessionState),
-            nameof(PlaybackLabel), nameof(TotalTime), nameof(SelectedName), nameof(SelectedKind), nameof(SelectedId),
-            nameof(SelectedBatteryLabel), nameof(SelectedOutputALabel), nameof(SelectedOutputBLabel),
-            nameof(RoutingSummary), nameof(PresetSummary), nameof(SelectedPresetName), nameof(SelectedWaveform), nameof(TransportName) }) Raise(name);
-        Raise(nameof(SelectedPreset));
+        _selectedLanguage = Languages.First(language => language.Code == L10n.Current.Language); Raise(nameof(SelectedLanguage));
+        foreach (var item in Devices) item.RefreshLocalization(); foreach (var item in Presets) item.RefreshLocalization();
+        foreach (var item in Shapes) item.RefreshLocalization(); foreach (var item in Sessions) item.RefreshLocalization();
+        foreach (var item in Activities) item.RefreshLocalization(); foreach (var item in TransportOptions) item.RefreshLocalization();
+        foreach (var mode in Modes) mode.RefreshLocalization();
+        RefreshTransport(); RefreshModeBindings();
+        foreach (var name in new[] { nameof(PageTitle), nameof(ScanLabel), nameof(Status), nameof(TotalTime), nameof(RunningModesSummary) }) Raise(name);
     }
-    private async Task GuardAsync(Func<Task> action) { try { await action(); } catch (Exception e) { ShowError(e); } }
-    private static string FormatDuration(TimeSpan time) => time.ToString(time.TotalHours >= 1 ? @"h\:mm\:ss" : @"mm\:ss");
-
+    private async Task GuardAsync(Func<Task> action) { try { await action(); } catch (Exception error) { ShowError(error); } }
     public async ValueTask DisposeAsync()
     {
-        if (_disposed) return;
-        _disposed = true;
-        try
-        {
-            await StopAsync("Reason.Close", false);
-            await SaveAsync();
-        }
+        if (_disposed) return; _disposed = true;
+        try { await StopAllModesAsync("Reason.Close"); await SaveAsync(); }
         finally
         {
-            _controller.Changed -= OnDeviceChanged;
-            _controller.Faulted -= OnTransportFaulted;
-            _engine.Completed -= OnSessionCompleted;
-            L10n.Current.PropertyChanged -= OnLanguageChanged;
-            await _controller.DisposeAsync();
+            _controller.Changed -= OnDeviceChanged; _controller.Faulted -= OnTransportFaulted;
+            L10n.Current.PropertyChanged -= OnLanguageChanged; await _controller.DisposeAsync();
         }
     }
 }
