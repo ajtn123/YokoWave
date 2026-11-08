@@ -63,7 +63,7 @@ public sealed class SessionJournal(string directory)
 
     internal static void ValidateRecord(SessionRecord record)
     {
-        if (record.Id == Guid.Empty || string.IsNullOrWhiteSpace(record.WaveformName) || record.Reason is null ||
+        if (record.Id == Guid.Empty || string.IsNullOrWhiteSpace(record.WaveformName) || record.Reason is null || !Enum.IsDefined(record.Kind) ||
             !double.IsFinite(record.DurationSeconds) || record.DurationSeconds < 0 || record.DurationSeconds > TimeSpan.MaxValue.TotalSeconds ||
             record.DeviceCount < 1 || !double.IsFinite(record.PeakA) || record.PeakA is < 0 or > 100 ||
             !double.IsFinite(record.PeakB) || record.PeakB is < 0 or > 100)

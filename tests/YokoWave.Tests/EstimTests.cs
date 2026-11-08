@@ -123,7 +123,7 @@ public sealed class EstimTests
     {
         var transport = new RecordingTransport(); await using var controller = await Controller(transport);
         var engine = new SessionEngine(controller) { ChannelA = 20, ChannelB = 10 };
-        await engine.StartAsync(["one"], Wave("wave"), null, new(new(TouchPlayback: mode), TouchControl: true));
+        await engine.StartAsync(["one"], Wave("wave"), null, new(new(TouchPlayback: mode), Kind: ModeKind.Touch));
         await engine.AdvanceAsync(TimeSpan.Zero); Assert.Equal(0, transport.Latest["one"].ChannelA);
         await engine.SetTouchAsync(25, 40, true); await engine.AdvanceAsync(TimeSpan.FromSeconds(0.1));
         await engine.SetTouchAsync(50, 80, true); await engine.AdvanceAsync(TimeSpan.FromSeconds(0.2));
@@ -144,7 +144,7 @@ public sealed class EstimTests
     {
         var transport = new RecordingTransport(); await using var controller = await Controller(transport);
         var engine = new SessionEngine(controller) { ChannelA = 20 };
-        await engine.StartAsync(["one"], Wave("wave"), null, new(TouchControl: true));
+        await engine.StartAsync(["one"], Wave("wave"), null, new(Kind: ModeKind.Touch));
         await engine.SetTouchAsync(50, 50, true);
         for (var frame = 0; frame < 300; frame++) await engine.AdvanceAsync(TimeSpan.FromMilliseconds(frame * 100));
         Assert.Equal(SessionEngine.MaxRecordingFrames, engine.Recording.Count);

@@ -64,5 +64,29 @@
         <TextBlock Text="{l:Loc Help.Touch}" Classes="help" />
       </StackPanel>
     </Border>
+    <Border Classes="card">
+      <StackPanel Classes="items">
+        <TextBlock Text="{l:Loc ModeKind.Audio}" Classes="section-title" />
+        <TextBlock Text="{l:Loc Help.AudioControl}" Classes="help" />
+      </StackPanel>
+    </Border>
+    <Border Classes="card">
+      <StackPanel Classes="items">
+        <TextBlock Text="{l:Loc ModeKind.Restraint}" Classes="section-title" />
+        <TextBlock Text="{l:Loc Help.Restraint}" Classes="help" />
+      </StackPanel>
+    </Border>
+    <Border Classes="card">
+      <StackPanel Classes="items">
+        <TextBlock Text="{l:Loc ModeKind.Exercise}" Classes="section-title" />
+        <TextBlock Text="{l:Loc Help.Exercise}" Classes="help" />
+      </StackPanel>
+    </Border>
+    <Border Classes="card">
+      <StackPanel Classes="items">
+        <TextBlock Text="{l:Loc ModeKind.SleepDeprivation}" Classes="section-title" />
+        <TextBlock Text="{l:Loc Help.Sleep}" Classes="help" />
+      </StackPanel>
+    </Border>
   </StackPanel>
 </UserControl>

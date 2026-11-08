@@ -28,7 +28,13 @@ public sealed record EstimSettings(PlaybackOrder Order = PlaybackOrder.Repeat, S
 }
 
 public sealed record SessionProgram(EstimSettings? Settings = null, IReadOnlyList<WaveformPreset>? Playlist = null,
-    WaveformPreset? ChannelBWaveform = null, bool TouchControl = false, double OutputLimit = 60);
+    WaveformPreset? ChannelBWaveform = null, ModeKind Kind = ModeKind.Waveform, double OutputLimit = 60,
+    AudioSettings? Audio = null, ReactiveSettings? Reactive = null)
+{
+    public bool TouchControl => Kind == ModeKind.Touch;
+    public bool NeedsMotion => Kind is ModeKind.Restraint or ModeKind.Exercise ||
+        Kind == ModeKind.SleepDeprivation && (Reactive?.SleepCycle ?? SleepCycleKind.Fixed) == SleepCycleKind.ActivityReset;
+}
 
 internal sealed class WaveformTrack(WaveformPreset preset, IReadOnlyList<WaveformPreset> playlist)
 {

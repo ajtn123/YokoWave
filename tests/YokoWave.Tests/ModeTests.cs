@@ -111,7 +111,7 @@ public sealed class ModeTests
         {
             new(Guid.NewGuid(), "First", ChannelA: 20, OutputLimit: 30, TargetDeviceIds: ["one"]),
             new(Guid.NewGuid(), "Second", ChannelA: 40, OutputLimit: 50, DurationSeconds: 30, TargetDeviceIds: ["two"]),
-            new(Guid.NewGuid(), "Third", TouchControl: true, TargetDeviceIds: ["three", "four"])
+            new(Guid.NewGuid(), "Third", Kind: ModeKind.Touch, TargetDeviceIds: ["three", "four"])
         };
         await store.SaveAsync(new(3, [], [], new(), Modes: configs));
         var loaded = await new WorkspaceStore(folder.Path).LoadAsync(); Assert.Equivalent(configs, loaded.Modes);

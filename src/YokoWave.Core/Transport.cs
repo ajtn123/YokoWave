@@ -17,7 +17,8 @@ public enum ElectrodeContact { NotConnected, Delivering, Connected, Unknown }
 public sealed class DeviceStatusUpdate(string deviceId, int? battery = null,
     ElectrodeContact? contactA = null, ElectrodeContact? contactB = null,
     bool? outputAEnabled = null, bool? outputBEnabled = null,
-    byte? hardwareVersion = null, byte? softwareVersion = null, bool? lightEnabled = null) : EventArgs
+    byte? hardwareVersion = null, byte? softwareVersion = null, bool? lightEnabled = null,
+    double? motionAngle = null, int? steps = null) : EventArgs
 {
     public string DeviceId { get; } = deviceId;
     public int? Battery { get; } = battery;
@@ -28,6 +29,8 @@ public sealed class DeviceStatusUpdate(string deviceId, int? battery = null,
     public byte? HardwareVersion { get; } = hardwareVersion;
     public byte? SoftwareVersion { get; } = softwareVersion;
     public bool? LightEnabled { get; } = lightEnabled;
+    public double? MotionAngle { get; } = motionAngle;
+    public int? Steps { get; } = steps;
 }
 
 public sealed class DeviceTransportFault(string deviceId, bool disconnected, Exception error) : EventArgs
@@ -48,6 +51,13 @@ public interface IElectricalDeviceFeatures
     Task<ElectricalFeatureState> RefreshFeaturesAsync(string deviceId, CancellationToken cancellationToken = default);
     Task<bool> SetLightAsync(string deviceId, bool enabled, CancellationToken cancellationToken = default);
 }
+
+public interface IElectricalMotionSource
+{
+    Task SetMotionStreamingAsync(string deviceId, bool enabled, CancellationToken cancellationToken = default);
+}
+
+public sealed record MotionReading(double Angle, long Sequence, DateTimeOffset CapturedAt, int? Steps = null);
 
 public sealed record ElectricalFeatureState(byte HardwareVersion, byte SoftwareVersion, bool LightEnabled);
 

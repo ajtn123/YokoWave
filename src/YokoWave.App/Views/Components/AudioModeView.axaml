@@ -1,0 +1,49 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:YokoWave.App.ViewModels" xmlns:l="using:YokoWave.App.Localization"
+             x:Class="YokoWave.App.Views.Components.AudioModeView" x:DataType="vm:PlaybackModeViewModel" IsVisible="{Binding IsAudio}">
+  <Border Classes="card">
+    <StackPanel Classes="group">
+      <StackPanel Classes="items" IsEnabled="{Binding CanEditRouting}">
+        <StackPanel Classes="field">
+          <TextBlock Text="{l:Loc Audio.Source}" Classes="field-label" />
+          <ComboBox x:Name="AudioSourcePicker" ItemsSource="{Binding AudioSources}" SelectedItem="{Binding SelectedAudioSource}" HorizontalAlignment="Stretch">
+            <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+          </ComboBox>
+          <TextBlock Text="{l:Loc Audio.LocalHelp}" Classes="muted caption help" />
+          <TextBlock Text="{l:Loc Audio.SystemHelp}" IsVisible="{Binding IsSystemAudio}" Classes="muted caption help" />
+        </StackPanel>
+        <StackPanel Classes="items" IsVisible="{Binding IsMediaFile}">
+          <Grid ColumnDefinitions="*,Auto" Classes="columns">
+            <TextBox x:Name="MediaPathInput" Text="{Binding MediaPath}" MaxLength="4096" AutomationProperties.Name="{l:Loc Audio.File}" />
+            <Button Grid.Column="1" Content="{l:Loc Audio.Browse}" Click="BrowseMediaClick" Classes="small" />
+          </Grid>
+          <TextBlock Text="{l:Loc Audio.FileHelp}" Classes="muted caption help" />
+          <CheckBox Content="{l:Loc Audio.Loop}" IsChecked="{Binding LoopMedia}" />
+          <StackPanel Classes="field">
+            <TextBlock Text="{l:Loc Audio.PlaybackVolume}" Classes="field-label" />
+            <Slider Minimum="0" Maximum="100" Value="{Binding PlaybackVolume}" TickFrequency="1" />
+          </StackPanel>
+        </StackPanel>
+        <StackPanel Classes="field">
+          <TextBlock Text="{l:Loc Audio.Follow}" Classes="field-label" />
+          <ComboBox ItemsSource="{Binding AudioFollowModes}" SelectedItem="{Binding SelectedAudioFollow}" HorizontalAlignment="Stretch">
+            <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+          </ComboBox>
+        </StackPanel>
+        <StackPanel Classes="field">
+          <TextBlock Text="{l:Loc Audio.Sensitivity}" Classes="field-label" />
+          <Slider x:Name="AudioSensitivitySlider" Minimum="0" Maximum="100" Value="{Binding AudioSensitivity}" TickFrequency="1" />
+        </StackPanel>
+      </StackPanel>
+      <Grid ColumnDefinitions="*,Auto" Classes="columns">
+        <TextBlock Text="{Binding NoiseFloorLabel}" Classes="muted caption" VerticalAlignment="Center" />
+        <Button Grid.Column="1" Content="{l:Loc Audio.Calibrate}" Command="{Binding CalibrateAudioCommand}" Classes="small" />
+      </Grid>
+      <StackPanel Classes="items" IsVisible="{Binding HasLiveInput}">
+        <TextBlock Text="{Binding InputPhaseLabel}" Classes="label accent" />
+        <ProgressBar Minimum="0" Maximum="1" Value="{Binding InputLevel}" Classes="session-timer" />
+        <TextBlock Text="{Binding AudioReadout}" Classes="muted caption" />
+      </StackPanel>
+    </StackPanel>
+  </Border>
+</UserControl>

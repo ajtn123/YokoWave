@@ -11,6 +11,10 @@ public sealed class DeviceConnection(DeviceDescriptor device)
     public byte? HardwareVersion { get; internal set; }
     public byte? SoftwareVersion { get; internal set; }
     public bool? LightEnabled { get; internal set; }
+    public MotionReading? Motion { get; internal set; }
+    public int? Steps { get; internal set; }
+    internal long MotionSequence;
+    internal bool MotionStreaming;
 }
 
 /// <summary>Single serialized gateway to all outputs, including stop and disconnect.</summary>
@@ -24,14 +28,16 @@ public sealed class DeviceController : IAsyncDisposable
     public IReadOnlyDictionary<string, DeviceConnection> Connections => _connections;
     public string TransportName => _transport.DisplayName;
     public bool IsSimulation => _transport.IsSimulation;
+    public TimeProvider Clock { get; }
     public bool IsDeviceBusy(string id) => _owners.ContainsKey(id);
     public Guid? DeviceOwner(string id) => _owners.TryGetValue(id, out var owner) ? owner : null;
     public event EventHandler? Changed;
     public event EventHandler<DeviceTransportFault>? Faulted;
 
-    public DeviceController(IDeviceTransport transport)
+    public DeviceController(IDeviceTransport transport, TimeProvider? timeProvider = null)
     {
         _transport = transport;
+        Clock = timeProvider ?? TimeProvider.System;
         Subscribe(transport, true);
     }
 
@@ -61,6 +67,7 @@ public sealed class DeviceController : IAsyncDisposable
     private async void OnStatusChanged(object? sender, DeviceStatusUpdate update)
     {
         if (_disposed) return;
+        var receivedAt = Clock.GetUtcNow();
         try
         {
             await _gate.WaitAsync();
@@ -73,6 +80,9 @@ public sealed class DeviceController : IAsyncDisposable
                 if (update.HardwareVersion is { } hardware) connection.HardwareVersion = hardware;
                 if (update.SoftwareVersion is { } software) connection.SoftwareVersion = software;
                 if (update.LightEnabled is { } light) connection.LightEnabled = light;
+                if (update.Steps is >= 0 and <= 65535) connection.Steps = update.Steps;
+                if (update.MotionAngle is { } angle && double.IsFinite(angle) && angle is >= 0 and <= 180)
+                    connection.Motion = new(angle, ++connection.MotionSequence, receivedAt, connection.Steps);
             }
             finally { _gate.Release(); }
             Changed?.Invoke(this, EventArgs.Empty);
@@ -150,7 +160,12 @@ public sealed class DeviceController : IAsyncDisposable
             {
                 try
                 {
-                    if (_connections.TryGetValue(id, out var connection)) await WriteCoreAsync(connection, OutputFrame.Zero, ct);
+                    if (_connections.TryGetValue(id, out var connection))
+                    {
+                        await WriteCoreAsync(connection, OutputFrame.Zero, ct);
+                        if (connection.MotionStreaming && _transport is IElectricalMotionSource motion) await motion.SetMotionStreamingAsync(id, false, ct);
+                        connection.MotionStreaming = false;
+                    }
                     _owners.TryRemove(id, out _);
                 }
                 catch (Exception error) { errors.Add(error); }
@@ -159,6 +174,35 @@ public sealed class DeviceController : IAsyncDisposable
         finally { _gate.Release(); }
         Changed?.Invoke(this, EventArgs.Empty);
         if (errors.Count > 0) throw new LocalizedAggregateException("Error.StopUnconfirmed", errors);
+    }
+
+    public async Task StartMotionOwnedAsync(Guid owner, string id)
+    {
+        await _gate.WaitAsync();
+        try
+        {
+            if (DeviceOwner(id) != owner) throw new LocalizedOperationException("Error.DeviceInUse");
+            var connection = Get(id); connection.Motion = null;
+            if (_transport is IElectricalMotionSource motion) { connection.MotionStreaming = true; await motion.SetMotionStreamingAsync(id, true); }
+            else if (!IsSimulation) throw new LocalizedOperationException("Error.MotionUnavailable");
+            connection.MotionStreaming = true;
+        }
+        finally { _gate.Release(); }
+    }
+
+    public async Task SetSimulatedMotionAsync(Guid owner, double angle)
+    {
+        if (!IsSimulation || !double.IsFinite(angle) || angle is < 0 or > 180) throw new LocalizedArgumentException("Error.MotionInput");
+        await _gate.WaitAsync();
+        try
+        {
+            foreach (var pair in _owners.Where(pair => pair.Value == owner))
+            {
+                var connection = Get(pair.Key);
+                connection.Motion = new(angle, ++connection.MotionSequence, Clock.GetUtcNow());
+            }
+        }
+        finally { _gate.Release(); }
     }
 
     public async Task RefreshFeaturesAsync(string id, CancellationToken ct = default)

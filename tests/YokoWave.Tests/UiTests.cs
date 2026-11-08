@@ -88,8 +88,9 @@ public sealed class UiTests
         var window = new Window { Content = view, Width = 1200, Height = 1000 };
         window.Show(); await WaitForAsync(() => vm.Devices.Count == 5 && !vm.IsScanning);
         var mode = vm.SelectedMode;
-        var candidate = Find<ComboBox>(view, "PlaylistWavePicker");
-        var add = Find<Button>(view, "AddPlaylistWaveButton");
+        var waveformView = Find<WaveformModeView>(view, "WaveformModePanel");
+        var candidate = Find<ComboBox>(waveformView, "PlaylistWavePicker");
+        var add = Find<Button>(waveformView, "AddPlaylistWaveButton");
         candidate.SelectedItem = vm.Presets[2]; Click(window, add);
         candidate.SelectedItem = vm.Presets[1]; Click(window, add);
         Assert.Equal(new[] { vm.Presets[0].Preset.Id, vm.Presets[2].Preset.Id, vm.Presets[1].Preset.Id }, mode.Playlist.Select(entry => entry.Id));
@@ -121,7 +122,7 @@ public sealed class UiTests
         var saved = await new WorkspaceStore(folder.Path).LoadAsync();
         Assert.Equal(mode.Playlist.Select(entry => entry.Id), Assert.Single(saved.Modes!).PlaylistWaveformIds);
         window.RequestedThemeVariant = ThemeVariant.Dark;
-        view.GetVisualDescendants().OfType<ModePlaylistView>().Single().BringIntoView(); Capture(window, "custom-playlist-dark.png");
+        waveformView.GetVisualDescendants().OfType<ModePlaylistView>().Single().BringIntoView(); Capture(window, "custom-playlist-dark.png");
         window.Close();
         await using var restored = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path));
         await restored.InitializeAsync();
@@ -367,7 +368,7 @@ public sealed class UiTests
             await WaitForAsync(() => vm.Devices.Count == 5 && !vm.IsScanning);
             vm.SelectedLanguage = vm.Languages.First(language => language.Code == "zh-CN");
             await vm.ToggleConnectionAsync(vm.Devices[0]);
-        vm.SelectedMode.AssignTarget(vm.Devices[0].Id, true);
+            vm.SelectedMode.AssignTarget(vm.Devices[0].Id, true);
             var selectedDevice = vm.SelectedDevice;
             var selectedPreset = vm.SelectedPreset;
             vm.ChannelA = 20;
@@ -731,7 +732,7 @@ public sealed class UiTests
             vm.EditorShape = WaveShape.Sampled;
             Assert.Null(vm.EditorPreview);
             await vm.ToggleConnectionAsync(vm.Devices[0]);
-        vm.SelectedMode.AssignTarget(vm.Devices[0].Id, true);
+            vm.SelectedMode.AssignTarget(vm.Devices[0].Id, true);
             await vm.ToggleConnectionAsync(vm.Devices[1]);
             await vm.SelectDeviceAsync(vm.Devices[0]);
             await controller.SendAsync(vm.SelectedDevice!.Id, new(25, 15, 20), TestContext.Current.CancellationToken);
@@ -798,7 +799,7 @@ public sealed class UiTests
             var view = Assert.IsType<MainView>(window.Content);
             await WaitForAsync(() => vm.Devices.Count == 5 && !vm.IsScanning);
             await vm.ToggleConnectionAsync(vm.Devices[0]);
-        vm.SelectedMode.AssignTarget(vm.Devices[0].Id, true);
+            vm.SelectedMode.AssignTarget(vm.Devices[0].Id, true);
             vm.ChannelA = 20;
             await vm.TogglePlaybackAsync();
             await vm.StopAsync();

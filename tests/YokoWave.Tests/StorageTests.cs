@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using YokoWave.Core;
 using Xunit;
 
@@ -27,7 +28,7 @@ public sealed class StorageTests
         Assert.DoesNotContain('\n', await File.ReadAllTextAsync(store.PresetsPath, TestContext.Current.CancellationToken));
         Assert.DoesNotContain('\n', await File.ReadAllTextAsync(store.ModesPath, TestContext.Current.CancellationToken));
         var line = Assert.Single(await File.ReadAllLinesAsync(store.Journal.FilePath, TestContext.Current.CancellationToken));
-        Assert.Equal(record.Id, JsonSerializer.Deserialize<SessionRecord>(line)!.Id);
+        Assert.Equal(record.Id, JsonSerializer.Deserialize<SessionRecord>(line, new JsonSerializerOptions { Converters = { new JsonStringEnumConverter() } })!.Id);
         var restored = await new WorkspaceStore(folder.Path).LoadAsync();
         Assert.Equal(settings, restored.Settings);
         Assert.Equivalent(mode, Assert.Single(restored.Modes!));
@@ -83,6 +84,7 @@ public sealed class StorageTests
     [InlineData(1)]
     [InlineData(2)]
     [InlineData(3)]
+    [InlineData(4)]
     public async Task OldDevelopmentFormatIsResetWithoutMigration(int schema)
     {
         using var folder = new TestFolder();
@@ -93,7 +95,7 @@ public sealed class StorageTests
         var unrelated = Path.Combine(folder.Path, "keep.txt");
         await File.WriteAllTextAsync(unrelated, "keep", TestContext.Current.CancellationToken);
         var data = await store.LoadAsync();
-        Assert.Equal(4, data.SchemaVersion);
+        Assert.Equal(5, data.SchemaVersion);
         Assert.Empty(data.Presets);
         Assert.Empty(data.Sessions);
         Assert.Empty(data.Modes!);

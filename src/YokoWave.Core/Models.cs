@@ -102,14 +102,14 @@ public static class WaveformGenerator
 public sealed record SessionRecord(Guid Id, DateTimeOffset StartedAt, double DurationSeconds,
     string WaveformName, int DeviceCount, double PeakA, double PeakB, string Reason, Guid? WaveformId = null,
     Guid? ChannelBWaveformId = null, string? ChannelBWaveformName = null, bool TouchControl = false, bool Gentle = false,
-    Guid? ModeId = null, string? ModeName = null);
+    Guid? ModeId = null, string? ModeName = null, ModeKind Kind = ModeKind.Waveform);
 
 public sealed record AppSettings(double DefaultLimit = 60, string? Language = null, bool UseBluetooth = false, int TimerLimitMinutes = 120);
 
 public sealed record WorkspaceData(int SchemaVersion, List<WaveformPreset> Presets,
     List<SessionRecord> Sessions, AppSettings Settings, SessionStatistics? Statistics = null, List<PlaybackModeConfig>? Modes = null)
 {
-    public static WorkspaceData Empty => new(4, [], [], new(), new(), []);
+    public static WorkspaceData Empty => new(5, [], [], new(), new(), []);
 }
 
 public sealed record SessionStatistics(long SessionCount = 0, double TotalDurationSeconds = 0)

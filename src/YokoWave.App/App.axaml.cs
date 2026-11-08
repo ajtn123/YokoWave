@@ -11,6 +11,7 @@ namespace YokoWave.App;
 public sealed partial class App : Application
 {
     public static Func<IBluetoothAdapter> BluetoothAdapterFactory { get; set; } = () => new UnsupportedBluetoothAdapter();
+    public static IAudioInputFactory AudioInputFactory { get; set; } = new UnavailableAudioInputFactory();
     public override void Initialize() => AvaloniaXamlLoader.Load(this);
 
     public override void OnFrameworkInitializationCompleted()
@@ -23,7 +24,7 @@ public sealed partial class App : Application
         var dataDirectory = Environment.GetEnvironmentVariable("YOKOWAVE_DATA_DIR")
             ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "YokoWave");
         var viewModel = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(dataDirectory),
-            () => new ElectricalBluetoothTransport(BluetoothAdapterFactory()));
+            () => new ElectricalBluetoothTransport(BluetoothAdapterFactory()), AudioInputFactory);
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var window = new MainWindow { DataContext = viewModel };

@@ -1,0 +1,33 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:YokoWave.App.ViewModels" xmlns:l="using:YokoWave.App.Localization"
+             xmlns:components="using:YokoWave.App.Views.Components"
+             x:Class="YokoWave.App.Views.Components.ExerciseModeView" x:DataType="vm:PlaybackModeViewModel" IsVisible="{Binding IsExercise}">
+  <Border Classes="card">
+    <StackPanel Classes="group">
+      <TextBlock Text="{l:Loc Exercise.Help}" Classes="muted caption help" />
+      <StackPanel Classes="items" IsEnabled="{Binding CanEditRouting}">
+        <Grid ColumnDefinitions="*,*" Classes="form">
+          <StackPanel Classes="field">
+            <TextBlock Text="{l:Loc Exercise.IdleSeconds}" Classes="field-label" />
+            <NumericUpDown x:Name="IdleSecondsInput" Minimum="1" Maximum="3600" Value="{Binding IdleSeconds}" />
+          </StackPanel>
+          <StackPanel Grid.Column="1" Classes="field">
+            <TextBlock Text="{l:Loc Reactive.BurstSeconds}" Classes="field-label" />
+            <NumericUpDown Minimum="1" Maximum="60" Value="{Binding BurstSeconds}" />
+          </StackPanel>
+        </Grid>
+        <StackPanel Classes="field">
+          <TextBlock Text="{l:Loc Exercise.Sensitivity}" Classes="field-label" />
+          <Slider Minimum="0" Maximum="100" Value="{Binding MovementSensitivity}" />
+        </StackPanel>
+        <CheckBox Content="{l:Loc Exercise.MovementGoal}" IsChecked="{Binding MovementGoalEnabled}" />
+        <NumericUpDown Minimum="1" Maximum="1000000" Value="{Binding MovementGoal}" IsEnabled="{Binding MovementGoalEnabled}" />
+        <components:ReactiveWavePickerView />
+      </StackPanel>
+      <Grid ColumnDefinitions="*,Auto" Classes="columns">
+        <TextBlock Text="{Binding MovementCountLabel}" Classes="label accent" />
+        <TextBlock Grid.Column="1" Text="{Binding ReactiveCountdown}" Classes="label" />
+      </Grid>
+    </StackPanel>
+  </Border>
+</UserControl>

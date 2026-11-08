@@ -17,6 +17,7 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
     private string _name;
     private PresetItem? _selectedPreset;
     public Guid Id { get; }
+    public ModeKind Kind { get; }
     public string Name
     {
         get => _name;
@@ -26,13 +27,13 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
     public ObservableCollection<ModeTargetItem> Targets { get; } = [];
     public bool HasTargets => Targets.Count > 0;
     public bool IsSelected => _host.SelectedMode == this;
-    public string KindLabel => L10n.Get(UseTouchControl ? "Mode.TouchKind" : "Mode.WaveKind");
+    public string KindLabel => L10n.Get($"ModeKind.{Kind}");
     public ActionCommand SelectCommand { get; }
     internal void RefreshSelection() => Raise(nameof(IsSelected));
     public IReadOnlyCollection<string> TargetIds => _targets;
     public bool IsRunning => _engine.IsRunning;
-    public bool CanEditRouting => !IsRunning && !_starting && !_targets.Any(id => _controller.DeviceOwner(id) == Id);
-    public bool UsesWaveform(Guid id) => _engine.UsesWaveform(id) || IsRunning && !UseTouchControl && Playlist.Any(entry => entry.Id == id);
+    public bool CanEditRouting => !IsRunning && !_starting && !IsCalibrating && !_targets.Any(id => _controller.DeviceOwner(id) == Id);
+    public bool UsesWaveform(Guid id) => _engine.UsesWaveform(id) || IsRunning && SupportsPlaylist && Playlist.Any(entry => entry.Id == id);
     public bool SelectedConnected => _targets.Any(id => _controller.Connections.ContainsKey(id));
     public bool HasChannelB => _targets.Count == 0 || _targets.Any(id => _controller.Connections.TryGetValue(id, out var connection) && connection.Device.Kind == DeviceKind.DualChannel);
     public bool HasElectrodeReadings => _host.IsBluetooth && _host.SelectedConnected && ShowContacts;
@@ -53,7 +54,7 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
     public string TimerReadout => !TimerEnabled ? L10n.Get("Session.NoTimer") : ShowTimerProgress ? Remaining : FormatDuration(TimeSpan.FromSeconds(SessionDurationSeconds));
     public double Playhead => IsRunning ? _engine.WaveformElapsed.TotalSeconds / 12 % 1 : 0;
     public string PresetSummary => SelectedPreset?.Detail ?? L10n.Get("Wave.Select");
-    public string SelectedPresetName => UseTouchControl ? L10n.Get("Touch.Title") : SelectedPreset?.Name ?? L10n.Get("Wave.Select");
+    public string SelectedPresetName => UsesWaveforms ? SelectedPreset?.Name ?? L10n.Get("Wave.Select") : KindLabel;
     public WaveformPreset? SelectedWaveform => SelectedPreset?.Preset;
     public string SelectedOutputALabel => L10n.Format("Device.Output", Outputs().Select(output => output.ChannelA).DefaultIfEmpty().Max());
     public string SelectedOutputBLabel => L10n.Format("Device.Output", Outputs().Select(output => output.ChannelB).DefaultIfEmpty().Max());
@@ -69,7 +70,7 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
             if (UsesCustomPlaylist && (value is null ? Playlist.Count > 0 : Playlist.All(entry => entry.Id != value.Preset.Id))) { Raise(nameof(SelectedPreset)); return; }
             if (!Set(ref _selectedPreset, value)) return;
             Raise(nameof(PresetSummary)); Raise(nameof(SelectedPresetName)); Raise(nameof(SelectedWaveform)); DeleteWaveCommand.NotifyCanExecuteChanged();
-            if (IsRunning) _ = GuardAsync(() => ApplySelectedWaveformAsync(value));
+            if (IsRunning && UsesWaveforms) _ = GuardAsync(() => ApplySelectedWaveformAsync(value));
         }
     }
     private async Task ApplySelectedWaveformAsync(PresetItem? selected)
@@ -115,24 +116,24 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
 
     public PlaybackModeViewModel(MainViewModel host, DeviceController controller, PlaybackModeConfig config)
     {
-        _host = host; _controller = controller; Id = config.Id; _name = config.Name;
+        _host = host; _controller = controller; Id = config.Id; _name = config.Name; Kind = config.Kind;
         _engine = new(controller, ownerId: Id); InitializeEstimCommands();
         SelectCommand = new(() => _host.SelectedMode = this);
         _safetyLimit = config.OutputLimit; ChannelA = config.ChannelA; ChannelB = config.ChannelB;
         TimerEnabled = config.TimerEnabled; SessionDurationSeconds = config.DurationSeconds; OffsetChannelB = config.OffsetChannelB;
-        _useTouchControl = config.TouchControl;
+        InitializeLiveModes(config.Audio, config.Reactive);
         _selectedPreset = Presets.FirstOrDefault(item => item.Preset.Id == config.WaveformAId) ?? Presets.FirstOrDefault();
         InitializeEstim(config.Estim);
         _selectedPresetB = Presets.FirstOrDefault(item => item.Preset.Id == config.WaveformBId) ?? _selectedPreset;
         InitializePlaylist(config.PlaylistWaveformIds);
         foreach (var id in config.TargetDeviceIds ?? []) _targets.Add(id);
-        _engine.Completed += (_, record) => _host.AddModeSession(record with { ModeId = Id, ModeName = Name });
+        _engine.Completed += (_, record) => { _ = GuardAsync(ReleaseAudioAsync); _host.AddModeSession(record with { ModeId = Id, ModeName = Name }); };
         RefreshTargets();
     }
 
-    public PlaybackModeConfig ToConfig() => new(Id, Name, UseTouchControl, ChannelA, ChannelB, SafetyLimit, TimerEnabled,
+    public PlaybackModeConfig ToConfig() => new(Id, Name, Kind, ChannelA, ChannelB, SafetyLimit, TimerEnabled,
         (int)SessionDurationSeconds, SelectedPreset?.Preset.Id, SelectedPresetB?.Preset.Id, CreateEstimSettings(), _targets.ToList(), OffsetChannelB,
-        Playlist.Select(item => item.Id).ToList());
+        Playlist.Select(item => item.Id).ToList(), IsAudio ? _audioSettings : null, IsReactive ? _reactiveSettings : null);
     public void AssignTarget(string id, bool selected)
     {
         if (!CanEditRouting) return;
@@ -167,20 +168,24 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
     }
     public async Task TogglePlaybackAsync()
     {
-        if (_starting) return;
+        if (_starting || IsCalibrating) return;
         if (IsRunning) { await StopAsync(); return; }
-        if (!UseTouchControl && !UsesCustomPlaylist && SelectedPreset is null) throw new LocalizedOperationException("Error.SelectWave");
+        if (_targets.Count == 0 || _targets.Any(id => !_controller.Connections.ContainsKey(id))) throw new LocalizedOperationException("Error.SelectConnected");
+        if (UsesWaveforms && !UsesCustomPlaylist && SelectedPreset is null) throw new LocalizedOperationException("Error.SelectWave");
         var program = CreateSessionProgram();
-        var waveform = UseTouchControl ? Presets.First(item => item.Preset.Family == WaveformFamily.Electrical).Preset
-            : SelectedPlaybackOrder.Value is (int)PlaybackOrder.Sequential or (int)PlaybackOrder.Random
+        var waveform = !UsesWaveforms ? Presets.First(item => item.Preset.Family == WaveformFamily.Electrical).Preset
+            : UsesCustomPlaylist
                 ? program.Playlist!.First() : SelectedPreset!.Preset;
         _starting = true; RefreshPlayback();
         try
         {
+            await StartAudioAsync();
             await _engine.StartAsync(_targets, waveform, ConfiguredDuration, program);
             if (!IsRunning) return;
             _hasSessionClock = true; _clock.Restart(); Notify("Status.ModeStarted", Name);
         }
+        catch (OperationCanceledException) { await ReleaseAudioAsync(); }
+        catch { await ReleaseAudioAsync(); throw; }
         finally { _starting = false; RefreshPlayback(); }
     }
     public async Task TickAsync()
@@ -189,25 +194,33 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
         _tickBusy = true;
         try
         {
+            if (!await UpdateLiveInputAsync()) return;
             if (UseTouchControl && IsTouchHeld) await _engine.SetTouchAsync(TouchFrequency, TouchPulseWidth, true);
             await _engine.AdvanceAsync(_clock.Elapsed); RefreshPlayback();
         }
-        catch (Exception error) { _host.ShowError(error); RefreshPlayback(); }
+        catch (Exception error)
+        {
+            Exception reported = error;
+            try { await StopAsync("Reason.InputLost", false); }
+            catch (Exception stopError) { reported = new LocalizedAggregateException("Error.StopUnconfirmed", [error, stopError]); }
+            _host.ShowError(reported); RefreshPlayback();
+        }
         finally { _tickBusy = false; }
     }
     public async Task StopAsync(string reason = "Reason.Manual", bool notify = true)
     {
+        CancelAudioInput();
         try { await _engine.StopAsync(reason); }
-        finally { _clock.Stop(); RefreshPlayback(); }
+        finally { await ReleaseAudioAsync(); _clock.Stop(); RefreshPlayback(); }
         if (notify) Notify("Status.ModeStopped", Name);
     }
     private void RefreshPlayback()
     {
-        RefreshEstimPlayback(); RefreshPlaylistCommands(); RefreshTargets();
+        RefreshEstimPlayback(); RefreshLiveModes(); RefreshPlaylistCommands(); RefreshTargets();
         foreach (var property in new[] { nameof(IsRunning), nameof(CanEditRouting), nameof(CanEditDuration), nameof(IsTimedSession), nameof(SessionState),
             nameof(PlaybackLabel), nameof(Elapsed), nameof(Remaining), nameof(SessionClock), nameof(SessionTimeLabel), nameof(ShowTimerProgress), nameof(TimerProgress), nameof(TimerReadout), nameof(Playhead) }) Raise(property);
     }
-    public void RefreshLocalization() { RefreshEstimLocalization(); RefreshPlaylist(); RefreshPlayback(); Raise(nameof(SelectedPresetName)); Raise(nameof(KindLabel)); }
+    public void RefreshLocalization() { RefreshEstimLocalization(); RefreshLiveLocalization(); RefreshPlaylist(); RefreshPlayback(); Raise(nameof(SelectedPresetName)); Raise(nameof(KindLabel)); }
     private void Notify(string key, params object?[] args) => _host.Notify(key, args);
     private void ShowError(Exception error) => _host.ShowError(error);
     private async Task GuardAsync(Func<Task> action) { try { await action(); } catch (Exception error) { _host.ShowError(error); } }
@@ -226,6 +239,7 @@ public sealed class ModeTargetItem : ObservableObject
     public bool IsSelected => Device?.IsSelected ?? false;
     public bool IsConnected => Device?.IsConnected ?? false;
     public string ConnectionAction => Device?.ConnectionAction ?? L10n.Get("Device.Connect");
+    public string SensorReading => _mode.SensorReading(Id);
     public AsyncCommand SelectCommand { get; }
     public AsyncCommand ConnectCommand { get; }
     public AsyncCommand DetachCommand { get; }
@@ -238,7 +252,7 @@ public sealed class ModeTargetItem : ObservableObject
     }
     public void Refresh()
     {
-        foreach (var name in new[] { nameof(Name), nameof(Status), nameof(Kind), nameof(Symbol), nameof(IsSelected), nameof(IsConnected), nameof(ConnectionAction) }) Raise(name);
+        foreach (var name in new[] { nameof(Name), nameof(Status), nameof(Kind), nameof(Symbol), nameof(IsSelected), nameof(IsConnected), nameof(ConnectionAction), nameof(SensorReading) }) Raise(name);
         ConnectCommand.NotifyCanExecuteChanged(); DetachCommand.NotifyCanExecuteChanged();
     }
 }

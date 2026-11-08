@@ -1,0 +1,25 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:YokoWave.App.ViewModels" xmlns:l="using:YokoWave.App.Localization"
+             x:Class="YokoWave.App.Views.Components.ReactiveInputView" x:DataType="vm:PlaybackModeViewModel" IsVisible="{Binding UsesMotion}">
+  <Border Classes="card">
+    <StackPanel Classes="items">
+      <TextBlock Text="{l:Loc Input.Sensor}" Classes="section-title" />
+      <TextBlock Text="{Binding InputPhaseLabel}" Classes="accent label" />
+      <TextBlock Text="{l:Loc Input.MotionHelp}" Classes="muted caption help" />
+      <StackPanel Classes="field" IsVisible="{Binding ShowSimulationInput}">
+        <TextBlock Text="{l:Loc Input.SimulatedAngle}" Classes="field-label" />
+        <Slider x:Name="SimulatedAngleSlider" Minimum="0" Maximum="180" Value="{Binding SimulatedAngle}" IsEnabled="{Binding CanInteractEstim}" />
+      </StackPanel>
+      <ItemsControl ItemsSource="{Binding Targets}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:ModeTargetItem">
+            <StackPanel Classes="field">
+              <TextBlock Text="{Binding Name}" Classes="small emphasis" />
+              <TextBlock Text="{Binding SensorReading}" Classes="muted caption help" />
+            </StackPanel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </Border>
+</UserControl>

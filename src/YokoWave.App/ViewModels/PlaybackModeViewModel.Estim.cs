@@ -8,7 +8,6 @@ public sealed partial class PlaybackModeViewModel
     private PresetItem? _selectedPresetB;
     private SessionOption? _playbackOrder, _strengthMode, _touchPlayback;
     private bool _separateWaveforms, _gentle, _showContacts = true, _boostHeld, _touchHeld;
-    private readonly bool _useTouchControl;
     private double _strengthInterval = 10, _randomAddition = 10, _strengthStep = 1, _strengthCeiling = 60, _boostAmount = 10;
     private double _touchFrequency = 20, _touchPulseWidth = 50;
     private string _touchRecordingName = "";
@@ -34,7 +33,7 @@ public sealed partial class PlaybackModeViewModel
             Raise(nameof(UsesCustomPlaylist)); Raise(nameof(ShowIndependentChannelB)); Raise(nameof(SelectedWaveformB)); Raise(nameof(CanOffsetChannelB));
         }
     }
-    public bool UsesCustomPlaylist => !UseTouchControl && SelectedPlaybackOrder.Value is (int)PlaybackOrder.Sequential or (int)PlaybackOrder.Random;
+    public bool UsesCustomPlaylist => IsWaveformControl && SelectedPlaybackOrder.Value is (int)PlaybackOrder.Sequential or (int)PlaybackOrder.Random;
     public bool ShowIndependentChannelB => SeparateWaveforms && !UsesCustomPlaylist;
     public SessionOption SelectedStrengthMode
     {
@@ -47,7 +46,7 @@ public sealed partial class PlaybackModeViewModel
     public bool IsAutomatedStrength => IsRandomStrength || IsStepStrength;
     public bool SeparateWaveforms { get => _separateWaveforms; set { if (CanEditRouting && Set(ref _separateWaveforms, value)) { Raise(nameof(CanOffsetChannelB)); Raise(nameof(SelectedWaveformB)); Raise(nameof(ShowIndependentChannelB)); } } }
     public WaveformPreset? SelectedWaveformB => ShowIndependentChannelB ? SelectedPresetB?.Preset : null;
-    public bool CanOffsetChannelB => CanEditRouting && !ShowIndependentChannelB && !UseTouchControl;
+    public bool CanOffsetChannelB => UsesWaveforms && CanEditRouting && !ShowIndependentChannelB && !(IsSleep && IsRandomSleep);
     public bool GentleMode { get => _gentle; set { if (CanEditRouting) Set(ref _gentle, value); } }
     public bool ShowContacts { get => _showContacts; set { if (Set(ref _showContacts, value)) Raise(nameof(HasElectrodeReadings)); } }
     public double StrengthInterval { get => _strengthInterval; set => SetEstimNumber(ref _strengthInterval, value, 1, 600); }
@@ -66,8 +65,8 @@ public sealed partial class PlaybackModeViewModel
         get => _boostHeld;
         set { if ((!value || CanInteractEstim) && Set(ref _boostHeld, value)) _ = GuardAsync(() => _engine.SetBoostAsync(value)); }
     }
-    public bool UseTouchControl => _useTouchControl;
-    public bool IsWaveformControl => !UseTouchControl;
+    public bool UseTouchControl => Kind == ModeKind.Touch;
+    public bool IsWaveformControl => Kind == ModeKind.Waveform;
     public bool IsTouchHeld
     {
         get => _touchHeld;
@@ -126,20 +125,21 @@ public sealed partial class PlaybackModeViewModel
     private SessionProgram CreateSessionProgram()
     {
         var settings = CreateEstimSettings();
-        var b = !UseTouchControl && ShowIndependentChannelB && HasChannelB ? SelectedPresetB?.Preset : null;
-        var usesPlaylist = !UseTouchControl && settings.Order is PlaybackOrder.Sequential or PlaybackOrder.Random;
+        var b = UsesWaveforms && ShowIndependentChannelB && !(IsSleep && IsRandomSleep) && HasChannelB ? SelectedPresetB?.Preset : null;
+        var usesPlaylist = UsesCustomPlaylist || IsSleep && IsRandomSleep;
         var playlist = usesPlaylist
             ? Playlist.Select(item => item.Preset.Preset).ToArray()
             : new[] { SelectedPreset?.Preset, b }.OfType<WaveformPreset>().DistinctBy(preset => preset.Id).ToArray();
         if (usesPlaylist && playlist.Length == 0)
             throw new LocalizedOperationException("Error.EmptyPlaylist");
-        return new(settings, playlist, b, UseTouchControl, SafetyLimit);
+        return new(settings, playlist, b, Kind, SafetyLimit, _audioSettings, _reactiveSettings);
     }
     public async Task TogglePauseAsync()
     {
         try
         {
             await _engine.SetPausedAsync(!IsPaused);
+            _audioSession?.SetPaused(IsPaused); _audioStartedAt = _controller.Clock.GetUtcNow();
             if (IsPaused || !IsRunning) _clock.Stop(); else _clock.Start();
         }
         finally { RefreshPlayback(); }
@@ -157,7 +157,7 @@ public sealed partial class PlaybackModeViewModel
     }
     private void RefreshEstimPlayback()
     {
-        if (IsRunning && !UseTouchControl)
+        if (IsRunning && UsesWaveforms)
         {
             var a = Presets.FirstOrDefault(item => item.Preset.Id == _engine.CurrentWaveform?.Id);
             if (a is not null && a != _selectedPreset)

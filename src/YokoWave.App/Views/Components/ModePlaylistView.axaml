@@ -32,6 +32,6 @@
     </ItemsControl>
     </ScrollViewer>
     <TextBlock Text="{l:Loc Playlist.Empty}" IsVisible="{Binding !HasPlaylist}" Classes="muted caption help" />
-    <TextBlock Text="{l:Loc Playlist.Help}" Classes="muted caption help" />
+    <TextBlock Text="{Binding PlaylistHelp}" Classes="muted caption help" />
   </StackPanel>
 </UserControl>

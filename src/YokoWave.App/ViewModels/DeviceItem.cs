@@ -82,6 +82,7 @@ public sealed class SessionItem(SessionRecord record) : ObservableObject
     {
         get
         {
+            if (Record.Kind is ModeKind.Audio or ModeKind.Restraint) return L10n.Get($"ModeKind.{Record.Kind}");
             if (Record.TouchControl) return L10n.Get("Touch.Title");
             var a = Record.WaveformId is { } id && DefaultWaveformCatalog.Contains(id) ? DefaultWaveformCatalog.Name(id) : Record.WaveformName;
             if (Record.ChannelBWaveformName is not { } name) return a;

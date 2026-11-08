@@ -14,6 +14,7 @@ public static class V1Protocol
 
     public static byte[] Stop() => Channel(3, 0, 0, 0);
     public static byte[] Query(byte type) => WithChecksum([0x35, 0x71, type]);
+    public static byte[] MotionStreaming(bool enabled) => WithChecksum([0x35, 0x14, (byte)(enabled ? 1 : 0)]);
 
     public static IReadOnlyList<byte[]> Encode(OutputFrame frame)
     {
@@ -71,11 +72,24 @@ public static class V1Protocol
             2 when packet[3] <= 2 && packet[4] <= 1 => new(ContactB: (ElectrodeContact)packet[3], OutputBEnabled: packet[4] == 1),
             0x55 => new(ErrorCode: packet[3]),
             7 when packet[3] <= 1 => new(LightEnabled: packet[3] == 1),
+            5 => new(Steps: BinaryPrimitives.ReadUInt16BigEndian(packet.Slice(3, 2))),
+            6 => ReadMotion(packet),
             _ => null
         };
+    }
+    private static V1Status? ReadMotion(ReadOnlySpan<byte> packet)
+    {
+        double x = BinaryPrimitives.ReadInt16BigEndian(packet.Slice(3, 2));
+        double y = BinaryPrimitives.ReadInt16BigEndian(packet.Slice(5, 2));
+        double z = BinaryPrimitives.ReadInt16BigEndian(packet.Slice(7, 2));
+        if (x == 0 && y == 0 && z == 0) return null;
+        var angle = (Math.Abs(Math.Atan2(x, Math.Sqrt(y * y + z * z))) +
+            Math.Abs(Math.Atan2(y, Math.Sqrt(x * x + z * z)))) * 180 / Math.PI;
+        return new(MotionAngle: Math.Clamp(angle, 0, 180));
     }
 }
 
 public sealed record V1Status(int? Battery = null, ElectrodeContact? ContactA = null,
     ElectrodeContact? ContactB = null, byte? ErrorCode = null, bool? OutputAEnabled = null, bool? OutputBEnabled = null,
-    byte? HardwareVersion = null, byte? SoftwareVersion = null, bool? LightEnabled = null);
+    byte? HardwareVersion = null, byte? SoftwareVersion = null, bool? LightEnabled = null,
+    double? MotionAngle = null, int? Steps = null);

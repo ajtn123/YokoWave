@@ -3,7 +3,7 @@ using YokoWave.Core.Localization;
 
 namespace YokoWave.Core.Bluetooth;
 
-public sealed class ElectricalBluetoothTransport(IBluetoothAdapter adapter) : IDeviceTransport, IDeviceStatusSource, IElectricalDeviceFeatures
+public sealed class ElectricalBluetoothTransport(IBluetoothAdapter adapter) : IDeviceTransport, IDeviceStatusSource, IElectricalDeviceFeatures, IElectricalMotionSource
 {
     private sealed class Connection(IBluetoothConnection link, ElectricalDeviceProfile profile)
     {
@@ -65,7 +65,8 @@ public sealed class ElectricalBluetoothTransport(IBluetoothAdapter adapter) : ID
                 }
                 if (status.LightEnabled is { } light) connection.LightConfirmed.TrySetResult(light);
                 StatusChanged?.Invoke(this, new(device.Id, status.Battery, status.ContactA, status.ContactB,
-                    status.OutputAEnabled, status.OutputBEnabled, status.HardwareVersion, status.SoftwareVersion, status.LightEnabled));
+                    status.OutputAEnabled, status.OutputBEnabled, status.HardwareVersion, status.SoftwareVersion, status.LightEnabled,
+                    status.MotionAngle, status.Steps));
             }
         };
         connection.DisconnectHandler = () =>
@@ -147,6 +148,13 @@ public sealed class ElectricalBluetoothTransport(IBluetoothAdapter adapter) : ID
         if (connection.Profile.Generation != ElectricalGeneration.CombinedV2 || Volatile.Read(ref connection.Fault) is not null)
             throw new LocalizedOperationException("Error.DeviceFeatures");
         return connection;
+    }
+
+    public async Task SetMotionStreamingAsync(string deviceId, bool enabled, CancellationToken cancellationToken = default)
+    {
+        if (!_connections.TryGetValue(deviceId, out var connection)) throw new LocalizedOperationException("Error.NotConnected");
+        if (enabled && Volatile.Read(ref connection.Fault) is not null) throw new LocalizedOperationException("Error.BluetoothRejected");
+        await connection.Link.WriteAsync(V1Protocol.MotionStreaming(enabled), cancellationToken);
     }
 
     public async Task DisconnectAsync(string deviceId, CancellationToken cancellationToken = default)

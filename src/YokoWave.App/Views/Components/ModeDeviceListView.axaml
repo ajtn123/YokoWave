@@ -3,8 +3,14 @@
              x:Class="YokoWave.App.Views.Components.ModeDeviceListView" x:DataType="vm:MainViewModel">
   <StackPanel Classes="items">
     <Grid ColumnDefinitions="*,Auto" Classes="columns">
-      <TextBlock Text="{l:Loc Mode.Devices}" Classes="section-title" VerticalAlignment="Center" />
+      <TextBlock Text="{l:Loc Mode.Devices}" Classes="section-title" VerticalAlignment="Center" TextWrapping="Wrap" />
       <Button Grid.Column="1" x:Name="ScanButton" Content="{Binding ScanLabel}" Command="{Binding ScanCommand}" Classes="small" />
+    </Grid>
+    <Grid ColumnDefinitions="*,Auto" Classes="columns">
+      <ComboBox x:Name="NewModeTypePicker" ItemsSource="{Binding ModeTypes}" SelectedItem="{Binding NewModeType}" HorizontalAlignment="Stretch" AutomationProperties.Name="{l:Loc Mode.Type}">
+        <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
+      <Button Grid.Column="1" Content="{l:Loc Mode.Add}" Command="{Binding AddModeCommand}" Classes="small" />
     </Grid>
     <ItemsControl x:Name="ModeGroups" ItemsSource="{Binding Modes}">
       <ItemsControl.ItemTemplate>
@@ -47,8 +53,6 @@
         </DataTemplate>
       </ItemsControl.ItemTemplate>
     </ItemsControl>
-    <Button Content="{l:Loc Mode.AddWave}" Command="{Binding AddWaveModeCommand}" Classes="small" HorizontalAlignment="Stretch" />
-    <Button Content="{l:Loc Mode.AddTouch}" Command="{Binding AddTouchModeCommand}" Classes="small" HorizontalAlignment="Stretch" />
     <TextBlock Text="{l:Loc Mode.Unassigned}" Classes="small emphasis" />
     <ItemsControl x:Name="UnassignedDeviceList" ItemsSource="{Binding UnassignedDevices}">
       <ItemsControl.ItemTemplate>

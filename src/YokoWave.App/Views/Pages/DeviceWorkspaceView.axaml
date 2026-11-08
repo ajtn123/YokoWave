@@ -28,7 +28,7 @@
       </Border>
       <Border Grid.Column="2" Classes="card summary">
         <StackPanel Classes="field">
-          <TextBlock Text="{l:Loc Wave.Current}" Classes="muted label" />
+          <TextBlock Text="{Binding SelectedMode.CurrentContentTitle}" Classes="muted label" />
           <TextBlock x:Name="SelectedWaveNameText" Text="{Binding SelectedPresetName}" TextTrimming="CharacterEllipsis" Classes="title" />
         </StackPanel>
       </Border>
@@ -67,6 +67,11 @@
             <components:TouchControlView />
           </StackPanel>
         </Border>
+        <components:AudioModeView DataContext="{Binding SelectedMode}" />
+        <components:RestraintModeView DataContext="{Binding SelectedMode}" />
+        <components:ExerciseModeView DataContext="{Binding SelectedMode}" />
+        <components:SleepModeView DataContext="{Binding SelectedMode}" />
+        <components:ReactiveInputView DataContext="{Binding SelectedMode}" />
         <Grid Classes="columns" ColumnDefinitions="*,*">
           <Border Classes="card channel">
             <StackPanel Classes="field">
