@@ -7,12 +7,16 @@ internal readonly record struct PlaybackContext(string DeviceId, TimeSpan Elapse
 internal abstract class PlaybackModeRuntime
 {
     public virtual WaveformPlayback? Waveforms => null;
-    public virtual IReadOnlyDictionary<string, ReactiveStatus> Status => EmptyStatus;
-    private static readonly IReadOnlyDictionary<string, ReactiveStatus> EmptyStatus = new Dictionary<string, ReactiveStatus>();
-    public virtual void Validate() { }
+    public virtual IReadOnlyDictionary<string, PlaybackInputStatus> Status => EmptyStatus;
+    private static readonly IReadOnlyDictionary<string, PlaybackInputStatus> EmptyStatus = new Dictionary<string, PlaybackInputStatus>();
+    public virtual void Validate()
+    {
+    }
     public virtual string? Advance(TimeSpan elapsed) => null;
     public virtual string? CompletionReason(int targetCount) => null;
-    public virtual void Suspend() { }
+    public virtual void Suspend()
+    {
+    }
     public abstract OutputFrame Render(PlaybackContext context, OutputFrame frame);
 
     public static PlaybackModeRuntime Create(SessionProgram program, WaveformPreset preset, TimeProvider clock, Random random) => program.Kind switch
@@ -35,12 +39,18 @@ internal interface IAudioPlaybackInput
 
 internal interface ITouchPlaybackInput
 {
-    IReadOnlyList<WaveformSample> Recording { get; }
+    IReadOnlyList<WaveformSample> Recording
+    {
+        get;
+    }
     void SetTouch(double frequency, double pulseWidth, bool held, double elapsed);
 }
 
 internal interface IMotionPlaybackInput
 {
-    int MovementCount { get; }
+    int MovementCount
+    {
+        get;
+    }
     void Recalibrate(double elapsed);
 }

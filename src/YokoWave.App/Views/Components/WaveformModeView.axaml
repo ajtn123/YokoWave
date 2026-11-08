@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:YokoWave.App.ViewModels" xmlns:l="using:YokoWave.App.Localization"
              xmlns:controls="using:YokoWave.App.Controls" xmlns:components="using:YokoWave.App.Views.Components"
-             x:Class="YokoWave.App.Views.Components.WaveformModeView" x:DataType="vm:MainViewModel">
+             x:Class="YokoWave.App.Views.Components.WaveformModeView" x:DataType="vm:PlaybackModeViewModel">
   <Border Classes="card output">
     <StackPanel Classes="group">
       <Grid ColumnDefinitions="*,Auto">
@@ -33,8 +33,8 @@
                 <TextBlock Grid.Column="3" Text="12s" HorizontalAlignment="Right" Classes="fine-print muted" />
               </Grid>
             </Grid>
-            <components:WaveformPlaybackView DataContext="{Binding SelectedMode}" />
-      <components:ModePlaylistView DataContext="{Binding SelectedMode}" />
+            <components:WaveformPlaybackView />
+      <components:ModePlaylistView />
     </StackPanel>
   </Border>
 </UserControl>

@@ -97,7 +97,7 @@ public sealed class SessionTests
     public async Task IncompatibleLiveWaveKeepsTheCurrentElectricalSessionRunning()
     {
         var adapter = new FakeBluetoothAdapter();
-        await using var controller = new DeviceController(new ElectricalBluetoothTransport(adapter));
+        await using var controller = new DeviceController(new BluetoothDeviceTransport(adapter));
         var device = Assert.Single(await controller.ScanAsync(TestContext.Current.CancellationToken));
         await controller.ConnectAsync(device, ct: TestContext.Current.CancellationToken);
         var engine = new SessionEngine(controller) { ChannelA = 10 };

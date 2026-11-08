@@ -157,7 +157,7 @@ public sealed class EstimTests
     public async Task DeviceLightRequiresVerifiedFirmwareAndWaitsForConfirmedState()
     {
         var adapter = new FakeBluetoothAdapter();
-        await using var controller = new DeviceController(new ElectricalBluetoothTransport(adapter));
+        await using var controller = new DeviceController(new BluetoothDeviceTransport(adapter));
         var device = Assert.Single(await controller.ScanAsync(TestContext.Current.CancellationToken));
         await controller.ConnectAsync(device, ct: TestContext.Current.CancellationToken);
         var link = adapter.Links[device.Id];
@@ -180,7 +180,7 @@ public sealed class EstimTests
     public async Task MissingFirmwareNeverEnablesLightControlOrClosesAWorkingConnection()
     {
         var adapter = new FakeBluetoothAdapter();
-        await using var controller = new DeviceController(new ElectricalBluetoothTransport(adapter));
+        await using var controller = new DeviceController(new BluetoothDeviceTransport(adapter));
         var device = Assert.Single(await controller.ScanAsync(TestContext.Current.CancellationToken));
         await controller.ConnectAsync(device, ct: TestContext.Current.CancellationToken);
         var link = adapter.Links[device.Id]; link.ReplyToFeatures = false;

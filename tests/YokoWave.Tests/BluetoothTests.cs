@@ -22,9 +22,9 @@ public sealed class BluetoothTests
     [Fact]
     public void YcyDjUsesV2CombinedFrameWithSeparateFrequencyAndPulseWidth()
     {
-        Assert.Equal(ElectricalGeneration.CombinedV2, ElectricalDeviceProfile.FromName("YCY-DJ")!.Generation);
-        Assert.Equal(ElectricalGeneration.LegacyV1, ElectricalDeviceProfile.FromName("YYC-DJ")!.Generation);
-        Assert.Null(ElectricalDeviceProfile.FromName("YCY-FJB-01"));
+        Assert.Equal(BluetoothProtocol.YokonexV2, BluetoothDeviceProfiles.Identify("YCY-DJ")!.Protocol);
+        Assert.Equal(BluetoothProtocol.YokonexV1, BluetoothDeviceProfiles.Identify("YYC-DJ")!.Protocol);
+        Assert.Null(BluetoothDeviceProfiles.Identify("YCY-FJB-01"));
         Assert.Equal("35110200000100000001004A", Convert.ToHexString(V2Protocol.Stop()));
         var output = new OutputFrame(100, 50, 20, new(1, 98, .18), new(1, 40, .8));
         Assert.Equal("35110201146212008A2850D3", Convert.ToHexString(V2Protocol.Encode(output)));
@@ -48,7 +48,7 @@ public sealed class BluetoothTests
     public async Task ConnectConfirmsBothOutputsOffAndReportsRealBattery()
     {
         var adapter = new FakeBluetoothAdapter();
-        await using var controller = new DeviceController(new ElectricalBluetoothTransport(adapter));
+        await using var controller = new DeviceController(new BluetoothDeviceTransport(adapter));
         var device = Assert.Single(await controller.ScanAsync(TestContext.Current.CancellationToken));
         Assert.Null(device.Battery);
         await controller.ConnectAsync(device, TestContext.Current.CancellationToken);
@@ -68,7 +68,7 @@ public sealed class BluetoothTests
     public async Task MissingOutputOffConfirmationCancelsAndClosesConnection()
     {
         var adapter = new FakeBluetoothAdapter { ReplyToQueries = false };
-        await using var transport = new ElectricalBluetoothTransport(adapter);
+        await using var transport = new BluetoothDeviceTransport(adapter);
         var device = Assert.Single(await transport.ScanAsync(TestContext.Current.CancellationToken));
         using var timeout = new CancellationTokenSource(TimeSpan.FromMilliseconds(80));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => transport.ConnectAsync(device, timeout.Token));
@@ -81,7 +81,7 @@ public sealed class BluetoothTests
     public async Task InitialWriteFailureReleasesNativeConnection()
     {
         var adapter = new FakeBluetoothAdapter { FailFirstWrite = true };
-        await using var controller = new DeviceController(new ElectricalBluetoothTransport(adapter));
+        await using var controller = new DeviceController(new BluetoothDeviceTransport(adapter));
         var device = Assert.Single(await controller.ScanAsync(TestContext.Current.CancellationToken));
         await Assert.ThrowsAsync<IOException>(() => controller.ConnectAsync(device, ct: TestContext.Current.CancellationToken));
         Assert.Empty(controller.Connections);
@@ -92,7 +92,7 @@ public sealed class BluetoothTests
     public async Task RemoteRejectionBlocksFurtherOutputButStillAllowsStop()
     {
         var adapter = new FakeBluetoothAdapter();
-        await using var transport = new ElectricalBluetoothTransport(adapter);
+        await using var transport = new BluetoothDeviceTransport(adapter);
         var device = Assert.Single(await transport.ScanAsync(TestContext.Current.CancellationToken));
         await transport.ConnectAsync(device, TestContext.Current.CancellationToken);
         var link = adapter.Links[device.Id];
@@ -112,12 +112,15 @@ public sealed class BluetoothTests
     public async Task FailedStopDuringDisconnectStillRemovesConnectionAndClosesLink()
     {
         var adapter = new FakeBluetoothAdapter();
-        await using var controller = new DeviceController(new ElectricalBluetoothTransport(adapter));
+        await using var controller = new DeviceController(new BluetoothDeviceTransport(adapter));
         var device = Assert.Single(await controller.ScanAsync(TestContext.Current.CancellationToken));
         await controller.ConnectAsync(device, ct: TestContext.Current.CancellationToken);
         var link = adapter.Links[device.Id];
         link.FailWrites = true;
-        await Assert.ThrowsAnyAsync<IOException>(() => controller.DisconnectAsync(device.Id, TestContext.Current.CancellationToken));
+        var error = await Assert.ThrowsAsync<YokoWave.Core.Localization.LocalizedAggregateException>(
+            () => controller.DisconnectAsync(device.Id, TestContext.Current.CancellationToken));
+        Assert.Equal(2, error.InnerExceptions.Count);
+        Assert.All(error.InnerExceptions, inner => Assert.IsType<IOException>(inner));
         Assert.Empty(controller.Connections);
         Assert.True(link.Closed);
     }
@@ -126,7 +129,7 @@ public sealed class BluetoothTests
     public async Task ElectricalSamplingKeepsIntensitySeparateFromPulseWidth()
     {
         var adapter = new FakeBluetoothAdapter();
-        await using var controller = new DeviceController(new ElectricalBluetoothTransport(adapter));
+        await using var controller = new DeviceController(new BluetoothDeviceTransport(adapter));
         var device = Assert.Single(await controller.ScanAsync(TestContext.Current.CancellationToken));
         await controller.ConnectAsync(device, ct: TestContext.Current.CancellationToken);
         var engine = new SessionEngine(controller) { ChannelA = 30, ChannelB = 20 };

@@ -40,7 +40,7 @@ public sealed class ReactiveTests
     public async Task BluetoothMotionRepliesReachTheControllerAndStreamingEndsWithItsOwningMode()
     {
         var adapter = new FakeBluetoothAdapter(); var clock = new ManualInputClock();
-        await using var controller = new DeviceController(new ElectricalBluetoothTransport(adapter), clock);
+        await using var controller = new DeviceController(new BluetoothDeviceTransport(adapter), clock);
         var device = Assert.Single(await controller.ScanAsync(TestContext.Current.CancellationToken));
         await controller.ConnectAsync(device, TestContext.Current.CancellationToken);
         var engine = new SessionEngine(controller) { ChannelA = 20 };

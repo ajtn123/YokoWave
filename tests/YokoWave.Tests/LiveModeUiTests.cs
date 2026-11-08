@@ -157,13 +157,13 @@ public sealed class LiveModeUiTests
         using var folder = new TestFolder(); var factory = new FakeAudioInputFactory { BlockStart = true };
         await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path), audioInputFactory: factory);
         await vm.InitializeAsync(); await vm.AddModeAsync(ModeKind.Audio);
-        Assert.False(vm.PlaybackCommand.CanExecute(null));
-        await vm.TogglePlaybackAsync(); Assert.Empty(factory.Requests);
-        Assert.False(vm.IsRunning); Assert.True(vm.IsError); Assert.Equal(L10n.Get("Error.SelectConnected"), vm.Status);
+        Assert.False(vm.SelectedMode.PlaybackCommand.CanExecute(null));
+        await vm.SelectedMode.TogglePlaybackAsync(); Assert.Empty(factory.Requests);
+        Assert.False(vm.SelectedMode.IsRunning); Assert.True(vm.IsError); Assert.Equal(L10n.Get("Error.SelectConnected"), vm.Status);
         await vm.ToggleConnectionAsync(vm.Devices[0]); vm.SelectedMode.AssignTarget(vm.Devices[0].Id, true);
-        var start = vm.TogglePlaybackAsync(); await factory.Entered.Task;
+        var start = vm.SelectedMode.TogglePlaybackAsync(); await factory.Entered.Task;
         await vm.StopAllModesAsync(); await start;
-        Assert.False(vm.IsRunning); Assert.True(vm.CanEditRouting); Assert.Empty(factory.Sessions);
+        Assert.False(vm.SelectedMode.IsRunning); Assert.True(vm.SelectedMode.CanEditRouting); Assert.Empty(factory.Sessions);
     }
 
     [AvaloniaTheory]
@@ -178,7 +178,7 @@ public sealed class LiveModeUiTests
         await vm.InitializeAsync(); await vm.ToggleConnectionAsync(vm.Devices[0]); await vm.AddModeAsync(ModeKind.Audio);
         var audio = vm.SelectedMode; audio.AssignTarget(vm.Devices[0].Id, true); audio.ChannelA = 20; audio.TimerEnabled = false;
         audio.SelectedAudioSource = audio.AudioSources.Single(option => option.Value == (int)source); audio.MediaPath = "local.wav";
-        await vm.TogglePlaybackAsync(); var input = Assert.Single(factory.Sessions); input.NoFrames = true;
+        await vm.SelectedMode.TogglePlaybackAsync(); var input = Assert.Single(factory.Sessions); input.NoFrames = true;
         clock.Advance(60); await vm.TickAsync();
         Assert.True(audio.IsRunning); Assert.False(input.Disposed); Assert.False(vm.IsError);
         Assert.Equal(0, transport.Outputs[vm.Devices[0].Id].ChannelA);
@@ -201,11 +201,11 @@ public sealed class LiveModeUiTests
         using var folder = new TestFolder(); var factory = new FakeAudioInputFactory(); var transport = new SimulationTransport();
         await using var vm = new MainViewModel(new DeviceController(transport), new WorkspaceStore(folder.Path), audioInputFactory: factory);
         await vm.InitializeAsync(); await vm.ToggleConnectionAsync(vm.Devices[0]); await vm.AddModeAsync(ModeKind.Audio);
-        vm.SelectedMode.AssignTarget(vm.Devices[0].Id, true); vm.ChannelA = 20;
-        await vm.TogglePlaybackAsync(); await vm.TickAsync();
+        vm.SelectedMode.AssignTarget(vm.Devices[0].Id, true); vm.SelectedMode.ChannelA = 20;
+        await vm.SelectedMode.TogglePlaybackAsync(); await vm.TickAsync();
         var input = Assert.Single(factory.Sessions); input.Error = new LocalizedOperationException("Error.AudioInputLost");
         await vm.TickAsync();
-        Assert.False(vm.IsRunning); Assert.True(input.Disposed); Assert.True(vm.IsError);
+        Assert.False(vm.SelectedMode.IsRunning); Assert.True(input.Disposed); Assert.True(vm.IsError);
         Assert.Equal("Reason.InputLost", Assert.Single(vm.Sessions).Record.Reason);
         Assert.Equal(0, transport.Outputs[vm.Devices[0].Id].ChannelA);
     }
@@ -216,10 +216,10 @@ public sealed class LiveModeUiTests
         using var folder = new TestFolder(); var factory = new FakeAudioInputFactory();
         await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path), audioInputFactory: factory);
         await vm.InitializeAsync(); await vm.ToggleConnectionAsync(vm.Devices[0]); await vm.AddModeAsync(ModeKind.Audio);
-        vm.SelectedMode.AssignTarget(vm.Devices[0].Id, true); vm.SessionDurationSeconds = 1;
-        await vm.TogglePlaybackAsync(); var input = Assert.Single(factory.Sessions); input.NoFrames = true;
+        vm.SelectedMode.AssignTarget(vm.Devices[0].Id, true); vm.SelectedMode.SessionDurationSeconds = 1;
+        await vm.SelectedMode.TogglePlaybackAsync(); var input = Assert.Single(factory.Sessions); input.NoFrames = true;
         await Task.Delay(1100, TestContext.Current.CancellationToken); await vm.TickAsync();
-        Assert.False(vm.IsRunning); Assert.True(input.Disposed);
+        Assert.False(vm.SelectedMode.IsRunning); Assert.True(input.Disposed);
         Assert.Equal("Reason.Timer", Assert.Single(vm.Sessions).Record.Reason);
     }
 
@@ -230,7 +230,7 @@ public sealed class LiveModeUiTests
         adapter.Devices.Add(new("ble:000000000002", "YCY-DJ", -55));
         await new WorkspaceStore(folder.Path).SaveAsync(new(WorkspaceData.CurrentSchema, [], [], new(UseBluetooth: true)));
         await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path),
-            () => new ElectricalBluetoothTransport(adapter), factory);
+            () => new BluetoothDeviceTransport(adapter), factory);
         await vm.InitializeAsync();
         foreach (var device in vm.Devices) await vm.ToggleConnectionAsync(device);
         var wave = vm.SelectedMode; wave.AssignTarget(vm.Devices[0].Id, true); wave.ChannelA = 10; await wave.TogglePlaybackAsync();
@@ -258,10 +258,10 @@ public sealed class LiveModeUiTests
         calibration.Execute(null);
         await Wait(() => factory.Sessions.Count == 1);
         factory.Sessions[0].Db = -55;
-        Assert.True(vm.SelectedMode.IsCalibrating); Assert.False(vm.PlaybackCommand.CanExecute(null));
+        Assert.True(vm.SelectedMode.IsCalibrating); Assert.False(vm.SelectedMode.PlaybackCommand.CanExecute(null));
         await Wait(() => !vm.SelectedMode.IsCalibrating);
         Assert.Equal(-55, vm.SelectedMode.NoiseFloorDb); Assert.True(factory.Sessions[0].Disposed);
-        Assert.False(vm.IsRunning); Assert.Empty(vm.Sessions);
+        Assert.False(vm.SelectedMode.IsRunning); Assert.Empty(vm.Sessions);
         await vm.SaveAsync();
         var saved = await new WorkspaceStore(folder.Path).LoadAsync();
         Assert.Equal(-55, saved.Modes!.Single(mode => mode.Kind == ModeKind.Audio).Audio!.NoiseFloorDb);

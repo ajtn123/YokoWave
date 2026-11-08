@@ -5,7 +5,7 @@
     <StackPanel Classes="items">
       <Grid ColumnDefinitions="*,Auto" Classes="columns">
         <TextBlock Text="{Binding SelectedMode.KindLabel}" Classes="section-title" />
-        <TextBlock Grid.Column="1" Text="{Binding SessionState}" Classes="muted caption" VerticalAlignment="Center" />
+        <TextBlock Grid.Column="1" Text="{Binding SelectedMode.SessionState}" Classes="muted caption" VerticalAlignment="Center" />
       </Grid>
       <TextBox x:Name="ModeNameInput" Text="{Binding SelectedMode.Name}" MaxLength="60" AutomationProperties.Name="{l:Loc Mode.Name}" />
       <TextBlock Text="{Binding SelectedMode.StartIssue}" IsVisible="{Binding SelectedMode.HasStartIssue}" Classes="muted caption help" />

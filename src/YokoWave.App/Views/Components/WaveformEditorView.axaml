@@ -11,34 +11,34 @@
       <Grid Classes="form" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto">
         <StackPanel Classes="field">
           <TextBlock Text="{l:Loc Wave.Name}" Classes="field-label" />
-          <TextBox x:Name="WaveNameInput" Text="{Binding WaveEditor.EditorName}" MaxLength="60" />
+          <TextBox x:Name="WaveNameInput" Text="{Binding WaveformEditor.Name}" MaxLength="60" />
         </StackPanel>
         <StackPanel Grid.Column="1" Classes="field">
           <TextBlock Text="{l:Loc Wave.Shape}" Classes="field-label" />
-          <ComboBox x:Name="ShapePicker" ItemsSource="{Binding WaveEditor.Shapes}" SelectedItem="{Binding WaveEditor.SelectedShape}" HorizontalAlignment="Stretch">
+          <ComboBox x:Name="ShapePicker" ItemsSource="{Binding WaveformEditor.Shapes}" SelectedItem="{Binding WaveformEditor.SelectedShape}" HorizontalAlignment="Stretch">
             <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:ShapeItem"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
           </ComboBox>
         </StackPanel>
         <StackPanel Grid.Row="1" Classes="field">
           <TextBlock Text="{l:Loc Wave.Period}" Classes="field-label" />
-          <NumericUpDown Value="{Binding WaveEditor.EditorPeriod}" Minimum="0.2" Maximum="60" Increment="0.2" FormatString="0.0" />
+          <NumericUpDown Value="{Binding WaveformEditor.PeriodSeconds}" Minimum="0.2" Maximum="60" Increment="0.2" FormatString="0.0" />
         </StackPanel>
-        <StackPanel Grid.Row="1" Grid.Column="1" IsVisible="{Binding WaveEditor.IsGeneratedEditor}" Classes="field">
+        <StackPanel Grid.Row="1" Grid.Column="1" IsVisible="{Binding WaveformEditor.IsGenerated}" Classes="field">
           <TextBlock Text="{l:Loc Wave.Frequency}" Classes="field-label" />
-          <NumericUpDown Value="{Binding WaveEditor.EditorFrequency}" Minimum="1" Maximum="100" Increment="1" FormatString="0" />
+          <NumericUpDown Value="{Binding WaveformEditor.FrequencyHz}" Minimum="1" Maximum="100" Increment="1" FormatString="0" />
         </StackPanel>
-        <StackPanel Grid.Row="2" Grid.ColumnSpan="2" IsVisible="{Binding WaveEditor.IsGeneratedEditor}" Classes="field">
+        <StackPanel Grid.Row="2" Grid.ColumnSpan="2" IsVisible="{Binding WaveformEditor.IsGenerated}" Classes="field">
           <TextBlock Text="{l:Loc Wave.PointsHelp}" Classes="field-label" />
-          <TextBox Text="{Binding WaveEditor.EditorPoints}" />
+          <TextBox Text="{Binding WaveformEditor.PointsText}" />
         </StackPanel>
-        <StackPanel Grid.Row="2" Grid.ColumnSpan="2" IsVisible="{Binding WaveEditor.IsSampledEditor}" Classes="field">
+        <StackPanel Grid.Row="2" Grid.ColumnSpan="2" IsVisible="{Binding WaveformEditor.IsSampled}" Classes="field">
           <TextBlock Text="{l:Loc Wave.Samples}" Classes="field-label" />
           <TextBlock Text="{l:Loc Wave.SamplesHelp}" Classes="muted caption" TextWrapping="Wrap" />
-          <TextBox Text="{Binding WaveEditor.EditorSamples}" Classes="code-editor" />
+          <TextBox Text="{Binding WaveformEditor.SamplesJson}" Classes="code-editor" />
         </StackPanel>
       </Grid>
       <TextBlock Text="{l:Loc Wave.EditorPreview}" Classes="muted caption" />
-      <controls:WaveformPlot x:Name="EditorPreviewPlot" Preset="{Binding WaveEditor.EditorPreview}" Classes="preview" />
+      <controls:WaveformPlot x:Name="EditorPreviewPlot" Preset="{Binding WaveformEditor.Preview}" Classes="preview" />
       <Button x:Name="SaveWaveButton" Classes="primary" Command="{Binding SaveWaveCommand}" Content="{l:Loc Wave.Save}" />
     </StackPanel>
   </Border>

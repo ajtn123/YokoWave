@@ -1,9 +1,16 @@
 using YokoWave.Core.Localization;
 using System.Text.Json.Serialization;
+using System.Numerics;
 namespace YokoWave.Core;
 
-public enum DeviceKind { DualChannel, Vibration, Pump, Linear, Sensor }
-public enum WaveShape { Sine, Triangle, Pulse, Ramp, Custom, Sampled }
+public enum DeviceKind
+{
+    DualChannel, Vibration, Pump, Linear, Sensor
+}
+public enum WaveShape
+{
+    Sine, Triangle, Pulse, Ramp, Custom, Sampled
+}
 
 public sealed record DeviceDescriptor(string Id, string Name, DeviceKind Kind, int? Battery, int? Signal,
     string? ProtocolId = null, int? ChannelMask = null)
@@ -11,9 +18,9 @@ public sealed record DeviceDescriptor(string Id, string Name, DeviceKind Kind, i
     public Bluetooth.BluetoothDeviceProfile? Profile => Bluetooth.BluetoothDeviceProfiles.FromId(ProtocolId);
     public bool IsInput => Kind == DeviceKind.Sensor;
     public bool IsSupported => Profile?.Supported ?? true;
-    public int OutputChannels => ChannelMask is { } mask ? mask >= 4 ? 3 : mask >= 2 ? 2 : mask == 1 ? 1 : 0
+    public int ChannelCount => ChannelMask is { } mask ? BitOperations.PopCount((uint)(mask & 7))
         : Profile?.Channels ?? (Kind == DeviceKind.DualChannel ? 2 : IsInput ? 0 : 1);
-    public bool HasChannel(int index) => ChannelMask is { } mask ? (mask & (1 << index)) != 0 : index < OutputChannels;
+    public bool HasChannel(int index) => index is >= 0 and < 3 && (ChannelMask is { } mask ? (mask & (1 << index)) != 0 : index < ChannelCount);
     public string KindLabel => Profile is { } profile ? L10n.Get(profile.NameKey) : Kind switch
     {
         DeviceKind.DualChannel => L10n.Get("Device.DualChannel"),
@@ -36,7 +43,8 @@ public sealed record OutputFrame(double ChannelA, double ChannelB, double Freque
 public sealed record WaveformSample([property: JsonRequired] double Level, [property: JsonRequired] double FrequencyHz,
     [property: JsonRequired] double PulseWidth = 1, double[]? Channels = null)
 {
-    [JsonIgnore] public bool IsValid => double.IsFinite(Level) && Level is >= 0 and <= 1 && double.IsFinite(FrequencyHz) && FrequencyHz is >= 1 and <= 100 &&
+    [JsonIgnore]
+    public bool IsValid => double.IsFinite(Level) && Level is >= 0 and <= 1 && double.IsFinite(FrequencyHz) && FrequencyHz is >= 1 and <= 100 &&
         double.IsFinite(PulseWidth) && PulseWidth is >= 0 and <= 1 &&
         (Channels is null || Channels.Length is >= 1 and <= 3 && Channels.All(value => double.IsFinite(value) && value is >= -1 and <= 1));
     public double ChannelMagnitude(int channel) => Channels is null ? 1 : channel < Channels.Length ? Math.Abs(Channels[channel]) : 0;
@@ -52,7 +60,8 @@ public sealed record WaveformPreset(
 
     public void Validate()
     {
-        if (!TryValidate(out var errorKey)) throw new LocalizedArgumentException(errorKey!);
+        if (!TryValidate(out var errorKey))
+            throw new LocalizedArgumentException(errorKey!);
     }
 
     public bool TryValidate(out string? errorKey)
@@ -65,7 +74,8 @@ public sealed record WaveformPreset(
     {
         if (Id == Guid.Empty || string.IsNullOrWhiteSpace(Name) || Name.Length > 60)
             return "Error.WaveName";
-        if (FormatVersion != 1) return "Error.UnsupportedWaveFormat";
+        if (FormatVersion != 1)
+            return "Error.UnsupportedWaveFormat";
         if (!Enum.IsDefined(Shape) || !double.IsFinite(PeriodSeconds) || PeriodSeconds is < 0.2 or > 60)
             return "Error.Period";
         if (!double.IsFinite(Frequency) || Frequency is < 1 or > 100)
@@ -100,7 +110,8 @@ public static class WaveformGenerator
 
     public static WaveformSample? ReferenceSample(WaveformPreset preset, double seconds, double phase = 0)
     {
-        if (preset.Shape != WaveShape.Sampled || preset.Samples is not { Length: >= 2 } samples) return null;
+        if (preset.Shape != WaveShape.Sampled || preset.Samples is not { Length: >= 2 } samples)
+            return null;
         var position = Math.Round(((seconds / preset.PeriodSeconds + phase) % 1 + 1) % 1, 12) % 1;
         var index = (int)Math.Floor(Math.Round(position * samples.Length, 9));
         return samples[Math.Min(index, samples.Length - 1)];

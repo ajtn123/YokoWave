@@ -3,7 +3,7 @@
              xmlns:vm="using:YokoWave.App.ViewModels"
              xmlns:l="using:YokoWave.App.Localization"
              x:Class="YokoWave.App.Views.Components.SessionTimerView"
-             x:DataType="vm:MainViewModel">
+             x:DataType="vm:PlaybackModeViewModel">
   <Grid x:Name="TimerRow" ColumnDefinitions="Auto,*,Auto" Classes="columns timer-row">
     <CheckBox x:Name="TimerEnabledToggle" IsChecked="{Binding TimerEnabled}" IsEnabled="{Binding CanEditRouting}"
               AutomationProperties.Name="{l:Loc Session.Timer}" ToolTip.Tip="{l:Loc Session.Timer}" Classes="compact" />

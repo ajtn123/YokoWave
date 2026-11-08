@@ -1,5 +1,8 @@
-using YokoWave.Core.Localization;
 using System.Collections.Concurrent;
+using System.Diagnostics;
+using YokoWave.Core.Bluetooth;
+using YokoWave.Core.Localization;
+
 namespace YokoWave.Core;
 
 public sealed class DeviceConnection(DeviceDescriptor device)
@@ -8,29 +11,56 @@ public sealed class DeviceConnection(DeviceDescriptor device)
     public ElectrodeContact ContactA { get; internal set; } = ElectrodeContact.Unknown;
     public ElectrodeContact ContactB { get; internal set; } = ElectrodeContact.Unknown;
     public OutputFrame Output { get; internal set; } = OutputFrame.Zero;
-    public byte? HardwareVersion { get; internal set; }
-    public byte? SoftwareVersion { get; internal set; }
-    public bool? LightEnabled { get; internal set; }
-    public MotionReading? Motion { get; internal set; }
-    public int? Steps { get; internal set; }
-    public DeviceTelemetry? Telemetry { get; internal set; }
-    public DateTimeOffset? TelemetryCapturedAt { get; internal set; }
+    public byte? HardwareVersion
+    {
+        get; internal set;
+    }
+    public byte? SoftwareVersion
+    {
+        get; internal set;
+    }
+    public bool? LightEnabled
+    {
+        get; internal set;
+    }
+    public MotionReading? Motion
+    {
+        get; internal set;
+    }
+    public int? Steps
+    {
+        get; internal set;
+    }
+    public DeviceTelemetry? Telemetry
+    {
+        get; internal set;
+    }
+    public DateTimeOffset? TelemetryCapturedAt
+    {
+        get; internal set;
+    }
     internal long MotionSequence;
     internal bool MotionStreaming;
 }
 
-/// <summary>Single serialized gateway to all outputs, including stop and disconnect.</summary>
+/// <summary>Serializes each device's output and lifecycle while independent devices can progress concurrently.</summary>
 public sealed class DeviceController : IAsyncDisposable
 {
     private readonly ConcurrentDictionary<string, DeviceConnection> _connections = new();
     private readonly ConcurrentDictionary<string, Guid> _owners = new();
+    private readonly DeviceOperationLocks _operations = new();
+    private readonly SemaphoreSlim _lifecycleGate = new(1, 1);
+    private readonly object _disposeSync = new();
     private IDeviceTransport _transport;
-    private bool _disposed;
-    private readonly SemaphoreSlim _gate = new(1, 1);
+    private volatile bool _disposed;
+    private Task? _disposeTask;
     public IReadOnlyDictionary<string, DeviceConnection> Connections => _connections;
     public string TransportName => _transport.DisplayName;
     public bool IsSimulation => _transport.IsSimulation;
-    public TimeProvider Clock { get; }
+    public TimeProvider Clock
+    {
+        get;
+    }
     public bool IsDeviceBusy(string id) => _owners.ContainsKey(id);
     public Guid? DeviceOwner(string id) => _owners.TryGetValue(id, out var owner) ? owner : null;
     public event EventHandler? Changed;
@@ -45,239 +75,362 @@ public sealed class DeviceController : IAsyncDisposable
 
     private void Subscribe(IDeviceTransport transport, bool add)
     {
-        if (transport is not IDeviceStatusSource source) return;
-        if (add) { source.StatusChanged += OnStatusChanged; source.Faulted += OnFaulted; }
-        else { source.StatusChanged -= OnStatusChanged; source.Faulted -= OnFaulted; }
+        if (transport is not IDeviceStatusSource source)
+            return;
+        if (add)
+        {
+            source.StatusChanged += OnStatusChanged;
+            source.Faulted += OnFaulted;
+        }
+        else
+        {
+            source.StatusChanged -= OnStatusChanged;
+            source.Faulted -= OnFaulted;
+        }
     }
 
     public async Task ChangeTransportAsync(IDeviceTransport next)
     {
-        await _gate.WaitAsync();
+        await _lifecycleGate.WaitAsync();
         try
         {
-            if (!_connections.IsEmpty) throw new LocalizedOperationException("Error.TransportConnected");
+            ThrowIfDisposed();
+            if (!_connections.IsEmpty)
+                throw new LocalizedOperationException("Error.TransportConnected");
             var previous = _transport;
             Subscribe(previous, false);
             _transport = next;
             Subscribe(next, true);
             await previous.DisposeAsync();
         }
-        finally { _gate.Release(); }
-        Changed?.Invoke(this, EventArgs.Empty);
+        finally
+        {
+            _lifecycleGate.Release();
+        }
+        NotifyChanged();
     }
 
-    private async void OnStatusChanged(object? sender, DeviceStatusUpdate update)
+    private void OnStatusChanged(object? sender, DeviceStatusUpdate update)
     {
-        if (_disposed) return;
-        var receivedAt = Clock.GetUtcNow();
+        if (!_disposed)
+            _ = ApplyStatusAsync(sender, update, Clock.GetUtcNow());
+    }
+
+    private async Task ApplyStatusAsync(object? sender, DeviceStatusUpdate update, DateTimeOffset receivedAt)
+    {
         try
         {
-            await _gate.WaitAsync();
-            try
+            using (await _operations.AcquireAsync([update.DeviceId]))
             {
-                if (_disposed || sender != _transport || !_connections.TryGetValue(update.DeviceId, out var connection)) return;
-                if (update.Battery is >= 0 and <= 100) connection.Device = connection.Device with { Battery = update.Battery };
-                if (update.ContactA is { } a) connection.ContactA = a;
-                if (update.ContactB is { } b) connection.ContactB = b;
-                if (update.HardwareVersion is { } hardware) connection.HardwareVersion = hardware;
-                if (update.SoftwareVersion is { } software) connection.SoftwareVersion = software;
-                if (update.LightEnabled is { } light) connection.LightEnabled = light;
-                if (update.Steps is >= 0 and <= 65535) connection.Steps = update.Steps;
-                if (update.ChannelMask is >= 1 and <= 7) connection.Device = connection.Device with { ChannelMask = update.ChannelMask };
-                if (update.Telemetry is { } telemetry) { connection.Telemetry = (connection.Telemetry ?? new()).Merge(telemetry); connection.TelemetryCapturedAt = receivedAt; }
+                if (_disposed || sender != _transport || !_connections.TryGetValue(update.DeviceId, out var connection))
+                    return;
+                if (update.Battery is >= 0 and <= 100)
+                    connection.Device = connection.Device with
+                    {
+                        Battery = update.Battery
+                    };
+                if (update.ContactA is { } a)
+                    connection.ContactA = a;
+                if (update.ContactB is { } b)
+                    connection.ContactB = b;
+                if (update.HardwareVersion is { } hardware)
+                    connection.HardwareVersion = hardware;
+                if (update.SoftwareVersion is { } software)
+                    connection.SoftwareVersion = software;
+                if (update.LightEnabled is { } light)
+                    connection.LightEnabled = light;
+                if (update.Steps is >= 0 and <= 65535)
+                    connection.Steps = update.Steps;
+                if (update.ChannelMask is >= 1 and <= 7)
+                    connection.Device = connection.Device with
+                    {
+                        ChannelMask = update.ChannelMask
+                    };
+                if (update.Telemetry is { } telemetry)
+                {
+                    connection.Telemetry = (connection.Telemetry ?? new()).Merge(telemetry);
+                    connection.TelemetryCapturedAt = receivedAt;
+                }
                 if (update.MotionAngle is { } angle && double.IsFinite(angle) && angle is >= 0 and <= 180)
                     connection.Motion = new(angle, ++connection.MotionSequence, receivedAt, connection.Steps);
             }
-            finally { _gate.Release(); }
-            Changed?.Invoke(this, EventArgs.Empty);
+            NotifyChanged();
         }
-        catch (ObjectDisposedException) when (_disposed) { }
+        catch (Exception error) { Trace.TraceError("Device status callback failed: {0}", error); }
     }
 
-    private async void OnFaulted(object? sender, DeviceTransportFault fault)
+    private void OnFaulted(object? sender, DeviceTransportFault fault)
     {
-        if (_disposed) return;
+        if (!_disposed)
+            _ = ApplyFaultAsync(sender, fault);
+    }
+
+    private async Task ApplyFaultAsync(object? sender, DeviceTransportFault fault)
+    {
         try
         {
-            await _gate.WaitAsync();
-            try
+            using (await _operations.AcquireAsync([fault.DeviceId]))
             {
-                if (_disposed || sender != _transport || !_connections.ContainsKey(fault.DeviceId)) return;
+                if (_disposed || sender != _transport || !_connections.ContainsKey(fault.DeviceId))
+                    return;
                 if (fault.Disconnected)
                 {
+                    try
+                    {
+                        await _transport.DisconnectAsync(fault.DeviceId);
+                    }
+                    catch (Exception error) { Trace.TraceWarning("Lost link cleanup failed: {0}", error); }
                     _connections.TryRemove(fault.DeviceId, out _);
                     _owners.TryRemove(fault.DeviceId, out _);
-                    try { await _transport.DisconnectAsync(fault.DeviceId); } catch { /* The link is already lost. */ }
                 }
             }
-            finally { _gate.Release(); }
-            Changed?.Invoke(this, EventArgs.Empty);
-            Faulted?.Invoke(this, fault);
+            if (_disposed)
+                return;
+            NotifyChanged();
+            if (Faulted is { } handlers)
+                foreach (EventHandler<DeviceTransportFault> handler in handlers.GetInvocationList())
+                    try
+                    {
+                        handler(this, fault);
+                    }
+                    catch (Exception error) { Trace.TraceError("Device fault subscriber failed: {0}", error); }
         }
-        catch (ObjectDisposedException) when (_disposed) { }
+        catch (Exception error) { Trace.TraceError("Device fault callback failed: {0}", error); }
     }
 
-    public Task<IReadOnlyList<DeviceDescriptor>> ScanAsync(CancellationToken ct = default) => _transport.ScanAsync(ct);
+    private void NotifyChanged()
+    {
+        if (Changed is not { } handlers)
+            return;
+        foreach (EventHandler handler in handlers.GetInvocationList())
+            try
+            {
+                handler(this, EventArgs.Empty);
+            }
+            catch (Exception error) { Trace.TraceError("Device change subscriber failed: {0}", error); }
+    }
+
+    public async Task<IReadOnlyList<DeviceDescriptor>> ScanAsync(CancellationToken ct = default)
+    {
+        await _lifecycleGate.WaitAsync(ct);
+        try
+        {
+            ThrowIfDisposed();
+            return await _transport.ScanAsync(ct);
+        }
+        finally { _lifecycleGate.Release(); }
+    }
 
     public async Task AcquireTargetsAsync(Guid owner, IReadOnlyList<string> ids, CancellationToken ct = default)
     {
-        await _gate.WaitAsync(ct);
-        try
+        if (owner == Guid.Empty || ids.Count == 0 || ids.Any(string.IsNullOrWhiteSpace))
+            throw new LocalizedOperationException("Error.SelectConnected");
+        var targets = ids.Distinct(StringComparer.Ordinal).ToArray();
+        using (await _operations.AcquireAsync(targets, ct))
         {
-            if (owner == Guid.Empty || ids.Count == 0 || ids.Any(id => !_connections.ContainsKey(id))) throw new LocalizedOperationException("Error.SelectConnected");
-            if (ids.Any(id => Get(id).Device.IsInput)) throw new LocalizedOperationException("Error.SensorOnly");
-            if (ids.Any(id => _owners.TryGetValue(id, out var current) && current != owner)) throw new LocalizedOperationException("Error.DeviceInUse");
-            foreach (var id in ids) _owners[id] = owner;
-            try { foreach (var id in ids) await WriteCoreAsync(Get(id), OutputFrame.Zero, ct); }
-            catch
+            ThrowIfDisposed();
+            if (targets.Any(id => !_connections.ContainsKey(id)))
+                throw new LocalizedOperationException("Error.SelectConnected");
+            if (targets.Any(id => Get(id).Device.IsInput))
+                throw new LocalizedOperationException("Error.SensorOnly");
+            if (targets.Any(id => DeviceOwner(id) is { } current && current != owner))
+                throw new LocalizedOperationException("Error.DeviceInUse");
+            foreach (var id in targets)
+                _owners[id] = owner;
+            try
             {
-                foreach (var id in ids)
+                await Task.WhenAll(targets.Select(id => WriteCoreAsync(Get(id), OutputFrame.Zero, ct)));
+            }
+            catch (Exception error)
+            {
+                List<Exception> cleanupErrors = [];
+                foreach (var id in targets)
                 {
-                    try { await WriteCoreAsync(Get(id), OutputFrame.Zero, CancellationToken.None); _owners.TryRemove(id, out _); }
-                    catch { /* Keep the lease until a stop succeeds or the device disconnects. */ }
+                    try
+                    {
+                        await WriteCoreAsync(Get(id), OutputFrame.Zero, CancellationToken.None);
+                        _owners.TryRemove(id, out _);
+                    }
+                    catch (Exception cleanupError) { cleanupErrors.Add(cleanupError); }
                 }
+                // A failed stop keeps its lease, and neither the initiating error nor cleanup errors are lost.
+                if (cleanupErrors.Count > 0)
+                    throw new LocalizedAggregateException("Error.StopUnconfirmed", [error, .. cleanupErrors]);
                 throw;
             }
         }
-        finally { _gate.Release(); }
-        Changed?.Invoke(this, EventArgs.Empty);
+        NotifyChanged();
     }
 
     public async Task SendOwnedAsync(Guid owner, string id, OutputFrame frame, CancellationToken ct = default)
     {
-        await _gate.WaitAsync(ct);
-        try
+        using (await _operations.AcquireAsync([id], ct))
         {
-            if (!_owners.TryGetValue(id, out var current) || current != owner) throw new LocalizedOperationException("Error.DeviceInUse");
+            ThrowIfDisposed();
+            if (DeviceOwner(id) != owner)
+                throw new LocalizedOperationException("Error.DeviceInUse");
             await WriteCoreAsync(Get(id), frame, ct);
         }
-        finally { _gate.Release(); }
-        Changed?.Invoke(this, EventArgs.Empty);
+        NotifyChanged();
     }
 
     public async Task StopOwnedAsync(Guid owner, CancellationToken ct = default)
     {
-        await _gate.WaitAsync(ct);
-        List<Exception> errors = [];
-        try
+        var targets = _owners.Where(pair => pair.Value == owner).Select(pair => pair.Key).ToArray();
+        var errors = await Task.WhenAll(targets.Select(id => CaptureErrorAsync(async () =>
         {
-            foreach (var id in _owners.Where(pair => pair.Value == owner).Select(pair => pair.Key).ToArray())
+            using (await _operations.AcquireAsync([id], ct))
             {
-                try
+                if (DeviceOwner(id) != owner)
+                    return;
+                if (_connections.TryGetValue(id, out var connection))
                 {
-                    if (_connections.TryGetValue(id, out var connection))
-                    {
-                        await WriteCoreAsync(connection, OutputFrame.Zero, ct);
-                        if (connection.MotionStreaming && _transport is IElectricalMotionSource motion) await motion.SetMotionStreamingAsync(id, false, ct);
-                        connection.MotionStreaming = false;
-                    }
-                    _owners.TryRemove(id, out _);
+                    await WriteCoreAsync(connection, OutputFrame.Zero, ct);
+                    if (connection.MotionStreaming && _transport is IElectricalMotionSource motion)
+                        await motion.SetMotionStreamingAsync(id, false, ct);
+                    connection.MotionStreaming = false;
                 }
-                catch (Exception error) { errors.Add(error); }
+                _owners.TryRemove(id, out _);
             }
-        }
-        finally { _gate.Release(); }
-        Changed?.Invoke(this, EventArgs.Empty);
-        if (errors.Count > 0) throw new LocalizedAggregateException("Error.StopUnconfirmed", errors);
+        })));
+        NotifyChanged();
+        ThrowErrors(errors, "Error.StopUnconfirmed");
     }
 
     public async Task StartMotionOwnedAsync(Guid owner, string id)
     {
-        await _gate.WaitAsync();
-        try
+        using (await _operations.AcquireAsync([id]))
         {
-            if (DeviceOwner(id) != owner) throw new LocalizedOperationException("Error.DeviceInUse");
-            var connection = Get(id); connection.Motion = null;
-            if (_transport is IElectricalMotionSource motion) { connection.MotionStreaming = true; await motion.SetMotionStreamingAsync(id, true); }
-            else if (!IsSimulation) throw new LocalizedOperationException("Error.MotionUnavailable");
+            ThrowIfDisposed();
+            if (DeviceOwner(id) != owner)
+                throw new LocalizedOperationException("Error.DeviceInUse");
+            var connection = Get(id);
+            if (!IsSimulation && connection.Device.Profile?.Motion != true)
+                throw new LocalizedOperationException("Error.MotionUnavailable");
+            connection.Motion = null;
+            if (_transport is IElectricalMotionSource motion)
+            {
+                connection.MotionStreaming = true;
+                await motion.SetMotionStreamingAsync(id, true);
+            }
+            else if (!IsSimulation)
+                throw new LocalizedOperationException("Error.MotionUnavailable");
             connection.MotionStreaming = true;
         }
-        finally { _gate.Release(); }
     }
 
     public async Task SetSimulatedMotionAsync(Guid owner, double angle)
     {
-        if (!IsSimulation || !double.IsFinite(angle) || angle is < 0 or > 180) throw new LocalizedArgumentException("Error.MotionInput");
-        await _gate.WaitAsync();
-        try
+        if (!IsSimulation || !double.IsFinite(angle) || angle is < 0 or > 180)
+            throw new LocalizedArgumentException("Error.MotionInput");
+        var targets = _owners.Where(pair => pair.Value == owner).Select(pair => pair.Key).ToArray();
+        using (await _operations.AcquireAsync(targets))
         {
-            foreach (var pair in _owners.Where(pair => pair.Value == owner))
+            ThrowIfDisposed();
+            if (!IsSimulation)
+                throw new LocalizedArgumentException("Error.MotionInput");
+            foreach (var id in targets)
             {
-                var connection = Get(pair.Key);
+                if (DeviceOwner(id) != owner || !_connections.TryGetValue(id, out var connection))
+                    continue;
                 connection.Motion = new(angle, ++connection.MotionSequence, Clock.GetUtcNow());
             }
         }
-        finally { _gate.Release(); }
     }
 
     public async Task RefreshFeaturesAsync(string id, CancellationToken ct = default)
     {
-        await _gate.WaitAsync(ct);
-        try
+        using (await _operations.AcquireAsync([id], ct))
         {
+            ThrowIfDisposed();
             var connection = Get(id);
-            if (_owners.ContainsKey(id)) throw new LocalizedOperationException("Error.DeviceInUse");
-            if (_transport is not IElectricalDeviceFeatures features) throw new LocalizedOperationException("Error.DeviceFeatures");
+            if (IsDeviceBusy(id))
+                throw new LocalizedOperationException("Error.DeviceInUse");
+            if (connection.Device.Profile?.Light != true || _transport is not IElectricalDeviceFeatures features)
+                throw new LocalizedOperationException("Error.DeviceFeatures");
             var state = await features.RefreshFeaturesAsync(id, ct);
-            connection.HardwareVersion = state.HardwareVersion; connection.SoftwareVersion = state.SoftwareVersion;
+            connection.HardwareVersion = state.HardwareVersion;
+            connection.SoftwareVersion = state.SoftwareVersion;
             connection.LightEnabled = state.LightEnabled;
         }
-        finally { _gate.Release(); }
-        Changed?.Invoke(this, EventArgs.Empty);
+        NotifyChanged();
     }
 
     public async Task ResetInputAsync(string id, CancellationToken ct = default)
     {
-        await _gate.WaitAsync(ct);
-        try
+        using (await _operations.AcquireAsync([id], ct))
         {
-            _ = Get(id);
-            if (_owners.ContainsKey(id) || _transport is not IInputDeviceFeatures features) throw new LocalizedOperationException("Error.DeviceFeatures");
+            ThrowIfDisposed();
+            var connection = Get(id);
+            if (IsDeviceBusy(id) || connection.Device.Profile?.Protocol != BluetoothProtocol.Civet || _transport is not IInputDeviceFeatures features)
+                throw new LocalizedOperationException("Error.DeviceFeatures");
             await features.ResetInputAsync(id, ct);
         }
-        finally { _gate.Release(); }
     }
 
     public async Task SetLightAsync(string id, bool enabled, CancellationToken ct = default)
     {
-        await _gate.WaitAsync(ct);
-        try
+        using (await _operations.AcquireAsync([id], ct))
         {
+            ThrowIfDisposed();
             var connection = Get(id);
-            if (_owners.ContainsKey(id)) throw new LocalizedOperationException("Error.DeviceInUse");
-            if (connection.HardwareVersion is not > 0 || connection.SoftwareVersion is not > 0 || _transport is not IElectricalDeviceFeatures features)
+            if (IsDeviceBusy(id))
+                throw new LocalizedOperationException("Error.DeviceInUse");
+            if (connection.Device.Profile?.Light != true || connection.HardwareVersion is not > 0 || connection.SoftwareVersion is not > 0 ||
+                _transport is not IElectricalDeviceFeatures features)
                 throw new LocalizedOperationException("Error.DeviceFeatures");
             connection.LightEnabled = await features.SetLightAsync(id, enabled, ct);
         }
-        finally { _gate.Release(); }
-        Changed?.Invoke(this, EventArgs.Empty);
+        NotifyChanged();
     }
 
     public async Task ConnectAsync(DeviceDescriptor device, CancellationToken ct = default)
     {
-        await _gate.WaitAsync(ct);
+        await _lifecycleGate.WaitAsync(ct);
         try
         {
-            if (_connections.ContainsKey(device.Id)) return;
-            await _transport.ConnectAsync(device, ct);
-            try { await _transport.SendAsync(device.Id, OutputFrame.Zero, ct); }
-            catch { await _transport.DisconnectAsync(device.Id, CancellationToken.None); throw; }
-            _connections.TryAdd(device.Id, new(device));
+            using (await _operations.AcquireAsync([device.Id], ct))
+            {
+                ThrowIfDisposed();
+                if (_connections.ContainsKey(device.Id))
+                    return;
+                await _transport.ConnectAsync(device, ct);
+                try
+                {
+                    await _transport.SendAsync(device.Id, OutputFrame.Zero, ct);
+                }
+                catch (Exception error)
+                {
+                    try
+                    {
+                        await _transport.DisconnectAsync(device.Id, CancellationToken.None);
+                    }
+                    catch (Exception cleanupError)
+                    {
+                        throw new LocalizedAggregateException("Error.Cleanup", [error, cleanupError]);
+                    }
+                    throw;
+                }
+                _connections.TryAdd(device.Id, new(device));
+            }
         }
-        finally { _gate.Release(); }
-        Changed?.Invoke(this, EventArgs.Empty);
+        finally
+        {
+            _lifecycleGate.Release();
+        }
+        NotifyChanged();
     }
 
     public async Task SendAsync(string id, OutputFrame frame, CancellationToken ct = default)
     {
-        await _gate.WaitAsync(ct);
-        try
+        using (await _operations.AcquireAsync([id], ct))
         {
-            if (_owners.ContainsKey(id)) throw new LocalizedOperationException("Error.DeviceInUse");
+            ThrowIfDisposed();
+            if (IsDeviceBusy(id))
+                throw new LocalizedOperationException("Error.DeviceInUse");
             await WriteCoreAsync(Get(id), frame, ct);
         }
-        finally { _gate.Release(); }
-        Changed?.Invoke(this, EventArgs.Empty);
+        NotifyChanged();
     }
 
     private async Task WriteCoreAsync(DeviceConnection connection, OutputFrame frame, CancellationToken ct)
@@ -293,62 +446,78 @@ public sealed class DeviceController : IAsyncDisposable
         connection.Output = output;
     }
 
-    public async Task StopAllAsync(CancellationToken ct = default)
+    public Task StopAllAsync(CancellationToken ct = default) => StopAllCoreAsync(ct);
+    private async Task StopAllCoreAsync(CancellationToken ct = default)
     {
-        await _gate.WaitAsync(ct);
-        List<Exception> errors = [];
-        try
+        var errors = await Task.WhenAll(_connections.Keys.Select(id => CaptureErrorAsync(async () =>
         {
-            foreach (var connection in _connections.Values)
-            {
-                try { await WriteCoreAsync(connection, OutputFrame.Zero, ct); }
-                catch (Exception e) { errors.Add(e); }
-            }
-        }
-        finally { _gate.Release(); }
-        Changed?.Invoke(this, EventArgs.Empty);
-        if (errors.Count > 0) throw new LocalizedAggregateException("Error.StopUnconfirmed", errors);
+            using (await _operations.AcquireAsync([id], ct))
+                if (_connections.TryGetValue(id, out var connection))
+                    await WriteCoreAsync(connection, OutputFrame.Zero, ct);
+        })));
+        NotifyChanged();
+        ThrowErrors(errors, "Error.StopUnconfirmed");
     }
 
     public async Task DisconnectAsync(string id, CancellationToken ct = default)
     {
-        await _gate.WaitAsync(ct);
-        try
+        Exception? stopError, disconnectError;
+        using (await _operations.AcquireAsync([id], ct))
         {
-            if (!_connections.TryGetValue(id, out var connection)) return;
-            try { await WriteCoreAsync(connection, OutputFrame.Zero, ct); }
-            finally
-            {
-                try { await _transport.DisconnectAsync(id, CancellationToken.None); }
-                finally { _connections.TryRemove(id, out _); _owners.TryRemove(id, out _); }
-            }
+            if (!_connections.TryGetValue(id, out var connection))
+                return;
+            stopError = await CaptureErrorAsync(() => WriteCoreAsync(connection, OutputFrame.Zero, ct));
+            disconnectError = await CaptureErrorAsync(() => _transport.DisconnectAsync(id, CancellationToken.None));
+            _connections.TryRemove(id, out _);
+            _owners.TryRemove(id, out _);
         }
-        finally { _gate.Release(); Changed?.Invoke(this, EventArgs.Empty); }
+        NotifyChanged();
+        ThrowErrors([stopError, disconnectError], "Error.Cleanup");
     }
 
     private DeviceConnection Get(string id) => _connections.TryGetValue(id, out var item)
         ? item : throw new LocalizedOperationException("Error.NotConnected");
     private static double Clamp(double value) => double.IsFinite(value) ? Math.Clamp(value, 0, 100) : 0;
-
-    public async ValueTask DisposeAsync()
+    private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
+    private static async Task<Exception?> CaptureErrorAsync(Func<Task> action)
     {
-        if (_disposed) return;
-        _disposed = true;
-        Subscribe(_transport, false);
-        List<Exception> errors = [];
-        try { await StopAllAsync(); }
-        catch (Exception e) { errors.Add(e); }
+        try
+        {
+            await action();
+            return null;
+        }
+        catch (Exception error) { return error; }
+    }
+    private static void ThrowErrors(IEnumerable<Exception?> errors, string key)
+    {
+        var failures = errors.OfType<Exception>().ToArray();
+        if (failures.Length > 0)
+            throw new LocalizedAggregateException(key, failures);
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        lock (_disposeSync)
+            return new(_disposeTask ??= DisposeCoreAsync());
+    }
+    private async Task DisposeCoreAsync()
+    {
+        await _lifecycleGate.WaitAsync();
+        List<Exception?> errors = [];
+        try
+        {
+            _disposed = true;
+            Subscribe(_transport, false);
+            errors.Add(await CaptureErrorAsync(() => StopAllCoreAsync()));
+            foreach (var id in _connections.Keys.ToArray())
+                errors.Add(await CaptureErrorAsync(() => DisconnectAsync(id)));
+            errors.Add(await CaptureErrorAsync(() => _transport.DisposeAsync().AsTask()));
+            // Gates use no native wait handles. Keep them valid until queued notifications and callers have drained.
+        }
         finally
         {
-            foreach (var id in _connections.Keys.ToArray())
-            {
-                try { await DisconnectAsync(id); }
-                catch (Exception e) { errors.Add(e); }
-            }
-            try { await _transport.DisposeAsync(); }
-            catch (Exception e) { errors.Add(e); }
-            _gate.Dispose();
+            _lifecycleGate.Release();
         }
-        if (errors.Count > 0) throw new LocalizedAggregateException("Error.Cleanup", errors);
+        ThrowErrors(errors, "Error.Cleanup");
     }
 }

@@ -221,7 +221,9 @@ public sealed class HardwareProtocolTests
         var adapter = new HardwareGattAdapter(BluetoothProtocol.CoyoteV3) { FailWrites = true };
         await using var controller = new DeviceController(new BluetoothDeviceTransport(adapter));
         var device = Assert.Single(await controller.ScanAsync(TestContext.Current.CancellationToken));
-        await Assert.ThrowsAsync<IOException>(() => controller.ConnectAsync(device, TestContext.Current.CancellationToken));
+        var error = await Assert.ThrowsAsync<LocalizedAggregateException>(() => controller.ConnectAsync(device, TestContext.Current.CancellationToken));
+        Assert.Equal(2, error.InnerExceptions.Count);
+        Assert.All(error.InnerExceptions, inner => Assert.IsType<IOException>(inner));
         Assert.Empty(controller.Connections); Assert.True(adapter.Links[device.Id].Closed);
     }
 

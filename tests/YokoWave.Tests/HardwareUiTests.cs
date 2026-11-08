@@ -33,10 +33,10 @@ public sealed class HardwareUiTests
             window.Show();
             for (var i = 0; i < 200 && (vm.Devices.Count == 0 || vm.IsScanning); i++)
             { Dispatcher.UIThread.RunJobs(); await Task.Delay(10, TestContext.Current.CancellationToken); }
-            Assert.Equal(DefaultWaveformCatalog.Presets[0].Id, vm.SelectedPreset!.Preset.Id);
+            Assert.Equal(DefaultWaveformCatalog.Presets[0].Id, vm.SelectedMode.SelectedPreset!.Preset.Id);
             var picker = view.GetVisualDescendants().OfType<ComboBox>().Single(control => control.Name == "PresetPicker");
             Assert.Equal(vm.Presets.Count, picker.ItemsSource!.Cast<PresetItem>().Count());
-            Assert.Empty(controller.Connections); Assert.False(vm.IsRunning);
+            Assert.Empty(controller.Connections); Assert.False(vm.SelectedMode.IsRunning);
         }
         finally { window.Close(); }
     }
@@ -71,7 +71,7 @@ public sealed class HardwareUiTests
             await vm.ToggleConnectionAsync(motor); Dispatcher.UIThread.RunJobs(); motorMode.AssignTarget(motor.Id, true);
             Assert.True(motorMode.HasChannelC); motorMode.ChannelC = 37;
             Assert.True(motorMode.CanStart);
-            Assert.Equal(37, vm.ChannelC); Assert.True(view.GetVisualDescendants().OfType<Slider>().Single(slider => slider.Name == "ChannelCSlider").IsVisible);
+            Assert.Equal(37, vm.SelectedMode.ChannelC); Assert.True(view.GetVisualDescendants().OfType<Slider>().Single(slider => slider.Name == "ChannelCSlider").IsVisible);
             Assert.All(motorMode.PlaybackPresets.Where(item => item.Preset.Samples is not null), item =>
                 Assert.All(item.Preset.Samples!, sample => Assert.True(sample.IsValid)));
             await vm.AddModeAsync(ModeKind.Pump); var pumpMode = vm.SelectedMode;
@@ -79,7 +79,7 @@ public sealed class HardwareUiTests
             Assert.True(pump.CanAssign); Assert.False(coyote.CanAssign);
             await vm.ToggleConnectionAsync(pump); pumpMode.AssignTarget(pump.Id, true);
             pumpMode.SelectedPumpDirection = pumpMode.PumpDirections.Single(option => option.Value == (int)PumpDirection.Reverse); pumpMode.WaterEnabled = true;
-            Assert.False(vm.HasStrength); Assert.True(view.GetVisualDescendants().OfType<PumpModeView>().Single().IsVisible);
+            Assert.False(vm.SelectedMode.HasStrength); Assert.True(view.GetVisualDescendants().OfType<PumpModeView>().Single().IsVisible);
             Dispatcher.UIThread.RunJobs(); view.GetVisualDescendants().OfType<PumpModeView>().Single().BringIntoView(); Capture(window, "pump-control.png");
             var paw = vm.Devices.Single(device => device.Device.IsInput && device.Device.Profile?.Protocol == BluetoothProtocol.Paw);
             Assert.False(paw.IsOutput); Assert.False(paw.CanAssign);
