@@ -201,7 +201,7 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
         _tickBusy = true;
         try
         {
-            if (!await UpdateLiveInputAsync()) return;
+            await UpdateLiveInputAsync();
             if (UseTouchControl && IsTouchHeld) await _engine.SetTouchAsync(TouchFrequency, TouchPulseWidth, true);
             await _engine.AdvanceAsync(_clock.Elapsed); RefreshPlayback();
         }

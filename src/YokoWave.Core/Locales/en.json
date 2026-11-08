@@ -408,7 +408,8 @@
   "Error.AudioUnavailable": "Audio input is not available in this host.",
   "Error.SystemAudioPlatform": "System playback capture is currently supported on Windows only.",
   "Error.AudioInputFailed": "Could not start audio input. Check the default audio device and system microphone permissions.",
-  "Error.AudioInputLost": "Audio input stopped or stopped supplying data. This mode has been stopped.",
+  "Error.AudioInputLost": "The audio input device stopped. This mode has stopped.",
+  "Error.AudioCalibrationNoData": "No audio data was received for calibration. Try again while audio is present.",
   "Error.AudioFileMissing": "Select an existing local audio file.",
   "Error.AudioFileFormat": "Only local WAV, MP3 and FLAC files are supported.",
   "Error.AudioFileSize": "The audio file must not exceed 100 MiB.",
@@ -422,7 +423,7 @@
   "Reason.MediaEnded": "Media playback finished",
   "Reason.MovementGoal": "Movement goal reached",
   "Mode.Current": "Current mode",
-  "Help.AudioControl": "Choose a local WAV/MP3/FLAC file, the default microphone, or Windows system playback. Inputs open only when you start or explicitly calibrate. Volume/rhythm mapping and sensitivity control the response; ambient calibration samples 2 seconds without starting device output. Speaker volume affects file playback only. Pausing/stopping releases or pauses input; media completion or lost capture stops only this mode. Audio is processed locally and live capture is never saved.",
+  "Help.AudioControl": "Choose a local WAV/MP3/FLAC file, the default microphone, or Windows system playback. Inputs open only when you start or explicitly calibrate. Volume/rhythm mapping and sensitivity control the response; ambient calibration samples 2 seconds without starting device output. Speaker volume affects file playback only. Silence, missing or stale audio data, and media completion produce zero output while input stays open; fresh frames resume the response. Stop or an enabled session timer releases input. Actual input device faults stop only this mode. Audio is processed locally and live capture is never saved.",
   "Help.Restraint": "The first valid sensor sample establishes each target’s baseline. The safe angle produces zero output; the ramp angle determines how quickly output reaches the current strength. Recalibrate sets a new baseline while running. Missing or stale data over 2 seconds produces zero output. The simulation slider is available only with simulated devices.",
   "Help.Exercise": "Movement resets the inactivity interval while waiting. After inactivity, output runs for the chosen duration, then the next wait begins. Sensitivity controls the angle-change threshold. The optional movement goal completes when all targets reach it; counts represent detected movement, not calibrated steps. The session timer and manual stop always apply.",
   "Help.Sleep": "Fixed mode repeats a waiting interval and timed output. Random mode chooses intervals, durations, strength ratios and A/B waveforms from local settings and the local pool. Activity-reset mode restarts the wait when device motion is detected; it requires fresh sensor input. Pause freezes active time. A stalled/suspended app restarts the wait instead of replaying a missed output."

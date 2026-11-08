@@ -11,7 +11,6 @@ public sealed partial class PlaybackModeViewModel
     private ReactiveSettings _reactiveSettings = new();
     private IAudioInputSession? _audioSession;
     private CancellationTokenSource? _audioCancellation;
-    private DateTimeOffset _audioStartedAt;
     private bool _calibrating;
     private double _simulatedAngle;
     private static readonly SessionOption[] AudioSourceOptions = Options<AudioSourceKind>("AudioSource");
@@ -75,7 +74,18 @@ public sealed partial class PlaybackModeViewModel
     public string MovementCountLabel => L10n.Format("Exercise.Count", MovementCount);
     public string InputPhaseLabel => IsCalibrating ? L10n.Get("Audio.Calibrating") : !IsRunning || IsPaused ? SessionState :
         L10n.Get($"InputPhase.{_engine.InputStatus.Values.FirstOrDefault()?.Phase ?? InputPhase.Waiting}");
-    public string AudioReadout => _audioSession?.Latest is { } frame ? L10n.Format("Audio.Level", frame.LeftDb, frame.RightDb) : L10n.Get("Input.Waiting");
+    public string AudioReadout => _audioSession?.Ended == true ? L10n.Get("Reason.MediaEnded")
+        : CurrentAudioFrame is { } frame ? L10n.Format("Audio.Level", frame.LeftDb, frame.RightDb) : L10n.Get("Input.Waiting");
+    private AudioFeatureFrame? CurrentAudioFrame
+    {
+        get
+        {
+            var frame = _audioSession?.Latest;
+            if (frame is null || _audioSession?.Ended == true) return null;
+            var age = _controller.Clock.GetUtcNow() - frame.CapturedAt;
+            return age >= TimeSpan.Zero && age <= ReactivePlayback.InputTimeout ? frame : null;
+        }
+    }
     public double InputLevel => CanInteractEstim ? _engine.InputStatus.Values.Select(status => status.Level).DefaultIfEmpty().Max() : 0;
     public string ReactiveCountdown => IsRunning && _engine.InputStatus.Values.FirstOrDefault() is { } status
         ? FormatDuration(TimeSpan.FromSeconds(Math.Ceiling(status.RemainingSeconds))) : "—";
@@ -114,7 +124,7 @@ public sealed partial class PlaybackModeViewModel
         var cancellation = new CancellationTokenSource(); var token = cancellation.Token; _audioCancellation = cancellation;
         var session = await _host.AudioInputs.StartAsync(_audioSettings, token);
         if (token.IsCancellationRequested || _audioCancellation != cancellation) { await session.DisposeAsync(); throw new OperationCanceledException(token); }
-        _audioSession = session; _audioStartedAt = _controller.Clock.GetUtcNow();
+        _audioSession = session;
     }
     private void CancelAudioInput() => _audioCancellation?.Cancel();
     private async Task ReleaseAudioAsync()
@@ -124,20 +134,16 @@ public sealed partial class PlaybackModeViewModel
         var session = _audioSession; _audioSession = null;
         if (session is not null) await session.DisposeAsync();
     }
-    private async Task<bool> UpdateLiveInputAsync()
+    private async Task UpdateLiveInputAsync()
     {
         if (IsAudio)
         {
             if (_audioSession is null) throw new LocalizedOperationException("Error.AudioInputLost");
-            if (_audioSession.Error is { } error) throw error;
-            if (_audioSession.Ended) { await StopAsync("Reason.MediaEnded", false); return false; }
-            var frame = _audioSession.Latest;
-            var timestamp = frame?.CapturedAt ?? _audioStartedAt;
-            if (_controller.Clock.GetUtcNow() - timestamp > ReactivePlayback.InputTimeout) throw new LocalizedOperationException("Error.AudioInputLost");
-            await _engine.SetAudioFrameAsync(frame);
+            if (!_audioSession.Ended && _audioSession.Error is { } error) throw error;
+            // Silence, callback gaps and media EOF are waiting states; only explicit input faults stop listening.
+            await _engine.SetAudioFrameAsync(CurrentAudioFrame);
         }
         if (ShowSimulationInput) await _controller.SetSimulatedMotionAsync(Id, SimulatedAngle);
-        return true;
     }
     private async Task CalibrateAudioAsync()
     {
@@ -153,7 +159,7 @@ public sealed partial class PlaybackModeViewModel
                 if (_audioSession?.Latest is { } frame && frame.Sequence != sequence)
                 { sequence = frame.Sequence; levels.Add(Math.Max(frame.LeftDb, frame.RightDb)); }
             }
-            if (levels.Count == 0) throw new LocalizedOperationException("Error.AudioInputLost");
+            if (levels.Count == 0) throw new LocalizedOperationException("Error.AudioCalibrationNoData");
             levels.Sort(); _audioSettings = _audioSettings with { NoiseFloorDb = Math.Clamp(levels[(int)((levels.Count - 1) * .75)], -90, -30) };
             Raise(nameof(NoiseFloorDb)); Notify("Status.AudioCalibrated", NoiseFloorDb);
         }

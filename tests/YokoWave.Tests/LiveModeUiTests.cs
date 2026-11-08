@@ -39,11 +39,13 @@ internal sealed class FakeAudioInputSession(TimeProvider clock) : IAudioInputSes
     public bool Paused { get; private set; }
     public bool Disposed { get; private set; }
     public bool Ended { get; set; }
+    public bool NoFrames { get; set; }
+    public Exception? Error { get; set; }
     public double Age { get; set; }
     public double Db { get; set; } = -6;
     public bool FailPause { get; set; }
     public bool FailDispose { get; set; }
-    public AudioFeatureFrame? Latest => Disposed || Paused ? null : new(++_sequence, clock.GetUtcNow().AddSeconds(-Age), Db, Db, 1, 1);
+    public AudioFeatureFrame? Latest => Disposed || Paused || NoFrames ? null : new(++_sequence, clock.GetUtcNow().AddSeconds(-Age), Db, Db, 1, 1);
     public void SetPaused(bool paused)
     {
         if (FailPause) throw new LocalizedOperationException("Error.AudioInputLost");
@@ -141,9 +143,12 @@ public sealed class LiveModeUiTests
         Assert.Equal(15, transport.Outputs[vm.Devices[0].Id].ChannelA);
         await audio.TogglePauseAsync(); await vm.TickAsync(); Assert.False(input.Paused);
         input.Ended = true; await vm.TickAsync();
-        Assert.True(input.Disposed); Assert.False(audio.IsRunning); Assert.True(wave.IsRunning);
-        Assert.Equal("Reason.MediaEnded", Assert.Single(vm.Sessions).Record.Reason);
+        Assert.False(input.Disposed); Assert.True(audio.IsRunning); Assert.True(wave.IsRunning);
+        Assert.Empty(vm.Sessions); Assert.False(vm.IsError);
+        Assert.Equal(L10n.Get("Reason.MediaEnded"), audio.AudioReadout);
         Assert.Equal(0, transport.Outputs[vm.Devices[1].Id].ChannelA);
+        await audio.StopAsync(); Assert.True(input.Disposed); Assert.False(audio.IsRunning);
+        Assert.Equal("Reason.Manual", Assert.Single(vm.Sessions).Record.Reason);
     }
 
     [AvaloniaFact]
@@ -161,20 +166,61 @@ public sealed class LiveModeUiTests
         Assert.False(vm.IsRunning); Assert.True(vm.CanEditRouting); Assert.Empty(factory.Sessions);
     }
 
-    [AvaloniaFact]
-    public async Task LostAudioInputStopsOnlyItsModeAndReleasesCapture()
+    [AvaloniaTheory]
+    [InlineData(AudioSourceKind.Microphone)]
+    [InlineData(AudioSourceKind.MediaFile)]
+    [InlineData(AudioSourceKind.SystemAudio)]
+    public async Task AudioGapsKeepListeningAndFreshFramesResumeWithoutReopeningInput(AudioSourceKind source)
     {
         using var folder = new TestFolder(); var clock = new ManualInputClock(); var factory = new FakeAudioInputFactory(clock);
         var transport = new SimulationTransport();
         await using var vm = new MainViewModel(new DeviceController(transport, clock), new WorkspaceStore(folder.Path), audioInputFactory: factory);
         await vm.InitializeAsync(); await vm.ToggleConnectionAsync(vm.Devices[0]); await vm.AddModeAsync(ModeKind.Audio);
+        var audio = vm.SelectedMode; audio.AssignTarget(vm.Devices[0].Id, true); audio.ChannelA = 20; audio.TimerEnabled = false;
+        audio.SelectedAudioSource = audio.AudioSources.Single(option => option.Value == (int)source); audio.MediaPath = "local.wav";
+        await vm.TogglePlaybackAsync(); var input = Assert.Single(factory.Sessions); input.NoFrames = true;
+        clock.Advance(60); await vm.TickAsync();
+        Assert.True(audio.IsRunning); Assert.False(input.Disposed); Assert.False(vm.IsError);
+        Assert.Equal(0, transport.Outputs[vm.Devices[0].Id].ChannelA);
+        input.NoFrames = false; await vm.TickAsync(); Assert.True(transport.Outputs[vm.Devices[0].Id].ChannelA > 0);
+        input.Age = 3; clock.Advance(3600); await vm.TickAsync();
+        Assert.True(audio.IsRunning); Assert.False(input.Disposed); Assert.False(vm.IsError);
+        Assert.Equal(0, transport.Outputs[vm.Devices[0].Id].ChannelA);
+        Assert.Equal(L10n.Get("Input.Waiting"), audio.AudioReadout);
+        input.Age = 0; input.Db = -120; await vm.TickAsync();
+        Assert.True(audio.IsRunning); Assert.Equal(0, transport.Outputs[vm.Devices[0].Id].ChannelA);
+        input.Db = -6; await vm.TickAsync();
+        Assert.True(transport.Outputs[vm.Devices[0].Id].ChannelA > 0);
+        Assert.Single(factory.Requests); Assert.Empty(vm.Sessions);
+        await audio.StopAsync(); Assert.True(input.Disposed); Assert.False(audio.IsRunning);
+    }
+
+    [AvaloniaFact]
+    public async Task AudioDeviceFailureStillStopsItsModeAndReleasesInput()
+    {
+        using var folder = new TestFolder(); var factory = new FakeAudioInputFactory(); var transport = new SimulationTransport();
+        await using var vm = new MainViewModel(new DeviceController(transport), new WorkspaceStore(folder.Path), audioInputFactory: factory);
+        await vm.InitializeAsync(); await vm.ToggleConnectionAsync(vm.Devices[0]); await vm.AddModeAsync(ModeKind.Audio);
         vm.SelectedMode.AssignTarget(vm.Devices[0].Id, true); vm.ChannelA = 20;
         await vm.TogglePlaybackAsync(); await vm.TickAsync();
-        var input = Assert.Single(factory.Sessions); input.Age = 3;
+        var input = Assert.Single(factory.Sessions); input.Error = new LocalizedOperationException("Error.AudioInputLost");
         await vm.TickAsync();
         Assert.False(vm.IsRunning); Assert.True(input.Disposed); Assert.True(vm.IsError);
         Assert.Equal("Reason.InputLost", Assert.Single(vm.Sessions).Record.Reason);
         Assert.Equal(0, transport.Outputs[vm.Devices[0].Id].ChannelA);
+    }
+
+    [AvaloniaFact]
+    public async Task WaitingForAudioStillHonorsTheEnabledSessionTimer()
+    {
+        using var folder = new TestFolder(); var factory = new FakeAudioInputFactory();
+        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path), audioInputFactory: factory);
+        await vm.InitializeAsync(); await vm.ToggleConnectionAsync(vm.Devices[0]); await vm.AddModeAsync(ModeKind.Audio);
+        vm.SelectedMode.AssignTarget(vm.Devices[0].Id, true); vm.SessionDurationSeconds = 1;
+        await vm.TogglePlaybackAsync(); var input = Assert.Single(factory.Sessions); input.NoFrames = true;
+        await Task.Delay(1100, TestContext.Current.CancellationToken); await vm.TickAsync();
+        Assert.False(vm.IsRunning); Assert.True(input.Disposed);
+        Assert.Equal("Reason.Timer", Assert.Single(vm.Sessions).Record.Reason);
     }
 
     [AvaloniaFact]
@@ -193,7 +239,7 @@ public sealed class LiveModeUiTests
         var link = adapter.Links[vm.Devices[1].Id];
         try
         {
-            link.FailWrites = true; factory.Sessions[0].Age = 3;
+            link.FailWrites = true; factory.Sessions[0].Error = new LocalizedOperationException("Error.AudioInputLost");
             await vm.TickAsync();
             Assert.False(audio.IsRunning); Assert.True(factory.Sessions[0].Disposed); Assert.True(vm.IsError);
             Assert.True(wave.IsRunning); Assert.Equal(10, vm.Devices[0].OutputA);
