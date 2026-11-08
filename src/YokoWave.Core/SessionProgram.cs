@@ -28,7 +28,7 @@ public sealed record EstimSettings(PlaybackOrder Order = PlaybackOrder.Repeat, S
 }
 
 public sealed record SessionProgram(EstimSettings? Settings = null, IReadOnlyList<WaveformPreset>? Playlist = null,
-    WaveformPreset? ChannelBWaveform = null, bool TouchControl = false);
+    WaveformPreset? ChannelBWaveform = null, bool TouchControl = false, double OutputLimit = 60);
 
 internal sealed class WaveformTrack(WaveformPreset preset, IReadOnlyList<WaveformPreset> playlist)
 {

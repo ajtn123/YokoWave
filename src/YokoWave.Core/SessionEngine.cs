@@ -3,8 +3,9 @@ using YokoWave.Core.Localization;
 namespace YokoWave.Core;
 
 /// <summary>Caller supplies active monotonic time. Output and all lifecycle changes share one gate.</summary>
-public sealed class SessionEngine(DeviceController controller, Random? random = null)
+public sealed class SessionEngine(DeviceController controller, Random? random = null, Guid? ownerId = null)
 {
+    public Guid OwnerId { get; } = ownerId ?? Guid.NewGuid();
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly Random _random = random ?? new();
     private string[] _targets = [];
@@ -20,6 +21,7 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
     private readonly List<WaveformSample> _recording = [];
     private long _recordBucket = -1;
     private double _touchReplayEpoch;
+    private double _outputLimit = 60;
     public const int MaxRecordingFrames = 256;
     public bool IsRunning { get; private set; }
     public bool IsPaused { get; private set; }
@@ -29,6 +31,8 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
     public TimeSpan WaveformElapsed => _a?.Elapsed ?? TimeSpan.Zero;
     public WaveformPreset? CurrentWaveform => _a?.Current;
     public WaveformPreset? CurrentWaveformB => _b?.Current ?? _a?.Current;
+    public bool UsesWaveform(Guid id) => IsRunning && !_program.TouchControl &&
+        (CurrentWaveform?.Id == id || CurrentWaveformB?.Id == id || (_program.Playlist?.Any(wave => wave.Id == id) ?? false));
     public IReadOnlyList<WaveformSample> Recording => _recording.ToArray();
     public double ChannelA { get; set; }
     public double ChannelB { get; set; }
@@ -46,6 +50,7 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
         ValidateWaveform(preset);
         program ??= new();
         var settings = program.Settings ?? new(); settings.Validate();
+        if (!double.IsFinite(program.OutputLimit) || program.OutputLimit is < 0 or > 100) throw new LocalizedArgumentException("Error.InvalidSettings");
         if (program.ChannelBWaveform is { } b) ValidateWaveform(b);
         foreach (var wave in program.Playlist ?? []) ValidateWaveform(wave);
         await _gate.WaitAsync();
@@ -55,8 +60,9 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
             var ids = targets.Distinct().ToArray();
             if (ids.Length == 0 || ids.Any(id => !controller.Connections.ContainsKey(id))) throw new LocalizedOperationException("Error.SelectConnected");
             if (duration is { } limit && (limit.TotalSeconds < 1 || limit.TotalSeconds > 7200)) throw new LocalizedArgumentException("Error.Duration");
-            await controller.StopAllAsync();
+            await controller.AcquireTargetsAsync(OwnerId, ids);
             _targets = ids; _program = program; _settings = settings; _strength = settings.Strength ?? new();
+            _outputLimit = program.OutputLimit;
             var playlist = program.Playlist?.ToArray() ?? [preset];
             _a = new(preset, playlist); _b = program.ChannelBWaveform is { } separate ? new(separate, playlist) : null;
             Duration = duration; Elapsed = TimeSpan.Zero; _startedAt = DateTimeOffset.Now;
@@ -90,7 +96,8 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
         {
             if (!IsRunning || IsPaused == paused) return;
             IsPaused = paused; _boostHeld = _touchHeld = false;
-            if (paused) await controller.StopAllAsync();
+            if (paused)
+                foreach (var id in _targets) await controller.SendOwnedAsync(OwnerId, id, OutputFrame.Zero);
         }
         catch { await StopCoreAsync("Reason.ConnectionError"); throw; }
         finally { _gate.Release(); }
@@ -112,6 +119,15 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
             _strengthEpoch = Elapsed.TotalSeconds; _randomBucket = 0; _randomAddition = 0; _boostHeld = false;
             if (IsRunning && !IsPaused) await SendFrameAsync();
         }
+        catch { await StopCoreAsync("Reason.ConnectionError"); throw; }
+        finally { _gate.Release(); }
+    }
+
+    public async Task SetOutputLimitAsync(double limit)
+    {
+        if (!double.IsFinite(limit) || limit is < 0 or > 100) throw new LocalizedArgumentException("Error.InvalidSettings");
+        await _gate.WaitAsync();
+        try { _outputLimit = limit; if (IsRunning && !IsPaused) await SendFrameAsync(); }
         catch { await StopCoreAsync("Reason.ConnectionError"); throw; }
         finally { _gate.Release(); }
     }
@@ -198,7 +214,7 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
         }
         foreach (var id in _targets)
         {
-            await controller.SendAsync(id, new(a, b, waveA.Frequency, sampleA, sampleB, _settings.Gentle));
+            await controller.SendOwnedAsync(OwnerId, id, new(Math.Min(a, _outputLimit), Math.Min(b, _outputLimit), waveA.Frequency, sampleA, sampleB, _settings.Gentle));
             var output = controller.Connections[id].Output;
             _peakA = Math.Max(_peakA, output.ChannelA); _peakB = Math.Max(_peakB, output.ChannelB);
         }
@@ -214,7 +230,7 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
     private async Task StopCoreAsync(string reason)
     {
         var wasRunning = IsRunning; IsRunning = IsPaused = _boostHeld = _touchHeld = false;
-        try { await controller.StopAllAsync(); }
+        try { await controller.StopOwnedAsync(OwnerId); }
         finally
         {
             if (wasRunning && _a is not null)

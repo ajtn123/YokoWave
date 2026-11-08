@@ -13,7 +13,7 @@ public sealed class EstimTests
     private static async Task<DeviceController> Controller(RecordingTransport transport, double limit = 60)
     {
         var controller = new DeviceController(transport);
-        await controller.ConnectAsync(new("one", "one", DeviceKind.DualChannel, 80, -40), limit, TestContext.Current.CancellationToken);
+        await controller.ConnectAsync(new("one", "one", DeviceKind.DualChannel, 80, -40), TestContext.Current.CancellationToken);
         return controller;
     }
 
@@ -97,17 +97,17 @@ public sealed class EstimTests
     [Fact]
     public async Task StepRandomAndBoostRespectLimitsKeepZeroChannelsZeroAndCanReset()
     {
-        var transport = new RecordingTransport(); await using var controller = await Controller(transport, 25);
+        var transport = new RecordingTransport(); await using var controller = await Controller(transport);
         var engine = new SessionEngine(controller, new Random(7)) { ChannelA = 20, ChannelB = 0 };
         await engine.StartAsync(["one"], Wave("wave"), null,
-            new(new(Strength: new(StrengthMode.StepIncrease, 2, Step: 3, Ceiling: 24, Boost: 10))));
+            new(new(Strength: new(StrengthMode.StepIncrease, 2, Step: 3, Ceiling: 24, Boost: 10)), OutputLimit: 25));
         await engine.AdvanceAsync(TimeSpan.FromSeconds(2)); Assert.Equal(23, transport.Latest["one"].ChannelA);
         await engine.AdvanceAsync(TimeSpan.FromSeconds(4)); Assert.Equal(24, transport.Latest["one"].ChannelA);
         await engine.SetBoostAsync(true); Assert.Equal(25, transport.Latest["one"].ChannelA); Assert.Equal(0, transport.Latest["one"].ChannelB);
         await engine.SetBoostAsync(false); Assert.Equal(24, transport.Latest["one"].ChannelA);
         await engine.ResetStrengthAsync(); Assert.Equal(20, transport.Latest["one"].ChannelA);
         await engine.StopAsync();
-        await engine.StartAsync(["one"], Wave("wave"), null, new(new(Strength: new(StrengthMode.RandomIncrease, 2, RandomAddition: 20))));
+        await engine.StartAsync(["one"], Wave("wave"), null, new(new(Strength: new(StrengthMode.RandomIncrease, 2, RandomAddition: 20)), OutputLimit: 25));
         await engine.AdvanceAsync(TimeSpan.FromSeconds(1)); Assert.Equal(20, transport.Latest["one"].ChannelA);
         await engine.AdvanceAsync(TimeSpan.FromSeconds(2)); var output = transport.Latest["one"].ChannelA;
         Assert.InRange(output, 20, 25); Assert.Equal(0, transport.Latest["one"].ChannelB);
@@ -198,15 +198,16 @@ public sealed class EstimTests
     {
         using var folder = new TestFolder();
         var options = new EstimSettings(PlaybackOrder.Random, new(StrengthMode.StepIncrease, 3, 5, 2, 40, 8), true, true, false, TouchPlayback.RecordedLoop);
-        var settings = new AppSettings(Estim: options);
+        var settings = new AppSettings();
+        var mode = new PlaybackModeConfig(Guid.NewGuid(), "Preset", Estim: options);
         var a = Wave("A"); var b = Wave("B");
         var record = new SessionRecord(Guid.NewGuid(), DateTimeOffset.Now, 1, a.Name, 1, 20, 10, "Reason.Manual", a.Id, b.Id, b.Name, Gentle: true);
         var store = new WorkspaceStore(folder.Path);
-        await store.SaveAsync(new(2, [a, b], [record], settings));
+        await store.SaveAsync(new(3, [a, b], [record], settings, Modes: [mode]));
         var restored = await new WorkspaceStore(folder.Path).LoadAsync();
-        Assert.Equal(options, restored.Settings.Estim);
+        Assert.Equal(options, Assert.Single(restored.Modes!).Estim);
         Assert.Equal(record, Assert.Single(restored.Sessions));
-        await Assert.ThrowsAnyAsync<ArgumentException>(() => store.SaveAsync(new(2, [], [], new(Estim: options with { Strength = new(IntervalSeconds: 0) }))));
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => store.SaveAsync(new(3, [], [], new(), Modes: [mode with { Estim = options with { Strength = new(IntervalSeconds: 0) } }])));
     }
 
     [Fact]

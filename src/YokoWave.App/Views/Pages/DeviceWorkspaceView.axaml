@@ -57,12 +57,10 @@
                       </Border>
                       <TextBlock Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding Name}" TextTrimming="CharacterEllipsis" Classes="small emphasis" />
                       <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding Kind}" TextTrimming="CharacterEllipsis" Classes="muted caption" Margin="{DynamicResource Margin.AboveSmall}" />
-                      <TextBlock Grid.Column="2" Grid.Row="1" Text="{Binding Status}" Classes="muted caption" Margin="{DynamicResource Margin.AboveSmall}" />
+                      <TextBlock Grid.Column="2" Grid.Row="1" Text="{Binding Status}" ToolTip.Tip="{Binding Status}" Classes="muted caption device-status" Margin="{DynamicResource Margin.AboveSmall}" />
                     </Grid>
                   </Button>
                   <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Classes="columns" Margin="{DynamicResource Margin.DeviceActions}">
-                    <CheckBox Content="{l:Loc Device.IncludeLabel}" IsChecked="{Binding IsIncluded}" IsEnabled="{Binding CanEditRouting}"
-                              ToolTip.Tip="{l:Loc Device.Include}" Classes="compact caption" />
                     <Button Grid.Column="1" Classes="small connection-action" Classes.primary="{Binding !IsConnected}" Classes.danger="{Binding IsConnected}"
                             Command="{Binding ConnectCommand}" Content="{Binding ConnectionAction}" />
                   </Grid>
@@ -71,16 +69,7 @@
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
-        <Border Classes="inset-panel">
-          <StackPanel Classes="field">
-            <TextBlock Text="{l:Loc Device.Group}" Classes="small emphasis" />
-            <ToggleSwitch x:Name="LinkModeToggle" IsChecked="{Binding LinkMode}" IsEnabled="{Binding CanEditRouting}" OnContent="{l:Loc Device.Synchronized}" OffContent="{l:Loc Device.Independent}" Classes="label" />
-            <TextBlock Text="{l:Loc Device.GroupHelp}" Classes="muted caption help" />
-          </StackPanel>
-        </Border>
-      </StackPanel>
 
-      <StackPanel x:Name="ControlPane" Grid.Column="1" Classes="group">
         <Border Classes="card detail">
           <StackPanel Classes="group">
           <Grid ColumnDefinitions="*,Auto">
@@ -98,6 +87,10 @@
           <components:DeviceFeaturesView IsVisible="{Binding IsBluetooth}" />
           </StackPanel>
         </Border>
+      </StackPanel>
+
+      <StackPanel x:Name="ControlPane" Grid.Column="1" Classes="group">
+        <components:ModeWorkspaceView />
 
         <Border Classes="card output">
           <StackPanel Classes="group">
@@ -143,7 +136,7 @@
                 <TextBlock Text="{l:Loc Channel.A}" VerticalAlignment="Center" Classes="emphasis accent" />
                 <TextBlock Grid.Column="1" Text="{Binding ChannelA, StringFormat='{}{0:0}%'}" Classes="metric" />
               </Grid>
-              <Slider x:Name="ChannelASlider" Minimum="0" Maximum="{Binding SafetyLimit}" Value="{Binding ChannelA}" TickFrequency="1" IsSnapToTickEnabled="True" IsEnabled="{Binding SelectedConnected}" />
+              <Slider x:Name="ChannelASlider" Minimum="0" Maximum="100" Value="{Binding ChannelA}" TickFrequency="1" IsSnapToTickEnabled="True" />
               <TextBlock x:Name="SelectedOutputAText" Text="{Binding SelectedOutputALabel}" Classes="muted caption" />
             </StackPanel>
           </Border>
@@ -153,7 +146,7 @@
                 <TextBlock Text="{l:Loc Channel.B}" VerticalAlignment="Center" Classes="emphasis channel-b" />
                 <TextBlock Grid.Column="1" Text="{Binding ChannelB, StringFormat='{}{0:0}%'}" Classes="metric" />
               </Grid>
-              <Slider x:Name="ChannelBSlider" Minimum="0" Maximum="{Binding SafetyLimit}" Value="{Binding ChannelB}" TickFrequency="1" IsSnapToTickEnabled="True" IsEnabled="{Binding SelectedConnected}" />
+              <Slider x:Name="ChannelBSlider" Minimum="0" Maximum="100" Value="{Binding ChannelB}" TickFrequency="1" IsSnapToTickEnabled="True" />
               <TextBlock x:Name="SelectedOutputBText" Text="{Binding SelectedOutputBLabel}" Classes="muted caption" />
             </StackPanel>
           </Border>
@@ -166,7 +159,7 @@
               <TextBlock Text="{l:Loc Device.Limit}" Classes="small emphasis" />
               <TextBlock Grid.Column="1" Text="{Binding SafetyLimit, StringFormat='{}{0:0}%'}" Classes="small accent" />
             </Grid>
-            <Slider x:Name="LimitSlider" Minimum="0" Maximum="100" Value="{Binding SafetyLimit}" TickFrequency="5" IsSnapToTickEnabled="True" IsEnabled="{Binding SelectedConnected}" />
+            <Slider x:Name="LimitSlider" Minimum="0" Maximum="100" Value="{Binding SafetyLimit}" TickFrequency="5" IsSnapToTickEnabled="True" />
             <Grid ColumnDefinitions="*,Auto">
               <TextBlock Text="{Binding RoutingSummary}" Classes="muted caption" VerticalAlignment="Center" />
               <CheckBox Grid.Column="1" IsChecked="{Binding OffsetChannelB}" IsEnabled="{Binding CanOffsetChannelB}" Content="{l:Loc Channel.Offset}" Classes="caption compact" />

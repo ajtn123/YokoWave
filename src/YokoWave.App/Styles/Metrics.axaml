@@ -83,6 +83,8 @@
   <x:Double x:Key="Size.BrandIcon">34</x:Double>
   <x:Double x:Key="Size.DeviceIconWidth">33</x:Double>
   <x:Double x:Key="Size.DeviceIconHeight">36</x:Double>
+  <x:Double x:Key="Size.DeviceStatusMaxWidth">100</x:Double>
+  <x:Double x:Key="Size.ModeNameMaxWidth">220</x:Double>
   <x:Double x:Key="Size.Hairline">1</x:Double>
   <x:Double x:Key="Layout.SidebarWidth">194</x:Double>
   <x:Double x:Key="Layout.CompactBreakpoint">1000</x:Double>

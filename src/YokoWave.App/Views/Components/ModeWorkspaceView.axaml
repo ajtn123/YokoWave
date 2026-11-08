@@ -1,0 +1,45 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:YokoWave.App.ViewModels" xmlns:l="using:YokoWave.App.Localization"
+             x:Class="YokoWave.App.Views.Components.ModeWorkspaceView" x:DataType="vm:MainViewModel">
+  <Border Classes="card detail">
+    <StackPanel Classes="group">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Text="{l:Loc Mode.Presets}" Classes="section-title" />
+        <TextBlock Grid.Column="1" Text="{Binding RunningModesSummary}" Classes="muted caption" VerticalAlignment="Center" />
+      </Grid>
+      <ComboBox x:Name="ModePicker" ItemsSource="{Binding Modes}" SelectedItem="{Binding SelectedMode}" HorizontalAlignment="Stretch">
+        <ComboBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:PlaybackModeViewModel">
+            <StackPanel Classes="inline">
+              <TextBlock Text="{Binding Name}" Classes="small emphasis mode-name" />
+              <TextBlock Text="{Binding SessionState}" Classes="caption muted" VerticalAlignment="Center" />
+            </StackPanel>
+          </DataTemplate>
+        </ComboBox.ItemTemplate>
+      </ComboBox>
+      <TextBox x:Name="ModeNameInput" Text="{Binding SelectedMode.Name}" MaxLength="60" PlaceholderText="{l:Loc Mode.Name}" />
+      <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" Classes="form">
+        <Button Content="{l:Loc Mode.AddWave}" Command="{Binding AddWaveModeCommand}" Classes="small" HorizontalAlignment="Stretch" />
+        <Button Grid.Column="1" Content="{l:Loc Mode.AddTouch}" Command="{Binding AddTouchModeCommand}" Classes="small" HorizontalAlignment="Stretch" />
+        <Button Grid.Row="1" Content="{l:Loc Mode.Save}" Command="{Binding SaveModesCommand}" Classes="small" HorizontalAlignment="Stretch" />
+        <Button Grid.Row="1" Grid.Column="1" Content="{l:Loc Mode.Remove}" Command="{Binding RemoveModeCommand}" Classes="small danger" HorizontalAlignment="Stretch" />
+      </Grid>
+      <StackPanel Classes="field">
+        <TextBlock Text="{l:Loc Mode.Targets}" Classes="field-label" />
+        <ItemsControl ItemsSource="{Binding ModeTargets}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ModeTargetItem">
+              <Grid ColumnDefinitions="*,Auto" Classes="columns">
+                <CheckBox IsChecked="{Binding IsSelected}" IsEnabled="{Binding CanEdit}">
+                  <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" Classes="label" />
+                </CheckBox>
+                <TextBlock Grid.Column="1" Text="{Binding Status}" ToolTip.Tip="{Binding Status}" VerticalAlignment="Center" Classes="muted caption device-status" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock Text="{l:Loc Mode.TargetHelp}" Classes="muted caption help" />
+      </StackPanel>
+    </StackPanel>
+  </Border>
+</UserControl>

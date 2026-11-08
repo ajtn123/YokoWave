@@ -3,7 +3,7 @@ using YokoWave.Core.Localization;
 
 namespace YokoWave.App.ViewModels;
 
-public sealed partial class MainViewModel
+public sealed partial class PlaybackModeViewModel
 {
     private PresetItem? _selectedPresetB;
     private SessionOption? _playbackOrder, _strengthMode, _touchPlayback;
@@ -20,20 +20,20 @@ public sealed partial class MainViewModel
     private static SessionOption[] Options<T>(string prefix) where T : struct, Enum =>
         Enum.GetValues<T>().Select(value => new SessionOption(Convert.ToInt32(value), $"{prefix}.{value}")).ToArray();
 
-    public SessionOption SelectedPlaybackOrder { get => _playbackOrder ?? PlaybackOrders[0]; set { if (!IsRunning) Set(ref _playbackOrder, value); } }
+    public SessionOption SelectedPlaybackOrder { get => _playbackOrder ?? PlaybackOrders[0]; set { if (CanEditRouting) Set(ref _playbackOrder, value); } }
     public SessionOption SelectedStrengthMode
     {
         get => _strengthMode ?? StrengthModes[0];
-        set { if (!IsRunning && Set(ref _strengthMode, value)) { Raise(nameof(IsRandomStrength)); Raise(nameof(IsStepStrength)); Raise(nameof(IsAutomatedStrength)); } }
+        set { if (CanEditRouting && Set(ref _strengthMode, value)) { Raise(nameof(IsRandomStrength)); Raise(nameof(IsStepStrength)); Raise(nameof(IsAutomatedStrength)); } }
     }
-    public SessionOption SelectedTouchPlayback { get => _touchPlayback ?? TouchPlaybackModes[0]; set { if (!IsRunning) Set(ref _touchPlayback, value); } }
+    public SessionOption SelectedTouchPlayback { get => _touchPlayback ?? TouchPlaybackModes[0]; set { if (CanEditRouting) Set(ref _touchPlayback, value); } }
     public bool IsRandomStrength => SelectedStrengthMode.Value == (int)StrengthMode.RandomIncrease;
     public bool IsStepStrength => SelectedStrengthMode.Value == (int)StrengthMode.StepIncrease;
     public bool IsAutomatedStrength => IsRandomStrength || IsStepStrength;
-    public bool SeparateWaveforms { get => _separateWaveforms; set { if (!IsRunning && Set(ref _separateWaveforms, value)) { Raise(nameof(CanOffsetChannelB)); Raise(nameof(SelectedWaveformB)); } } }
+    public bool SeparateWaveforms { get => _separateWaveforms; set { if (CanEditRouting && Set(ref _separateWaveforms, value)) { Raise(nameof(CanOffsetChannelB)); Raise(nameof(SelectedWaveformB)); } } }
     public WaveformPreset? SelectedWaveformB => SeparateWaveforms ? SelectedPresetB?.Preset : null;
     public bool CanOffsetChannelB => CanEditRouting && !SeparateWaveforms && !UseTouchControl;
-    public bool GentleMode { get => _gentle; set { if (!IsRunning) Set(ref _gentle, value); } }
+    public bool GentleMode { get => _gentle; set { if (CanEditRouting) Set(ref _gentle, value); } }
     public bool ShowContacts { get => _showContacts; set { if (Set(ref _showContacts, value)) Raise(nameof(HasElectrodeReadings)); } }
     public double StrengthInterval { get => _strengthInterval; set => SetEstimNumber(ref _strengthInterval, value, 1, 600); }
     public double RandomAddition { get => _randomAddition; set => SetEstimNumber(ref _randomAddition, value, 0, 100); }
@@ -41,7 +41,7 @@ public sealed partial class MainViewModel
     public double StrengthCeiling { get => _strengthCeiling; set => SetEstimNumber(ref _strengthCeiling, value, 0, 100); }
     public double BoostAmount { get => _boostAmount; set { SetEstimNumber(ref _boostAmount, value, 0, 100); Raise(nameof(BoostLabel)); } }
     private void SetEstimNumber(ref double field, double value, double minimum, double maximum, [System.Runtime.CompilerServices.CallerMemberName] string? name = null)
-    { if (!IsRunning && double.IsFinite(value)) Set(ref field, Math.Clamp(value, minimum, maximum), name); }
+    { if (CanEditRouting && double.IsFinite(value)) Set(ref field, Math.Clamp(value, minimum, maximum), name); }
     public bool IsPaused => _engine.IsPaused;
     public bool CanInteractEstim => IsRunning && !IsPaused;
     public string PauseLabel => L10n.Get(IsPaused ? "Session.Resume" : "Session.Pause");
@@ -54,7 +54,7 @@ public sealed partial class MainViewModel
     public bool UseTouchControl
     {
         get => _useTouchControl;
-        set { if (!IsRunning && Set(ref _useTouchControl, value)) { Raise(nameof(IsWaveformControl)); Raise(nameof(CanOffsetChannelB)); Raise(nameof(SelectedPresetName)); } }
+        set { if (CanEditRouting && Set(ref _useTouchControl, value)) { Raise(nameof(IsWaveformControl)); Raise(nameof(CanOffsetChannelB)); Raise(nameof(SelectedPresetName)); } }
     }
     public bool IsWaveformControl => !UseTouchControl;
     public bool IsTouchHeld
@@ -104,7 +104,7 @@ public sealed partial class MainViewModel
         SelectedPlaybackOrder = PlaybackOrders.First(option => option.Value == (int)settings.Order);
         SelectedStrengthMode = StrengthModes.First(option => option.Value == (int)strength.Mode);
         SelectedTouchPlayback = TouchPlaybackModes.First(option => option.Value == (int)settings.TouchPlayback);
-        SeparateWaveforms = settings.SeparateWaveforms; SelectedPresetB = Presets.First();
+        SeparateWaveforms = settings.SeparateWaveforms; SelectedPresetB = Presets.FirstOrDefault();
         GentleMode = settings.Gentle; ShowContacts = settings.ShowContacts;
         StrengthInterval = strength.IntervalSeconds; RandomAddition = strength.RandomAddition;
         StrengthStep = strength.Step; StrengthCeiling = strength.Ceiling; BoostAmount = strength.Boost;
@@ -112,9 +112,15 @@ public sealed partial class MainViewModel
     private EstimSettings CreateEstimSettings() => new((PlaybackOrder)SelectedPlaybackOrder.Value,
         new((StrengthMode)SelectedStrengthMode.Value, StrengthInterval, RandomAddition, StrengthStep, StrengthCeiling, BoostAmount),
         SeparateWaveforms, GentleMode, ShowContacts, (TouchPlayback)SelectedTouchPlayback.Value);
-    private SessionProgram CreateSessionProgram() => new(CreateEstimSettings(),
-        Presets.Select(item => item.Preset).Where(preset => _controller.IsSimulation || preset.Family != WaveformFamily.Motor).ToArray(),
-        !UseTouchControl && SeparateWaveforms && HasChannelB ? SelectedPresetB?.Preset : null, UseTouchControl);
+    private SessionProgram CreateSessionProgram()
+    {
+        var settings = CreateEstimSettings();
+        var b = !UseTouchControl && SeparateWaveforms && HasChannelB ? SelectedPresetB?.Preset : null;
+        var playlist = settings.Order is PlaybackOrder.Sequential or PlaybackOrder.Random
+            ? Presets.Select(item => item.Preset).Where(preset => _controller.IsSimulation || preset.Family != WaveformFamily.Motor).ToArray()
+            : new[] { SelectedPreset?.Preset, b }.OfType<WaveformPreset>().DistinctBy(preset => preset.Id).ToArray();
+        return new(settings, playlist, b, UseTouchControl, SafetyLimit);
+    }
     public async Task TogglePauseAsync()
     {
         try
@@ -131,7 +137,7 @@ public sealed partial class MainViewModel
         var preset = new WaveformPreset(Guid.NewGuid(), TouchRecordingName.Trim(), WaveShape.Sampled, samples.Length / 10.0,
             samples[0].FrequencyCode, Samples: samples, Family: WaveformFamily.Electrical);
         preset.Validate();
-        await SaveAsync(Presets.Select(item => item.Preset).Append(preset));
+        await _host.SaveAsync(Presets.Select(item => item.Preset).Append(preset));
         var item = new PresetItem(preset); Presets.Add(item); SelectedPreset = item;
         Notify("Status.WaveSaved", preset.Name);
     }

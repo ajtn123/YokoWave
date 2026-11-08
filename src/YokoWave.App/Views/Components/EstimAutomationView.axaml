@@ -11,6 +11,9 @@
       </ToggleButton>
       <StackPanel Classes="group" IsVisible="{Binding ShowStrengthOptions}">
         <StackPanel Classes="items" IsEnabled="{Binding CanEditRouting}">
+          <CheckBox Content="{l:Loc Estim.Gentle}" IsChecked="{Binding GentleMode}" />
+          <TextBlock Text="{l:Loc Estim.GentleHelp}" Classes="muted caption help" />
+          <CheckBox Content="{l:Loc Estim.ShowContacts}" IsChecked="{Binding ShowContacts}" />
           <ComboBox x:Name="StrengthModePicker" ItemsSource="{Binding StrengthModes}" SelectedItem="{Binding SelectedStrengthMode}" HorizontalAlignment="Stretch">
             <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
           </ComboBox>

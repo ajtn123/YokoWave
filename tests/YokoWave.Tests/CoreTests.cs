@@ -28,15 +28,19 @@ public sealed class CoreTests
     }
 
     [Fact]
-    public async Task ControllerClampsOutputsAndAppliesLowerLimitImmediately()
+    public async Task ControllerClampsProtocolRangeAndModeAppliesItsOwnLimitImmediately()
     {
         var transport = new RecordingTransport();
         await using var controller = new DeviceController(transport);
-        await controller.ConnectAsync(Device(), 40, TestContext.Current.CancellationToken);
+        await controller.ConnectAsync(Device(), TestContext.Current.CancellationToken);
         Assert.Equal(OutputFrame.Zero, transport.Latest["one"]);
         await controller.SendAsync("one", new(99, double.NaN, double.PositiveInfinity), TestContext.Current.CancellationToken);
-        Assert.Equal(new OutputFrame(40, 0, 1), transport.Latest["one"]);
-        await controller.SetLimitAsync("one", 12, TestContext.Current.CancellationToken);
+        Assert.Equal(new OutputFrame(99, 0, 1), transport.Latest["one"]);
+        var engine = new SessionEngine(controller) { ChannelA = 99 };
+        await engine.StartAsync(["one"], Sine(), null, new(OutputLimit: 40));
+        await engine.AdvanceAsync(TimeSpan.FromSeconds(2));
+        Assert.Equal(40, transport.Latest["one"].ChannelA);
+        await engine.SetOutputLimitAsync(12);
         Assert.Equal(12, transport.Latest["one"].ChannelA);
         await controller.DisconnectAsync("one", TestContext.Current.CancellationToken);
         Assert.Equal("send:one:0:0", transport.Events[^2]);
@@ -69,19 +73,19 @@ public sealed class CoreTests
     }
 
     [Fact]
-    public async Task SessionLinksTargetsRespectsTheirLimitsAndTimesOut()
+    public async Task SessionSharesItsLimitAcrossTargetsAndTimesOut()
     {
         var transport = new RecordingTransport();
         await using var controller = new DeviceController(transport);
-        await controller.ConnectAsync(Device("one"), 15, TestContext.Current.CancellationToken);
-        await controller.ConnectAsync(Device("two"), 50, TestContext.Current.CancellationToken);
+        await controller.ConnectAsync(Device("one"), TestContext.Current.CancellationToken);
+        await controller.ConnectAsync(Device("two"), TestContext.Current.CancellationToken);
         var engine = new SessionEngine(controller) { ChannelA = 40, ChannelB = 30, OffsetChannelB = false };
         SessionRecord? completed = null;
         engine.Completed += (_, record) => completed = record;
-        await engine.StartAsync(["one", "two"], Sine(), TimeSpan.FromSeconds(4));
+        await engine.StartAsync(["one", "two"], Sine(), TimeSpan.FromSeconds(4), new(OutputLimit: 15));
         await engine.AdvanceAsync(TimeSpan.FromSeconds(2));
         Assert.Equal(15, transport.Latest["one"].ChannelA);
-        Assert.Equal(40, transport.Latest["two"].ChannelA);
+        Assert.Equal(15, transport.Latest["two"].ChannelA);
         await engine.AdvanceAsync(TimeSpan.FromSeconds(5));
         Assert.False(engine.IsRunning);
         Assert.All(transport.Latest.Values, frame => Assert.Equal(0, frame.ChannelA));
@@ -129,7 +133,7 @@ public sealed class CoreTests
         using var folder = new TestFolder();
         var store = new WorkspaceStore(folder.Path);
         var custom = WaveformPreset.BuiltIn[0] with { Id = Guid.NewGuid(), Name = "自定义" };
-        await store.SaveAsync(new(1, [custom], [], new(35, 5, false)));
+        await store.SaveAsync(new(1, [custom], [], new(35)));
         var loaded = await store.LoadAsync();
         Assert.Equivalent(custom, Assert.Single(loaded.Presets));
         Assert.Equal(35, loaded.Settings.DefaultLimit);

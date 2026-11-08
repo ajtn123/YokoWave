@@ -51,14 +51,14 @@ public sealed class BluetoothTests
         await using var controller = new DeviceController(new ElectricalBluetoothTransport(adapter));
         var device = Assert.Single(await controller.ScanAsync(TestContext.Current.CancellationToken));
         Assert.Null(device.Battery);
-        await controller.ConnectAsync(device, 40, TestContext.Current.CancellationToken);
+        await controller.ConnectAsync(device, TestContext.Current.CancellationToken);
         var link = adapter.Links[device.Id];
         Assert.Equal(V2Protocol.Stop(), link.Writes[0]);
         Assert.All(link.Writes.Where(p => p[1] == 0x11), packet => Assert.Equal(V2Protocol.Stop(), packet));
         await WaitAsync(() => controller.Connections[device.Id].Device.Battery == 82);
         Assert.Equal(ElectrodeContact.NotConnected, controller.Connections[device.Id].ContactA);
         await controller.SendAsync(device.Id, new(90, 90, 20), TestContext.Current.CancellationToken);
-        Assert.Equal(110, BinaryPrimitives.ReadUInt16BigEndian(link.Writes[^1].AsSpan(3, 2)));
+        Assert.Equal(248, BinaryPrimitives.ReadUInt16BigEndian(link.Writes[^1].AsSpan(3, 2)));
         await controller.DisconnectAsync(device.Id, TestContext.Current.CancellationToken);
         Assert.True(link.Closed);
         Assert.Equal(V2Protocol.Stop(), link.Writes[^1]);

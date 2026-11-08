@@ -6,7 +6,7 @@ namespace YokoWave.App.ViewModels;
 public sealed partial class MainViewModel
 {
     private bool _featuresBusy;
-    public bool CanReadDeviceFeatures => IsBluetooth && SelectedConnected && !IsRunning && !_featuresBusy &&
+    public bool CanReadDeviceFeatures => IsBluetooth && SelectedConnected && !_controller.IsDeviceBusy(SelectedDevice!.Id) && !_featuresBusy &&
         ElectricalDeviceProfile.FromName(SelectedDevice?.Name ?? "")?.Generation == ElectricalGeneration.CombinedV2;
     public bool CanControlLight => CanReadDeviceFeatures && _controller.Connections.TryGetValue(SelectedDevice?.Id ?? "", out var connection) &&
         connection.HardwareVersion is > 0 && connection.SoftwareVersion is > 0 && connection.LightEnabled.HasValue;
@@ -30,7 +30,7 @@ public sealed partial class MainViewModel
     }
     private async Task RunDeviceFeatureAsync(Func<string, Task> action)
     {
-        if (SelectedDevice is not { IsConnected: true } device || _featuresBusy || IsRunning) return;
+        if (SelectedDevice is not { IsConnected: true } device || _featuresBusy || _controller.IsDeviceBusy(device.Id)) return;
         _featuresBusy = true; RefreshDeviceFeatures();
         try { await action(device.Id); }
         finally { _featuresBusy = false; RefreshDeviceFeatures(); }

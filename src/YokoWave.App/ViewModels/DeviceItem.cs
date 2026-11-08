@@ -8,8 +8,7 @@ public sealed class DeviceItem : ObservableObject
 {
     private bool _connected;
     private bool _selected;
-    private bool _included = true;
-    private bool _canEditRouting = true;
+    private string? _activeModeName;
     private double _outputA;
     private double _outputB;
     public DeviceDescriptor Device { get; private set; }
@@ -23,9 +22,8 @@ public sealed class DeviceItem : ObservableObject
     { DeviceKind.DualChannel => "∿", DeviceKind.Vibration => "≋", DeviceKind.Pump => "◉", _ => "↕" };
     public bool IsConnected { get => _connected; set { if (Set(ref _connected, value)) { Raise(nameof(Status)); Raise(nameof(ConnectionAction)); } } }
     public bool IsSelected { get => _selected; set => Set(ref _selected, value); }
-    public bool IsIncluded { get => _included; set => Set(ref _included, value); }
-    public bool CanEditRouting { get => _canEditRouting; set => Set(ref _canEditRouting, value); }
-    public string Status => L10n.Get(IsConnected ? "Device.Connected" : "Device.Available");
+    public string? ActiveModeName { get => _activeModeName; set { if (Set(ref _activeModeName, value)) Raise(nameof(Status)); } }
+    public string Status => ActiveModeName is { } name ? L10n.Format("Device.InMode", name) : L10n.Get(IsConnected ? "Device.Connected" : "Device.Available");
     public string ConnectionAction => L10n.Get(IsConnected ? "Device.Disconnect" : "Device.Connect");
     public double OutputA { get => _outputA; set { Set(ref _outputA, value); Raise(nameof(OutputALabel)); } }
     public double OutputB { get => _outputB; set { Set(ref _outputB, value); Raise(nameof(OutputBLabel)); } }
@@ -89,7 +87,14 @@ public sealed class SessionItem(SessionRecord record) : ObservableObject
     }
     public string Date => Record.StartedAt.ToLocalTime().ToString(L10n.Get("History.DateFormat"), L10n.Current.Culture);
     public string Duration => TimeSpan.FromSeconds(Record.DurationSeconds).ToString(Record.DurationSeconds >= 3600 ? @"h\:mm\:ss" : @"mm\:ss");
-    public string Detail => L10n.Format("History.Detail", Record.DeviceCount, Record.PeakA, Record.PeakB, new StoredReason(Record.Reason));
+    public string Detail
+    {
+        get
+        {
+            var detail = L10n.Format("History.Detail", Record.DeviceCount, Record.PeakA, Record.PeakB, new StoredReason(Record.Reason));
+            return Record.ModeName is { } mode ? L10n.Format("History.ModeDetail", mode, detail) : detail;
+        }
+    }
     public void RefreshLocalization()
     {
         Raise(nameof(Name)); Raise(nameof(Date)); Raise(nameof(Detail));

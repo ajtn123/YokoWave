@@ -40,7 +40,8 @@
 
 ## 本地存储
 
-- `workspace.json` 只保存版本与基础累计统计，设置和自定义波形分别保存到 `settings.json`、`presets.json`。
+- `workspace.json` 只保存版本与基础累计统计，全局设置、自定义波形、玩法预设分别保存到 `settings.json`、`presets.json`、`modes.json`。
+- 强度、输出上限、定时、波形、播放策略及目标设备归玩法实例所有；不按设备存储配置。设备只保留连接与实时读数，同一设备同时只能由一个运行中的玩法控制，暂停期间仍保留占用。
 - 会话按紧凑 JSON Lines 写入 `sessions.jsonl`，按 UTF-8 字节数在 128 KiB 时滚动，仅保留 `sessions.1.jsonl` 一个旧文件；存储 JSON 不缩进。
 - 开发阶段不实现旧数据迁移，旧版工作区重置即可；不得删除数据目录中的无关文件。
 

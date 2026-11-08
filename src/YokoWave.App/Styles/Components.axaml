@@ -121,4 +121,12 @@
     <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource AccentTextBrush}" />
   </Style>
+  <Style Selector="TextBlock.device-status">
+    <Setter Property="MaxWidth" Value="{DynamicResource Size.DeviceStatusMaxWidth}" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+  </Style>
+  <Style Selector="TextBlock.mode-name">
+    <Setter Property="MaxWidth" Value="{DynamicResource Size.ModeNameMaxWidth}" />
+    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+  </Style>
 </Styles>
