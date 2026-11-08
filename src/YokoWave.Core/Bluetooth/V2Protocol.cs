@@ -9,6 +9,33 @@ public static class V2Protocol
     public static byte[] QueryVersion() => [0x36, 0x13, 0, 0, 0x35];
     public static byte[] QueryLight() => V1Protocol.Query(7);
     public static byte[] SetLight(bool enabled) => V1Protocol.WithChecksum([0x35, 0x15, (byte)(enabled ? 1 : 0)]);
+    public static byte[] Fixed(OutputFrame frame, NativeProgramSettings settings)
+    {
+        settings.Validate();
+        var a = settings.PresetA == 0 ? 0 : V1Protocol.Parameters(frame, 0).Strength;
+        var b = settings.PresetB == 0 ? 0 : V1Protocol.Parameters(frame, 1).Strength;
+        return V1Protocol.WithChecksum([0x35, 0x11, 1, (byte)(a >> 8), (byte)a, (byte)settings.PresetA,
+            (byte)(b >> 8), (byte)b, (byte)settings.PresetB]);
+    }
+    public static byte[] Buffered(int channel, int strength, IReadOnlyList<FrequencyPulse> samples)
+    {
+        ProtocolGuard.Byte(channel, 1, 2);
+        ProtocolGuard.Word(strength, 0, V1Protocol.MaxStrength);
+        ProtocolGuard.Require(samples.Count is >= 1 and <= 100);
+        byte[] packet = new byte[6 + samples.Count * 2];
+        packet[0] = 0x35;
+        packet[1] = 0x11;
+        packet[2] = 3;
+        packet[3] = (byte)channel;
+        BinaryPrimitives.WriteUInt16BigEndian(packet.AsSpan(4, 2), (ushort)strength);
+        for (var index = 0; index < samples.Count; index++)
+        {
+            samples[index].Validate();
+            packet[6 + index * 2] = (byte)samples[index].FrequencyHz;
+            packet[7 + index * 2] = (byte)samples[index].PulseWidth;
+        }
+        return V1Protocol.WithChecksum(packet);
+    }
 
     public static byte[] Encode(OutputFrame frame)
     {

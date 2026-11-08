@@ -14,7 +14,8 @@ namespace YokoWave.Desktop.Bluetooth;
 
 internal sealed class WindowsBluetoothAdapter : IBluetoothAdapter
 {
-    public Action<string>? Diagnostic { get; init; }
+    public Action<string>? Diagnostic
+    { get; init; }
     public async Task<IReadOnlyList<BluetoothPeripheral>> ScanAsync(CancellationToken ct)
     {
         var adapter = await BluetoothAdapter.GetDefaultAsync().AsTask(ct);
@@ -56,7 +57,12 @@ internal sealed class WindowsBluetoothAdapter : IBluetoothAdapter
             Diagnostic?.Invoke($"BLE advertisements received: {received}; supported-profile candidates: {found.Count}");
             return found.Values.OrderByDescending(peripheral => peripheral.Signal).ToArray();
         }
-        finally { watcher.Received -= OnReceived; watcher.Stopped -= OnStopped; watcher.Stop(); }
+        finally
+        {
+            watcher.Received -= OnReceived;
+            watcher.Stopped -= OnStopped;
+            watcher.Stop();
+        }
     }
     public async Task<IBluetoothConnection> ConnectAsync(BluetoothPeripheral peripheral, CancellationToken ct)
     {
@@ -95,7 +101,10 @@ internal sealed class WindowsBluetoothAdapter : IBluetoothAdapter
                 {
                     action();
                 }
-                catch (Exception cleanupError) { errors.Add(cleanupError); }
+                catch (Exception cleanupError)
+                {
+                    errors.Add(cleanupError);
+                }
             }
             if (connection is not null)
             {
@@ -103,7 +112,10 @@ internal sealed class WindowsBluetoothAdapter : IBluetoothAdapter
                 {
                     await connection.DisposeAsync();
                 }
-                catch (Exception cleanupError) { errors.Add(cleanupError); }
+                catch (Exception cleanupError)
+                {
+                    errors.Add(cleanupError);
+                }
             }
             else
             {
@@ -126,6 +138,7 @@ internal sealed class WindowsBluetoothAdapter : IBluetoothAdapter
 
 internal sealed class WindowsBluetoothConnection : IBluetoothConnection
 {
+    public int MaximumWriteLength => Math.Max(0, (_session?.MaxPduSize ?? 23) - 3);
     private readonly BluetoothLEDevice _device;
     private readonly IReadOnlyList<GattDeviceService> _services;
     private readonly GattSession? _session;
@@ -215,7 +228,10 @@ internal sealed class WindowsBluetoothConnection : IBluetoothConnection
                     throw error;
                 }
             }
-            finally { GC.KeepAlive(buffer); }
+            finally
+            {
+                GC.KeepAlive(buffer);
+            }
         }
         catch (ArgumentException error)
         {
@@ -228,7 +244,10 @@ internal sealed class WindowsBluetoothConnection : IBluetoothConnection
             Trace.TraceError("GATT write failed: UUID={0}, HRESULT=0x{1:X8}, bytes={2}, properties={3}, MTU={4}", address.Characteristic, error.HResult, packet.Length, properties, mtu);
             throw failure;
         }
-        finally { _gate.Release(); }
+        finally
+        {
+            _gate.Release();
+        }
     }
     public async Task<byte[]?> ReadAsync(GattAddress address, CancellationToken ct)
     {
@@ -252,7 +271,10 @@ internal sealed class WindowsBluetoothConnection : IBluetoothConnection
             reader.ReadBytes(bytes);
             return bytes;
         }
-        finally { _gate.Release(); }
+        finally
+        {
+            _gate.Release();
+        }
     }
     private void CheckReady()
     {
@@ -287,7 +309,10 @@ internal sealed class WindowsBluetoothConnection : IBluetoothConnection
                 {
                     action();
                 }
-                catch (Exception error) { errors.Add(error); }
+                catch (Exception error)
+                {
+                    errors.Add(error);
+                }
             }
             if (_session is not null)
             {
@@ -300,7 +325,10 @@ internal sealed class WindowsBluetoothConnection : IBluetoothConnection
             if (errors.Count > 0)
                 throw new LocalizedAggregateException("Error.Cleanup", errors);
         }
-        finally { _gate.Release(); }
+        finally
+        {
+            _gate.Release();
+        }
     }
 }
 #endif

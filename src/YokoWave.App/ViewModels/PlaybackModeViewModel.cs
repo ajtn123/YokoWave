@@ -16,9 +16,12 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
     private double _channelA, _channelB, _outputLimit = 60, _sessionDurationSeconds = 600;
     private string _name;
     private PresetItem? _selectedPreset;
-    public Guid Id { get; }
-    public ModeKind Kind { get; }
-    public PlaybackModeDefinition Definition { get; }
+    public Guid Id
+    { get; }
+    public ModeKind Kind
+    { get; }
+    public PlaybackModeDefinition Definition
+    { get; }
     public string Name
     {
         get => _name;
@@ -31,12 +34,15 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
         }
     }
     public ObservableCollection<PresetItem> Presets => _host.Presets;
-    public ObservableCollection<ModeTargetItem> Targets { get; } = [];
+    public ObservableCollection<ModeTargetItem> Targets
+    { get; } = [];
     public bool HasTargets => Targets.Count > 0;
     public bool IsSelected => _host.SelectedMode == this;
     public string KindLabel => L10n.Get($"ModeKind.{Kind}");
-    public ActionCommand SelectCommand { get; }
-    public AsyncCommand PlaybackCommand { get; }
+    public ActionCommand SelectCommand
+    { get; }
+    public AsyncCommand PlaybackCommand
+    { get; }
     internal void RefreshSelection() => Raise(nameof(IsSelected));
     public IReadOnlyCollection<string> TargetIds => _targets;
     public bool IsRunning => _engine.IsRunning;
@@ -133,12 +139,14 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
     }
     public double ChannelA
     {
-        get => _channelA; set
+        get => _channelA;
+        set
         {
             if (double.IsFinite(value))
             {
                 Set(ref _channelA, Math.Clamp(value, 0, OutputLimit));
                 _engine.ChannelA = _channelA;
+                RefreshNativeStrength(nameof(NativeEnabledA));
                 if (value != _channelA)
                     Raise(nameof(ChannelA));
             }
@@ -146,12 +154,14 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
     }
     public double ChannelB
     {
-        get => _channelB; set
+        get => _channelB;
+        set
         {
             if (double.IsFinite(value))
             {
                 Set(ref _channelB, Math.Clamp(value, 0, OutputLimit));
                 _engine.ChannelB = _channelB;
+                RefreshNativeStrength(nameof(NativeEnabledB));
                 if (value != _channelB)
                     Raise(nameof(ChannelB));
             }
@@ -172,7 +182,8 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
     }
     public bool TimerEnabled
     {
-        get => _timerEnabled; set
+        get => _timerEnabled;
+        set
         {
             if (CanEditRouting && Set(ref _timerEnabled, value))
                 OnTimerSettingsChanged();
@@ -190,7 +201,8 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
     public double MaximumDurationSeconds => _host.TimerLimitMinutes * 60;
     public bool OffsetChannelB
     {
-        get => _offsetChannelB; set
+        get => _offsetChannelB;
+        set
         {
             Set(ref _offsetChannelB, value);
             _engine.OffsetChannelB = value;
@@ -218,6 +230,8 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
         Kind = config.Kind;
         Definition = PlaybackModeDefinition.For(Kind);
         _engine = new(controller, ownerId: Id);
+        NativeEditor = new(config.NativeProgram, () => CanEditRouting);
+        HardwareEditor = new(config.Hardware, () => CanEditRouting);
         InitializeEstimCommands();
         SelectCommand = new(() => _host.SelectedMode = this);
         PlaybackCommand = new(TogglePlaybackAsync, ShowError, () => IsRunning || CanStart);
@@ -237,14 +251,37 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
         InitializePlaylist(config.PlaylistWaveformIds);
         foreach (var id in config.TargetDeviceIds ?? [])
             _targets.Add(id);
-        PropertyChanged += (_, e) => { if (e.PropertyName == nameof(CanStart)) { Raise(nameof(HasStartIssue)); Raise(nameof(StartIssue)); } };
-        _engine.Completed += (_, record) => { _ = GuardAsync(ReleaseInputAsync); _host.AddModeSession(record with { ModeId = Id, ModeName = Name }); };
+        PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(CanStart))
+            {
+                Raise(nameof(HasStartIssue));
+                Raise(nameof(StartIssue));
+            }
+        };
+        _engine.Completed += (_, record) =>
+        {
+            _ = GuardAsync(ReleaseInputAsync);
+            _host.AddModeSession(record with { ModeId = Id, ModeName = Name });
+        };
+        NativeEditor.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(NativeProgramEditorViewModel.Settings)) OnNativeSettingsChanged();
+        };
+        HardwareEditor.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(HardwareOutputEditorViewModel.Settings))
+            {
+                Raise(nameof(CanStart));
+                PlaybackCommand.NotifyCanExecuteChanged();
+            }
+        };
         RefreshTargets();
     }
 
     public PlaybackModeConfig ToConfig() => new(Id, Name, Kind, ChannelA, ChannelB, OutputLimit, TimerEnabled,
         (int)SessionDurationSeconds, SelectedPreset?.Preset.Id, SelectedPresetB?.Preset.Id, CreateEstimSettings(), _targets.ToList(), OffsetChannelB,
-        Playlist.Select(item => item.Id).ToList(), IsAudio ? _audioSettings : null, IsReactive ? _reactiveSettings : null, ChannelC, IsPump ? _pump : null, _balances);
+        Playlist.Select(item => item.Id).ToList(), IsAudio ? _audioSettings : null, IsReactive ? _reactiveSettings : null, ChannelC, IsPump ? _pump : null, _balances, IsNativeProgram ? NativeEditor.Settings : null, HardwareEditor.Settings);
     public void AssignTarget(string id, bool selected)
     {
         if (!CanEditRouting)
@@ -322,9 +359,20 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
             _clock.Restart();
             Notify("Status.ModeStarted", Name);
         }
-        catch (OperationCanceledException) { await ReleaseInputAsync(); }
-        catch { await ReleaseInputAsync(); throw; }
-        finally { _starting = false; RefreshPlayback(); }
+        catch (OperationCanceledException)
+        {
+            await ReleaseInputAsync();
+        }
+        catch
+        {
+            await ReleaseInputAsync();
+            throw;
+        }
+        finally
+        {
+            _starting = false;
+            RefreshPlayback();
+        }
     }
     public async Task TickAsync()
     {
@@ -344,11 +392,17 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
             {
                 await StopAsync("Reason.InputLost", false);
             }
-            catch (Exception stopError) { reported = new LocalizedAggregateException("Error.StopUnconfirmed", [error, stopError]); }
+            catch (Exception stopError)
+            {
+                reported = new LocalizedAggregateException("Error.StopUnconfirmed", [error, stopError]);
+            }
             _host.ShowError(reported);
             RefreshPlayback();
         }
-        finally { _tickBusy = false; }
+        finally
+        {
+            _tickBusy = false;
+        }
     }
     public async Task StopAsync(string reason = "Reason.Manual", bool notify = true)
     {
@@ -363,7 +417,11 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
             {
                 await ReleaseInputAsync();
             }
-            finally { _clock.Stop(); RefreshPlayback(); }
+            finally
+            {
+                _clock.Stop();
+                RefreshPlayback();
+            }
         }
         if (notify)
             Notify("Status.ModeStopped", Name);
@@ -383,6 +441,8 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
         RefreshEstimLocalization();
         RefreshLiveLocalization();
         RefreshHardwareLocalization();
+        NativeEditor.Refresh();
+        HardwareEditor.RefreshLocalization();
         RefreshPlaylist();
         RefreshPlayback();
         Raise(nameof(SelectedPresetName));
@@ -396,7 +456,10 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
         {
             await action();
         }
-        catch (Exception error) { _host.ShowError(error); }
+        catch (Exception error)
+        {
+            _host.ShowError(error);
+        }
     }
     private static string FormatDuration(TimeSpan time) => time.ToString(time.TotalHours >= 1 ? @"h\:mm\:ss" : @"mm\:ss");
 }
@@ -404,7 +467,8 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
 public sealed class ModeTargetItem : ObservableObject
 {
     private readonly PlaybackModeViewModel _mode;
-    public string Id { get; }
+    public string Id
+    { get; }
     private DeviceItem? Device => _mode.Device(Id);
     public string Name => Device?.Name ?? Id;
     public string Status => _mode.TargetStatus(Id);
@@ -414,16 +478,23 @@ public sealed class ModeTargetItem : ObservableObject
     public bool IsConnected => Device?.IsConnected ?? false;
     public string ConnectionAction => Device?.ConnectionAction ?? L10n.Get("Device.Connect");
     public string SensorReading => _mode.SensorReading(Id);
-    public AsyncCommand SelectCommand { get; }
-    public AsyncCommand ConnectCommand { get; }
-    public AsyncCommand DetachCommand { get; }
+    public AsyncCommand SelectCommand
+    { get; }
+    public AsyncCommand ConnectCommand
+    { get; }
+    public AsyncCommand DetachCommand
+    { get; }
     public ModeTargetItem(PlaybackModeViewModel mode, string id)
     {
         _mode = mode;
         Id = id;
         SelectCommand = new(() => mode.SelectDeviceAsync(id), mode.ReportError);
         ConnectCommand = new(() => mode.ConnectDeviceAsync(id), mode.ReportError, () => Device is not null);
-        DetachCommand = new(() => { mode.AssignTarget(id, false); return Task.CompletedTask; }, mode.ReportError, () => mode.CanEditRouting);
+        DetachCommand = new(() =>
+        {
+            mode.AssignTarget(id, false);
+            return Task.CompletedTask;
+        }, mode.ReportError, () => mode.CanEditRouting);
     }
     public void Refresh()
     {

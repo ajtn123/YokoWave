@@ -1,0 +1,45 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:YokoWave.App.ViewModels" xmlns:l="using:YokoWave.App.Localization"
+             x:Class="YokoWave.App.Views.Components.NativeProgramView" x:DataType="vm:PlaybackModeViewModel" >
+  <Border Classes="card" IsVisible="{Binding IsNativeProgram}">
+    <StackPanel Classes="items">
+      <TextBlock Text="{l:Loc ModeKind.NativeProgram}" Classes="section-title" />
+      <StackPanel DataContext="{Binding NativeEditor}" x:DataType="vm:NativeProgramEditorViewModel" Classes="items" IsEnabled="{Binding $parent[UserControl].((vm:PlaybackModeViewModel)DataContext).CanEditRouting}">
+        <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding SelectedKind}" HorizontalAlignment="Stretch">
+          <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+        </ComboBox>
+        <StackPanel Classes="items" IsVisible="{Binding IsPreset}">
+          <TextBlock Text="{l:Loc Native.PresetHelp}" Classes="muted caption help" />
+          <Grid Classes="columns" ColumnDefinitions="*,*,*">
+<StackPanel Grid.Column="0"><StackPanel Classes="field"><TextBlock Text="{l:Loc Channel.A}" Classes="field-label" /><NumericUpDown Value="{Binding PresetA}" Minimum="0" Maximum="{Binding MaximumPreset}" FormatString="0" /></StackPanel></StackPanel>
+<StackPanel Grid.Column="1"><StackPanel Classes="field"><TextBlock Text="{l:Loc Channel.B}" Classes="field-label" /><NumericUpDown Value="{Binding PresetB}" Minimum="0" Maximum="{Binding MaximumPreset}" FormatString="0" /></StackPanel></StackPanel>
+<StackPanel Grid.Column="2" IsVisible="{Binding IsMotor}"><StackPanel Classes="field"><TextBlock Text="{l:Loc Channel.C}" Classes="field-label" /><NumericUpDown Value="{Binding PresetC}" Minimum="0" Maximum="{Binding MaximumPreset}" FormatString="0" /></StackPanel></StackPanel>
+          </Grid>
+        </StackPanel>
+        <StackPanel Classes="items" IsVisible="{Binding IsPulse}">
+          <TextBlock Text="{l:Loc Native.PulseHelp}" Classes="muted caption help" />
+<TextBlock Text="{l:Loc Channel.A}" Classes="emphasis" /><Grid Classes="columns" ColumnDefinitions="*,*,*"><StackPanel Grid.Column="0"><StackPanel Classes="field"><TextBlock Text="{l:Loc Native.X}" Classes="field-label" /><NumericUpDown Value="{Binding XA}" Minimum="0" Maximum="31" FormatString="0" /></StackPanel></StackPanel>
+<StackPanel Grid.Column="1"><StackPanel Classes="field"><TextBlock Text="{l:Loc Native.Y}" Classes="field-label" /><NumericUpDown Value="{Binding YA}" Minimum="0" Maximum="1023" FormatString="0" /></StackPanel></StackPanel>
+<StackPanel Grid.Column="2"><StackPanel Classes="field"><TextBlock Text="{l:Loc Native.Z}" Classes="field-label" /><NumericUpDown Value="{Binding ZA}" Minimum="0" Maximum="31" FormatString="0" /></StackPanel></StackPanel></Grid>
+<TextBlock Text="{l:Loc Channel.B}" Classes="emphasis" /><Grid Classes="columns" ColumnDefinitions="*,*,*"><StackPanel Grid.Column="0"><StackPanel Classes="field"><TextBlock Text="{l:Loc Native.X}" Classes="field-label" /><NumericUpDown Value="{Binding XB}" Minimum="0" Maximum="31" FormatString="0" /></StackPanel></StackPanel>
+<StackPanel Grid.Column="1"><StackPanel Classes="field"><TextBlock Text="{l:Loc Native.Y}" Classes="field-label" /><NumericUpDown Value="{Binding YB}" Minimum="0" Maximum="1023" FormatString="0" /></StackPanel></StackPanel>
+<StackPanel Grid.Column="2"><StackPanel Classes="field"><TextBlock Text="{l:Loc Native.Z}" Classes="field-label" /><NumericUpDown Value="{Binding ZB}" Minimum="0" Maximum="31" FormatString="0" /></StackPanel></StackPanel></Grid>
+        </StackPanel>
+        <StackPanel Classes="items" IsVisible="{Binding IsBuffered}">
+          <TextBlock Text="{l:Loc Native.BufferHelp}" Classes="muted caption help" />
+          <TextBlock Text="{l:Loc Channel.A}" Classes="field-label" />
+          <TextBox Text="{Binding BufferA}" AcceptsReturn="True" TextWrapping="Wrap" />
+          <TextBlock Text="{l:Loc Channel.B}" Classes="field-label" />
+          <TextBox Text="{Binding BufferB}" AcceptsReturn="True" TextWrapping="Wrap" />
+          <CheckBox Content="{l:Loc Native.Repeat}" IsChecked="{Binding Repeat}" />
+        </StackPanel>
+      </StackPanel>
+      <StackPanel IsVisible="{Binding IsNativeMotor}" Classes="field">
+        <TextBlock Text="{l:Loc Native.MotorHelp}" Classes="muted caption help" />
+        <CheckBox Content="{l:Loc Channel.A}" IsChecked="{Binding NativeEnabledA}" IsEnabled="{Binding HasChannelA}" />
+        <CheckBox Content="{l:Loc Channel.B}" IsChecked="{Binding NativeEnabledB}" IsEnabled="{Binding HasChannelB}" />
+        <CheckBox Content="{l:Loc Channel.C}" IsChecked="{Binding NativeEnabledC}" IsEnabled="{Binding HasChannelC}" />
+      </StackPanel>
+    </StackPanel>
+  </Border>
+</UserControl>

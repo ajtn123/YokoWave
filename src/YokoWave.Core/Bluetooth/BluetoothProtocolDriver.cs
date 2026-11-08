@@ -5,11 +5,26 @@ namespace YokoWave.Core.Bluetooth;
 internal abstract class BluetoothProtocolDriver(string id, BluetoothDeviceProfile profile, IBluetoothConnection link,
     Action<DeviceStatusUpdate> publish, Action<Exception> fault)
 {
-    protected string Id { get; } = id;
-    public BluetoothDeviceProfile Profile { get; } = profile;
-    protected IBluetoothConnection Link { get; } = link;
-    protected Action<DeviceStatusUpdate> Publish { get; } = publish;
+    protected string Id
+    { get; } = id;
+    public BluetoothDeviceProfile Profile
+    { get; } = profile;
+    protected IBluetoothConnection Link
+    { get; } = link;
+    protected Action<DeviceStatusUpdate> Publish
+    { get; } = publish;
+    public event Action<DeviceCommand>? CommandRequested;
+    protected void RequestCommand(DeviceCommand command) => CommandRequested?.Invoke(command);
     private Exception? _fault;
+    private DeviceCommandHandlers? _commands;
+    protected virtual DeviceCommandHandlers CreateCommandHandlers() => new();
+    public Task ExecuteCommand(DeviceCommand command, CancellationToken ct)
+    {
+        command.Validate();
+        if (!Profile.Supports(command.Capability)) throw new LocalizedOperationException("Error.DeviceFeatures");
+        if (command is QueryDevice query && !Profile.SupportedQueries.Contains(query.Query)) throw new LocalizedOperationException("Error.DeviceFeatures");
+        return (_commands ??= CreateCommandHandlers()).ExecuteAsync(command, ct);
+    }
     public bool HasFault => Volatile.Read(ref _fault) is not null;
     protected void Reject(string key)
     {
@@ -18,9 +33,18 @@ internal abstract class BluetoothProtocolDriver(string id, BluetoothDeviceProfil
     }
     public void Check(OutputFrame frame)
     {
+        frame.Hardware?.Validate();
+        if (frame.NativeProgram is { } native)
+        {
+            native.ValidateOutput(frame);
+            if (!Profile.Supports(native.Settings.RequiredCapability)) throw new LocalizedOperationException("Error.ModeDeviceMismatch");
+        }
+        if (frame.Hardware is { } hardware && (hardware.AuxiliaryMotor != AuxiliaryMotorMode.Off && !Profile.Supports(DeviceCapability.AuxiliaryMotor) ||
+            hardware.RelativeStrength && !Profile.Supports(DeviceCapability.RelativeStrength))) throw new LocalizedOperationException("Error.ModeDeviceMismatch");
         if (Profile.Domain == OutputDomain.Input && (frame.ChannelA > 0 || frame.ChannelB > 0 || frame.ChannelC > 0 || frame.Pump is not null))
             throw new LocalizedOperationException("Error.SensorOnly");
-        if (_fault is { } error && (frame.ChannelA > 0 || frame.ChannelB > 0 || frame.ChannelC > 0 || frame.Pump is { Direction: not PumpDirection.Off } or { Water: true })) throw error;
+        if (_fault is { } error && (frame.ChannelA > 0 || frame.ChannelB > 0 || frame.ChannelC > 0 ||
+            frame.Hardware is { AuxiliaryMotor: not AuxiliaryMotorMode.Off } || frame.Pump is { Direction: not PumpDirection.Off } or { Water: true })) throw error;
         foreach (var sample in new[] { frame.ReferenceSample, frame.ReferenceSampleB }.OfType<WaveformSample>().Concat(frame.WindowA ?? []).Concat(frame.WindowB ?? []))
             if (sample is null || !sample.IsValid) throw new LocalizedArgumentException("Error.Samples");
         if (frame.WindowA is { Count: not 4 } || frame.WindowB is { Count: not 4 }) throw new LocalizedArgumentException("Error.Samples");
@@ -32,8 +56,14 @@ internal abstract class BluetoothProtocolDriver(string id, BluetoothDeviceProfil
     }
     protected static async Task Confirm(Task ready, CancellationToken ct, string key = "Error.BluetoothState")
     {
-        try { await ready.WaitAsync(TimeSpan.FromSeconds(3), ct); }
-        catch (TimeoutException error) { throw new LocalizedIOException(key, error); }
+        try
+        {
+            await ready.WaitAsync(TimeSpan.FromSeconds(3), ct);
+        }
+        catch (TimeoutException error)
+        {
+            throw new LocalizedIOException(key, error);
+        }
     }
     public abstract Task Initialize(CancellationToken ct);
     public abstract Task Send(OutputFrame frame, CancellationToken ct);

@@ -14,7 +14,8 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private readonly DeviceController _controller;
     private readonly WorkspaceStore _store;
     private readonly Func<IDeviceTransport> _bluetoothFactory;
-    internal IAudioInputFactory AudioInputs { get; }
+    internal IAudioInputFactory AudioInputs
+    { get; }
     private readonly SynchronizationContext? _uiContext;
     private bool _changingTransport, _scanBusy, _disposed, _settingsLoaded;
     private string _page = "workspace";
@@ -27,12 +28,16 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private PresetItem? _librarySelectedPreset;
     private double _defaultLimit = 60, _timerLimitMinutes = 120;
     private string _transferJson = "";
-    public WaveformEditorViewModel WaveformEditor { get; } = new();
+    public WaveformEditorViewModel WaveformEditor
+    { get; } = new();
     private readonly List<SessionRecord> _records = [];
     private SessionStatistics _statistics = new();
-    public ObservableCollection<DeviceItem> Devices { get; } = [];
-    public ObservableCollection<DeviceItem> UnassignedDevices { get; } = [];
-    public ObservableCollection<PresetItem> Presets { get; } = [];
+    public ObservableCollection<DeviceItem> Devices
+    { get; } = [];
+    public ObservableCollection<DeviceItem> UnassignedDevices
+    { get; } = [];
+    public ObservableCollection<PresetItem> Presets
+    { get; } = [];
     public PresetItem? LibrarySelectedPreset
     {
         get => _librarySelectedPreset ?? Presets.FirstOrDefault();
@@ -46,16 +51,23 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private bool CanUseLibraryWave => SelectedMode.IsWaveformControl && LibrarySelectedPreset is { } preset &&
         SelectedMode.AcceptsWaveform(preset.Preset) &&
         (!SelectedMode.UsesCustomPlaylist || SelectedMode.Playlist.Any(entry => entry.Id == preset.Preset.Id));
-    public ObservableCollection<PlaybackModeViewModel> Modes { get; } = [];
-    public ObservableCollection<SessionItem> Sessions { get; } = [];
-    public ObservableCollection<ActivityItem> Activities { get; } = [];
-    public IReadOnlyList<LanguageOption> Languages { get; } = [new("en", L10n.Current.English["Language.en"]), new("zh-CN", L10n.Current.English["Language.zh-CN"])];
-    public IReadOnlyList<TransportOption> TransportOptions { get; } = [new(false), new(true)];
-    public IReadOnlyList<SessionOption> ModeTypes { get; } = Enum.GetValues<ModeKind>().Select(kind => new SessionOption((int)kind, $"ModeKind.{kind}")).ToArray();
+    public ObservableCollection<PlaybackModeViewModel> Modes
+    { get; } = [];
+    public ObservableCollection<SessionItem> Sessions
+    { get; } = [];
+    public ObservableCollection<ActivityItem> Activities
+    { get; } = [];
+    public IReadOnlyList<LanguageOption> Languages
+    { get; } = [new("en", L10n.Current.English["Language.en"]), new("zh-CN", L10n.Current.English["Language.zh-CN"])];
+    public IReadOnlyList<TransportOption> TransportOptions
+    { get; } = [new(false), new(true)];
+    public IReadOnlyList<SessionOption> ModeTypes
+    { get; } = Enum.GetValues<ModeKind>().Select(kind => new SessionOption((int)kind, $"ModeKind.{kind}")).ToArray();
     private SessionOption? _newModeType;
     public SessionOption NewModeType
     {
-        get => _newModeType ?? ModeTypes[0]; set
+        get => _newModeType ?? ModeTypes[0];
+        set
         {
             if (value is not null)
                 Set(ref _newModeType, value);
@@ -85,7 +97,8 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     public bool HasUnassignedDevices => UnassignedDevices.Count > 0;
     public double DefaultLimit
     {
-        get => _defaultLimit; set
+        get => _defaultLimit;
+        set
         {
             if (double.IsFinite(value))
                 Set(ref _defaultLimit, Math.Clamp(value, 0, 100));
@@ -104,7 +117,8 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     }
     public TransportOption? SelectedTransport
     {
-        get => _selectedTransport; set
+        get => _selectedTransport;
+        set
         {
             if (value is not null)
                 Set(ref _selectedTransport, value);
@@ -140,7 +154,8 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     public string PageTitle => L10n.Get(_page switch { "waves" => "Page.Waves", "history" => "Page.History", "settings" => "Page.Settings", "help" => "Page.Help", _ => "Page.Devices" });
     public bool IsScanning
     {
-        get => _scanBusy; private set
+        get => _scanBusy;
+        private set
         {
             Set(ref _scanBusy, value);
             Raise(nameof(ScanLabel));
@@ -151,7 +166,8 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     public string Status => _status.Value;
     public bool IsError
     {
-        get => _isError; private set => Set(ref _isError, value);
+        get => _isError;
+        private set => Set(ref _isError, value);
     }
     public int ConnectedCount => Devices.Count(device => device.IsConnected);
     public string ConnectedSummary => $"{ConnectedCount:00} / {Devices.Count:00}";
@@ -187,29 +203,50 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     }
     public string TransferJson
     {
-        get => _transferJson; set => Set(ref _transferJson, value);
+        get => _transferJson;
+        set => Set(ref _transferJson, value);
     }
 
-    public ICommand WorkspaceCommand { get; }
-    public ICommand WavesCommand { get; }
-    public ICommand HistoryCommand { get; }
-    public ICommand SettingsCommand { get; }
-    public ICommand HelpCommand { get; }
-    public ICommand ScanCommand { get; }
-    public ICommand EmergencyStopCommand { get; }
-    public ICommand SaveWaveCommand { get; }
-    public ICommand NewWaveCommand { get; }
-    public ICommand EditWaveCommand { get; }
-    public AsyncCommand DeleteWaveCommand { get; }
-    public ICommand ExportCommand { get; }
-    public ICommand ImportCommand { get; }
-    public ICommand SaveSettingsCommand { get; }
-    public ICommand UseWaveCommand { get; }
-    public ICommand AddWaveModeCommand { get; }
-    public ICommand AddTouchModeCommand { get; }
-    public ICommand AddModeCommand { get; }
-    public ICommand SaveModesCommand { get; }
-    public ICommand RemoveModeCommand { get; }
+    public ICommand WorkspaceCommand
+    { get; }
+    public ICommand WavesCommand
+    { get; }
+    public ICommand HistoryCommand
+    { get; }
+    public ICommand SettingsCommand
+    { get; }
+    public ICommand HelpCommand
+    { get; }
+    public ICommand ScanCommand
+    { get; }
+    public ICommand EmergencyStopCommand
+    { get; }
+    public ICommand SaveWaveCommand
+    { get; }
+    public ICommand NewWaveCommand
+    { get; }
+    public ICommand EditWaveCommand
+    { get; }
+    public AsyncCommand DeleteWaveCommand
+    { get; }
+    public ICommand ExportCommand
+    { get; }
+    public ICommand ImportCommand
+    { get; }
+    public ICommand SaveSettingsCommand
+    { get; }
+    public ICommand UseWaveCommand
+    { get; }
+    public ICommand AddWaveModeCommand
+    { get; }
+    public ICommand AddTouchModeCommand
+    { get; }
+    public ICommand AddModeCommand
+    { get; }
+    public ICommand SaveModesCommand
+    { get; }
+    public ICommand RemoveModeCommand
+    { get; }
     public MainViewModel(DeviceController controller, WorkspaceStore store, Func<IDeviceTransport>? bluetoothFactory = null, IAudioInputFactory? audioInputFactory = null)
     {
         _controller = controller;
@@ -230,7 +267,11 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         NewWaveCommand = new ActionCommand(NewWave);
         EditWaveCommand = new ActionCommand(EditWave);
         DeleteWaveCommand = new AsyncCommand(DeleteWaveAsync, ShowError, () => LibrarySelectedPreset is { IsBuiltIn: false } selected && !Modes.Any(mode => mode.UsesWaveform(selected.Preset.Id)));
-        ExportCommand = new ActionCommand(() => { TransferJson = WorkspaceStore.ExportPresets(Presets.Select(item => item.Preset)); Notify("Status.Generated"); });
+        ExportCommand = new ActionCommand(() =>
+        {
+            TransferJson = WorkspaceStore.ExportPresets(Presets.Select(item => item.Preset));
+            Notify("Status.Generated");
+        });
         ImportCommand = new AsyncCommand(() => ImportAsync(TransferJson), ShowError);
         SaveSettingsCommand = new AsyncCommand(SaveSettingsAsync, ShowError, () => !IsScanning);
         UseWaveCommand = new AsyncCommand(async () =>
@@ -243,12 +284,19 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         AddWaveModeCommand = new AsyncCommand(() => AddModeAsync(false), ShowError);
         AddTouchModeCommand = new AsyncCommand(() => AddModeAsync(true), ShowError);
         AddModeCommand = new AsyncCommand(() => AddModeAsync((ModeKind)NewModeType.Value), ShowError);
-        SaveModesCommand = new AsyncCommand(async () => { await SaveAsync(); Notify("Status.ModesSaved"); }, ShowError);
+        SaveModesCommand = new AsyncCommand(async () =>
+        {
+            await SaveAsync();
+            Notify("Status.ModesSaved");
+        }, ShowError);
         RemoveModeCommand = new AsyncCommand(RemoveSelectedModeAsync, ShowError, () => Modes.Count > 1);
         InitializeDeviceFeatureCommands();
         AddMode(new(Guid.NewGuid(), L10n.Format("Mode.WaveName", 1)));
         _selectedMode = Modes[0];
-        Presets.CollectionChanged += (_, _) => { foreach (var mode in Modes) mode.RefreshPlaylist(); };
+        Presets.CollectionChanged += (_, _) =>
+        {
+            foreach (var mode in Modes) mode.RefreshPlaylist();
+        };
         _controller.Changed += OnDeviceChanged;
         _controller.Faulted += OnTransportFaulted;
         L10n.Current.PropertyChanged += OnLanguageChanged;
@@ -364,7 +412,10 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             RefreshDevices();
             Notify(IsBluetooth ? "Status.BluetoothDiscovered" : "Status.Discovered", found.Count);
         }
-        finally { IsScanning = false; }
+        finally
+        {
+            IsScanning = false;
+        }
     }
     public async Task SaveSettingsAsync()
     {
@@ -392,7 +443,10 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             RefreshTransport();
             return true;
         }
-        finally { _changingTransport = false; }
+        finally
+        {
+            _changingTransport = false;
+        }
     }
     public Task SelectDeviceAsync(DeviceItem device)
     {
@@ -427,13 +481,22 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             {
                 await StopModesForDeviceAsync(device.Id, "Reason.ConnectionChanged");
             }
-            catch (Exception error) { errors.Add(error); }
+            catch (Exception error)
+            {
+                errors.Add(error);
+            }
             try
             {
                 await _controller.DisconnectAsync(device.Id);
             }
-            catch (Exception error) { errors.Add(error); }
-            finally { RefreshDevices(); }
+            catch (Exception error)
+            {
+                errors.Add(error);
+            }
+            finally
+            {
+                RefreshDevices();
+            }
             if (errors.Count > 0)
                 throw new LocalizedAggregateException("Error.StopUnconfirmed", errors);
             Notify("Status.Disconnected", device.Name);
@@ -455,7 +518,10 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             {
                 await mode.StopAsync(reason, false);
             }
-            catch (Exception error) { errors.Add(error); }
+            catch (Exception error)
+            {
+                errors.Add(error);
+            }
         if (errors.Count > 0)
             throw new LocalizedAggregateException("Error.StopUnconfirmed", errors);
     }
@@ -576,7 +642,10 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         if (_disposed)
             return;
         if (_uiContext is not null && SynchronizationContext.Current != _uiContext)
-            _uiContext.Post(_ => { if (!_disposed) action(); }, null);
+            _uiContext.Post(_ =>
+            {
+                if (!_disposed) action();
+            }, null);
         else
             action();
     }
@@ -661,6 +730,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             mode.RefreshLocalization();
         foreach (var kind in ModeTypes)
             kind.RefreshLocalization();
+        ProtocolFeatures.RefreshLocalization();
         RefreshTransport();
         RefreshModeSelection();
         foreach (var name in new[] { nameof(PageTitle), nameof(ScanLabel), nameof(Status), nameof(TotalTime), nameof(RunningModesSummary) })
@@ -672,7 +742,10 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         {
             await action();
         }
-        catch (Exception error) { ShowError(error); }
+        catch (Exception error)
+        {
+            ShowError(error);
+        }
     }
     public async ValueTask DisposeAsync()
     {

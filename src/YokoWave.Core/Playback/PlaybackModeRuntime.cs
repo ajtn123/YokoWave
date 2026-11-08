@@ -28,6 +28,7 @@ internal abstract class PlaybackModeRuntime
         ModeKind.Exercise => new ExerciseModeRuntime(program, preset, clock, random),
         ModeKind.SleepDeprivation => new SleepModeRuntime(program, preset, clock, random),
         ModeKind.Pump => new PumpModeRuntime(),
+        ModeKind.NativeProgram => new NativeProgramModeRuntime(program.NativeProgram ?? new()),
         _ => throw new Localization.LocalizedArgumentException("Error.ModeSettings")
     };
 }
@@ -39,12 +40,14 @@ internal interface IAudioPlaybackInput
 
 internal interface ITouchPlaybackInput
 {
-    IReadOnlyList<WaveformSample> Recording { get; }
+    IReadOnlyList<WaveformSample> Recording
+    { get; }
     void SetTouch(double frequency, double pulseWidth, bool held, double elapsed);
 }
 
 internal interface IMotionPlaybackInput
 {
-    int MovementCount { get; }
+    int MovementCount
+    { get; }
     void Recalibrate(double elapsed);
 }

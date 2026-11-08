@@ -15,7 +15,8 @@ public sealed partial class PlaybackModeViewModel
     private bool _showStrengthOptions;
     public bool ShowStrengthOptions
     {
-        get => _showStrengthOptions; set
+        get => _showStrengthOptions;
+        set
         {
             if (Set(ref _showStrengthOptions, value))
                 Raise(nameof(StrengthOptionsSymbol));
@@ -62,7 +63,8 @@ public sealed partial class PlaybackModeViewModel
     }
     public SessionOption SelectedTouchPlayback
     {
-        get => _touchPlayback ?? TouchPlaybackModes[0]; set
+        get => _touchPlayback ?? TouchPlaybackModes[0];
+        set
         {
             if (value is not null && CanEditRouting)
                 Set(ref _touchPlayback, value);
@@ -73,7 +75,8 @@ public sealed partial class PlaybackModeViewModel
     public bool IsAutomatedStrength => IsRandomStrength || IsStepStrength;
     public bool SeparateWaveforms
     {
-        get => _separateWaveforms; set
+        get => _separateWaveforms;
+        set
         {
             if (CanEditRouting && Set(ref _separateWaveforms, value))
             {
@@ -88,7 +91,8 @@ public sealed partial class PlaybackModeViewModel
     public bool CanOffsetChannelB => UsesWaveforms && CanEditRouting && !ShowIndependentChannelB && !(IsSleep && IsRandomSleep);
     public bool GentleMode
     {
-        get => _gentle; set
+        get => _gentle;
+        set
         {
             if (CanEditRouting)
                 Set(ref _gentle, value);
@@ -96,30 +100,36 @@ public sealed partial class PlaybackModeViewModel
     }
     public bool ShowContacts
     {
-        get => _showContacts; set
+        get => _showContacts;
+        set
         {
             Set(ref _showContacts, value);
         }
     }
     public double StrengthInterval
     {
-        get => _strengthInterval; set => SetEstimNumber(ref _strengthInterval, value, 1, 600);
+        get => _strengthInterval;
+        set => SetEstimNumber(ref _strengthInterval, value, 1, 600);
     }
     public double RandomAddition
     {
-        get => _randomAddition; set => SetEstimNumber(ref _randomAddition, value, 0, 100);
+        get => _randomAddition;
+        set => SetEstimNumber(ref _randomAddition, value, 0, 100);
     }
     public double StrengthStep
     {
-        get => _strengthStep; set => SetEstimNumber(ref _strengthStep, value, 0, 100);
+        get => _strengthStep;
+        set => SetEstimNumber(ref _strengthStep, value, 0, 100);
     }
     public double StrengthCeiling
     {
-        get => _strengthCeiling; set => SetEstimNumber(ref _strengthCeiling, value, 0, 100);
+        get => _strengthCeiling;
+        set => SetEstimNumber(ref _strengthCeiling, value, 0, 100);
     }
     public double BoostAmount
     {
-        get => _boostAmount; set
+        get => _boostAmount;
+        set
         {
             SetEstimNumber(ref _boostAmount, value, 0, 100);
             Raise(nameof(BoostLabel));
@@ -156,7 +166,8 @@ public sealed partial class PlaybackModeViewModel
     }
     public double TouchFrequency
     {
-        get => _touchFrequency; set
+        get => _touchFrequency;
+        set
         {
             if (double.IsFinite(value))
             {
@@ -167,7 +178,8 @@ public sealed partial class PlaybackModeViewModel
     }
     public double TouchPulseWidth
     {
-        get => _touchPulseWidth; set
+        get => _touchPulseWidth;
+        set
         {
             if (double.IsFinite(value))
             {
@@ -181,16 +193,20 @@ public sealed partial class PlaybackModeViewModel
     public bool HasRecording => _engine.Recording.Count >= 2;
     public string TouchRecordingName
     {
-        get => _touchRecordingName; set
+        get => _touchRecordingName;
+        set
         {
             Set(ref _touchRecordingName, value);
             SaveRecordingCommand.NotifyCanExecuteChanged();
         }
     }
     public bool CanSaveRecording => !IsRunning && HasRecording && !string.IsNullOrWhiteSpace(TouchRecordingName);
-    public AsyncCommand PauseCommand { get; private set; }
-    public AsyncCommand ResetStrengthCommand { get; private set; }
-    public AsyncCommand SaveRecordingCommand { get; private set; }
+    public AsyncCommand PauseCommand
+    { get; private set; }
+    public AsyncCommand ResetStrengthCommand
+    { get; private set; }
+    public AsyncCommand SaveRecordingCommand
+    { get; private set; }
 
     public PresetItem? SelectedPresetB
     {
@@ -229,7 +245,11 @@ public sealed partial class PlaybackModeViewModel
     private void InitializeEstimCommands()
     {
         PauseCommand = new(TogglePauseAsync, ShowError, () => IsRunning);
-        ResetStrengthCommand = new(async () => { await _engine.ResetStrengthAsync(); RefreshPlayback(); }, ShowError, () => CanInteractEstim);
+        ResetStrengthCommand = new(async () =>
+        {
+            await _engine.ResetStrengthAsync();
+            RefreshPlayback();
+        }, ShowError, () => CanInteractEstim);
         SaveRecordingCommand = new(SaveRecordingAsync, ShowError, () => CanSaveRecording);
     }
     private void InitializeEstim(EstimSettings? settings)
@@ -262,7 +282,7 @@ public sealed partial class PlaybackModeViewModel
             : new[] { SelectedPreset?.Preset, b }.OfType<WaveformPreset>().DistinctBy(preset => preset.Id).ToArray();
         if (usesPlaylist && playlist.Length == 0)
             throw new LocalizedOperationException("Error.EmptyPlaylist");
-        return new(settings, playlist, b, Kind, OutputLimit, _audioSettings, _reactiveSettings, IsPump ? _pump : null, _balances);
+        return new(settings, playlist, b, Kind, OutputLimit, _audioSettings, _reactiveSettings, IsPump ? _pump : null, _balances, IsNativeProgram ? NativeEditor.Settings : null, HardwareEditor.Settings);
     }
     public async Task TogglePauseAsync()
     {
@@ -281,10 +301,16 @@ public sealed partial class PlaybackModeViewModel
             {
                 await StopAsync("Reason.InputLost", false);
             }
-            catch (Exception stopError) { throw new LocalizedAggregateException("Error.StopUnconfirmed", [error, stopError]); }
+            catch (Exception stopError)
+            {
+                throw new LocalizedAggregateException("Error.StopUnconfirmed", [error, stopError]);
+            }
             throw;
         }
-        finally { RefreshPlayback(); }
+        finally
+        {
+            RefreshPlayback();
+        }
     }
     public async Task SaveRecordingAsync()
     {
@@ -350,7 +376,8 @@ public sealed partial class PlaybackModeViewModel
 
 public sealed class SessionOption(int value, string key) : ObservableObject
 {
-    public int Value { get; } = value;
+    public int Value
+    { get; } = value;
     public string Label => L10n.Get(key);
     public override string ToString() => Label;
     public void RefreshLocalization() => Raise(nameof(Label));

@@ -7,17 +7,61 @@ namespace YokoWave.Core;
 
 public sealed class DeviceConnection(DeviceDescriptor device)
 {
-    public DeviceDescriptor Device { get; internal set; } = device;
-    public ElectrodeContact ContactA { get; internal set; } = ElectrodeContact.Unknown;
-    public ElectrodeContact ContactB { get; internal set; } = ElectrodeContact.Unknown;
-    public OutputFrame Output { get; internal set; } = OutputFrame.Zero;
-    public byte? HardwareVersion { get; internal set; }
-    public byte? SoftwareVersion { get; internal set; }
-    public bool? LightEnabled { get; internal set; }
-    public MotionReading? Motion { get; internal set; }
-    public int? Steps { get; internal set; }
-    public DeviceTelemetry? Telemetry { get; internal set; }
-    public DateTimeOffset? TelemetryCapturedAt { get; internal set; }
+    public DeviceDescriptor Device
+    {
+        get;
+        internal set;
+    } = device;
+    public ElectrodeContact ContactA
+    {
+        get;
+        internal set;
+    } = ElectrodeContact.Unknown;
+    public ElectrodeContact ContactB
+    {
+        get;
+        internal set;
+    } = ElectrodeContact.Unknown;
+    public OutputFrame Output
+    {
+        get;
+        internal set;
+    } = OutputFrame.Zero;
+    public byte? HardwareVersion
+    {
+        get;
+        internal set;
+    }
+    public byte? SoftwareVersion
+    {
+        get;
+        internal set;
+    }
+    public bool? LightEnabled
+    {
+        get;
+        internal set;
+    }
+    public MotionReading? Motion
+    {
+        get;
+        internal set;
+    }
+    public int? Steps
+    {
+        get;
+        internal set;
+    }
+    public DeviceTelemetry? Telemetry
+    {
+        get;
+        internal set;
+    }
+    public DateTimeOffset? TelemetryCapturedAt
+    {
+        get;
+        internal set;
+    }
     internal long MotionSequence;
     internal bool MotionStreaming;
 }
@@ -36,7 +80,8 @@ public sealed class DeviceController : IAsyncDisposable
     public IReadOnlyDictionary<string, DeviceConnection> Connections => _connections;
     public string TransportName => _transport.DisplayName;
     public bool IsSimulation => _transport.IsSimulation;
-    public TimeProvider Clock { get; }
+    public TimeProvider Clock
+    { get; }
     public bool IsDeviceBusy(string id) => _owners.ContainsKey(id);
     public Guid? DeviceOwner(string id) => _owners.TryGetValue(id, out var owner) ? owner : null;
     public event EventHandler? Changed;
@@ -132,7 +177,10 @@ public sealed class DeviceController : IAsyncDisposable
             }
             NotifyChanged();
         }
-        catch (Exception error) { Trace.TraceError("Device status callback failed: {0}", error); }
+        catch (Exception error)
+        {
+            Trace.TraceError("Device status callback failed: {0}", error);
+        }
     }
 
     private void OnFaulted(object? sender, DeviceTransportFault fault)
@@ -155,7 +203,10 @@ public sealed class DeviceController : IAsyncDisposable
                     {
                         await _transport.DisconnectAsync(fault.DeviceId);
                     }
-                    catch (Exception error) { Trace.TraceWarning("Lost link cleanup failed: {0}", error); }
+                    catch (Exception error)
+                    {
+                        Trace.TraceWarning("Lost link cleanup failed: {0}", error);
+                    }
                     _connections.TryRemove(fault.DeviceId, out _);
                     _owners.TryRemove(fault.DeviceId, out _);
                 }
@@ -169,9 +220,15 @@ public sealed class DeviceController : IAsyncDisposable
                     {
                         handler(this, fault);
                     }
-                    catch (Exception error) { Trace.TraceError("Device fault subscriber failed: {0}", error); }
+                    catch (Exception error)
+                    {
+                        Trace.TraceError("Device fault subscriber failed: {0}", error);
+                    }
         }
-        catch (Exception error) { Trace.TraceError("Device fault callback failed: {0}", error); }
+        catch (Exception error)
+        {
+            Trace.TraceError("Device fault callback failed: {0}", error);
+        }
     }
 
     private void NotifyChanged()
@@ -183,7 +240,10 @@ public sealed class DeviceController : IAsyncDisposable
             {
                 handler(this, EventArgs.Empty);
             }
-            catch (Exception error) { Trace.TraceError("Device change subscriber failed: {0}", error); }
+            catch (Exception error)
+            {
+                Trace.TraceError("Device change subscriber failed: {0}", error);
+            }
     }
 
     public async Task<IReadOnlyList<DeviceDescriptor>> ScanAsync(CancellationToken ct = default)
@@ -194,7 +254,10 @@ public sealed class DeviceController : IAsyncDisposable
             ThrowIfDisposed();
             return await _transport.ScanAsync(ct);
         }
-        finally { _lifecycleGate.Release(); }
+        finally
+        {
+            _lifecycleGate.Release();
+        }
     }
 
     public async Task AcquireTargetsAsync(Guid owner, IReadOnlyList<string> ids, CancellationToken ct = default)
@@ -227,7 +290,10 @@ public sealed class DeviceController : IAsyncDisposable
                         await WriteCoreAsync(Get(id), OutputFrame.Zero, CancellationToken.None);
                         _owners.TryRemove(id, out _);
                     }
-                    catch (Exception cleanupError) { cleanupErrors.Add(cleanupError); }
+                    catch (Exception cleanupError)
+                    {
+                        cleanupErrors.Add(cleanupError);
+                    }
                 }
                 // A failed stop keeps its lease, and neither the initiating error nor cleanup errors are lost.
                 if (cleanupErrors.Count > 0)
@@ -332,6 +398,22 @@ public sealed class DeviceController : IAsyncDisposable
         NotifyChanged();
     }
 
+    public async Task ExecuteCommandAsync(string id, DeviceCommand command, Guid? owner = null, CancellationToken ct = default)
+    {
+        command.Validate();
+        using (await _operations.AcquireAsync([id], ct))
+        {
+            ThrowIfDisposed();
+            var connection = Get(id);
+            if (!command.ReadOnly && DeviceOwner(id) is { } current && current != owner) throw new LocalizedOperationException("Error.DeviceInUse");
+            if (connection.Device.Profile?.Supports(command.Capability) != true || _transport is not IDeviceCommandTransport transport)
+                throw new LocalizedOperationException("Error.DeviceFeatures");
+            await transport.ExecuteCommandAsync(id, command, ct);
+            if (command is ConfigureMotionStream motion) connection.MotionStreaming = motion.Enabled;
+        }
+        NotifyChanged();
+    }
+
     public async Task ResetInputAsync(string id, CancellationToken ct = default)
     {
         using (await _operations.AcquireAsync([id], ct))
@@ -411,13 +493,16 @@ public sealed class DeviceController : IAsyncDisposable
 
     private async Task WriteCoreAsync(DeviceConnection connection, OutputFrame frame, CancellationToken ct)
     {
+        if (!double.IsFinite(frame.OutputLimit) || frame.OutputLimit is < 0 or > 100) throw new LocalizedArgumentException("Error.InvalidSettings");
+        frame.Hardware?.Validate();
         var output = frame with
         {
-            ChannelA = connection.Device.HasChannel(0) ? Clamp(frame.ChannelA) : 0,
-            ChannelB = connection.Device.HasChannel(1) ? Clamp(frame.ChannelB) : 0,
-            ChannelC = connection.Device.HasChannel(2) ? Clamp(frame.ChannelC) : 0,
+            ChannelA = connection.Device.HasChannel(0) ? Math.Min(Clamp(frame.ChannelA), Math.Min(frame.OutputLimit, frame.Hardware?.ChannelALimit ?? 100)) : 0,
+            ChannelB = connection.Device.HasChannel(1) ? Math.Min(Clamp(frame.ChannelB), Math.Min(frame.OutputLimit, frame.Hardware?.ChannelBLimit ?? 100)) : 0,
+            ChannelC = connection.Device.HasChannel(2) ? Math.Min(Clamp(frame.ChannelC), frame.OutputLimit) : 0,
             Frequency = double.IsFinite(frame.Frequency) ? Math.Clamp(frame.Frequency, 1, 100) : 1
         };
+        output.NativeProgram?.ValidateOutput(output);
         await _transport.SendAsync(connection.Device.Id, output, ct);
         connection.Output = output;
     }
@@ -462,7 +547,10 @@ public sealed class DeviceController : IAsyncDisposable
             await action();
             return null;
         }
-        catch (Exception error) { return error; }
+        catch (Exception error)
+        {
+            return error;
+        }
     }
     private static void ThrowErrors(IEnumerable<Exception?> errors, string key)
     {

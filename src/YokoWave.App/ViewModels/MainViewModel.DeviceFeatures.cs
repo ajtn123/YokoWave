@@ -5,6 +5,8 @@ namespace YokoWave.App.ViewModels;
 
 public sealed partial class MainViewModel
 {
+    public ProtocolFeaturesViewModel ProtocolFeatures
+    { get; private set; } = null!;
     private bool _featuresBusy;
     public bool CanReadDeviceFeatures => IsBluetooth && SelectedConnected && !_controller.IsDeviceBusy(SelectedDevice!.Id) && !_featuresBusy &&
         SelectedDevice?.Device.Profile?.Light == true;
@@ -22,11 +24,14 @@ public sealed partial class MainViewModel
     private bool? SelectedLight => _controller.Connections.TryGetValue(SelectedDevice?.Id ?? "", out var connection) ? connection.LightEnabled : null;
     public string LightLabel => L10n.Get(SelectedLight switch { true => "Device.LightOn", false => "Device.LightOff", _ => "Device.LightUnknown" });
     public string LightAction => L10n.Get(SelectedLight == true ? "Device.TurnLightOff" : "Device.TurnLightOn");
-    public AsyncCommand ReadDeviceFeaturesCommand { get; private set; }
-    public AsyncCommand ToggleLightCommand { get; private set; }
+    public AsyncCommand ReadDeviceFeaturesCommand
+    { get; private set; }
+    public AsyncCommand ToggleLightCommand
+    { get; private set; }
     [MemberNotNull(nameof(ReadDeviceFeaturesCommand), nameof(ToggleLightCommand))]
     private void InitializeDeviceFeatureCommands()
     {
+        ProtocolFeatures = new(_controller, ShowError);
         ReadDeviceFeaturesCommand = new(() => RunDeviceFeatureAsync(id => _controller.RefreshFeaturesAsync(id)), ShowError, () => CanReadDeviceFeatures);
         ToggleLightCommand = new(() => RunDeviceFeatureAsync(id => _controller.SetLightAsync(id, SelectedLight != true)), ShowError, () => CanControlLight);
     }
@@ -40,10 +45,15 @@ public sealed partial class MainViewModel
         {
             await action(device.Id);
         }
-        finally { _featuresBusy = false; RefreshDeviceFeatures(); }
+        finally
+        {
+            _featuresBusy = false;
+            RefreshDeviceFeatures();
+        }
     }
     private void RefreshDeviceFeatures()
     {
+        ProtocolFeatures?.SelectDevice(SelectedDevice?.Device);
         foreach (var name in new[] { nameof(HasDeviceFeatures), nameof(CanReadDeviceFeatures), nameof(CanControlLight), nameof(FirmwareLabel), nameof(LightLabel), nameof(LightAction) })
             Raise(name);
         ReadDeviceFeaturesCommand?.NotifyCanExecuteChanged();

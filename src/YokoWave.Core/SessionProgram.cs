@@ -29,7 +29,8 @@ public sealed record EstimSettings(PlaybackOrder Order = PlaybackOrder.Repeat, S
 
 public sealed record SessionProgram(EstimSettings? Settings = null, IReadOnlyList<WaveformPreset>? Playlist = null,
     WaveformPreset? ChannelBWaveform = null, ModeKind Kind = ModeKind.Waveform, double OutputLimit = 60,
-    AudioSettings? Audio = null, ReactiveSettings? Reactive = null, PumpOutput? Pump = null, DgBalanceSettings? DgBalances = null)
+    AudioSettings? Audio = null, ReactiveSettings? Reactive = null, PumpOutput? Pump = null, DgBalanceSettings? DgBalances = null,
+    NativeProgramSettings? NativeProgram = null, HardwareOutputSettings? Hardware = null)
 {
     public bool TouchControl => Kind == ModeKind.Touch;
     public PlaybackModeDefinition Definition => PlaybackModeDefinition.For(Kind);
@@ -38,10 +39,15 @@ public sealed record SessionProgram(EstimSettings? Settings = null, IReadOnlyLis
     public void Validate()
     {
         _ = Definition;
-        (Settings ?? new()).Validate(); Audio?.Validate(); Reactive?.Validate();
+        (Settings ?? new()).Validate();
+        Audio?.Validate();
+        Reactive?.Validate();
+        Hardware?.Validate();
+        if (Kind == ModeKind.NativeProgram)
+            new NativeProgramOutput(NativeProgram ?? new(), 0, null).ValidateOutput(new(0, 0, 20, OutputLimit: OutputLimit, Hardware: Hardware));
         if (!double.IsFinite(OutputLimit) || OutputLimit is < 0 or > 100) throw new LocalizedArgumentException("Error.InvalidSettings");
         ChannelBWaveform?.Validate();
         foreach (var wave in Playlist ?? []) wave.Validate();
-        if (Pump is { } pump && !Enum.IsDefined(pump.Direction)) throw new LocalizedArgumentException("Error.PumpSettings");
+        Pump?.Validate();
     }
 }

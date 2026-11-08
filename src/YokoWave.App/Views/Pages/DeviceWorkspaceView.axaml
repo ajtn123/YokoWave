@@ -54,6 +54,7 @@
           </Grid>
           <components:DeviceFeaturesView IsVisible="{Binding HasDeviceFeatures}" />
           <components:DeviceTelemetryView />
+          <components:ProtocolFeaturesView DataContext="{Binding ProtocolFeatures}" />
           </StackPanel>
         </Border>
       </StackPanel>
@@ -74,6 +75,8 @@
           <components:ExerciseModeView />
           <components:SleepModeView />
           <components:PumpModeView x:Name="PumpModePanel" />
+          <components:NativeProgramView x:Name="NativeProgramPanel" />
+          <components:HardwareOutputView />
           <components:DgBalanceView />
           <components:ReactiveInputView />
           <Grid Classes="columns" ColumnDefinitions="*,*" IsVisible="{Binding HasStrength}">
@@ -99,7 +102,7 @@
             </Border>
           </Grid>
 
-          <Border Classes="card channel" IsVisible="{Binding HasChannelC}">
+          <Border Classes="card channel" IsVisible="{Binding HasAnalogChannelC}">
             <StackPanel Classes="field">
               <Grid ColumnDefinitions="*,Auto">
                 <TextBlock Text="{l:Loc Channel.C}" Classes="emphasis accent" VerticalAlignment="Center" />

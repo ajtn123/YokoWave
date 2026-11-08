@@ -5,10 +5,42 @@ internal sealed class YokonexMotorDriver(string id, BluetoothDeviceProfile profi
 {
     private readonly TaskCompletionSource _ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private int _motors;
+    private MotorDeviceInfo? _info;
+    private ProgramPacketWriter? _programWriter;
+    protected override DeviceCommandHandlers CreateCommandHandlers() => new DeviceCommandHandlers()
+        .Add<QueryDevice>((command, ct) => command.Query is DeviceQuery.All or DeviceQuery.Product
+            ? Write(YokonexToyProtocol.MotorInfo(), ct) : throw new Localization.LocalizedOperationException("Error.DeviceFeatures"));
     public override async Task Initialize(CancellationToken ct)
-    { await Stop(ct); await Write(YokonexToyProtocol.MotorInfo(), ct); await Confirm(_ready.Task, ct); }
-    public override Task Stop(CancellationToken ct) => Write(YokonexToyProtocol.MotorStop(), ct);
-    public override Task Send(OutputFrame frame, CancellationToken ct) => Write(YokonexToyProtocol.MotorOutput(frame, _motors), ct);
+    {
+        await Stop(ct);
+        await Write(YokonexToyProtocol.MotorInfo(), ct);
+        await Confirm(_ready.Task, ct);
+    }
+    public override Task Stop(CancellationToken ct)
+    {
+        _programWriter?.Reset();
+        return Write(YokonexToyProtocol.MotorStop(), ct);
+    }
+    public override async Task Send(OutputFrame frame, CancellationToken ct)
+    {
+        if (frame.NativeProgram?.Settings is { Kind: NativeProgramKind.MotorPreset } native)
+        {
+            var presets = new[] { native.PresetA, native.PresetB, native.PresetC };
+            var levels = new[] { frame.ChannelA, frame.ChannelB, frame.ChannelC };
+            for (var channel = 0; channel < 3; channel++)
+                if ((_motors & 1 << channel) != 0 && levels[channel] > 0 && presets[channel] > (_info?.ModeCount(channel) ?? 0))
+                    throw new Localization.LocalizedArgumentException("Error.NativePresetRange");
+            var packets = Enumerable.Range(0, 3).Where(channel => (_motors & 1 << channel) != 0)
+                .GroupBy(channel => levels[channel] > 0 ? presets[channel] : 0)
+                .Select(group => YokonexToyProtocol.MotorPreset(group.Aggregate(0, (mask, channel) => mask | 1 << channel), group.Key)).ToArray();
+            await (_programWriter ??= new(Write)).Send(packets, ct);
+        }
+        else
+        {
+            _programWriter?.Reset();
+            await Write(YokonexToyProtocol.MotorOutput(frame, _motors), ct);
+        }
+    }
     public override void OnNotification(GattNotification notification)
     {
         if (notification.Address != Profile.Notify) return;
@@ -18,7 +50,11 @@ internal sealed class YokonexMotorDriver(string id, BluetoothDeviceProfile profi
         {
             var mask = (data[4] > 0 ? 1 : 0) | (data[5] > 0 ? 2 : 0) | (data[6] > 0 ? 4 : 0);
             if (mask == 0) return;
-            _motors = mask; _ready.TrySetResult(); Publish(new(Id, channelMask: mask, telemetry: new(ModelId: data[2])));
+            _motors = mask;
+            _info = new(data[2], data[3], data[4], data[5], data[6]);
+            _ready.TrySetResult();
+            Publish(new(Id, channelMask: mask,
+                            telemetry: new(ModelId: data[2], MotorInfo: _info)));
         }
         else if (data.Length == 5 && data[1] == 0x13 && data[2] == 1 && data[3] <= 100) Publish(new(Id, battery: data[3]));
     }

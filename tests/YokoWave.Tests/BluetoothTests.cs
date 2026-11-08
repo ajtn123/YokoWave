@@ -53,7 +53,8 @@ public sealed class BluetoothTests
         Assert.Null(device.Battery);
         await controller.ConnectAsync(device, TestContext.Current.CancellationToken);
         var link = adapter.Links[device.Id];
-        Assert.Equal(V2Protocol.Stop(), link.Writes[0]);
+        Assert.Equal(V1Protocol.AuxiliaryMotor(AuxiliaryMotorMode.Off), link.Writes[0]);
+        Assert.Equal(V2Protocol.Stop(), link.Writes[1]);
         Assert.All(link.Writes.Where(p => p[1] == 0x11), packet => Assert.Equal(V2Protocol.Stop(), packet));
         await WaitAsync(() => controller.Connections[device.Id].Device.Battery == 82);
         Assert.Equal(ElectrodeContact.NotConnected, controller.Connections[device.Id].ContactA);
@@ -120,7 +121,7 @@ public sealed class BluetoothTests
         var error = await Assert.ThrowsAsync<YokoWave.Core.Localization.LocalizedAggregateException>(
             () => controller.DisconnectAsync(device.Id, TestContext.Current.CancellationToken));
         Assert.Equal(2, error.InnerExceptions.Count);
-        Assert.All(error.InnerExceptions, inner => Assert.IsType<IOException>(inner));
+        Assert.All(error.Flatten().InnerExceptions, inner => Assert.IsType<IOException>(inner));
         Assert.Empty(controller.Connections);
         Assert.True(link.Closed);
     }

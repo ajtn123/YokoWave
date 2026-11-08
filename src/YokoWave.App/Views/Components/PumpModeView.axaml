@@ -11,6 +11,8 @@
         </ComboBox>
       </StackPanel>
       <ToggleSwitch x:Name="WaterPumpSwitch" Content="{l:Loc Pump.Water}" OnContent="{l:Loc State.On}" OffContent="{l:Loc State.Off}" IsChecked="{Binding WaterEnabled}" />
+      <StackPanel Classes="field"><TextBlock Text="{l:Loc Pump.PeristalticSeconds}" Classes="field-label" /><NumericUpDown Value="{Binding PeristalticSeconds}" Minimum="0" Maximum="65535" FormatString="0" /></StackPanel><StackPanel Classes="field"><TextBlock Text="{l:Loc Pump.WaterSeconds}" Classes="field-label" /><NumericUpDown Value="{Binding WaterSeconds}" Minimum="0" Maximum="65535" FormatString="0" /></StackPanel>
+      <TextBlock Text="{l:Loc Pump.DurationHelp}" Classes="muted caption help" />
       <TextBlock Text="{l:Loc Pump.Help}" Classes="muted caption help" />
     </StackPanel>
   </Border>

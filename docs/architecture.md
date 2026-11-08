@@ -12,7 +12,7 @@
 
 每个 `PlaybackModeViewModel` 持有独立的 `SessionEngine`、单调时钟、强度、输出上限、定时、波形、播放策略与目标设备集合。玩法可命名、添加、删除及保存，一对一与一对多玩法可以并行运行。设备对象只保留连接、协议状态及实时读数，不保存输出配置。同一玩法的目标共享该玩法的上限与时钟，单通道设备的 B 输出恒为零。
 
-`ModeDeviceListView` 将玩法实例作为分组，内部直接显示所属设备，`UnassignedDevices` 单独显示未分配设备。选择分组切换右侧操作面板；兼容设备可在连接蓝牙前后分配。配置阶段同一设备也只能归属一个玩法，由视图模型和存储校验共同约束；改派先移除，启动、运行及暂停期间锁定归属。`ModeKind` 包含波形、滑动、声控、禁锢、运动、睡眠剥夺和泵控制，各实例类型固定，分别使用独立组件；普通输出共用强度、上限与定时控件，泵使用方向／开关和公共定时。输入设备不参与输出归属。
+`ModeDeviceListView` 将玩法实例作为分组，内部直接显示所属设备，`UnassignedDevices` 单独显示未分配设备。选择分组切换右侧操作面板；兼容设备可在连接蓝牙前后分配。配置阶段同一设备也只能归属一个玩法，由视图模型和存储校验共同约束；改派先移除，启动、运行及暂停期间锁定归属。`ModeKind` 包含波形、滑动、声控、禁锢、运动、睡眠剥夺、泵控制和设备原生程序，各实例类型固定，分别使用独立组件；普通输出共用强度、上限与定时控件，泵使用方向／开关和公共定时。输入设备不参与输出归属。
 
 `DeviceController` 使用玩法 ID 原子申请目标设备：任一目标已被其他玩法占用则拒绝整个申请，不改变原玩法输出。暂停保留占用；停止只向所属目标发送零输出，成功后释放占用，无法确认停止时保留占用以阻止其他玩法接管。普通发送入口拒绝绕过已占用设备的玩法控制。目标选择在启动及运行期间锁定。
 
@@ -30,11 +30,14 @@
 | `RestraintModeRuntime` | 各目标的基准角度与偏差映射 |
 | `ExerciseModeRuntime` | 动作阈值、空闲等待与动作目标 |
 | `SleepModeRuntime` | 固定／随机／活动重置周期和本地随机池 |
-| `PumpModeRuntime` | 泵方向与水路输出 |
+| `PumpModeRuntime` | 两路泵输出、独立活动时间与完成条件 |
+| `NativeProgramModeRuntime` | 设备固定程序、频率序列与原始脉冲配置快照 |
 
 `WaveformPlayback` 组合独立 A/B 的 `WaveformTrack`；`StrengthAutomation` 处理自动和临时增量；`MotionTracker` 处理每个目标的读数有效期、校准与动作采样；运动和睡眠通过 `ActivityModeRuntime` 复用 `BurstCycle` 的等待／输出计时。只有这些确实共用的状态形成抽象，不为纯协议函数或配置记录增加接口。`PlaybackModeDefinition` 集中提供波形、播放列表、输入与设备能力要求，编辑器、路由校验和引擎共享定义。暂停只归零自身目标，VM 停止自身单调时钟，继续后不计入暂停时长。操作范围见 [离线电刺激控制](estim.md)。
 
 `PlaybackModeViewModel.Estim` 处理玩法内的播放配置，`MainViewModel.DeviceFeatures` 处理实体设备固件功能；玩法控件直接绑定 `SelectedMode`，不经主视图模型代理属性；播放命令由玩法持有。玩法编辑、波形选择、自动强度、滑动面板和设备功能各有独立组件。灯光通过 `IElectricalDeviceFeatures` 与状态回报确认，只有兼容且版本已确认的二代设备可用；设备被玩法占用时禁用固件操作。
+
+`NativeProgramEditorViewModel` 与 `HardwareOutputEditorViewModel` 分别持有玩法的设备原生程序和硬件输出草稿，独立组件直接绑定。`ProtocolFeaturesViewModel` 持有非输出命令的临时表单，能力与可用查询集中在 `BluetoothDeviceProfile`；`DeviceCommand` 使用类型化参数和处理器登记，配置指令经 `DeviceController` 所有权校验后进入同一 GATT 串行门。表单编辑类型化命令的标量字段，不反射广播 VM，也不保存设备配置。输入解码由各协议负责，爪印逐事件维护活动与参数状态。`ProgramPacketWriter` 避免重复启动固定程序；`BufferedFrequencyWriter` 按 MTU 和活动时间发送序列，二者均为每连接状态。
 
 `PlaybackModeViewModel.Playlist` 管理玩法内的有序、去重列表，最多 100 个波形；`ModePlaylistView` 提供添加、移除、上下移动和有界滚动列表。顺序与随机模式只使用列表快照，并从首项开始，A/B 共用列表曲线；运行中选择器也只展示列表内波形，核心动态切换入口再次验证成员资格。停止时可编辑，播放不回退到整个波形库。单曲与仅播放当前保留独立 A/B 波形。所有来源的统一波形可以混合入队，播放时由目标设备编码器转换。全局库编辑同步刷新列表引用，运行中引用的波形禁止编辑和删除。
 
@@ -76,7 +79,7 @@ Core 定义 `IAudioInputFactory` / `IAudioInputSession`，Desktop 用 SoundFlow/
 | --- | --- |
 | `workspace.json` | Schema 6、累计会话次数、累计时长（秒） |
 | `settings.json` | 语言、设备来源、新玩法默认上限、定时滑块最大时长 |
-| `modes.json` | 各玩法的 ID、名称、类型、ABC 强度、上限、定时、A/B 波形、本地列表、音频／感应／泵参数、V3 平衡参数与唯一归属的目标设备标识 |
+| `modes.json` | 各玩法的 ID、名称、类型、ABC 强度、上限、定时、A/B 波形、本地列表、音频／感应／泵参数、原生程序与硬件输出选项、V3 平衡参数与唯一归属的目标设备标识 |
 | `presets.json` | 自定义波形 |
 | `sessions.jsonl` | 当前会话日志，一行一个紧凑 JSON 对象 |
 | `sessions.1.jsonl` | 唯一的滚动旧日志 |

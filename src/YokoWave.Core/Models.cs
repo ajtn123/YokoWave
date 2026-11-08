@@ -35,9 +35,11 @@ public sealed record OutputFrame(double ChannelA, double ChannelB, double Freque
     WaveformSample? ReferenceSample = null, WaveformSample? ReferenceSampleB = null, bool Gentle = false,
     double ChannelC = 0,
     IReadOnlyList<WaveformSample>? WindowA = null, IReadOnlyList<WaveformSample>? WindowB = null,
-    double OutputLimit = 100, PumpOutput? Pump = null, DgBalanceSettings? DgBalances = null)
+    double OutputLimit = 100, PumpOutput? Pump = null, DgBalanceSettings? DgBalances = null,
+    NativeProgramOutput? NativeProgram = null, HardwareOutputSettings? Hardware = null)
 {
-    public static OutputFrame Zero { get; } = new(0, 0, 1);
+    public static OutputFrame Zero
+    { get; } = new(0, 0, 1);
 }
 
 public sealed record WaveformSample([property: JsonRequired] double Level, [property: JsonRequired] double FrequencyHz,

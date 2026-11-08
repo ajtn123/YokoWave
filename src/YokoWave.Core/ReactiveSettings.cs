@@ -2,7 +2,7 @@ using YokoWave.Core.Localization;
 
 namespace YokoWave.Core;
 
-public enum ModeKind { Waveform, Touch, Audio, Restraint, Exercise, SleepDeprivation, Pump }
+public enum ModeKind { Waveform, Touch, Audio, Restraint, Exercise, SleepDeprivation, Pump, NativeProgram }
 public enum AudioSourceKind { Microphone, MediaFile, SystemAudio }
 public enum AudioFollowMode { Volume, Rhythm }
 public enum SleepCycleKind { Fixed, Random, ActivityReset }

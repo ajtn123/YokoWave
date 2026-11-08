@@ -67,17 +67,17 @@ public sealed class HardwareProtocolTests
     [Fact]
     public void SensorFormatsKeepSignedPressureAndRawValues()
     {
-        var civet = DgLabProtocol.ParseSensor(BluetoothProtocol.Civet, [0xd0, 0, 0, 0, 0, 0, 0, 0, 0x2e, 0xfb]);
+        var civet = CivetProtocol.Parse([0xd0, 0, 0, 0, 0, 0, 0, 0, 0x2e, 0xfb]);
         Assert.Equal(-12.34, civet!.PressureKpa);
-        var paw = DgLabProtocol.ParseSensor(BluetoothProtocol.Paw, [0xd0, 0, 1, 1, 255, 0xff, 0x80, 0x7f, 42]);
+        var paw = new PawTelemetryTracker().Parse([0xd0, 0, 1, 1, 255, 0xff, 0x80, 0x7f, 42]);
         Assert.True(paw!.Pressed); Assert.Equal(-1, paw.AngleX); Assert.Equal(-128, paw.AngleY); Assert.Equal(127, paw.AngleZ);
         Assert.Equal(255, paw.Acceleration); Assert.Equal(42, paw.VoltageRaw);
-        Assert.Null(DgLabProtocol.ParseSensor(BluetoothProtocol.Paw, [0xd0, 0]));
-        Assert.Null(DgLabProtocol.ParseSensor(BluetoothProtocol.Paw, [0x5a, 0, 25, 3]));
-        Assert.Equal(0, DgLabProtocol.ParseSensor(BluetoothProtocol.Paw, [0x5b, 0, 1])!.Parameter);
-        Assert.Equal(17, DgLabProtocol.SensorStream(BluetoothProtocol.Paw, true).Length);
-        Assert.Equal("5001D00100000000000000000000000000", Convert.ToHexString(DgLabProtocol.SensorStream(BluetoothProtocol.Paw, true)));
-        Assert.Equal("66000000000000000000000002", Convert.ToHexString(DgLabProtocol.ResetPressure()));
+        Assert.Null(new PawTelemetryTracker().Parse([0xd0, 0]));
+        Assert.Null(new PawTelemetryTracker().Parse([0x5a, 0, 25, 3]));
+        Assert.False(new PawTelemetryTracker().Parse([0x5b, 0, 1])!.EventActive);
+        Assert.Equal(17, PawProtocol.Configure(new(new PawLiveData())).Length);
+        Assert.Equal("5001D00100000000000000000000000000", Convert.ToHexString(PawProtocol.Configure(new(new PawLiveData()))));
+        Assert.Equal("66000000000000000000000002", Convert.ToHexString(CivetProtocol.Configure(new(true))));
     }
 
     [Theory]
@@ -285,6 +285,7 @@ internal sealed class HardwareGattAdapter : IBluetoothAdapter
     public List<BluetoothPeripheral> Peripherals { get; } = [];
     public Dictionary<string, HardwareGattLink> Links { get; } = [];
     public bool FailWrites { get; set; }
+    public int MaximumWriteLength { get; set; } = 20;
     public HardwareGattAdapter(params BluetoothProtocol[] protocols)
     {
         foreach (var protocol in protocols)
@@ -309,7 +310,7 @@ internal sealed class HardwareGattAdapter : IBluetoothAdapter
     public Task<IReadOnlyList<BluetoothPeripheral>> ScanAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<BluetoothPeripheral>>(Peripherals.ToArray());
     public Task<IBluetoothConnection> ConnectAsync(BluetoothPeripheral peripheral, CancellationToken ct)
     {
-        var link = new HardwareGattLink(BluetoothDeviceProfiles.Identify(peripheral.Name, peripheral.Services)!) { FailWrites = FailWrites };
+        var link = new HardwareGattLink(BluetoothDeviceProfiles.Identify(peripheral.Name, peripheral.Services)!) { FailWrites = FailWrites, MaximumWriteLength = MaximumWriteLength };
         Links[peripheral.Id] = link; return Task.FromResult<IBluetoothConnection>(link);
     }
 }
@@ -317,6 +318,9 @@ internal sealed class HardwareGattAdapter : IBluetoothAdapter
 internal sealed class HardwareGattLink(BluetoothDeviceProfile profile) : IBluetoothConnection
 {
     public List<(GattAddress Address, byte[] Data)> Writes { get; } = [];
+    public List<GattAddress> Reads { get; } = [];
+    public int MaximumWriteLength { get; set; } = 20;
+    private int _levelA, _levelB;
     public bool Closed { get; private set; }
     public bool Reply { get; set; } = true;
     public bool FailWrites { get; set; }
@@ -335,7 +339,13 @@ internal sealed class HardwareGattLink(BluetoothDeviceProfile profile) : IBlueto
             if (packet[2] == 4) Notify(V1Protocol.WithChecksum([0x35, 0x71, 4, 80]));
             if (packet[2] is 1 or 2) Notify(V1Protocol.WithChecksum([0x35, 0x71, packet[2], 0, 0, 0, 0, 0]));
         }
-        if (profile.Protocol == BluetoothProtocol.CoyoteV3 && packet[0] == 0xb0) Notify([0xb1, (byte)(packet[1] >> 4), packet[2], packet[3]]);
+        if (profile.Protocol == BluetoothProtocol.CoyoteV3 && packet[0] == 0xb0)
+        {
+            static int Apply(int actual, int kind, int value) => Math.Clamp(kind switch { 1 => actual + value, 2 => actual - value, 3 => value, _ => actual }, 0, 200);
+            _levelA = Apply(_levelA, packet[1] >> 2 & 3, packet[2]);
+            _levelB = Apply(_levelB, packet[1] & 3, packet[3]);
+            Notify([0xb1, (byte)(packet[1] >> 4), (byte)_levelA, (byte)_levelB]);
+        }
         if (profile.Protocol == BluetoothProtocol.Opossum && packet[0] == 0xb3) Notify([0xb3, packet[1], packet[2]]);
         if (profile.Protocol == BluetoothProtocol.Paw && packet[0] == 0x50) { Notify([0x51, 1, 3, 80]); Notify([0xd0, 1, 1, 0, 2, 3, 4, 5, 6]); }
         if (profile.Protocol == BluetoothProtocol.Civet && packet[0] == 0x50) Notify([0xd0, 1, 0, 0, 0, 0, 0, 0, 123, 0]);
@@ -350,6 +360,8 @@ internal sealed class HardwareGattLink(BluetoothDeviceProfile profile) : IBlueto
     }
     public Task<byte[]?> ReadAsync(GattAddress address, CancellationToken ct)
     {
+        Reads.Add(address);
+        if (address == BluetoothDeviceProfiles.V2WaveA || address == BluetoothDeviceProfiles.V2WaveB) return Task.FromResult<byte[]?>([1, 1, 1]);
         if (address == BluetoothDeviceProfiles.V2Strength) return Task.FromResult<byte[]?>([0, 0, 0]);
         byte[] battery = [80]; AdditionalNotificationReceived?.Invoke(new(address, battery));
         return Task.FromResult<byte[]?>(battery);

@@ -4,17 +4,22 @@ using YokoWave.Core.Localization;
 namespace YokoWave.Core.Bluetooth;
 
 public class BluetoothDeviceTransport(IBluetoothAdapter adapter) : IDeviceTransport, IDeviceStatusSource,
-    IElectricalDeviceFeatures, IElectricalMotionSource, IInputDeviceFeatures
+    IElectricalDeviceFeatures, IElectricalMotionSource, IInputDeviceFeatures, IDeviceCommandTransport
 {
     private sealed class Connection(IBluetoothConnection link, BluetoothProtocolDriver driver)
     {
-        public IBluetoothConnection Link { get; } = link;
-        public BluetoothProtocolDriver Driver { get; } = driver;
-        public SemaphoreSlim Gate { get; } = new(1, 1);
-        public TaskCompletionSource Initialized { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public IBluetoothConnection Link
+        { get; } = link;
+        public BluetoothProtocolDriver Driver
+        { get; } = driver;
+        public SemaphoreSlim Gate
+        { get; } = new(1, 1);
+        public TaskCompletionSource Initialized
+        { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public Action<byte[]>? Primary;
         public Action<GattNotification>? Additional;
         public Action? Disconnected;
+        public Action<DeviceCommand>? CommandRequested;
         public volatile bool Closing, Closed;
     }
     private readonly ConcurrentDictionary<string, Connection> _connections = new();
@@ -60,9 +65,20 @@ public class BluetoothDeviceTransport(IBluetoothAdapter adapter) : IDeviceTransp
         void Fault(Exception error) => Faulted?.Invoke(this, new(device.Id, false, error));
         var driver = BluetoothProtocolDriverFactory.Create(device.Id, profile, link, Publish, Fault);
         var connection = new Connection(link, driver);
-        connection.Primary = bytes => { if (!connection.Closed) driver.OnNotification(new(profile.Notify, bytes)); };
-        connection.Additional = value => { if (!connection.Closed) driver.OnNotification(value); };
-        connection.Disconnected = () => { if (!connection.Closing) Faulted?.Invoke(this, new(device.Id, true, new LocalizedIOException("Error.BluetoothDisconnected"))); };
+        connection.CommandRequested = command => _ = ExecuteRequestedCommandAsync(connection, command);
+        driver.CommandRequested += connection.CommandRequested;
+        connection.Primary = bytes =>
+        {
+            if (!connection.Closed) driver.OnNotification(new(profile.Notify, bytes));
+        };
+        connection.Additional = value =>
+        {
+            if (!connection.Closed) driver.OnNotification(value);
+        };
+        connection.Disconnected = () =>
+        {
+            if (!connection.Closing) Faulted?.Invoke(this, new(device.Id, true, new LocalizedIOException("Error.BluetoothDisconnected")));
+        };
         link.NotificationReceived += connection.Primary;
         link.AdditionalNotificationReceived += connection.Additional;
         link.Disconnected += connection.Disconnected;
@@ -77,6 +93,7 @@ public class BluetoothDeviceTransport(IBluetoothAdapter adapter) : IDeviceTransp
         try
         {
             await driver.Initialize(cancellationToken);
+            Publish(new(device.Id, telemetry: new(MaximumWriteLength: link.MaximumWriteLength)));
             connection.Initialized.TrySetResult();
         }
         catch (Exception error)
@@ -104,10 +121,34 @@ public class BluetoothDeviceTransport(IBluetoothAdapter adapter) : IDeviceTransp
                 throw new LocalizedAggregateException("Error.Cleanup", [error, .. cleanupErrors]);
             throw;
         }
-        finally { connection.Gate.Release(); }
+        finally
+        {
+            connection.Gate.Release();
+        }
     }
     private Connection Get(string id) => _connections.TryGetValue(id, out var connection) && !connection.Closing
         ? connection : throw new LocalizedOperationException("Error.NotConnected");
+    private async Task ExecuteRequestedCommandAsync(Connection connection, DeviceCommand command)
+    {
+        try
+        {
+            await connection.Initialized.Task;
+            await connection.Gate.WaitAsync();
+            try
+            {
+                if (!connection.Closing && !connection.Closed) await connection.Driver.ExecuteCommand(command, CancellationToken.None);
+            }
+            finally
+            {
+                connection.Gate.Release();
+            }
+        }
+        catch (OperationCanceledException) when (!connection.Initialized.Task.IsCompletedSuccessfully) { }
+        catch (Exception error)
+        {
+            System.Diagnostics.Trace.TraceError("Protocol maintenance failed: {0}", error);
+        }
+    }
     private async Task<T> WithConnection<T>(string id, Func<BluetoothProtocolDriver, Task<T>> action, CancellationToken ct)
     {
         var connection = Get(id);
@@ -119,7 +160,10 @@ public class BluetoothDeviceTransport(IBluetoothAdapter adapter) : IDeviceTransp
                 throw new LocalizedIOException("Error.BluetoothDisconnected");
             return await action(connection.Driver);
         }
-        finally { connection.Gate.Release(); }
+        finally
+        {
+            connection.Gate.Release();
+        }
     }
     public Task SendAsync(string deviceId, OutputFrame frame, CancellationToken cancellationToken = default) => WithConnection(deviceId, async driver =>
     {
@@ -128,8 +172,8 @@ public class BluetoothDeviceTransport(IBluetoothAdapter adapter) : IDeviceTransp
         double Clamp(double value) => double.IsFinite(value) ? Math.Clamp(value, 0, frame.OutputLimit) : 0;
         frame = frame with
         {
-            ChannelA = Clamp(frame.ChannelA),
-            ChannelB = Clamp(frame.ChannelB),
+            ChannelA = Math.Min(Clamp(frame.ChannelA), frame.Hardware?.ChannelALimit ?? 100),
+            ChannelB = Math.Min(Clamp(frame.ChannelB), frame.Hardware?.ChannelBLimit ?? 100),
             ChannelC = Clamp(frame.ChannelC)
         };
         driver.Check(frame);
@@ -145,9 +189,23 @@ public class BluetoothDeviceTransport(IBluetoothAdapter adapter) : IDeviceTransp
     public Task<bool> SetLightAsync(string deviceId, bool enabled, CancellationToken cancellationToken = default) =>
         WithConnection(deviceId, driver => driver.SetLight(enabled, cancellationToken), cancellationToken);
     public Task SetMotionStreamingAsync(string deviceId, bool enabled, CancellationToken cancellationToken = default) =>
-        WithConnection(deviceId, async driver => { await driver.SetMotion(enabled, cancellationToken); return true; }, cancellationToken);
+        WithConnection(deviceId, async driver =>
+        {
+            await driver.SetMotion(enabled, cancellationToken);
+            return true;
+        }, cancellationToken);
     public Task ResetInputAsync(string deviceId, CancellationToken cancellationToken = default) =>
-        WithConnection(deviceId, async driver => { await driver.ResetInput(cancellationToken); return true; }, cancellationToken);
+        WithConnection(deviceId, async driver =>
+        {
+            await driver.ResetInput(cancellationToken);
+            return true;
+        }, cancellationToken);
+    public Task ExecuteCommandAsync(string deviceId, DeviceCommand command, CancellationToken cancellationToken = default) =>
+        WithConnection(deviceId, async driver =>
+        {
+            await driver.ExecuteCommand(command, cancellationToken);
+            return true;
+        }, cancellationToken);
     public async Task DisconnectAsync(string deviceId, CancellationToken cancellationToken = default)
     {
         if (!_connections.TryRemove(deviceId, out var connection))
@@ -160,9 +218,15 @@ public class BluetoothDeviceTransport(IBluetoothAdapter adapter) : IDeviceTransp
             {
                 await connection.Driver.Shutdown(cancellationToken);
             }
-            finally { await Close(connection); }
+            finally
+            {
+                await Close(connection);
+            }
         }
-        finally { connection.Gate.Release(); }
+        finally
+        {
+            connection.Gate.Release();
+        }
     }
     private static async ValueTask Close(Connection connection)
     {
@@ -170,6 +234,7 @@ public class BluetoothDeviceTransport(IBluetoothAdapter adapter) : IDeviceTransp
         connection.Link.NotificationReceived -= connection.Primary;
         connection.Link.AdditionalNotificationReceived -= connection.Additional;
         connection.Link.Disconnected -= connection.Disconnected;
+        connection.Driver.CommandRequested -= connection.CommandRequested;
         await connection.Link.DisposeAsync();
     }
     public async ValueTask DisposeAsync()

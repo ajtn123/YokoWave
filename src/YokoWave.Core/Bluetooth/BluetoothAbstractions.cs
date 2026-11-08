@@ -10,6 +10,7 @@ public interface IBluetoothAdapter
 
 public interface IBluetoothConnection : IAsyncDisposable
 {
+    int MaximumWriteLength => 20;
     event Action<byte[]>? NotificationReceived;
     event Action? Disconnected;
     Task WriteAsync(byte[] packet, CancellationToken ct);

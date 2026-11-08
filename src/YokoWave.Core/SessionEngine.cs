@@ -5,7 +5,8 @@ namespace YokoWave.Core;
 /// <summary>Serializes session lifecycle and device output. Mode instances own rendering and input state.</summary>
 public sealed class SessionEngine(DeviceController controller, Random? random = null, Guid? ownerId = null)
 {
-    public Guid OwnerId { get; } = ownerId ?? Guid.NewGuid();
+    public Guid OwnerId
+    { get; } = ownerId ?? Guid.NewGuid();
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly Random _random = random ?? new();
     private string[] _targets = [];
@@ -19,10 +20,14 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
     private static readonly IReadOnlyDictionary<string, PlaybackInputStatus> EmptyStatus = new Dictionary<string, PlaybackInputStatus>();
     public int MovementCount => (_mode as IMotionPlaybackInput)?.MovementCount ?? 0;
     public const int MaxRecordingFrames = TouchModeRuntime.MaxRecordingFrames;
-    public bool IsRunning { get; private set; }
-    public bool IsPaused { get; private set; }
-    public TimeSpan Elapsed { get; private set; }
-    public TimeSpan? Duration { get; private set; }
+    public bool IsRunning
+    { get; private set; }
+    public bool IsPaused
+    { get; private set; }
+    public TimeSpan Elapsed
+    { get; private set; }
+    public TimeSpan? Duration
+    { get; private set; }
     public TimeSpan? Remaining => Duration is { } duration ? (duration > Elapsed ? duration - Elapsed : TimeSpan.Zero) : null;
     public TimeSpan WaveformElapsed => _mode?.Waveforms?.Elapsed ?? TimeSpan.Zero;
     public WaveformPreset? CurrentWaveform => _mode?.Waveforms?.Current ?? _preset;
@@ -30,11 +35,16 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
     public bool UsesWaveform(Guid id) => IsRunning && _mode?.Waveforms is not null &&
         (CurrentWaveform?.Id == id || CurrentWaveformB?.Id == id || (_program.Playlist?.Any(wave => wave.Id == id) ?? false));
     public IReadOnlyList<WaveformSample> Recording => (_mode as ITouchPlaybackInput)?.Recording ?? [];
-    public double ChannelA { get; set; }
-    public double ChannelB { get; set; }
-    public double ChannelC { get; set; }
-    public PumpOutput Pump { get; set; } = new();
-    public bool OffsetChannelB { get; set; } = true;
+    public double ChannelA
+    { get; set; }
+    public double ChannelB
+    { get; set; }
+    public double ChannelC
+    { get; set; }
+    public PumpOutput Pump
+    { get; set; } = new();
+    public bool OffsetChannelB
+    { get; set; } = true;
     public event EventHandler<SessionRecord>? Completed;
 
     private void ValidateWaveform(WaveformPreset preset)
@@ -55,7 +65,8 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
         program ??= new();
         program = program with
         {
-            Playlist = program.Playlist?.ToArray()
+            Playlist = program.Playlist?.ToArray(),
+            NativeProgram = program.NativeProgram?.Snapshot()
         };
         program.Validate();
         var mode = PlaybackModeRuntime.Create(program, preset, controller.Clock, _random);
@@ -75,11 +86,17 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
                 var device = controller.Connections[id].Device;
                 if (!PlaybackCompatibility.CanRun(device, program.Kind, program.Reactive))
                     throw new LocalizedOperationException("Error.ModeDeviceMismatch");
+                if (program.Hardware?.Accepts(device, program.NeedsMotion) == false ||
+                    program.Kind == ModeKind.NativeProgram && !(program.NativeProgram ?? new()).Accepts(device))
+                    throw new LocalizedOperationException("Error.ModeDeviceMismatch");
                 if (mode.Waveforms is not null)
                     foreach (var wave in new[] { preset, program.ChannelBWaveform }.OfType<WaveformPreset>().Concat(program.Playlist ?? []))
                         if (!PlaybackCompatibility.Accepts(device, wave))
                             throw new LocalizedArgumentException("Error.WaveDeviceMismatch");
             }
+            if (program.Kind == ModeKind.NativeProgram)
+                new NativeProgramOutput(program.NativeProgram ?? new(), 0, null).ValidateOutput(new(ChannelA, ChannelB, 20,
+                    ChannelC: ChannelC, OutputLimit: program.OutputLimit, Hardware: program.Hardware));
             await controller.AcquireTargetsAsync(OwnerId, ids);
             if (program.NeedsMotion)
             {
@@ -115,7 +132,10 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
             IsPaused = false;
             IsRunning = true;
         }
-        finally { _gate.Release(); }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public Task<bool> ChangeWaveformAsync(WaveformPreset preset) => ChangeWaveformAsync(preset, false);
@@ -131,7 +151,10 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
             waves.Change(preset, channelB);
             return true;
         }
-        finally { _gate.Release(); }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task SetPausedAsync(bool paused)
@@ -153,7 +176,10 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
             await StopAfterErrorAsync(error);
             throw;
         }
-        finally { _gate.Release(); }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task SetBoostAsync(bool held)
@@ -170,7 +196,10 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
             await StopAfterErrorAsync(error);
             throw;
         }
-        finally { _gate.Release(); }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task ResetStrengthAsync()
@@ -187,7 +216,10 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
             await StopAfterErrorAsync(error);
             throw;
         }
-        finally { _gate.Release(); }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task SetOutputLimitAsync(double limit)
@@ -206,7 +238,10 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
             await StopAfterErrorAsync(error);
             throw;
         }
-        finally { _gate.Release(); }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task SetAudioFrameAsync(AudioFeatureFrame? frame)
@@ -217,7 +252,10 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
             if (IsRunning && !IsPaused)
                 (_mode as IAudioPlaybackInput)?.SetAudio(frame);
         }
-        finally { _gate.Release(); }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task RecalibrateMotionAsync()
@@ -234,7 +272,10 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
             await StopAfterErrorAsync(error);
             throw;
         }
-        finally { _gate.Release(); }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task SetTouchAsync(double frequency, double pulseWidth, bool held)
@@ -254,7 +295,10 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
             await StopAfterErrorAsync(error);
             throw;
         }
-        finally { _gate.Release(); }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task AdvanceAsync(TimeSpan elapsed)
@@ -285,9 +329,16 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
                 if (_mode.CompletionReason(_targets.Length) is { } reason)
                     await StopCoreAsync(reason);
             }
-            catch (Exception error) { await StopAfterErrorAsync(error); throw; }
+            catch (Exception error)
+            {
+                await StopAfterErrorAsync(error);
+                throw;
+            }
         }
-        finally { _gate.Release(); }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     private async Task SendFrameAsync()
@@ -297,7 +348,7 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
         var settings = _program.Settings ?? new();
         var frame = new OutputFrame(_strength.Apply(ChannelA, Elapsed.TotalSeconds), _strength.Apply(ChannelB, Elapsed.TotalSeconds),
             _preset?.Frequency ?? 20, Gentle: settings.Gentle, ChannelC: _strength.Apply(ChannelC, Elapsed.TotalSeconds),
-            OutputLimit: _outputLimit, DgBalances: _program.DgBalances);
+            OutputLimit: _outputLimit, DgBalances: _program.DgBalances, Hardware: _program.Hardware);
         var frames = _targets.Select(id =>
         {
             if (!controller.Connections.TryGetValue(id, out var connection))
@@ -307,10 +358,11 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
                 output = WaveformRendering.WithRemaining(output, remaining.TotalSeconds);
             output = output with
             {
-                ChannelA = Math.Min(output.ChannelA, _outputLimit),
-                ChannelB = Math.Min(output.ChannelB, _outputLimit),
+                ChannelA = Math.Min(output.ChannelA, Math.Min(_outputLimit, _program.Hardware?.ChannelALimit ?? 100)),
+                ChannelB = Math.Min(output.ChannelB, Math.Min(_outputLimit, _program.Hardware?.ChannelBLimit ?? 100)),
                 ChannelC = Math.Min(output.ChannelC, _outputLimit)
             };
+            output.NativeProgram?.ValidateOutput(output);
             return (Id: id, Connection: connection, Output: output);
         }).ToArray();
         var writes = frames.Select(async target =>
@@ -341,7 +393,10 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
         {
             await StopCoreAsync(reason);
         }
-        finally { _gate.Release(); }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     private async Task StopAfterErrorAsync(Exception error)
@@ -350,7 +405,10 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
         {
             await StopCoreAsync("Reason.ConnectionError");
         }
-        catch (Exception stopError) { throw new LocalizedAggregateException("Error.StopUnconfirmed", [error, stopError]); }
+        catch (Exception stopError)
+        {
+            throw new LocalizedAggregateException("Error.StopUnconfirmed", [error, stopError]);
+        }
     }
 
     private async Task StopCoreAsync(string reason)
