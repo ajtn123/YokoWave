@@ -19,7 +19,7 @@ public sealed partial class MainViewModel
     public bool SeparateWaveforms { get => SelectedMode.SeparateWaveforms; set => SelectedMode.SeparateWaveforms = value; }
     public bool GentleMode { get => SelectedMode.GentleMode; set => SelectedMode.GentleMode = value; }
     public bool ShowContacts { get => SelectedMode.ShowContacts; set => SelectedMode.ShowContacts = value; }
-    public bool UseTouchControl { get => SelectedMode.UseTouchControl; set => SelectedMode.UseTouchControl = value; }
+    public bool UseTouchControl => SelectedMode.UseTouchControl;
     public bool IsBoostHeld { get => SelectedMode.IsBoostHeld; set => SelectedMode.IsBoostHeld = value; }
     public bool IsTouchHeld { get => SelectedMode.IsTouchHeld; set => SelectedMode.IsTouchHeld = value; }
     public bool ShowStrengthOptions { get => SelectedMode.ShowStrengthOptions; set => SelectedMode.ShowStrengthOptions = value; }

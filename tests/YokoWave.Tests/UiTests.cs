@@ -40,6 +40,99 @@ public static class TestAppBuilder
 public sealed class UiTests
 {
     [AvaloniaFact]
+    public async Task GroupedDevicesHaveOneModeEvenWhileIdleAndUseTypeSpecificControls()
+    {
+        using var folder = new TestFolder();
+        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path));
+        var view = new MainView { DataContext = vm };
+        var window = new Window { Content = view, Width = 1200, Height = 1000 };
+        window.Show(); await WaitForAsync(() => vm.Devices.Count == 5 && !vm.IsScanning);
+        var wave = vm.SelectedMode; wave.Name = "Wave instance";
+        wave.SelectedPlaybackOrder = wave.PlaybackOrders.First(option => option.Value == (int)PlaybackOrder.Random);
+        wave.AssignTarget(vm.Devices[0].Id, true);
+        await vm.AddModeAsync(true); var touch = vm.SelectedMode; touch.Name = "Touch instance";
+        Assert.ThrowsAny<InvalidOperationException>(() => touch.AssignTarget(vm.Devices[0].Id, true));
+        Assert.Single(wave.TargetIds); Assert.Empty(touch.TargetIds); Assert.Equal(4, vm.UnassignedDevices.Count);
+        Assert.False(Find<WaveformModeView>(view, "WaveformModePanel").IsVisible);
+        Assert.True(Find<Border>(view, "TouchModePanel").IsVisible);
+        var detach = view.GetVisualDescendants().OfType<Button>().Single(button => button.Command == wave.Targets[0].DetachCommand);
+        Click(window, detach); Assert.Equal(5, vm.UnassignedDevices.Count);
+        var assign = view.GetVisualDescendants().OfType<Button>().Single(button => button.Command == vm.Devices[0].AssignCommand);
+        Click(window, assign); Assert.Contains(vm.Devices[0].Id, touch.TargetIds); Assert.Empty(wave.TargetIds);
+        Assert.Equal(4, vm.UnassignedDevices.Count);
+        Click(window, view.GetVisualDescendants().OfType<Button>().Single(button => button.Command == wave.SelectCommand));
+        Assert.Same(wave, vm.SelectedMode);
+        Assert.True(Find<WaveformModeView>(view, "WaveformModePanel").IsVisible);
+        Assert.False(Find<Border>(view, "TouchModePanel").IsVisible);
+        Assert.Same(wave.SelectedPlaybackOrder, Find<ComboBox>(view, "PlaybackOrderPicker").SelectedItem);
+        vm.SelectedMode = touch; vm.SelectedMode = wave;
+        Assert.Equal((int)PlaybackOrder.Random, wave.SelectedPlaybackOrder.Value);
+        Assert.Same(wave.SelectedPlaybackOrder, Find<ComboBox>(view, "PlaybackOrderPicker").SelectedItem);
+        Assert.Equal("Touch instance", touch.Name);
+        await vm.SaveAsync();
+        var saved = await new WorkspaceStore(folder.Path).LoadAsync();
+        Assert.Single(saved.Modes!.SelectMany(mode => mode.TargetDeviceIds!));
+        Assert.Equal(vm.Devices[0].Id, Assert.Single(saved.Modes!.Single(mode => mode.Id == touch.Id).TargetDeviceIds!));
+        Capture(window, "grouped-modes.png");
+        window.Width = 600; Dispatcher.UIThread.RunJobs();
+        Find<TextBox>(view, "ModeNameInput").BringIntoView(); Capture(window, "grouped-modes-compact.png");
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public async Task CustomPlaylistSupportsUiOrderingPersistenceAndStartsAtItsFirstWave()
+    {
+        using var folder = new TestFolder();
+        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path));
+        var view = new MainView { DataContext = vm };
+        var window = new Window { Content = view, Width = 1200, Height = 1000 };
+        window.Show(); await WaitForAsync(() => vm.Devices.Count == 5 && !vm.IsScanning);
+        var mode = vm.SelectedMode;
+        var candidate = Find<ComboBox>(view, "PlaylistWavePicker");
+        var add = Find<Button>(view, "AddPlaylistWaveButton");
+        candidate.SelectedItem = vm.Presets[2]; Click(window, add);
+        candidate.SelectedItem = vm.Presets[1]; Click(window, add);
+        Assert.Equal(new[] { vm.Presets[0].Preset.Id, vm.Presets[2].Preset.Id, vm.Presets[1].Preset.Id }, mode.Playlist.Select(entry => entry.Id));
+        var last = mode.Playlist[2];
+        Click(window, view.GetVisualDescendants().OfType<Button>().Single(button => button.Command == last.MoveUpCommand));
+        var first = mode.Playlist[0];
+        Click(window, view.GetVisualDescendants().OfType<Button>().Single(button => button.Command == first.RemoveCommand));
+        Assert.Equal(new[] { vm.Presets[1].Preset.Id, vm.Presets[2].Preset.Id }, mode.Playlist.Select(entry => entry.Id));
+        candidate.SelectedItem = vm.Presets[1]; Assert.False(add.IsEffectivelyEnabled);
+        vm.SelectedPreset = vm.Presets[3];
+        vm.SelectedPlaybackOrder = vm.PlaybackOrders.First(option => option.Value == (int)PlaybackOrder.Sequential);
+        await vm.ToggleConnectionAsync(vm.Devices[0]); mode.AssignTarget(vm.Devices[0].Id, true);
+        await vm.TogglePlaybackAsync();
+        Assert.Equal(vm.Presets[1].Preset.Id, vm.SelectedPreset!.Preset.Id);
+        Assert.False(last.MoveUpCommand.CanExecute(null));
+        Assert.False(last.RemoveCommand.CanExecute(null));
+        Assert.False(add.IsEffectivelyEnabled);
+        await vm.NavigateAsync("waves");
+        Find<ListBox>(view, "WaveList").SelectedItem = vm.Presets[3];
+        Assert.Same(vm.Presets[3], vm.LibrarySelectedPreset);
+        Assert.Equal(vm.Presets[1].Preset.Id, vm.SelectedPreset.Preset.Id);
+        Assert.False(vm.UseWaveCommand.CanExecute(null));
+        vm.EditWave(); await vm.SaveWaveAsync();
+        Assert.False(vm.LibrarySelectedPreset!.IsBuiltIn);
+        Assert.True(mode.IsRunning); Assert.Equal(vm.Presets[1].Preset.Id, vm.SelectedPreset.Preset.Id);
+        await vm.DeleteWaveAsync(); await vm.NavigateAsync("workspace");
+        Assert.Equal(2, mode.Playlist.Count);
+        await vm.StopAsync(); await vm.SaveAsync();
+        var saved = await new WorkspaceStore(folder.Path).LoadAsync();
+        Assert.Equal(mode.Playlist.Select(entry => entry.Id), Assert.Single(saved.Modes!).PlaylistWaveformIds);
+        window.RequestedThemeVariant = ThemeVariant.Dark;
+        view.GetVisualDescendants().OfType<ModePlaylistView>().Single().BringIntoView(); Capture(window, "custom-playlist-dark.png");
+        window.Close();
+        await using var restored = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path));
+        await restored.InitializeAsync();
+        Assert.Equal(mode.Playlist.Select(entry => entry.Id), restored.SelectedMode.Playlist.Select(entry => entry.Id));
+        Assert.False(restored.IsRunning);
+        while (restored.SelectedMode.Playlist.Count > 0) restored.SelectedMode.Playlist[0].RemoveCommand.Execute(null);
+        Assert.Null(restored.SelectedPreset);
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(restored.TogglePlaybackAsync);
+    }
+
+    [AvaloniaFact]
     public async Task ModesOwnConfigurationAndTargetsAndRunIndependentlyAcrossNavigationAndRestart()
     {
         using var folder = new TestFolder(); var transport = new SimulationTransport();
@@ -49,8 +142,8 @@ public sealed class UiTests
         window.Show(); await WaitForAsync(() => vm.Devices.Count == 5 && !vm.IsScanning);
         foreach (var device in vm.Devices.Take(4)) await vm.ToggleConnectionAsync(device);
         var first = vm.SelectedMode; first.Name = "Mode one";
-        var target = view.GetVisualDescendants().OfType<CheckBox>().Single(box => box.DataContext is ModeTargetItem item && item.Id == vm.Devices[0].Id);
-        target.IsChecked = true;
+        var assign = view.GetVisualDescendants().OfType<Button>().Single(button => button.Command == vm.Devices[0].AssignCommand);
+        Click(window, assign);
         Assert.Contains(vm.Devices[0].Id, first.TargetIds);
         first.ChannelA = 20; first.SafetyLimit = 25; await first.TogglePlaybackAsync();
         await vm.AddModeAsync(false); var second = vm.SelectedMode; second.Name = "Mode two";
@@ -73,12 +166,12 @@ public sealed class UiTests
         Assert.Equal(40, transport.Outputs[vm.Devices[1].Id].ChannelA);
         Assert.Equal(15, transport.Outputs[vm.Devices[3].Id].ChannelA);
         await vm.AddModeAsync(true); var fourth = vm.SelectedMode;
-        fourth.AssignTarget(vm.Devices[1].Id, true);
+        Assert.ThrowsAny<InvalidOperationException>(() => fourth.AssignTarget(vm.Devices[1].Id, true));
         await Assert.ThrowsAnyAsync<InvalidOperationException>(fourth.TogglePlaybackAsync);
         Assert.True(second.IsRunning); Assert.Equal(40, transport.Outputs[vm.Devices[1].Id].ChannelA);
         await vm.NavigateAsync("workspace");
         vm.SelectedMode = third;
-        Find<ComboBox>(view, "ModePicker").BringIntoView(); Capture(window, "independent-modes.png");
+        Find<TextBox>(view, "ModeNameInput").BringIntoView(); Capture(window, "independent-modes.png");
         await vm.StopAllModesAsync();
         Assert.All(transport.Outputs.Values, output => Assert.Equal(0, output.ChannelA));
         await vm.SaveAsync();
@@ -124,8 +217,8 @@ public sealed class UiTests
         using var folder = new TestFolder();
         await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path));
         await vm.InitializeAsync(); await vm.ToggleConnectionAsync(vm.Devices[0]);
-        vm.EditorName = "Shared custom"; await vm.SaveWaveAsync(); var custom = vm.SelectedPreset!;
-        var first = vm.SelectedMode; first.AssignTarget(vm.Devices[0].Id, true);
+        vm.EditorName = "Shared custom"; await vm.SaveWaveAsync(); var custom = vm.LibrarySelectedPreset!;
+        var first = vm.SelectedMode; first.SelectedPreset = custom; first.AssignTarget(vm.Devices[0].Id, true);
         await first.TogglePlaybackAsync();
         await vm.AddModeAsync(false); var second = vm.SelectedMode; second.SelectedPreset = custom;
         Assert.False(vm.DeleteWaveCommand.CanExecute(null));
@@ -201,7 +294,8 @@ public sealed class UiTests
         window.Show(); await WaitForAsync(() => vm.Devices.Count == 5 && !vm.IsScanning);
         await vm.ToggleConnectionAsync(vm.Devices[0]);
         vm.SelectedMode.AssignTarget(vm.Devices[0].Id, true);
-        vm.UseTouchControl = true; vm.ChannelA = 20;
+        vm.SelectedMode.AssignTarget(vm.Devices[0].Id, false);
+        await vm.AddModeAsync(true); vm.SelectedMode.AssignTarget(vm.Devices[0].Id, true); vm.ChannelA = 20;
         vm.SelectedTouchPlayback = vm.TouchPlaybackModes.First(option => option.Value == (int)TouchPlayback.RecordedLoop);
         await vm.TogglePlaybackAsync(); await vm.TickAsync();
         Assert.Equal(0, transport.Outputs[vm.SelectedDevice!.Id].ChannelA);
@@ -673,15 +767,15 @@ public sealed class UiTests
         Assert.Single(view.GetLogicalDescendants().OfType<WaveformEditorView>());
         Assert.Single(view.GetLogicalDescendants().OfType<WaveformTransferView>());
         await vm.NavigateAsync("waves");
-        var original = vm.SelectedPreset!.Preset;
+        var original = vm.LibrarySelectedPreset!.Preset;
         Assert.False(vm.DeleteWaveCommand.CanExecute(null));
         Assert.False(Find<Button>(view, "DeleteWaveButton").IsEffectivelyEnabled);
         await Assert.ThrowsAnyAsync<InvalidOperationException>(vm.DeleteWaveAsync);
         vm.EditWave();
         await vm.SaveWaveAsync();
         Assert.Equal(23, vm.Presets.Count);
-        Assert.False(vm.SelectedPreset!.IsBuiltIn);
-        Assert.Equivalent(original.Samples, vm.SelectedPreset.Preset.Samples);
+        Assert.False(vm.LibrarySelectedPreset!.IsBuiltIn);
+        Assert.Equivalent(original.Samples, vm.LibrarySelectedPreset.Preset.Samples);
         Assert.True(vm.DeleteWaveCommand.CanExecute(null));
         Assert.True(Find<Button>(view, "DeleteWaveButton").IsEffectivelyEnabled);
         Click(window, Find<Button>(view, "DeleteWaveButton"));
@@ -864,7 +958,7 @@ public sealed class UiTests
         vm.EditorPoints = "0, 0.4, 1, 0.5, 0";
         Click(window, Find<Button>(view, "SaveWaveButton")!);
         await WaitForAsync(() => vm.Presets.Count == WaveformPreset.BuiltIn.Count + 1);
-        Assert.Equal("自定义波形", vm.SelectedPreset!.Name);
+        Assert.Equal("自定义波形", vm.LibrarySelectedPreset!.Name);
         Capture(window, "waveforms.png");
         window.Close();
     }

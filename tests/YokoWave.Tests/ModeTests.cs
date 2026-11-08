@@ -5,6 +5,40 @@ namespace YokoWave.Tests;
 
 public sealed class ModeTests
 {
+    [Fact]
+    public async Task SavedModesRejectDuplicateDeviceAssignmentsEvenWhenNothingIsRunning()
+    {
+        using var folder = new TestFolder(); var store = new WorkspaceStore(folder.Path);
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => store.SaveAsync(new(4, [], [], new(), Modes:
+        [new(Guid.NewGuid(), "One", TargetDeviceIds: ["same"]), new(Guid.NewGuid(), "Two", TargetDeviceIds: ["same"])])));
+        Assert.False(File.Exists(store.ModesPath));
+    }
+
+    [Fact]
+    public async Task CustomPlaylistUsesItsOrderAndRejectsEmptyOrMixedFamiliesBeforeClaimingDevices()
+    {
+        var transport = new RecordingTransport(); await using var controller = new DeviceController(transport);
+        await Connect(controller, "one");
+        var engine = new SessionEngine(controller, new Random(42)) { ChannelA = 20 };
+        var a = Wave(); var b = Wave(); var c = Wave();
+        await engine.StartAsync(["one"], c, null, new(new(PlaybackOrder.Sequential), [c, a, b]));
+        await engine.AdvanceAsync(TimeSpan.FromSeconds(4)); Assert.Equal(a.Id, engine.CurrentWaveform!.Id);
+        await engine.AdvanceAsync(TimeSpan.FromSeconds(8)); Assert.Equal(b.Id, engine.CurrentWaveform.Id);
+        await engine.AdvanceAsync(TimeSpan.FromSeconds(12)); Assert.Equal(c.Id, engine.CurrentWaveform.Id);
+        await engine.StopAsync();
+        await engine.StartAsync(["one"], c, null, new(new(PlaybackOrder.Random), [c, a]));
+        for (var time = 4; time <= 24; time += 4)
+        {
+            await engine.AdvanceAsync(TimeSpan.FromSeconds(time));
+            Assert.Contains(engine.CurrentWaveform!.Id, new[] { c.Id, a.Id }); Assert.NotEqual(b.Id, engine.CurrentWaveform.Id);
+        }
+        await engine.StopAsync();
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(() => engine.StartAsync(["one"], a, null, new(new(PlaybackOrder.Sequential), [])));
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => engine.StartAsync(["one"], a, null,
+            new(new(PlaybackOrder.Sequential), [a, b with { Family = WaveformFamily.Motor }])));
+        Assert.Null(controller.DeviceOwner("one")); Assert.False(engine.IsRunning);
+    }
+
     private static WaveformPreset Wave() => new(Guid.NewGuid(), "constant", WaveShape.Custom, 4, 20, [1, 1]);
     private static async Task Connect(DeviceController controller, params string[] ids)
     {

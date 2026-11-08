@@ -36,39 +36,7 @@
 
     <Grid x:Name="WorkspaceGrid" Classes="workspace" ColumnDefinitions="Auto,*" RowDefinitions="Auto">
       <StackPanel x:Name="DevicePane" Classes="group">
-        <Grid ColumnDefinitions="*,Auto">
-          <TextBlock Text="{l:Loc Device.List}" VerticalAlignment="Center" Classes="section-title" />
-          <Button Grid.Column="1" x:Name="ScanButton" Classes="small" Content="{Binding ScanLabel}" Command="{Binding ScanCommand}" />
-        </Grid>
-        <ItemsControl ItemsSource="{Binding Devices}">
-          <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="vm:DeviceItem">
-              <Border Classes="list-item device-card" Classes.active="{Binding IsSelected}">
-                <Grid RowDefinitions="Auto,Auto">
-                  <Button Classes="device" Command="{Binding SelectCommand}">
-                    <Grid RowDefinitions="Auto,Auto">
-                      <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="{DynamicResource Column.DeviceIcon}" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                      </Grid.ColumnDefinitions>
-                      <Border Grid.RowSpan="2" Classes="device-icon">
-                        <TextBlock Text="{Binding Symbol}" HorizontalAlignment="Center" VerticalAlignment="Center" Classes="icon accent" />
-                      </Border>
-                      <TextBlock Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding Name}" TextTrimming="CharacterEllipsis" Classes="small emphasis" />
-                      <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding Kind}" TextTrimming="CharacterEllipsis" Classes="muted caption" Margin="{DynamicResource Margin.AboveSmall}" />
-                      <TextBlock Grid.Column="2" Grid.Row="1" Text="{Binding Status}" ToolTip.Tip="{Binding Status}" Classes="muted caption device-status" Margin="{DynamicResource Margin.AboveSmall}" />
-                    </Grid>
-                  </Button>
-                  <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Classes="columns" Margin="{DynamicResource Margin.DeviceActions}">
-                    <Button Grid.Column="1" Classes="small connection-action" Classes.primary="{Binding !IsConnected}" Classes.danger="{Binding IsConnected}"
-                            Command="{Binding ConnectCommand}" Content="{Binding ConnectionAction}" />
-                  </Grid>
-                </Grid>
-              </Border>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
+        <components:ModeDeviceListView />
 
         <Border Classes="card detail">
           <StackPanel Classes="group">
@@ -92,43 +60,13 @@
       <StackPanel x:Name="ControlPane" Grid.Column="1" Classes="group">
         <components:ModeWorkspaceView />
 
-        <Border Classes="card output">
+        <components:WaveformModeView x:Name="WaveformModePanel" IsVisible="{Binding IsWaveformControl}" />
+        <Border x:Name="TouchModePanel" Classes="card output" IsVisible="{Binding UseTouchControl}">
           <StackPanel Classes="group">
-            <Grid ColumnDefinitions="*,Auto">
-              <StackPanel Classes="field">
-                <TextBlock Text="{l:Loc Wave.Preview}" Classes="card-title" />
-                <TextBlock Text="{l:Loc Wave.PreviewHelp}" Classes="muted caption" />
-              </StackPanel>
-              <StackPanel Grid.Column="1" VerticalAlignment="Top" Classes="actions">
-                <TextBlock Text="● A" Classes="label accent" />
-                <TextBlock Text="● B" Classes="label channel-b" />
-              </StackPanel>
-            </Grid>
-            <CheckBox Content="{l:Loc Touch.Title}" IsChecked="{Binding UseTouchControl}" IsEnabled="{Binding CanEditRouting}" />
-            <Grid RowDefinitions="*,Auto" Classes="chart" IsVisible="{Binding IsWaveformControl}">
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="{DynamicResource Column.ChartAxis}" />
-                <ColumnDefinition Width="*" />
-              </Grid.ColumnDefinitions>
-              <Grid RowDefinitions="*,*,*" Margin="{DynamicResource Margin.BelowLarge}">
-                <TextBlock Text="100" Classes="fine-print muted" />
-                <TextBlock Grid.Row="1" Text="50" VerticalAlignment="Center" Classes="fine-print muted" />
-                <TextBlock Grid.Row="2" Text="0" VerticalAlignment="Bottom" Classes="fine-print muted" />
-              </Grid>
-              <controls:WaveformPlot Grid.Column="1" x:Name="MainPlot" Preset="{Binding SelectedWaveform}" PresetB="{Binding SelectedWaveformB}"
-                  AmplitudeA="{Binding ChannelA}" AmplitudeB="{Binding ChannelB}" Offset="{Binding OffsetChannelB}" Playhead="{Binding Playhead}" />
-              <Grid Grid.Column="1" Grid.Row="1" ColumnDefinitions="*,*,*,*" Margin="{DynamicResource Margin.AboveSmall}">
-                <TextBlock Text="0s" Classes="fine-print muted" />
-                <TextBlock Grid.Column="1" Text="4s" HorizontalAlignment="Center" Classes="fine-print muted" />
-                <TextBlock Grid.Column="2" Text="8s" HorizontalAlignment="Center" Classes="fine-print muted" />
-                <TextBlock Grid.Column="3" Text="12s" HorizontalAlignment="Right" Classes="fine-print muted" />
-              </Grid>
-            </Grid>
-            <components:WaveformPlaybackView IsVisible="{Binding IsWaveformControl}" />
-            <components:TouchControlView IsVisible="{Binding UseTouchControl}" />
+            <TextBlock Text="{l:Loc Touch.Title}" Classes="card-title" />
+            <components:TouchControlView />
           </StackPanel>
         </Border>
-
         <Grid Classes="columns" ColumnDefinitions="*,*">
           <Border Classes="card channel">
             <StackPanel Classes="field">

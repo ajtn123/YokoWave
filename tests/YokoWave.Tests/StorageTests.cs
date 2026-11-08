@@ -82,6 +82,7 @@ public sealed class StorageTests
     [Theory]
     [InlineData(1)]
     [InlineData(2)]
+    [InlineData(3)]
     public async Task OldDevelopmentFormatIsResetWithoutMigration(int schema)
     {
         using var folder = new TestFolder();
@@ -92,7 +93,7 @@ public sealed class StorageTests
         var unrelated = Path.Combine(folder.Path, "keep.txt");
         await File.WriteAllTextAsync(unrelated, "keep", TestContext.Current.CancellationToken);
         var data = await store.LoadAsync();
-        Assert.Equal(3, data.SchemaVersion);
+        Assert.Equal(4, data.SchemaVersion);
         Assert.Empty(data.Presets);
         Assert.Empty(data.Sessions);
         Assert.Empty(data.Modes!);

@@ -24,10 +24,15 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
     }
     public ObservableCollection<PresetItem> Presets => _host.Presets;
     public ObservableCollection<ModeTargetItem> Targets { get; } = [];
+    public bool HasTargets => Targets.Count > 0;
+    public bool IsSelected => _host.SelectedMode == this;
+    public string KindLabel => L10n.Get(UseTouchControl ? "Mode.TouchKind" : "Mode.WaveKind");
+    public ActionCommand SelectCommand { get; }
+    internal void RefreshSelection() => Raise(nameof(IsSelected));
     public IReadOnlyCollection<string> TargetIds => _targets;
     public bool IsRunning => _engine.IsRunning;
-    public bool CanEditRouting => !IsRunning && !_starting;
-    public bool UsesWaveform(Guid id) => _engine.UsesWaveform(id);
+    public bool CanEditRouting => !IsRunning && !_starting && !_targets.Any(id => _controller.DeviceOwner(id) == Id);
+    public bool UsesWaveform(Guid id) => _engine.UsesWaveform(id) || IsRunning && !UseTouchControl && Playlist.Any(entry => entry.Id == id);
     public bool SelectedConnected => _targets.Any(id => _controller.Connections.ContainsKey(id));
     public bool HasChannelB => _targets.Count == 0 || _targets.Any(id => _controller.Connections.TryGetValue(id, out var connection) && connection.Device.Kind == DeviceKind.DualChannel);
     public bool HasElectrodeReadings => _host.IsBluetooth && _host.SelectedConnected && ShowContacts;
@@ -61,6 +66,7 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
         get => _selectedPreset;
         set
         {
+            if (UsesCustomPlaylist && (value is null ? Playlist.Count > 0 : Playlist.All(entry => entry.Id != value.Preset.Id))) { Raise(nameof(SelectedPreset)); return; }
             if (!Set(ref _selectedPreset, value)) return;
             Raise(nameof(PresetSummary)); Raise(nameof(SelectedPresetName)); Raise(nameof(SelectedWaveform)); DeleteWaveCommand.NotifyCanExecuteChanged();
             if (IsRunning) _ = GuardAsync(() => ApplySelectedWaveformAsync(value));
@@ -111,28 +117,32 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
     {
         _host = host; _controller = controller; Id = config.Id; _name = config.Name;
         _engine = new(controller, ownerId: Id); InitializeEstimCommands();
+        SelectCommand = new(() => _host.SelectedMode = this);
         _safetyLimit = config.OutputLimit; ChannelA = config.ChannelA; ChannelB = config.ChannelB;
         TimerEnabled = config.TimerEnabled; SessionDurationSeconds = config.DurationSeconds; OffsetChannelB = config.OffsetChannelB;
         _useTouchControl = config.TouchControl;
         _selectedPreset = Presets.FirstOrDefault(item => item.Preset.Id == config.WaveformAId) ?? Presets.FirstOrDefault();
         InitializeEstim(config.Estim);
         _selectedPresetB = Presets.FirstOrDefault(item => item.Preset.Id == config.WaveformBId) ?? _selectedPreset;
+        InitializePlaylist(config.PlaylistWaveformIds);
         foreach (var id in config.TargetDeviceIds ?? []) _targets.Add(id);
         _engine.Completed += (_, record) => _host.AddModeSession(record with { ModeId = Id, ModeName = Name });
         RefreshTargets();
     }
 
     public PlaybackModeConfig ToConfig() => new(Id, Name, UseTouchControl, ChannelA, ChannelB, SafetyLimit, TimerEnabled,
-        (int)SessionDurationSeconds, SelectedPreset?.Preset.Id, SelectedPresetB?.Preset.Id, CreateEstimSettings(), _targets.ToList(), OffsetChannelB);
+        (int)SessionDurationSeconds, SelectedPreset?.Preset.Id, SelectedPresetB?.Preset.Id, CreateEstimSettings(), _targets.ToList(), OffsetChannelB,
+        Playlist.Select(item => item.Id).ToList());
     public void AssignTarget(string id, bool selected)
     {
         if (!CanEditRouting) return;
+        if (selected && _host.AssignedMode(id) is { } other && other != this) throw new LocalizedOperationException("Error.DeviceAssigned");
         if (!(selected ? _targets.Add(id) : _targets.Remove(id))) return;
-        RefreshTargets();
+        _host.RefreshModeGroups();
     }
     public void RefreshTargets()
     {
-        var ids = _host.Devices.Select(device => device.Id).Concat(_targets).Distinct().ToArray();
+        var ids = _targets.ToArray();
         foreach (var item in Targets.Where(item => !ids.Contains(item.Id)).ToArray()) Targets.Remove(item);
         foreach (var id in ids)
         {
@@ -140,23 +150,34 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
             if (item is null) Targets.Add(new(this, id)); else item.Refresh();
         }
         foreach (var property in new[] { nameof(SelectedConnected), nameof(HasChannelB), nameof(RoutingSummary), nameof(SelectedOutputALabel), nameof(SelectedOutputBLabel) }) Raise(property);
+        Raise(nameof(HasTargets));
     }
     internal DeviceItem? Device(string id) => _host.Devices.FirstOrDefault(device => device.Id == id);
+    internal async Task SelectDeviceAsync(string id)
+    {
+        _host.SelectedMode = this;
+        if (Device(id) is { } device) await _host.SelectDeviceAsync(device);
+    }
+    internal Task ConnectDeviceAsync(string id) => Device(id) is { } device ? _host.ToggleConnectionAsync(device) : Task.CompletedTask;
+    internal void ReportError(Exception error) => _host.ShowError(error);
     internal string TargetStatus(string id)
     {
         if (_controller.DeviceOwner(id) is { } owner && owner != Id) return L10n.Get("Mode.TargetBusy");
-        return Device(id)?.Status ?? L10n.Get("Mode.TargetMissing");
+        return Device(id) is { } device ? L10n.Get(device.IsConnected ? "Device.Connected" : "Device.Available") : L10n.Get("Mode.TargetMissing");
     }
     public async Task TogglePlaybackAsync()
     {
         if (_starting) return;
         if (IsRunning) { await StopAsync(); return; }
-        if (SelectedPreset is null) throw new LocalizedOperationException("Error.SelectWave");
-        var waveform = UseTouchControl ? Presets.First(item => item.Preset.Family == WaveformFamily.Electrical).Preset : SelectedPreset.Preset;
+        if (!UseTouchControl && !UsesCustomPlaylist && SelectedPreset is null) throw new LocalizedOperationException("Error.SelectWave");
+        var program = CreateSessionProgram();
+        var waveform = UseTouchControl ? Presets.First(item => item.Preset.Family == WaveformFamily.Electrical).Preset
+            : SelectedPlaybackOrder.Value is (int)PlaybackOrder.Sequential or (int)PlaybackOrder.Random
+                ? program.Playlist!.First() : SelectedPreset!.Preset;
         _starting = true; RefreshPlayback();
         try
         {
-            await _engine.StartAsync(_targets, waveform, ConfiguredDuration, CreateSessionProgram());
+            await _engine.StartAsync(_targets, waveform, ConfiguredDuration, program);
             if (!IsRunning) return;
             _hasSessionClock = true; _clock.Restart(); Notify("Status.ModeStarted", Name);
         }
@@ -182,23 +203,42 @@ public sealed partial class PlaybackModeViewModel : ObservableObject
     }
     private void RefreshPlayback()
     {
-        RefreshEstimPlayback(); RefreshTargets();
+        RefreshEstimPlayback(); RefreshPlaylistCommands(); RefreshTargets();
         foreach (var property in new[] { nameof(IsRunning), nameof(CanEditRouting), nameof(CanEditDuration), nameof(IsTimedSession), nameof(SessionState),
             nameof(PlaybackLabel), nameof(Elapsed), nameof(Remaining), nameof(SessionClock), nameof(SessionTimeLabel), nameof(ShowTimerProgress), nameof(TimerProgress), nameof(TimerReadout), nameof(Playhead) }) Raise(property);
     }
-    public void RefreshLocalization() { RefreshEstimLocalization(); RefreshPlayback(); Raise(nameof(SelectedPresetName)); }
+    public void RefreshLocalization() { RefreshEstimLocalization(); RefreshPlaylist(); RefreshPlayback(); Raise(nameof(SelectedPresetName)); Raise(nameof(KindLabel)); }
     private void Notify(string key, params object?[] args) => _host.Notify(key, args);
     private void ShowError(Exception error) => _host.ShowError(error);
     private async Task GuardAsync(Func<Task> action) { try { await action(); } catch (Exception error) { _host.ShowError(error); } }
     private static string FormatDuration(TimeSpan time) => time.ToString(time.TotalHours >= 1 ? @"h\:mm\:ss" : @"mm\:ss");
 }
 
-public sealed class ModeTargetItem(PlaybackModeViewModel mode, string id) : ObservableObject
+public sealed class ModeTargetItem : ObservableObject
 {
-    public string Id { get; } = id;
-    public string Name => mode.Device(Id)?.Name ?? Id;
-    public string Status => mode.TargetStatus(Id);
-    public bool IsSelected { get => mode.TargetIds.Contains(Id); set => mode.AssignTarget(Id, value); }
-    public bool CanEdit => mode.CanEditRouting;
-    public void Refresh() { foreach (var name in new[] { nameof(Name), nameof(Status), nameof(IsSelected), nameof(CanEdit) }) Raise(name); }
+    private readonly PlaybackModeViewModel _mode;
+    public string Id { get; }
+    private DeviceItem? Device => _mode.Device(Id);
+    public string Name => Device?.Name ?? Id;
+    public string Status => _mode.TargetStatus(Id);
+    public string Kind => Device?.Kind ?? L10n.Get("Mode.TargetMissing");
+    public string Symbol => Device?.Symbol ?? "?";
+    public bool IsSelected => Device?.IsSelected ?? false;
+    public bool IsConnected => Device?.IsConnected ?? false;
+    public string ConnectionAction => Device?.ConnectionAction ?? L10n.Get("Device.Connect");
+    public AsyncCommand SelectCommand { get; }
+    public AsyncCommand ConnectCommand { get; }
+    public AsyncCommand DetachCommand { get; }
+    public ModeTargetItem(PlaybackModeViewModel mode, string id)
+    {
+        _mode = mode; Id = id;
+        SelectCommand = new(() => mode.SelectDeviceAsync(id), mode.ReportError);
+        ConnectCommand = new(() => mode.ConnectDeviceAsync(id), mode.ReportError, () => Device is not null);
+        DetachCommand = new(() => { mode.AssignTarget(id, false); return Task.CompletedTask; }, mode.ReportError, () => mode.CanEditRouting);
+    }
+    public void Refresh()
+    {
+        foreach (var name in new[] { nameof(Name), nameof(Status), nameof(Kind), nameof(Symbol), nameof(IsSelected), nameof(IsConnected), nameof(ConnectionAction) }) Raise(name);
+        ConnectCommand.NotifyCanExecuteChanged(); DetachCommand.NotifyCanExecuteChanged();
+    }
 }

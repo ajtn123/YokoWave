@@ -53,6 +53,13 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
         if (!double.IsFinite(program.OutputLimit) || program.OutputLimit is < 0 or > 100) throw new LocalizedArgumentException("Error.InvalidSettings");
         if (program.ChannelBWaveform is { } b) ValidateWaveform(b);
         foreach (var wave in program.Playlist ?? []) ValidateWaveform(wave);
+        if (!program.TouchControl && settings.Order is PlaybackOrder.Sequential or PlaybackOrder.Random)
+        {
+            if (program.Playlist is not { Count: > 0 }) throw new LocalizedOperationException("Error.EmptyPlaylist");
+            if (program.Playlist.Any(wave => (wave.Family == WaveformFamily.Motor) != (preset.Family == WaveformFamily.Motor)) ||
+                program.ChannelBWaveform is { } channelB && (channelB.Family == WaveformFamily.Motor) != (preset.Family == WaveformFamily.Motor))
+                throw new LocalizedArgumentException("Error.PlaylistFamily");
+        }
         await _gate.WaitAsync();
         try
         {
@@ -82,6 +89,8 @@ public sealed class SessionEngine(DeviceController controller, Random? random = 
         {
             if (!IsRunning) return false;
             ValidateWaveform(preset);
+            if (_settings.Order is PlaybackOrder.Sequential or PlaybackOrder.Random &&
+                !(_program.Playlist?.Any(wave => wave.Id == preset.Id) ?? false)) throw new LocalizedOperationException("Error.PlaylistWave");
             if (channelB) { _b ??= new(preset, _program.Playlist ?? [preset]); _b.Change(preset); }
             else _a!.Change(preset);
             return true;

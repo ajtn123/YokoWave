@@ -1,0 +1,40 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:YokoWave.App.ViewModels" xmlns:l="using:YokoWave.App.Localization"
+             xmlns:controls="using:YokoWave.App.Controls" xmlns:components="using:YokoWave.App.Views.Components"
+             x:Class="YokoWave.App.Views.Components.WaveformModeView" x:DataType="vm:MainViewModel">
+  <Border Classes="card output">
+    <StackPanel Classes="group">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Classes="field">
+          <TextBlock Text="{l:Loc Wave.Preview}" Classes="card-title" />
+          <TextBlock Text="{l:Loc Wave.PreviewHelp}" Classes="muted caption" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Classes="actions">
+          <TextBlock Text="● A" Classes="label accent" />
+          <TextBlock Text="● B" Classes="label channel-b" />
+        </StackPanel>
+      </Grid>
+            <Grid RowDefinitions="*,Auto" Classes="chart">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="{DynamicResource Column.ChartAxis}" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <Grid RowDefinitions="*,*,*" Margin="{DynamicResource Margin.BelowLarge}">
+                <TextBlock Text="100" Classes="fine-print muted" />
+                <TextBlock Grid.Row="1" Text="50" VerticalAlignment="Center" Classes="fine-print muted" />
+                <TextBlock Grid.Row="2" Text="0" VerticalAlignment="Bottom" Classes="fine-print muted" />
+              </Grid>
+              <controls:WaveformPlot Grid.Column="1" x:Name="MainPlot" Preset="{Binding SelectedWaveform}" PresetB="{Binding SelectedWaveformB}"
+                  AmplitudeA="{Binding ChannelA}" AmplitudeB="{Binding ChannelB}" Offset="{Binding OffsetChannelB}" Playhead="{Binding Playhead}" />
+              <Grid Grid.Column="1" Grid.Row="1" ColumnDefinitions="*,*,*,*" Margin="{DynamicResource Margin.AboveSmall}">
+                <TextBlock Text="0s" Classes="fine-print muted" />
+                <TextBlock Grid.Column="1" Text="4s" HorizontalAlignment="Center" Classes="fine-print muted" />
+                <TextBlock Grid.Column="2" Text="8s" HorizontalAlignment="Center" Classes="fine-print muted" />
+                <TextBlock Grid.Column="3" Text="12s" HorizontalAlignment="Right" Classes="fine-print muted" />
+              </Grid>
+            </Grid>
+            <components:WaveformPlaybackView DataContext="{Binding SelectedMode}" />
+      <components:ModePlaylistView DataContext="{Binding SelectedMode}" />
+    </StackPanel>
+  </Border>
+</UserControl>

@@ -129,4 +129,18 @@
     <Setter Property="MaxWidth" Value="{DynamicResource Size.ModeNameMaxWidth}" />
     <Setter Property="TextTrimming" Value="CharacterEllipsis" />
   </Style>
+  <Style Selector="Border.mode-group.active">
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentTextBrush}" />
+    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+  </Style>
+  <Style Selector="Button.mode-select">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+  </Style>
+  <Style Selector="ScrollViewer.playlist">
+    <Setter Property="MaxHeight" Value="{DynamicResource Size.PlaylistMaxHeight}" />
+    <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
+    <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+  </Style>
 </Styles>

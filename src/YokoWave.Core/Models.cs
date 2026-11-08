@@ -109,7 +109,7 @@ public sealed record AppSettings(double DefaultLimit = 60, string? Language = nu
 public sealed record WorkspaceData(int SchemaVersion, List<WaveformPreset> Presets,
     List<SessionRecord> Sessions, AppSettings Settings, SessionStatistics? Statistics = null, List<PlaybackModeConfig>? Modes = null)
 {
-    public static WorkspaceData Empty => new(3, [], [], new(), new(), []);
+    public static WorkspaceData Empty => new(4, [], [], new(), new(), []);
 }
 
 public sealed record SessionStatistics(long SessionCount = 0, double TotalDurationSeconds = 0)

@@ -11,6 +11,7 @@ public sealed class DeviceItem : ObservableObject
     private string? _activeModeName;
     private double _outputA;
     private double _outputB;
+    private bool _canAssign;
     public DeviceDescriptor Device { get; private set; }
     public string Name => Device.Name;
     public string Id => Device.Id;
@@ -31,14 +32,17 @@ public sealed class DeviceItem : ObservableObject
     public string OutputBLabel => L10n.Format("Device.Output", OutputB);
     public ICommand SelectCommand { get; }
     public ICommand ConnectCommand { get; }
+    public AsyncCommand AssignCommand { get; }
+    public bool CanAssign { get => _canAssign; internal set { if (Set(ref _canAssign, value)) AssignCommand.NotifyCanExecuteChanged(); } }
 
     public DeviceItem(DeviceDescriptor device, int number, Func<DeviceItem, Task> select,
-        Func<DeviceItem, Task> connect, Action<Exception> onError)
+        Func<DeviceItem, Task> connect, Action<Exception> onError, Action<DeviceItem>? assign = null)
     {
         Device = device;
         Number = number.ToString("00");
         SelectCommand = new AsyncCommand(() => select(this), onError);
         ConnectCommand = new AsyncCommand(() => connect(this), onError);
+        AssignCommand = new(() => { assign?.Invoke(this); return Task.CompletedTask; }, onError, () => CanAssign && assign is not null);
     }
 
     public void RefreshLocalization()

@@ -1,15 +1,15 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:YokoWave.App.ViewModels" xmlns:l="using:YokoWave.App.Localization"
-             x:Class="YokoWave.App.Views.Components.WaveformPlaybackView" x:DataType="vm:MainViewModel">
+             x:Class="YokoWave.App.Views.Components.WaveformPlaybackView" x:DataType="vm:PlaybackModeViewModel">
   <StackPanel Classes="items">
     <Grid ColumnDefinitions="*,Auto">
-      <ComboBox x:Name="PresetPicker" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" HorizontalAlignment="Stretch" AutomationProperties.Name="{l:Loc Wave.ChannelA}">
+      <ComboBox x:Name="PresetPicker" ItemsSource="{Binding PlaybackPresets}" SelectedItem="{Binding SelectedPreset}" HorizontalAlignment="Stretch" AutomationProperties.Name="{l:Loc Wave.ChannelA}">
         <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PresetItem"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
       </ComboBox>
       <Button Grid.Column="1" Content="{l:Loc Wave.Manage}" Classes="small" Background="{DynamicResource TransparentBrush}" Command="{Binding WavesCommand}" Margin="{DynamicResource Margin.BeforeSmall}" />
     </Grid>
-    <CheckBox Content="{l:Loc Wave.SeparateB}" IsChecked="{Binding SeparateWaveforms}" IsEnabled="{Binding CanEditRouting}" />
-    <ComboBox x:Name="ChannelBWavePicker" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPresetB}" IsVisible="{Binding SeparateWaveforms}"
+    <CheckBox Content="{l:Loc Wave.SeparateB}" IsChecked="{Binding SeparateWaveforms}" IsEnabled="{Binding CanEditRouting}" IsVisible="{Binding !UsesCustomPlaylist}" />
+    <ComboBox x:Name="ChannelBWavePicker" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPresetB}" IsVisible="{Binding ShowIndependentChannelB}"
               IsEnabled="{Binding HasChannelB}" HorizontalAlignment="Stretch" AutomationProperties.Name="{l:Loc Wave.ChannelB}">
       <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PresetItem"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
     </ComboBox>

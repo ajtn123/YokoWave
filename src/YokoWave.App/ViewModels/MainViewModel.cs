@@ -23,6 +23,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private TransportOption? _selectedTransport;
     private DeviceItem? _selectedDevice;
     private PlaybackModeViewModel? _selectedMode;
+    private PresetItem? _librarySelectedPreset;
     private double _defaultLimit = 60, _timerLimitMinutes = 120;
     private string _editorName = "", _editorPoints = "0, 0.2, 0.8, 1, 0.8, 0.2, 0", _editorSamples = "[]", _transferJson = "";
     private WaveShape _editorShape = WaveShape.Sine;
@@ -32,7 +33,19 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private readonly List<SessionRecord> _records = [];
     private SessionStatistics _statistics = new();
     public ObservableCollection<DeviceItem> Devices { get; } = [];
+    public ObservableCollection<DeviceItem> UnassignedDevices { get; } = [];
     public ObservableCollection<PresetItem> Presets { get; } = [];
+    public PresetItem? LibrarySelectedPreset
+    {
+        get => _librarySelectedPreset ?? Presets.FirstOrDefault();
+        set
+        {
+            Set(ref _librarySelectedPreset, value);
+            DeleteWaveCommand.NotifyCanExecuteChanged(); (UseWaveCommand as AsyncCommand)?.NotifyCanExecuteChanged();
+        }
+    }
+    private bool CanUseLibraryWave => SelectedMode.IsWaveformControl && LibrarySelectedPreset is { } preset &&
+        (!SelectedMode.UsesCustomPlaylist || SelectedMode.Playlist.Any(entry => entry.Id == preset.Preset.Id));
     public ObservableCollection<PlaybackModeViewModel> Modes { get; } = [];
     public ObservableCollection<SessionItem> Sessions { get; } = [];
     public ObservableCollection<ActivityItem> Activities { get; } = [];
@@ -47,12 +60,14 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             if (value is null || !Modes.Contains(value) || value == _selectedMode) return;
             if (_selectedMode is { } previous) { previous.IsBoostHeld = false; previous.IsTouchHeld = false; }
             Set(ref _selectedMode, value);
+            foreach (var mode in Modes) mode.RefreshSelection();
+            RefreshModeGroups();
             RefreshModeBindings();
         }
     }
     public bool IsAnyRunning => Modes.Any(mode => !mode.CanEditRouting);
     public string RunningModesSummary => L10n.Format("Mode.RunningCount", Modes.Count(mode => mode.IsRunning));
-    public ObservableCollection<ModeTargetItem> ModeTargets => SelectedMode.Targets;
+    public bool HasUnassignedDevices => UnassignedDevices.Count > 0;
     public double DefaultLimit { get => _defaultLimit; set { if (double.IsFinite(value)) Set(ref _defaultLimit, Math.Clamp(value, 0, 100)); } }
     public double TimerLimitMinutes
     {
@@ -173,17 +188,22 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         PlaybackCommand = new AsyncCommand(TogglePlaybackAsync, ShowError);
         EmergencyStopCommand = new AsyncCommand(() => StopAllModesAsync("Reason.AllStopped"), ShowError);
         SaveWaveCommand = new AsyncCommand(SaveWaveAsync, ShowError); NewWaveCommand = new ActionCommand(NewWave); EditWaveCommand = new ActionCommand(EditWave);
-        DeleteWaveCommand = new AsyncCommand(DeleteWaveAsync, ShowError, () => SelectedPreset is { IsBuiltIn: false } selected && !Modes.Any(mode => mode.UsesWaveform(selected.Preset.Id)));
+        DeleteWaveCommand = new AsyncCommand(DeleteWaveAsync, ShowError, () => LibrarySelectedPreset is { IsBuiltIn: false } selected && !Modes.Any(mode => mode.UsesWaveform(selected.Preset.Id)));
         ExportCommand = new ActionCommand(() => { TransferJson = WorkspaceStore.ExportPresets(Presets.Select(item => item.Preset)); Notify("Status.Generated"); });
         ImportCommand = new AsyncCommand(() => ImportAsync(TransferJson), ShowError);
         SaveSettingsCommand = new AsyncCommand(SaveSettingsAsync, ShowError, () => !IsScanning);
-        UseWaveCommand = new AsyncCommand(() => NavigateAsync("workspace"), ShowError);
+        UseWaveCommand = new AsyncCommand(async () =>
+        {
+            if (!CanUseLibraryWave) return;
+            SelectedPreset = LibrarySelectedPreset; await NavigateAsync("workspace");
+        }, ShowError, () => CanUseLibraryWave);
         AddWaveModeCommand = new AsyncCommand(() => AddModeAsync(false), ShowError); AddTouchModeCommand = new AsyncCommand(() => AddModeAsync(true), ShowError);
         SaveModesCommand = new AsyncCommand(async () => { await SaveAsync(); Notify("Status.ModesSaved"); }, ShowError);
         RemoveModeCommand = new AsyncCommand(RemoveSelectedModeAsync, ShowError, () => Modes.Count > 1);
         InitializeDeviceFeatureCommands();
         AddMode(new(Guid.NewGuid(), L10n.Format("Mode.WaveName", 1)));
         _selectedMode = Modes[0];
+        Presets.CollectionChanged += (_, _) => { foreach (var mode in Modes) mode.RefreshPlaylist(); };
         _controller.Changed += OnDeviceChanged; _controller.Faulted += OnTransportFaulted;
         L10n.Current.PropertyChanged += OnLanguageChanged;
     }
@@ -214,7 +234,9 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             if (mode == SelectedMode && e.PropertyName is { } name) Raise(name);
             Raise(nameof(IsAnyRunning)); Raise(nameof(RunningModesSummary));
             if (e.PropertyName == nameof(PlaybackModeViewModel.ShowContacts)) Raise(nameof(HasElectrodeReadings));
+            if (e.PropertyName == nameof(PlaybackModeViewModel.CanEditRouting)) RefreshAssignableDevices();
             DeleteWaveCommand.NotifyCanExecuteChanged(); RefreshDeviceFeatures();
+            (UseWaveCommand as AsyncCommand)?.NotifyCanExecuteChanged();
         };
     }
     public async Task AddModeAsync(bool touch)
@@ -228,14 +250,15 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     {
         if (Modes.Count == 1) throw new LocalizedOperationException("Error.LastMode");
         var mode = SelectedMode; await mode.StopAsync("Reason.ModeRemoved", false);
-        Modes.Remove(mode); SelectedMode = Modes[0]; await SaveAsync();
+        Modes.Remove(mode); SelectedMode = Modes[0]; RefreshModeGroups(); await SaveAsync();
     }
     private void RefreshModeBindings()
     {
         foreach (var property in typeof(PlaybackModeViewModel).GetProperties()) Raise(property.Name);
-        Raise(nameof(ModeTargets)); Raise(nameof(SelectedMode)); Raise(nameof(HasElectrodeReadings));
+        Raise(nameof(SelectedMode)); Raise(nameof(HasElectrodeReadings));
         (RemoveModeCommand as AsyncCommand)?.NotifyCanExecuteChanged();
         DeleteWaveCommand.NotifyCanExecuteChanged(); RefreshDeviceFeatures();
+        (UseWaveCommand as AsyncCommand)?.NotifyCanExecuteChanged();
     }
     public async Task ScanAsync()
     {
@@ -249,7 +272,8 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             {
                 var existing = Devices.FirstOrDefault(device => device.Id == info.Id);
                 if (existing is not null) { existing.UpdateReadings(info); continue; }
-                Devices.Add(new(info, Devices.Count + 1, SelectDeviceAsync, ToggleConnectionAsync, ShowError));
+                Devices.Add(new(info, Devices.Count + 1, SelectDeviceAsync, ToggleConnectionAsync, ShowError,
+                    device => SelectedMode.AssignTarget(device.Id, true)));
             }
             SelectedDevice ??= Devices.FirstOrDefault(); RefreshDevices(); Notify(IsBluetooth ? "Status.BluetoothDiscovered" : "Status.Discovered", found.Count);
         }
@@ -274,6 +298,19 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         finally { _changingTransport = false; }
     }
     public Task SelectDeviceAsync(DeviceItem device) { SelectedDevice = device; return Task.CompletedTask; }
+    internal PlaybackModeViewModel? AssignedMode(string id) => Modes.FirstOrDefault(mode => mode.TargetIds.Contains(id));
+    internal void RefreshModeGroups()
+    {
+        foreach (var mode in Modes) mode.RefreshTargets();
+        var available = Devices.Where(device => AssignedMode(device.Id) is null).ToArray();
+        foreach (var device in UnassignedDevices.Where(device => !available.Contains(device)).ToArray()) UnassignedDevices.Remove(device);
+        foreach (var device in available) if (!UnassignedDevices.Contains(device)) UnassignedDevices.Add(device);
+        RefreshAssignableDevices(); Raise(nameof(HasUnassignedDevices));
+    }
+    private void RefreshAssignableDevices()
+    {
+        foreach (var device in Devices) device.CanAssign = SelectedMode.CanEditRouting && AssignedMode(device.Id) is null;
+    }
     public async Task ToggleConnectionAsync(DeviceItem device)
     {
         if (device.IsConnected)
@@ -314,15 +351,15 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     public void EditWave()
     {
-        if (SelectedPreset is null) return;
-        var preset = SelectedPreset.Preset;
-        _editingId = SelectedPreset.IsBuiltIn ? null : preset.Id;
-        EditorName = SelectedPreset.IsBuiltIn ? L10n.Format("Wave.CopyName", preset.Name) : preset.Name;
+        if (LibrarySelectedPreset is not { } selected) return;
+        var preset = selected.Preset;
+        _editingId = selected.IsBuiltIn ? null : preset.Id;
+        EditorName = selected.IsBuiltIn ? L10n.Format("Wave.CopyName", preset.Name) : preset.Name;
         EditorShape = preset.Shape; _editorFamily = preset.Family;
         EditorSamples = JsonSerializer.Serialize(preset.Samples ?? [], new JsonSerializerOptions { WriteIndented = true });
         EditorPeriod = preset.PeriodSeconds; EditorFrequency = preset.Frequency;
         EditorPoints = string.Join(", ", preset.Points?.Select(p => p.ToString("0.###", CultureInfo.InvariantCulture)) ?? ["0", "1", "0"]);
-        Notify(SelectedPreset.IsBuiltIn ? "Status.CopyBuiltIn" : "Status.Editing");
+        Notify(selected.IsBuiltIn ? "Status.CopyBuiltIn" : "Status.Editing");
     }
 
     public async Task SaveWaveAsync()
@@ -335,7 +372,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         await SaveAsync(next);
         var old = Presets.FirstOrDefault(p => p.Preset.Id == preset.Id);
         if (old is not null) Presets.Remove(old);
-        var item = new PresetItem(preset); Presets.Add(item); SelectedPreset = item; _editingId = preset.Id;
+        var item = new PresetItem(preset); Presets.Add(item); LibrarySelectedPreset = item; _editingId = preset.Id;
         foreach (var reference in references) { if (reference.A) reference.Mode.SelectedPreset = item; if (reference.B) reference.Mode.SelectedPresetB = item; }
         Notify("Status.WaveSaved", preset.Name);
     }
@@ -352,17 +389,17 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     public async Task DeleteWaveAsync()
     {
-        if (SelectedPreset is null) return;
-        if (SelectedPreset.IsBuiltIn) throw new LocalizedOperationException("Error.DeleteBuiltIn");
-        var selected = SelectedPreset;
+        if (LibrarySelectedPreset is not { } selected) return;
+        if (selected.IsBuiltIn) throw new LocalizedOperationException("Error.DeleteBuiltIn");
         if (Modes.Any(mode => mode.UsesWaveform(selected.Preset.Id))) throw new LocalizedOperationException("Error.WaveInUse");
         foreach (var mode in Modes)
         {
+            mode.RemovePlaylistWave(selected.Preset.Id);
             if (mode.SelectedPreset == selected) mode.SelectedPreset = Presets[0];
             if (mode.SelectedPresetB == selected) mode.SelectedPresetB = Presets[0];
         }
         await SaveAsync(Presets.Where(p => p != selected).Select(p => p.Preset));
-        SelectedPreset = Presets[0]; Presets.Remove(selected); NewWave(); Notify("Status.WaveDeleted");
+        LibrarySelectedPreset = Presets[0]; Presets.Remove(selected); NewWave(); Notify("Status.WaveDeleted");
     }
 
     public async Task ImportAsync(string json)
@@ -379,7 +416,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     public async Task SaveAsync(IEnumerable<WaveformPreset>? presets = null)
     {
         if (Presets.Count == 0) return;
-        await _store.SaveAsync(new(3, (presets ?? Presets.Select(item => item.Preset)).Where(preset => !DefaultWaveformCatalog.Contains(preset.Id)).ToList(),
+        await _store.SaveAsync(new(4, (presets ?? Presets.Select(item => item.Preset)).Where(preset => !DefaultWaveformCatalog.Contains(preset.Id)).ToList(),
             _records.ToList(), new(DefaultLimit, SelectedLanguage?.Code, IsBluetooth, (int)TimerLimitMinutes), _statistics, Modes.Select(mode => mode.ToConfig()).ToList()));
         _statistics = new(Math.Max(_statistics.SessionCount, _store.Statistics.SessionCount), Math.Max(_statistics.TotalDurationSeconds, _store.Statistics.TotalDurationSeconds));
         _records.RemoveAll(record => _store.Journal.IsDiscarded(record.Id));
@@ -408,7 +445,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             device.ActiveModeName = _controller.DeviceOwner(device.Id) is { } owner ? Modes.FirstOrDefault(mode => mode.Id == owner)?.Name : null;
             if (connection is not null) device.UpdateReadings(connection.Device);
         }
-        foreach (var mode in Modes) mode.RefreshTargets();
+        RefreshModeGroups();
         foreach (var name in new[] { nameof(ConnectedCount), nameof(ConnectedSummary), nameof(SelectedConnected), nameof(SelectedName), nameof(SelectedKind), nameof(SelectedId), nameof(HasSelection),
             nameof(SelectedBattery), nameof(SelectedBatteryLabel), nameof(SelectedSignal), nameof(SelectedContacts), nameof(HasElectrodeReadings) }) Raise(name);
         RefreshDeviceFeatures();

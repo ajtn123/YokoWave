@@ -6,7 +6,7 @@ namespace YokoWave.Core;
 
 public sealed class WorkspaceStore(string directory)
 {
-    private sealed record Metadata(int SchemaVersion = 3, long SessionCount = 0, double TotalDurationSeconds = 0);
+    private sealed record Metadata(int SchemaVersion = 4, long SessionCount = 0, double TotalDurationSeconds = 0);
     public string DirectoryPath { get; } = Path.GetFullPath(directory);
     public string FilePath => Path.Combine(DirectoryPath, "workspace.json");
     public string SettingsPath => Path.Combine(DirectoryPath, "settings.json");
@@ -40,7 +40,7 @@ public sealed class WorkspaceStore(string directory)
                 using var document = JsonDocument.Parse(json);
                 if (!document.RootElement.TryGetProperty("SchemaVersion", out var schema) || schema.ValueKind != JsonValueKind.Number || !schema.TryGetInt32(out var version))
                     throw new LocalizedArgumentException("Error.UnsupportedData");
-                if (version is 1 or 2)
+                if (version is 1 or 2 or 3)
                 {
                     // Development format change: intentionally reset old data, without migration.
                     foreach (var path in new[] { FilePath, SettingsPath, PresetsPath, ModesPath, Journal.FilePath, Journal.PreviousFilePath }) File.Delete(path);
@@ -50,7 +50,7 @@ public sealed class WorkspaceStore(string directory)
                 }
                 metadata = JsonSerializer.Deserialize<Metadata>(json, JsonOptions) ?? throw new JsonException("Invalid workspace statistics.");
             }
-            if (metadata.SchemaVersion != 3 || metadata.SessionCount < 0 || !double.IsFinite(metadata.TotalDurationSeconds) || metadata.TotalDurationSeconds < 0)
+            if (metadata.SchemaVersion != 4 || metadata.SessionCount < 0 || !double.IsFinite(metadata.TotalDurationSeconds) || metadata.TotalDurationSeconds < 0)
                 throw new LocalizedArgumentException("Error.UnsupportedData");
             var settings = File.Exists(SettingsPath)
                 ? JsonSerializer.Deserialize<AppSettings>(await File.ReadAllTextAsync(SettingsPath), JsonOptions) ?? throw new JsonException("Invalid settings.") : new();
@@ -62,7 +62,7 @@ public sealed class WorkspaceStore(string directory)
             var sessions = Journal.Retained.ToList();
             Statistics = new(Math.Max(metadata.SessionCount, sessions.Count),
                 Math.Max(metadata.TotalDurationSeconds, sessions.Sum(record => record.DurationSeconds)));
-            var data = new WorkspaceData(3, presets, sessions, settings, Statistics, modes);
+            var data = new WorkspaceData(4, presets, sessions, settings, Statistics, modes);
             Validate(data);
             return data;
         }
@@ -89,7 +89,7 @@ public sealed class WorkspaceStore(string directory)
             if (data.Statistics is { } statistics)
                 Statistics = new(Math.Max(Statistics.SessionCount, statistics.SessionCount),
                     Math.Max(Statistics.TotalDurationSeconds, statistics.TotalDurationSeconds));
-            await WriteAtomicAsync(FilePath, new Metadata(3, Statistics.SessionCount, Statistics.TotalDurationSeconds));
+            await WriteAtomicAsync(FilePath, new Metadata(4, Statistics.SessionCount, Statistics.TotalDurationSeconds));
         }
         finally { _gate.Release(); }
     }
@@ -115,7 +115,7 @@ public sealed class WorkspaceStore(string directory)
 
     private static void Validate(WorkspaceData data)
     {
-        if (data.SchemaVersion is not (1 or 2 or 3) || data.Presets is null || data.Sessions is null || data.Settings is null)
+        if (data.SchemaVersion is not (1 or 2 or 3 or 4) || data.Presets is null || data.Sessions is null || data.Settings is null)
             throw new LocalizedArgumentException("Error.UnsupportedData");
         foreach (var preset in data.Presets) { if (preset is null) throw new LocalizedArgumentException("Error.InvalidWave"); preset.Validate(); }
         if (data.Presets.Select(preset => preset.Id).Distinct().Count() != data.Presets.Count || data.Sessions.Any(record => record is null) ||
@@ -133,6 +133,8 @@ public sealed class WorkspaceStore(string directory)
             if (modes.Count > 32 || modes.Any(mode => mode is null) || modes.Select(mode => mode.Id).Distinct().Count() != modes.Count)
                 throw new LocalizedArgumentException("Error.ModeSettings");
             foreach (var mode in modes) { mode.Validate(); if (mode.DurationSeconds > settings.TimerLimitMinutes * 60) throw new LocalizedArgumentException("Error.ModeSettings"); }
+            var assigned = modes.SelectMany(mode => mode.TargetDeviceIds ?? []).ToArray();
+            if (assigned.Distinct().Count() != assigned.Length) throw new LocalizedArgumentException("Error.DeviceAssigned");
         }
     }
 }
