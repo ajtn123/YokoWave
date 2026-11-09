@@ -151,7 +151,6 @@ public sealed class GraphWorkspaceUiTests
         var editor = vm.Pipelines.Selected!;
         var native = editor.Nodes.OfType<NativeOutputEditorViewModel>().Single();
         native.NativeEditor.PresetA = 7;
-        native.Options.FrequencyA = 100;
         var before = JsonSerializer.Serialize(editor.ToDocument(), PipelineJson.Options);
         L10n.Current.SetLanguage("en");
         Dispatcher.UIThread.RunJobs();

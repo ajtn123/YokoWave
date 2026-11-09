@@ -17,8 +17,7 @@ public sealed record CycleNode(double WaitSeconds = 90, double BurstSeconds = 5,
 public sealed record ParameterMapNode;
 public sealed record AutomationNode(StrengthSettings Settings);
 public sealed record PumpTimerNode(PumpOutput Settings, bool StopWhenComplete = true);
-public sealed record NativeOutputNode(string DeviceId = "", NativeProgramSettings? Settings = null,
-    HardwareOutputSettings? Hardware = null, DgBalanceSettings? Balances = null, bool Gentle = false, bool StopWhenComplete = true, double Limit = .6);
+public sealed record NativeOutputNode(string DeviceId = "", NativeProgramSettings? Settings = null, bool StopWhenComplete = true, double Limit = .6);
 public sealed record CommandNode(string DeviceId, DeviceCommand Command, bool OnStart = false);
 public sealed record FrameInputNode;
 public sealed record RouterOutputNode(string DeviceId = "", double Limit = .6);
@@ -105,7 +104,7 @@ public static partial class BuiltInNodes
         .Register(new NodeRegistration<NativeOutputNode>(NativeOutput, "Pipeline.Node.Native",
             [In("strengthA", 0, 1), In("strengthB", 0, 1), In("strengthC", 0, 1),
              In("presetA", 0, 255, 1, true), In("presetB", 0, 255, 1, true), In("presetC", 0, 255, 1, true)],
-            c => !string.IsNullOrWhiteSpace(c.DeviceId) && ValidLimit(c.Limit) && Valid(() => { (c.Settings ?? new()).Validate(); c.Hardware?.Validate(); }),
+            c => !string.IsNullOrWhiteSpace(c.DeviceId) && ValidLimit(c.Limit) && Valid(() => (c.Settings ?? new()).Validate()),
             (c, _) => new NativeOutputProcessor(c), c => new(c.DeviceId, OutputBindingKind.Native)))
         .Register(new NodeRegistration<CommandNode>(Command, "Pipeline.Node.Command", [In("trigger", 0, 1)],
             c => !string.IsNullOrWhiteSpace(c.DeviceId) && c.Command is not null && Valid(c.Command.Validate),

@@ -60,7 +60,9 @@ public sealed class SettingsViewModel : ObservableObject, IDisposable
     public string TransportHelp => L10n.Get(_devices.UsesLocalBluetooth ? "Settings.BluetoothHelp" : "Settings.SimulationHelp");
     public RemoteSourcesViewModel RemoteSources => _devices.RemoteSources;
     public AsyncCommand SaveSettingsCommand { get; }
-    public SettingsViewModel(string directory, DevicesPaneViewModel devices, Func<bool> busy, Action timerChanged, Func<Task> save, Action<Exception> error)
+    public AsyncCommand ClearLocalDataCommand { get; }
+    public bool CanClearLocalData { get; }
+    public SettingsViewModel(string directory, DevicesPaneViewModel devices, Func<bool> busy, Action timerChanged, Func<Task> save, Action<Exception> error, Func<Task>? clearData = null)
     {
         StoragePath = directory;
         _devices = devices;
@@ -68,6 +70,8 @@ public sealed class SettingsViewModel : ObservableObject, IDisposable
         _timerChanged = timerChanged;
         _save = save;
         _error = error;
+        CanClearLocalData = clearData is not null;
+        ClearLocalDataCommand = new(clearData ?? (() => Task.CompletedTask), error, () => clearData is not null);
         SaveSettingsCommand = new(async () =>
         {
             await _devices.ChangeTransportAsync(SelectedTransport?.UseBluetooth == true);
@@ -92,7 +96,7 @@ public sealed class SettingsViewModel : ObservableObject, IDisposable
             Raise(property);
     }
     public AppSettings Snapshot() => new(DefaultLimit, SelectedLanguage?.Code, _devices.UsesLocalBluetooth, (int)TimerLimitMinutes, RemoteSources.ToSettings(), ShowContacts,
-        _devices.AutoConnect, _devices.AutoConnectDevices);
+        _devices.AutoConnect, _devices.AutoConnectDevices, _devices.OutputSettings);
     public void Refresh()
     {
         Raise(nameof(IsAnyRunning));

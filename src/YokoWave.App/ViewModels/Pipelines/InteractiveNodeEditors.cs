@@ -24,6 +24,7 @@ public sealed class SimulatedInputEditorViewModel : NodeEditorViewModel
 
 public sealed class PumpTimerEditorViewModel : NodeEditorViewModel
 {
+    public bool StopWhenComplete { get => _settings.StopWhenComplete; set => Change(() => _settings = _settings with { StopWhenComplete = value }); }
     private PumpTimerNode _settings;
     public IReadOnlyList<SessionOption> Directions { get; } = Enum.GetValues<PumpDirection>().Select(d => new SessionOption((int)d, "PumpDirection." + d)).ToArray();
     public SessionOption Direction

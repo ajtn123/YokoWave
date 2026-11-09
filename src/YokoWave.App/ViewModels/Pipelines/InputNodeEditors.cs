@@ -8,6 +8,11 @@ namespace YokoWave.App.ViewModels.Pipelines;
 
 public sealed class PlaylistEditorViewModel : NodeEditorViewModel, IWaveformNodeEditor
 {
+    public IReadOnlyList<SessionOption> Channels { get; } = ChannelChoices.Create();
+    public SessionOption? SelectedChannel { get => Channels.FirstOrDefault(c => c.Value == _settings.Channel); set { if (value is not null) Change(() => _settings = _settings with { Channel = value.Value }); } }
+    public double Phase { get => _settings.Phase; set { if (double.IsFinite(value)) Change(() => _settings = _settings with { Phase = value }); } }
+    public bool RestartOnTrigger { get => _settings.RestartOnTrigger; set => Change(() => _settings = _settings with { RestartOnTrigger = value }); }
+    public bool StopWhenComplete { get => _settings.StopWhenComplete; set => Change(() => _settings = _settings with { StopWhenComplete = value }); }
     private PlaylistNode _settings;
     private PresetItem? _selectedEntry;
     public ObservableCollection<PresetItem> Presets => Editor.Presets;
@@ -78,7 +83,7 @@ public sealed class PlaylistEditorViewModel : NodeEditorViewModel, IWaveformNode
     public override void RefreshLocalization()
     {
         base.RefreshLocalization();
-        foreach (var order in Orders)
+        foreach (var order in Orders.Concat(Channels))
             order.RefreshLocalization();
     }
 }
@@ -168,6 +173,7 @@ public sealed class AudioNodeEditorViewModel : NodeEditorViewModel, IAsyncDispos
     {
         get => _settings.MediaPath ?? ""; set => ChangeSettings(_settings with { MediaPath = value }, nameof(MediaPath));
     }
+    public double NoiseFloorDb { get => _settings.NoiseFloorDb; set { if (double.IsFinite(value)) ChangeSettings(_settings with { NoiseFloorDb = Math.Clamp(value, -90, -30) }, nameof(NoiseFloorDb)); } }
     public double Sensitivity
     {
         get => _settings.Sensitivity; set

@@ -269,7 +269,8 @@ public sealed class PipelineSession : IAsyncDisposable
                 errors.Add(error);
                 continue;
             }
-            var (id, output) = pending[i];
+            var (id, requested) = pending[i];
+            var output = _controller.Connections.GetValueOrDefault(id)?.Output ?? requested;
             _sentPumps[id] = output.Pump;
             _peakA = Math.Max(_peakA, output.ChannelA);
             _peakB = Math.Max(_peakB, output.ChannelB);

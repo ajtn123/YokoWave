@@ -20,7 +20,7 @@
           </ComboBox.ItemTemplate>
         </ComboBox>
         <TextBlock Text="{l:Loc Pipeline.SourceChannel}" Classes="muted" />
-        <NumericUpDown Value="{Binding Channel}" Minimum="0" Maximum="2" Increment="1" />
+        <ComboBox ItemsSource="{Binding Channels}" SelectedItem="{Binding SelectedChannel}"><ComboBox.ItemTemplate><DataTemplate x:DataType="items:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
       </StackPanel>
     </DataTemplate>
     <DataTemplate DataType="vm:GainEditorViewModel">
@@ -42,8 +42,7 @@
           <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PipelineDeviceOption"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
         </ComboBox>
         <TextBlock Text="{l:Loc Pipeline.OutputChannel}" Classes="muted" />
-        <NumericUpDown Value="{Binding Channel}" Minimum="0" Maximum="2" Increment="1" />
-        <components:OutputOptionsView DataContext="{Binding Options}" />
+        <ComboBox ItemsSource="{Binding Channels}" SelectedItem="{Binding SelectedChannel}"><ComboBox.ItemTemplate><DataTemplate x:DataType="items:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
       </StackPanel>
     </DataTemplate>
     <DataTemplate DataType="vm:PumpOutputEditorViewModel">
@@ -59,8 +58,8 @@
       <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
         <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}"><ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PipelineDeviceOption"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
         <components:NativeProgramView DataContext="{Binding NativeEditor}" />
+        <CheckBox Content="{l:Loc Pipeline.StopWhenComplete}" IsChecked="{Binding StopWhenComplete}" />
         <TextBlock Text="{Binding ValidationError}" Classes="muted caption" />
-        <components:OutputOptionsView DataContext="{Binding Options}" />
       </StackPanel>
     </DataTemplate>
     <DataTemplate DataType="vm:SimulatedInputEditorViewModel"><StackPanel Classes="field"><TextBlock Text="{l:Loc Pipeline.SimulatedHelp}" Classes="caption muted" TextWrapping="Wrap" /><NumericUpDown Value="{Binding Value}" /></StackPanel></DataTemplate>
@@ -69,6 +68,7 @@
       <CheckBox Content="{l:Loc Pump.Water}" IsChecked="{Binding Water}" />
       <TextBlock Text="{l:Loc Pump.PeristalticSeconds}" Classes="field-label" /><NumericUpDown Value="{Binding PeristalticSeconds}" Minimum="0" Maximum="65535" />
       <TextBlock Text="{l:Loc Pump.WaterSeconds}" Classes="field-label" /><NumericUpDown Value="{Binding WaterSeconds}" Minimum="0" Maximum="65535" />
+      <CheckBox Content="{l:Loc Pipeline.StopWhenComplete}" IsChecked="{Binding StopWhenComplete}" />
     </StackPanel></DataTemplate>
     <DataTemplate DataType="vm:ConfigurationNodeViewModel"><Panel /></DataTemplate>
     <DataTemplate DataType="vm:CommandNodeEditorViewModel">
@@ -91,6 +91,11 @@
           <ComboBox.ItemTemplate><DataTemplate x:DataType="items:PresetItem"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
         </ComboBox>
         <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
+          <TextBlock Text="{l:Loc Pipeline.SourceChannel}" Classes="field-label" />
+          <ComboBox ItemsSource="{Binding Channels}" SelectedItem="{Binding SelectedChannel}"><ComboBox.ItemTemplate><DataTemplate x:DataType="items:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+          <TextBlock Text="{l:Loc Pipeline.Phase}" Classes="field-label" /><NumericUpDown Value="{Binding Phase}" Increment="0.01" />
+          <CheckBox Content="{l:Loc Pipeline.RestartOnTrigger}" IsChecked="{Binding RestartOnTrigger}" />
+          <CheckBox Content="{l:Loc Pipeline.StopWhenComplete}" IsChecked="{Binding StopWhenComplete}" />
           <ComboBox ItemsSource="{Binding Orders}" SelectedItem="{Binding SelectedOrder}">
             <ComboBox.ItemTemplate><DataTemplate x:DataType="items:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
           </ComboBox>
@@ -131,6 +136,7 @@
         <TextBlock Text="{l:Loc Pipeline.Sensitivity}" Classes="muted" />
         <Slider Minimum="0" Maximum="100" Value="{Binding Sensitivity}" />
         <TextBlock Text="{Binding NoiseFloor}" Classes="caption muted" />
+        <TextBlock Text="{l:Loc Pipeline.NoiseFloor}" Classes="field-label" /><NumericUpDown Value="{Binding NoiseFloorDb}" Minimum="-90" Maximum="-30" />
         <Button Content="{l:Loc Pipeline.Calibrate}" Command="{Binding CalibrateAudioCommand}" />
       </StackPanel>
     </DataTemplate>
@@ -178,12 +184,6 @@
     <Button Content="{l:Loc Pipeline.Boost}" IsVisible="{Binding HasAutomation}" PointerPressed="BoostPressed" PointerReleased="BoostReleased" PointerCaptureLost="BoostLost" KeyDown="BoostKeyDown" KeyUp="BoostKeyUp" LostFocus="BoostFocusLost" />
     <Button Content="{l:Loc Pipeline.ResetAutomation}" Command="{Binding ResetAutomationCommand}" IsVisible="{Binding HasAutomation}" />
     <Button Content="{l:Loc Pipeline.Expand}" Command="{Binding ExpandCommand}" IsVisible="{Binding IsSubgraph}" IsEnabled="{Binding CanEdit}" />
-    <Expander Header="{l:Loc Pipeline.Configuration}">
-      <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
-        <TextBox Text="{Binding ConfigurationJson}" AcceptsReturn="True" TextWrapping="Wrap" Height="{DynamicResource Size.JsonEditorHeight}" />
-        <Button Content="{l:Loc Pipeline.Apply}" Command="{Binding ApplyConfigurationCommand}" />
-      </StackPanel>
-    </Expander>
     <Expander Header="{l:Loc Pipeline.ExposedPorts}">
       <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
         <TextBlock Text="{l:Loc Pipeline.Inputs}" Classes="muted" />

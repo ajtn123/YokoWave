@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text.Json;
 using YokoWave.Core;
 using YokoWave.Core.Localization;
 
@@ -8,11 +7,14 @@ namespace YokoWave.App.ViewModels;
 /// <summary>Editable draft and preview, independent of playback selection and persistence.</summary>
 public sealed class WaveformEditorViewModel : ObservableObject
 {
-    private string _name = "", _points = "0, 0.2, 0.8, 1, 0.8, 0.2, 0", _samples = "[]";
+    private string _name = "", _points = "0, 0.2, 0.8, 1, 0.8, 0.2, 0";
     private WaveShape _shape = WaveShape.Sine;
     private double _period = 4, _frequency = 20;
     private Guid? _editingId;
     public IReadOnlyList<ShapeItem> Shapes { get; } = Enum.GetValues<WaveShape>().Select(shape => new ShapeItem(shape)).ToArray();
+    public WaveformSamplesEditorViewModel Samples { get; private set; }
+    public WaveformEditorViewModel() => Samples = CreateSamples([new(0, 20), new(0, 20)]);
+    private WaveformSamplesEditorViewModel CreateSamples(IEnumerable<WaveformSample> samples) => new(samples, () => Raise(nameof(Preview)));
     public string Name
     {
         get => _name; set
@@ -67,14 +69,6 @@ public sealed class WaveformEditorViewModel : ObservableObject
             Raise(nameof(Preview));
         }
     }
-    public string SamplesJson
-    {
-        get => _samples; set
-        {
-            Set(ref _samples, value);
-            Raise(nameof(Preview));
-        }
-    }
     public WaveformPreset? Preview
     {
         get
@@ -84,14 +78,15 @@ public sealed class WaveformEditorViewModel : ObservableObject
                 var preset = BuildPreset();
                 return preset.TryValidate(out _) ? preset : null;
             }
-            catch (Exception error) when (error is ArgumentException or FormatException or OverflowException or JsonException) { return null; }
+            catch (Exception error) when (error is ArgumentException or FormatException or OverflowException) { return null; }
         }
     }
     public void Clear()
     {
         _editingId = null;
         Name = "";
-        SamplesJson = "[]";
+        Samples = CreateSamples([new(0, 20), new(0, 20)]);
+        Raise(nameof(Samples));
         Shape = WaveShape.Sine;
         PeriodSeconds = 4;
         FrequencyHz = 20;
@@ -102,7 +97,8 @@ public sealed class WaveformEditorViewModel : ObservableObject
         _editingId = selected.IsBuiltIn ? null : preset.Id;
         Name = selected.IsBuiltIn ? L10n.Format("Wave.CopyName", preset.Name) : preset.Name;
         Shape = preset.Shape;
-        SamplesJson = JsonSerializer.Serialize(preset.Samples ?? [], new JsonSerializerOptions { WriteIndented = true });
+        Samples = CreateSamples(preset.Samples ?? [new(0, 20), new(0, 20)]);
+        Raise(nameof(Samples));
         PeriodSeconds = preset.PeriodSeconds;
         FrequencyHz = preset.Frequency;
         PointsText = string.Join(", ", preset.Points?.Select(point => point.ToString("0.###", CultureInfo.InvariantCulture)) ?? ["0", "1", "0"]);
@@ -112,8 +108,7 @@ public sealed class WaveformEditorViewModel : ObservableObject
     {
         var points = Shape == WaveShape.Custom ? PointsText.Split([',', '，', ' ', '\n'], StringSplitOptions.RemoveEmptyEntries)
             .Select(value => double.Parse(value, CultureInfo.InvariantCulture)).ToArray() : null;
-        var samples = IsSampled ? JsonSerializer.Deserialize<WaveformSample[]>(SamplesJson,
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) : null;
+        var samples = IsSampled ? Samples.Snapshot() : null;
         return new(_editingId ?? Guid.NewGuid(), Name.Trim(), Shape, PeriodSeconds, FrequencyHz, points, samples);
     }
 }

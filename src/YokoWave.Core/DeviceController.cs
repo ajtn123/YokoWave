@@ -23,7 +23,7 @@ public sealed class DeviceConnection(DeviceDescriptor device)
 }
 
 /// <summary>Serializes each device's output and lifecycle while independent devices can progress concurrently.</summary>
-public sealed class DeviceController : IAsyncDisposable
+public sealed partial class DeviceController : IAsyncDisposable
 {
     private readonly ConcurrentDictionary<string, DeviceConnection> _connections = new();
     private readonly ConcurrentDictionary<string, Guid> _owners = new();
@@ -336,6 +336,8 @@ public sealed class DeviceController : IAsyncDisposable
             var connection = Get(id);
             if (!AreSimulated([id]) && connection.Device.Profile?.Motion != true)
                 throw new LocalizedOperationException("Error.MotionUnavailable");
+            if (GetOutputSettings(id).Hardware?.Accepts(connection.Device, needsMotion: true) == false)
+                throw new LocalizedOperationException("Error.ProtocolSettings");
             connection.Motion = null;
             if (_transport is IElectricalMotionSource motion)
             {
@@ -396,6 +398,8 @@ public sealed class DeviceController : IAsyncDisposable
                 throw new LocalizedOperationException("Error.DeviceInUse");
             if (connection.Device.Profile?.Supports(command.Capability) != true || _transport is not IDeviceCommandTransport transport)
                 throw new LocalizedOperationException("Error.DeviceFeatures");
+            if (command is ConfigureMotionStream { Enabled: true } && GetOutputSettings(id).Hardware?.Accepts(connection.Device, needsMotion: true) == false)
+                throw new LocalizedOperationException("Error.ProtocolSettings");
             await transport.ExecuteCommandAsync(id, command, ct);
             if (command is ConfigureMotionStream motion)
                 connection.MotionStreaming = motion.Enabled;
@@ -482,6 +486,7 @@ public sealed class DeviceController : IAsyncDisposable
 
     private async Task WriteCoreAsync(DeviceConnection connection, OutputFrame frame, CancellationToken ct)
     {
+        frame = ApplyOutputSettings(connection.Device, frame);
         if (!double.IsFinite(frame.OutputLimit) || frame.OutputLimit is < 0 or > 100)
             throw new LocalizedArgumentException("Error.InvalidSettings");
         frame.Hardware?.Validate();

@@ -122,11 +122,11 @@ internal sealed class RouterOutputProcessor(RouterOutputNode settings) : ISignal
                 return;
             }
             double Level(int channel) => valid ? Math.Min(strength[channel].At(0), limits[channel].At(0)) : 0;
-            context.RouteNative(new(settings.DeviceId, program.Settings, intent.Hardware, intent.DgBalances, intent.Gentle, Limit: settings.Limit), Level(0), Level(1), Level(2), program);
+            context.RouteNative(new(settings.DeviceId, program.Settings, Limit: settings.Limit), Level(0), Level(1), Level(2), program, intent);
             return;
         }
         for (var channel = 0; channel < 3; channel++)
-            context.Channel(new(settings.DeviceId, channel, intent?.Gentle ?? false, intent?.Hardware, intent?.DgBalances, settings.Limit),
-                strength[channel], frequency[channel], width[channel], limits[channel]);
+            context.Channel(new(settings.DeviceId, channel, settings.Limit),
+                strength[channel], frequency[channel], width[channel], limits[channel], intent);
     }
 }

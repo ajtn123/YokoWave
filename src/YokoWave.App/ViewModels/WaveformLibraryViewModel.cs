@@ -120,6 +120,9 @@ public sealed class WaveformLibraryViewModel : ObservableObject, IDisposable
             preset.RefreshLocalization();
         foreach (var shape in WaveformEditor.Shapes)
             shape.RefreshLocalization();
+        foreach (var row in WaveformEditor.Samples.Rows)
+            foreach (var count in row.ChannelCounts)
+                count.RefreshLocalization();
     }
     public void Dispose() => L10n.Current.PropertyChanged -= OnLanguage;
 }

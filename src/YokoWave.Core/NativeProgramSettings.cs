@@ -80,7 +80,7 @@ public sealed record NativeProgramOutput(NativeProgramSettings Settings, double 
     }
 }
 
-/// <summary>Output preferences belong to a mode, while drivers retain only protocol synchronization state.</summary>
+/// <summary>Hardware preferences are stored per device; drivers retain protocol synchronization state.</summary>
 public sealed record HardwareOutputSettings(double ChannelALimit = 100, double ChannelBLimit = 100,
     AuxiliaryMotorMode AuxiliaryMotor = AuxiliaryMotorMode.Off, bool RelativeStrength = false)
 {
@@ -91,7 +91,8 @@ public sealed record HardwareOutputSettings(double ChannelALimit = 100, double C
     }
     public bool Accepts(DeviceDescriptor device, bool needsMotion)
     {
-        if (AuxiliaryMotor != AuxiliaryMotorMode.Off && (needsMotion || device.Profile is { } p && !p.Supports(DeviceCapability.AuxiliaryMotor))) return false;
+        if (AuxiliaryMotor != AuxiliaryMotorMode.Off && (needsMotion || device.Profile is { } p && !p.Supports(DeviceCapability.AuxiliaryMotor)))
+            return false;
         return !RelativeStrength || device.Profile?.Supports(DeviceCapability.RelativeStrength) != false;
     }
 }

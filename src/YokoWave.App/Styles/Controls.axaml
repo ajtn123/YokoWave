@@ -28,6 +28,9 @@
   <Style Selector="ContextMenu">
     <Setter Property="FontFamily" Value="{DynamicResource FontFamily.Ui}" />
   </Style>
+  <Style Selector="Window.input-dialog">
+    <Setter Property="Width" Value="{DynamicResource Size.DialogWidth}" />
+  </Style>
   <Style Selector="Border.card">
     <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />

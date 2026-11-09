@@ -1,0 +1,8 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:l="using:YokoWave.App.Localization"
+        x:Class="YokoWave.App.Views.Pages.ClearLocalDataWindow" Classes="input-dialog" Title="{l:Loc Settings.ClearData}"
+        SizeToContent="Height" CanResize="False" ShowInTaskbar="False" WindowStartupLocation="CenterOwner">
+  <Border Classes="card compact"><StackPanel Classes="items">
+    <TextBlock Text="{l:Loc Settings.ClearDataConfirm}" Classes="help" />
+    <StackPanel Classes="actions" HorizontalAlignment="Right"><Button Content="{l:Loc Dialog.Cancel}" Click="Cancel" IsCancel="True" Classes="small" /><Button Content="{l:Loc Settings.ClearData}" Click="Confirm" IsDefault="False" Classes="small danger" /></StackPanel>
+  </StackPanel></Border>
+</Window>

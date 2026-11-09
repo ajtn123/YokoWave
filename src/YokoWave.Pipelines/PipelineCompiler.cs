@@ -186,10 +186,6 @@ public sealed class PipelineCompiler(NodeTypeRegistry registry)
     {
         var nodes = source.ToArray();
         List<DeviceOutputBinding> bindings = [];
-        var channelOptions = nodes.Where(n => n.Configuration is ChannelOutputNode).Select(n => (ChannelOutputNode)n.Configuration).GroupBy(n => n.DeviceId);
-        foreach (var group in channelOptions)
-            if (group.Select(n => (n.Gentle, Hardware: n.Hardware ?? new(), Balances: n.Balances ?? new())).Distinct().Count() > 1)
-                errors.Add(new("Pipeline.Error.DeviceOptions"));
         foreach (var node in nodes)
         {
             foreach (var binding in node.Registration.Resources(node.Configuration))
@@ -197,9 +193,7 @@ public sealed class PipelineCompiler(NodeTypeRegistry registry)
                 if (bindings.Any(b => Conflicts(b, binding)))
                     errors.Add(new("Pipeline.Error.DuplicateOutput", node.Id));
                 bindings.Add(binding);
-                var needsMotion = nodes.Any(n => n.Configuration is SensorNode sensor && sensor.DeviceId == binding.DeviceId ||
-                    n.Configuration is CommandNode command && command.DeviceId == binding.DeviceId && command.Command is ConfigureMotionStream { Enabled: true });
-                if (devices is not null && (!devices.TryGetValue(binding.DeviceId, out var device) || !Accepts(binding, device) || !AcceptsConfiguration(node.Configuration, device, needsMotion)))
+                if (devices is not null && (!devices.TryGetValue(binding.DeviceId, out var device) || !Accepts(binding, device) || !AcceptsConfiguration(node.Configuration, device)))
                     errors.Add(new("Pipeline.Error.Device", node.Id));
             }
         }
@@ -216,10 +210,9 @@ public sealed class PipelineCompiler(NodeTypeRegistry registry)
         var bOutput = b.Kind is OutputBindingKind.Channel or OutputBindingKind.Pump or OutputBindingKind.Native or OutputBindingKind.Router;
         return aOutput && bOutput && (a.Kind != OutputBindingKind.Channel || b.Kind != OutputBindingKind.Channel || a.Channel == b.Channel);
     }
-    private static bool AcceptsConfiguration(object config, DeviceDescriptor device, bool needsMotion) => config switch
+    private static bool AcceptsConfiguration(object config, DeviceDescriptor device) => config switch
     {
-        NativeOutputNode native => (native.Settings ?? new()).Accepts(device) && native.Hardware?.Accepts(device, needsMotion) != false,
-        ChannelOutputNode channel => channel.Hardware?.Accepts(device, needsMotion) != false,
+        NativeOutputNode native => (native.Settings ?? new()).Accepts(device),
         CommandNode command => device.Profile?.Supports(command.Command.Capability) == true,
         _ => true
     };

@@ -25,6 +25,10 @@
     <Setter Property="MaxHeight" Value="{DynamicResource Size.WaveListMaxHeight}" />
     <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
   </Style>
+  <Style Selector="ListBox.sequence-editor">
+    <Setter Property="MaxHeight" Value="{DynamicResource Size.PlaylistMaxHeight}" />
+    <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+  </Style>
   <Style Selector="ComboBox.language-picker">
     <Setter Property="MinWidth" Value="{DynamicResource Size.LanguagePickerMinWidth}" />
   </Style>

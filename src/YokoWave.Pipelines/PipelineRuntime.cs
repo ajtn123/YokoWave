@@ -41,10 +41,10 @@ public sealed class NodeEvaluationContext
     public void Command(string deviceId, Core.Bluetooth.DeviceCommand command) => _runtime.Commands.Add(new(deviceId, command));
     internal void Native(NativeOutputNode binding, double a, double b, double c, NativeProgramSettings program) =>
         _runtime.Outputs.Native(binding with { Limit = _runtime.Outputs.Limit(NodeId, binding.Limit) }, a, b, c, program, Elapsed);
-    internal void RouteNative(NativeOutputNode binding, double a, double b, double c, NativeProgramOutput program) =>
-        _runtime.Outputs.Native(binding with { Limit = _runtime.Outputs.Limit(NodeId, binding.Limit) }, a, b, c, program.Settings, TimeSpan.FromSeconds(program.ElapsedSeconds), program.RemainingSeconds);
-    internal void Channel(ChannelOutputNode binding, NumericSignal strength, NumericSignal frequency, NumericSignal width, NumericSignal limit) =>
-        _runtime.Outputs.Channel(binding with { Limit = _runtime.Outputs.Limit(NodeId, binding.Limit) }, strength, frequency, width, limit, Now);
+    internal void RouteNative(NativeOutputNode binding, double a, double b, double c, NativeProgramOutput program, OutputFrame? options = null) =>
+        _runtime.Outputs.Native(binding with { Limit = _runtime.Outputs.Limit(NodeId, binding.Limit) }, a, b, c, program.Settings, TimeSpan.FromSeconds(program.ElapsedSeconds), program.RemainingSeconds, options);
+    internal void Channel(ChannelOutputNode binding, NumericSignal strength, NumericSignal frequency, NumericSignal width, NumericSignal limit, OutputFrame? options = null) =>
+        _runtime.Outputs.Channel(binding with { Limit = _runtime.Outputs.Limit(NodeId, binding.Limit) }, strength, frequency, width, limit, Now, options);
     internal void Pump(PumpOutputNode binding, NumericSignal direction, NumericSignal water, NumericSignal peristalticSeconds, NumericSignal waterSeconds) =>
         _runtime.Outputs.Pump(binding with { Limit = _runtime.Outputs.Limit(NodeId, binding.Limit) }, direction, water, peristalticSeconds, waterSeconds, Now);
 }

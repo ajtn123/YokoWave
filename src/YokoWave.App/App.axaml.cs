@@ -23,8 +23,15 @@ public sealed partial class App : Application
         }
         var dataDirectory = Environment.GetEnvironmentVariable("YOKOWAVE_DATA_DIR")
             ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "YokoWave");
+        void ReplaceViewModel(MainViewModel replacement)
+        {
+            if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktopLifetime && desktopLifetime.MainWindow is { } mainWindow)
+                mainWindow.DataContext = replacement;
+            else if (ApplicationLifetime is ISingleViewApplicationLifetime singleLifetime && singleLifetime.MainView is { } mainView)
+                mainView.DataContext = replacement;
+        }
         var viewModel = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(dataDirectory),
-            () => new BluetoothDeviceTransport(BluetoothAdapterFactory()), AudioInputFactory);
+            () => new BluetoothDeviceTransport(BluetoothAdapterFactory()), AudioInputFactory, ReplaceViewModel);
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var window = new MainWindow { DataContext = viewModel };

@@ -14,7 +14,9 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private readonly DeviceController _controller;
     private readonly WorkspaceStore _store;
     private string _page = "pipelines";
-    private bool _initialized, _disposed, _isError;
+    private bool _initialized, _disposed, _isError, _persistenceClosed;
+    private bool _resetting;
+    public bool IsResetting { get => _resetting; private set => Set(ref _resetting, value); }
     private LocalizedMessage _status = new("Status.NoDevice", []);
     private Exception? _error;
     public DevicesPaneViewModel Devices { get; }
@@ -50,7 +52,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public ICommand HelpCommand { get; }
     public AsyncCommand EmergencyStopCommand { get; }
 
-    public MainViewModel(DeviceController controller, WorkspaceStore store, Func<IDeviceTransport>? bluetoothFactory = null, IAudioInputFactory? audioInputFactory = null)
+    public MainViewModel(DeviceController controller, WorkspaceStore store, Func<IDeviceTransport>? bluetoothFactory = null, IAudioInputFactory? audioInputFactory = null,
+        Action<MainViewModel>? replaceViewModel = null)
     {
         _controller = controller;
         _store = store;
@@ -58,7 +61,30 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         Devices = new(controller, bluetoothFactory ?? (() => new BluetoothDeviceTransport(new UnsupportedBluetoothAdapter())), SaveAsync,
             (id, reason) => Pipelines!.StopForDeviceAsync(id, reason), reason => StopAllAsync(reason),
             owner => Pipelines!.Pipelines.FirstOrDefault(p => p.Session.OwnerId == owner)?.Name, ShowError, NotifyArguments);
-        Settings = new(store.DirectoryPath, Devices, () => Pipelines!.IsAnyRunning, () => Pipelines!.RefreshTimerLimit(), SaveAsync, ShowError);
+        Settings = new(store.DirectoryPath, Devices, () => Pipelines!.IsAnyRunning, () => Pipelines!.RefreshTimerLimit(), SaveAsync, ShowError,
+            replaceViewModel is null ? null : async () =>
+            {
+                IsResetting = true;
+                Exception? failure = null;
+                try
+                {
+                    await DisposeAsync();
+                    await store.ClearAsync();
+                }
+                catch (Exception error) { failure = error; }
+                var replacement = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(store.DirectoryPath), bluetoothFactory, audioInputFactory, replaceViewModel);
+                replaceViewModel(replacement);
+                try
+                {
+                    await replacement.InitializeAsync();
+                    await replacement.NavigateAsync("settings");
+                }
+                catch (Exception error) { failure = failure is null ? error : new LocalizedAggregateException("Error.Cleanup", [failure, error]); }
+                if (failure is not null)
+                    replacement.ShowError(failure);
+                else
+                    replacement.Notify("Status.LocalDataCleared");
+            });
         Waveforms = new(presets => SaveAsync(presets), id => Pipelines!.UsesWaveform(id), () => Pipelines!.RefreshWaveforms(), async waveform =>
         {
             if (Pipelines!.Selected?.UseWaveform(waveform) != true)
@@ -106,7 +132,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public Task SaveAsync() => SaveAsync(null);
     public async Task SaveAsync(IReadOnlyList<WaveformPreset>? assets)
     {
-        if (!_initialized || Waveforms.Presets.Count == 0)
+        if (_persistenceClosed || !_initialized || Waveforms.Presets.Count == 0)
             return;
         await _store.SaveAsync(new(WorkspaceData.CurrentSchema,
             (assets ?? Waveforms.Presets.Select(p => p.Preset).ToArray()).Where(p => !DefaultWaveformCatalog.Contains(p.Id)).ToList(),
@@ -185,6 +211,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             await SaveAsync();
         }
         catch (Exception error) { errors.Add(error); }
+        _persistenceClosed = true;
         Pipelines.PropertyChanged -= OnPipelinesChanged;
         L10n.Current.PropertyChanged -= OnLanguageChanged;
         Settings.Dispose();

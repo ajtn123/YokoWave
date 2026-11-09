@@ -1,0 +1,10 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:YokoWave.App.ViewModels"
+             xmlns:l="using:YokoWave.App.Localization" x:Class="YokoWave.App.Views.Components.FrequencySequenceEditorView" x:DataType="vm:FrequencySequenceEditorViewModel">
+  <StackPanel Classes="field">
+    <Grid ColumnDefinitions="*,*" Classes="columns"><TextBlock Text="{l:Loc Wave.Frequency}" Classes="field-label" /><TextBlock Grid.Column="1" Text="{l:Loc Touch.PulseWidth}" Classes="field-label" /></Grid>
+    <ListBox ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}" Classes="sequence-editor"><ListBox.ItemTemplate><DataTemplate x:DataType="vm:FrequencyPulseRow">
+      <Grid ColumnDefinitions="*,*" Classes="columns"><NumericUpDown Value="{Binding FrequencyHz}" Minimum="1" Maximum="100" /><NumericUpDown Grid.Column="1" Value="{Binding PulseWidth}" Minimum="0" Maximum="100" /></Grid>
+    </DataTemplate></ListBox.ItemTemplate></ListBox>
+    <WrapPanel Classes="pipeline-toolbar"><Button Content="{l:Loc Sequence.Add}" Command="{Binding AddCommand}" Classes="small" /><Button Content="{l:Loc Sequence.Remove}" Command="{Binding RemoveCommand}" Classes="small" /><Button Content="{l:Loc Pipeline.MoveUp}" Command="{Binding MoveUpCommand}" Classes="small" /><Button Content="{l:Loc Pipeline.MoveDown}" Command="{Binding MoveDownCommand}" Classes="small" /></WrapPanel>
+  </StackPanel>
+</UserControl>

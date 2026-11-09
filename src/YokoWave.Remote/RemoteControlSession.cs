@@ -55,12 +55,14 @@ internal sealed class RemoteControlSession(DeviceController devices, Guid owner,
                     method == "control.pump" && request.Program.Kind != RemotePlaybackKind.Pump ||
                     method == "control.playlist" && request.Program.Playlist is not { Count: > 0 })
                     throw new RemoteRpcException(-32602, "Error.PlaybackSettings");
+                await ConfigureOutputs(request.Program.Gentle, request.Program.Hardware, request.Program.Balances, ct);
                 await Start(RemotePipelineProgram.Playback(Devices, request, maximum), ct);
                 return true;
             case "control.output":
                 var frame = RemoteProtocol.Parameter<OutputFrame>(parameters, "frame");
                 if (!double.IsFinite(frame.OutputLimit) || frame.OutputLimit is < 0 or > 100)
                     throw new RemoteRpcException(-32602, "Error.InvalidSettings");
+                await ConfigureOutputs(frame.Gentle, frame.Hardware, frame.DgBalances, ct);
                 _frame = frame with
                 {
                     OutputLimit = Math.Min(maximum, frame.OutputLimit)
@@ -138,6 +140,19 @@ internal sealed class RemoteControlSession(DeviceController devices, Guid owner,
             _session.Inputs!.Frames[source] = _frame;
             await _session.FlushAsync();
         }
+    }
+    private async Task ConfigureOutputs(bool gentle, HardwareOutputSettings? hardware, DgBalanceSettings? balances, CancellationToken ct)
+    {
+        var settings = Devices.Select(device => (Device: device, Settings: new DeviceOutputSettings(device.Id, gentle, hardware, balances))).ToArray();
+        foreach (var item in settings)
+        {
+            item.Settings.Validate();
+            if (!item.Settings.Accepts(item.Device))
+                throw new RemoteRpcException(-32602, "Error.ProtocolSettings");
+        }
+        foreach (var item in settings)
+            if (devices.GetOutputSettings(item.Device.Id) != item.Settings)
+                await devices.SetOutputSettingsAsync(item.Device, item.Settings, ct, owner);
     }
     private double Clamp(double value) => double.IsFinite(value) && value >= 0 ? Math.Min(value, maximum) : throw new RemoteRpcException(-32602, "Error.InvalidSettings");
     public Task Tick()

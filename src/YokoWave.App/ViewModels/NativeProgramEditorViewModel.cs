@@ -6,17 +6,18 @@ namespace YokoWave.App.ViewModels;
 public sealed class NativeProgramEditorViewModel : ObservableObject
 {
     private NativeProgramSettings _settings;
-    private string _bufferA, _bufferB;
+    public FrequencySequenceEditorViewModel BufferA { get; }
+    public FrequencySequenceEditorViewModel BufferB { get; }
     private readonly Func<bool> _canEdit;
-    public IReadOnlyList<SessionOption> Kinds
-    { get; } = Enum.GetValues<NativeProgramKind>()
-        .Select(kind => new SessionOption((int)kind, $"NativeKind.{kind}")).ToArray();
-    public SessionOption SelectedKind
+    public System.Collections.ObjectModel.ObservableCollection<SessionOption> Kinds { get; } = new(Enum.GetValues<NativeProgramKind>()
+        .Select(kind => new SessionOption((int)kind, $"NativeKind.{kind}")));
+    public SessionOption? SelectedKind
     {
-        get => Kinds.First(option => option.Value == (int)_settings.Kind);
+        get => Kinds.FirstOrDefault(option => option.Value == (int)_settings.Kind);
         set
         {
-            if (!_canEdit() || value is null) return;
+            if (!_canEdit() || value is null)
+                return;
             Change(_settings with { Kind = (NativeProgramKind)value.Value });
             Refresh();
         }
@@ -78,30 +79,14 @@ public sealed class NativeProgramEditorViewModel : ObservableObject
         get => _settings.Repeat;
         set => Change(_settings with { Repeat = value });
     }
-    public string BufferA
-    {
-        get => _bufferA;
-        set
-        {
-            if (_canEdit() && Set(ref _bufferA, value)) Raise(nameof(Settings));
-        }
-    }
-    public string BufferB
-    {
-        get => _bufferB;
-        set
-        {
-            if (_canEdit() && Set(ref _bufferB, value)) Raise(nameof(Settings));
-        }
-    }
     public NativeProgramSettings Settings
     {
         get
         {
             var settings = IsBuffered ? _settings with
             {
-                BufferA = SettingsJson.Read<FrequencyPulse[]>(_bufferA),
-                BufferB = SettingsJson.Read<FrequencyPulse[]>(_bufferB)
+                BufferA = BufferA.Snapshot(),
+                BufferB = BufferB.Snapshot()
             } : _settings;
             settings.Validate();
             return settings.Snapshot();
@@ -126,18 +111,31 @@ public sealed class NativeProgramEditorViewModel : ObservableObject
     {
         _settings = settings ?? new();
         _canEdit = canEdit;
-        _bufferA = SettingsJson.Write(_settings.BufferA ?? [new FrequencyPulse()]);
-        _bufferB = SettingsJson.Write(_settings.BufferB ?? [new FrequencyPulse()]);
+        BufferA = new(_settings.BufferA ?? [new FrequencyPulse()], canEdit, () => Raise(nameof(Settings)));
+        BufferB = new(_settings.BufferB ?? [new FrequencyPulse()], canEdit, () => Raise(nameof(Settings)));
+    }
+    public void ConfigureDevice(DeviceDescriptor? device)
+    {
+        var kinds = Enum.GetValues<NativeProgramKind>().Where(kind => device is null || new NativeProgramSettings(kind).Accepts(device)).ToArray();
+        if (Kinds.Select(k => k.Value).SequenceEqual(kinds.Select(k => (int)k)))
+            return;
+        Kinds.Clear();
+        foreach (var kind in kinds)
+            Kinds.Add(new((int)kind, "NativeKind." + kind));
+        Raise(nameof(SelectedKind));
     }
     private void Change(NativeProgramSettings settings)
     {
-        if (!_canEdit() || _settings == settings) return;
+        if (!_canEdit() || _settings == settings)
+            return;
         _settings = settings;
         Raise(nameof(Settings));
     }
     public void Refresh()
     {
-        foreach (var option in Kinds) option.RefreshLocalization();
-        foreach (var name in new[] { nameof(SelectedKind), nameof(IsPreset), nameof(IsMotor), nameof(IsBuffered), nameof(IsPulse), nameof(MaximumPreset) }) Raise(name);
+        foreach (var option in Kinds)
+            option.RefreshLocalization();
+        foreach (var name in new[] { nameof(SelectedKind), nameof(IsPreset), nameof(IsMotor), nameof(IsBuffered), nameof(IsPulse), nameof(MaximumPreset) })
+            Raise(name);
     }
 }

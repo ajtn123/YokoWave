@@ -1,0 +1,25 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:YokoWave.App.ViewModels"
+             xmlns:l="using:YokoWave.App.Localization" x:Class="YokoWave.App.Views.Components.DeviceHardwareOptionsView" x:DataType="vm:DeviceHardwareOptionsViewModel">
+    <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
+      <TextBlock Text="{l:Loc Hardware.Title}" Classes="section-title" />
+      <CheckBox Content="{l:Loc Estim.Gentle}" IsChecked="{Binding Gentle}" IsVisible="{Binding HasGentle}" />
+      <StackPanel Classes="field" IsVisible="{Binding HasAuxiliary}">
+        <TextBlock Text="{l:Loc Hardware.AuxiliaryMotor}" Classes="field-label" />
+        <ComboBox ItemsSource="{Binding AuxiliaryModes}" SelectedItem="{Binding AuxiliaryMode}"><ComboBox.ItemTemplate><DataTemplate x:DataType="vm:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+        <TextBlock Text="{l:Loc Hardware.AuxiliaryHelp}" Classes="caption muted" TextWrapping="Wrap" />
+      </StackPanel>
+      <CheckBox Content="{l:Loc Hardware.Relative}" IsChecked="{Binding RelativeStrength}" IsVisible="{Binding HasRelative}" />
+      <StackPanel Classes="field" IsVisible="{Binding HasLimits}">
+        <TextBlock Text="{l:Loc Hardware.LimitA}" Classes="field-label" /><NumericUpDown Value="{Binding LimitA}" Minimum="0" Maximum="100" />
+        <TextBlock Text="{l:Loc Hardware.LimitB}" Classes="field-label" /><NumericUpDown Value="{Binding LimitB}" Minimum="0" Maximum="100" />
+      </StackPanel>
+      <StackPanel Classes="field" IsVisible="{Binding HasBalances}">
+        <TextBlock Text="{l:Loc Dg.Balances}" Classes="card-title" />
+        <TextBlock Text="{l:Loc Dg.FrequencyA}" Classes="field-label" /><NumericUpDown Value="{Binding FrequencyA}" Minimum="0" Maximum="255" />
+        <TextBlock Text="{l:Loc Dg.FrequencyB}" Classes="field-label" /><NumericUpDown Value="{Binding FrequencyB}" Minimum="0" Maximum="255" />
+        <TextBlock Text="{l:Loc Dg.WidthA}" Classes="field-label" /><NumericUpDown Value="{Binding WidthA}" Minimum="0" Maximum="255" />
+        <TextBlock Text="{l:Loc Dg.WidthB}" Classes="field-label" /><NumericUpDown Value="{Binding WidthB}" Minimum="0" Maximum="255" />
+      </StackPanel>
+      <Button Content="{l:Loc Pipeline.Apply}" Command="{Binding ApplyCommand}" Classes="small" />
+    </StackPanel>
+</UserControl>

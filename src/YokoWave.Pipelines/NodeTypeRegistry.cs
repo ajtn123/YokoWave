@@ -63,8 +63,7 @@ public sealed record ConstantNode(double Value = 0);
 public sealed record WaveformNode(Guid WaveformId, int Channel = 0);
 public sealed record GainNode(double Gain = 1);
 public sealed record LimitNode(double Limit = .6);
-public sealed record ChannelOutputNode(string DeviceId = "", int Channel = 0, bool Gentle = false,
-    HardwareOutputSettings? Hardware = null, DgBalanceSettings? Balances = null, double Limit = .6);
+public sealed record ChannelOutputNode(string DeviceId = "", int Channel = 0, double Limit = .6);
 public sealed record PumpOutputNode(string DeviceId = "", double Limit = 1);
 
 public static partial class BuiltInNodes

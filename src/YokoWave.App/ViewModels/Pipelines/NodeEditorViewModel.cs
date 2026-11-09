@@ -43,7 +43,7 @@ public abstract class NodeEditorViewModel : ObservableObject
 {
     private Point _location;
     private bool _selected;
-    private string? _configurationJson;
+    private JsonElement? _draftConfiguration;
     private bool _boost;
     private double _strengthLimit;
     public bool HasStrengthLimit => BuiltInNodes.IsOutput(Type);
@@ -95,11 +95,6 @@ public abstract class NodeEditorViewModel : ObservableObject
     }
     public bool IsSelected { get => _selected; set => Set(ref _selected, value); }
     public bool CanEdit => Editor.CanEdit;
-    public string ConfigurationJson
-    {
-        get => _configurationJson ?? JsonSerializer.Serialize(ToDefinition().Configuration, new JsonSerializerOptions { WriteIndented = true });
-        set => Set(ref _configurationJson, value);
-    }
     public string StatusText => Editor.Session.NodeStatus.TryGetValue(Id, out var status)
         ? L10n.Format("Pipeline.NodeStatus", L10n.Get("InputPhase." + status.Phase), status.Level, status.Count, Math.Ceiling(status.RemainingSeconds)) : "";
     public AsyncCommand ApplyConfigurationCommand { get; }
@@ -123,13 +118,12 @@ public abstract class NodeEditorViewModel : ObservableObject
         Id = definition.Id;
         Type = definition.Type;
         _strengthLimit = HasStrengthLimit ? (definition.Configuration.TryGetProperty("Limit", out var limit) ? limit.GetDouble() : Type == BuiltInNodes.PumpOutput ? 1 : .6) : 1;
-        Parameters = NodeParameterForm.Create(definition, json => ConfigurationJson = json);
+        Parameters = NodeParameterForm.Create(definition, json => _draftConfiguration = JsonSerializer.Deserialize<JsonElement>(json));
         ApplyConfigurationCommand = new(() =>
         {
-            using var json = JsonDocument.Parse(ConfigurationJson);
             var updated = definition with
             {
-                Configuration = json.RootElement.Clone()
+                Configuration = _draftConfiguration ?? ToDefinition().Configuration
             };
             var registration = editor.Registry.Get(Type);
             if (!registration.Validate(registration.Read(updated.Configuration)))
@@ -148,8 +142,7 @@ public abstract class NodeEditorViewModel : ObservableObject
     protected void Change(Action change, bool live = false) => Editor.Edit(() =>
     {
         change();
-        _configurationJson = null;
-        Raise(nameof(ConfigurationJson));
+        _draftConfiguration = null;
     }, live: live);
     internal void MarkExposureChanged() => Editor.MarkEdited();
     public virtual void RefreshLocalization()
@@ -197,6 +190,8 @@ public interface IWaveformNodeEditor
 }
 public sealed class WaveformEditorNodeViewModel : NodeEditorViewModel, IWaveformNodeEditor
 {
+    public IReadOnlyList<SessionOption> Channels { get; } = ChannelChoices.Create();
+    public SessionOption? SelectedChannel { get => Channels.FirstOrDefault(c => c.Value == Channel); set { if (value is not null) Channel = value.Value; } }
     private Guid _waveformId;
     private int _channel;
     public override string Summary => SelectedPreset?.Name ?? L10n.Get("Pipeline.Error.Waveform");
@@ -234,6 +229,12 @@ public sealed class WaveformEditorNodeViewModel : NodeEditorViewModel, IWaveform
     {
         SelectedPreset = preset;
         return true;
+    }
+    public override void RefreshLocalization()
+    {
+        base.RefreshLocalization();
+        foreach (var channel in Channels)
+            channel.RefreshLocalization();
     }
 }
 
@@ -284,25 +285,28 @@ public abstract class DeviceOutputEditorViewModel : NodeEditorViewModel
         set
         {
             if (value is not null && value.Id != _deviceId)
+            {
                 Change(() => { _deviceId = value.Id; Raise(); });
+                RefreshDevices();
+            }
         }
     }
-    internal void RefreshDevices() => Raise(nameof(SelectedDevice));
+    internal virtual void RefreshDevices() => Raise(nameof(SelectedDevice));
 }
 
 public sealed class ChannelOutputEditorViewModel : DeviceOutputEditorViewModel
 {
-    private void SaveOptions() => Change(() => _settings = _settings with { Gentle = Options.Gentle, Hardware = Options.Hardware.Settings, Balances = Options.Balances });
+    public ObservableCollection<SessionOption> Channels { get; } = [];
+    public SessionOption? SelectedChannel { get => Channels.FirstOrDefault(c => c.Value == Channel); set { if (value is not null) Channel = value.Value; } }
 
     private int _channel;
     private ChannelOutputNode _settings;
-    public OutputOptionsViewModel Options { get; }
     public ChannelOutputEditorViewModel(PipelineEditorViewModel editor, NodeDefinition definition) : base(editor, definition,
         ((ChannelOutputNode)editor.Registry.Get(definition.Type).Read(definition.Configuration)).DeviceId)
     {
         _settings = (ChannelOutputNode)editor.Registry.Get(Type).Read(definition.Configuration);
         _channel = _settings.Channel;
-        Options = new(_settings.Gentle, _settings.Hardware, _settings.Balances, () => CanEdit, SaveOptions);
+        RefreshDevices();
     }
     public int Channel
     {
@@ -314,6 +318,24 @@ public sealed class ChannelOutputEditorViewModel : DeviceOutputEditorViewModel
         }
     }
     protected override NodeDefinition BuildDefinition() => NodeDefinition.Create(Type, _settings with { DeviceId = DeviceId, Channel = Channel }, Id);
+    internal override void RefreshDevices()
+    {
+        base.RefreshDevices();
+        var channels = Editor.FindDevice(DeviceId) is { } device ? ChannelChoices.Create(device) : [];
+        if (!Channels.Select(c => c.Value).SequenceEqual(channels.Select(c => c.Value)))
+        {
+            Channels.Clear();
+            foreach (var channel in channels)
+                Channels.Add(channel);
+        }
+        Raise(nameof(SelectedChannel));
+    }
+    public override void RefreshLocalization()
+    {
+        base.RefreshLocalization();
+        foreach (var channel in Channels)
+            channel.RefreshLocalization();
+    }
 }
 
 public sealed class PumpOutputEditorViewModel(PipelineEditorViewModel editor, NodeDefinition definition) : DeviceOutputEditorViewModel(editor, definition,

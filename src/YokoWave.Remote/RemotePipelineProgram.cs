@@ -53,7 +53,7 @@ internal sealed record RemotePipelineProgram(PipelineDocument Graph, WaveformPre
             }
             if (settings.Kind == RemotePlaybackKind.NativeProgram)
             {
-                var sink = builder.Add(BuiltInNodes.NativeOutput, new NativeOutputNode(device.Id, settings.NativeProgram, settings.Hardware, settings.Balances, settings.Gentle, Limit: Math.Min(maximum, settings.OutputLimit) / 100));
+                var sink = builder.Add(BuiltInNodes.NativeOutput, new NativeOutputNode(device.Id, settings.NativeProgram, Limit: Math.Min(maximum, settings.OutputLimit) / 100));
                 for (var channel = 0; channel < 3; channel++)
                     if (device.HasChannel(channel))
                         builder.Connect(Strength(channel), "value", sink, "strength" + (char)('A' + channel));
@@ -69,7 +69,7 @@ internal sealed record RemotePipelineProgram(PipelineDocument Graph, WaveformPre
                 var strength = Strength(channel);
                 var automation = builder.Add(BuiltInNodes.Automation, new AutomationNode(settings.Strength ?? new()));
                 var gain = builder.Add(BuiltInNodes.Gain, new GainNode());
-                var output = builder.Add(BuiltInNodes.ChannelOutput, new ChannelOutputNode(device.Id, channel, settings.Gentle, settings.Hardware, settings.Balances, Math.Min(maximum, settings.OutputLimit) / 100));
+                var output = builder.Add(BuiltInNodes.ChannelOutput, new ChannelOutputNode(device.Id, channel, Math.Min(maximum, settings.OutputLimit) / 100));
                 builder.Connect(strength, "value", automation, "value");
                 builder.Connect(automation, "value", gain, "gain");
                 builder.Connect(wave, "level", gain, "value");

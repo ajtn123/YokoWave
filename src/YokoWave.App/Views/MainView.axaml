@@ -6,7 +6,7 @@
              xmlns:pipelines="using:YokoWave.App.Views.Pipelines"
              x:Class="YokoWave.App.Views.MainView"
              x:DataType="vm:MainViewModel"
-             Background="{DynamicResource CanvasBrush}">
+             Background="{DynamicResource CanvasBrush}" IsEnabled="{Binding !IsResetting}">
   <Grid x:Name="Shell" ColumnDefinitions="Auto,*">
     <Border x:Name="Sidebar" Classes="sidebar">
       <Grid RowDefinitions="Auto,*,Auto" Margin="{DynamicResource Margin.Sidebar}">

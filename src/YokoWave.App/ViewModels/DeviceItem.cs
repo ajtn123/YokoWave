@@ -13,6 +13,7 @@ public sealed class DeviceItem : ObservableObject
     private double _outputB;
     private double _outputC;
     public DeviceDescriptor Device { get; private set; }
+    public DeviceHardwareOptionsViewModel? HardwareOptions { get; init; }
     public string Name => Device.Name;
     public string Id => Device.Id;
     public string Kind => Device.KindLabel;

@@ -97,6 +97,23 @@ public sealed class WorkspaceStore(string directory)
         finally { _gate.Release(); }
     }
 
+    public async Task ClearAsync()
+    {
+        await _gate.WaitAsync();
+        try
+        {
+            foreach (var name in new[] { "workspace.json", "settings.json", "waveforms.json", "pipelines.json", "pipeline-presets.json", "sessions.jsonl", "sessions.1.jsonl", "modes.json", "presets.json" })
+            {
+                File.Delete(Path.Combine(DirectoryPath, name));
+                File.Delete(Path.Combine(DirectoryPath, name + ".tmp"));
+            }
+            _loaded = false;
+            _loadFailed = false;
+            Statistics = new();
+        }
+        finally { _gate.Release(); }
+    }
+
     private static async Task WriteAtomicAsync<T>(string path, T data)
     {
         var temporary = path + ".tmp";
@@ -142,6 +159,13 @@ public sealed class WorkspaceStore(string directory)
         if (data.Statistics is { } statistics && (statistics.SessionCount < 0 || !double.IsFinite(statistics.TotalDurationSeconds) || statistics.TotalDurationSeconds < 0))
             throw new LocalizedArgumentException("Error.InvalidRecords");
         var settings = data.Settings;
+        if (settings.DeviceOutputs is { } outputs)
+        {
+            if (outputs.Any(o => o is null) || outputs.Select(o => o.DeviceId).Distinct(StringComparer.Ordinal).Count() != outputs.Count)
+                throw new LocalizedArgumentException("Error.InvalidSettings");
+            foreach (var output in outputs)
+                output.Validate();
+        }
         if (settings.AutoConnectDevices is { } devices && (devices.Count > 256 || devices.Any(id => string.IsNullOrWhiteSpace(id) || id.Length > 512) ||
             devices.Distinct(StringComparer.Ordinal).Count() != devices.Count))
             throw new LocalizedArgumentException("Error.InvalidSettings");

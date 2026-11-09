@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:YokoWave.App.ViewModels" xmlns:l="using:YokoWave.App.Localization"
              x:Class="YokoWave.App.Views.Components.DeviceFeaturesView" x:DataType="vm:DevicesPaneViewModel">
-  <StackPanel Classes="field">
+  <StackPanel Classes="field" IsVisible="{Binding HasDeviceFeatures}">
     <TextBlock Text="{Binding FirmwareLabel}" Classes="muted caption" />
     <Grid ColumnDefinitions="*,Auto,Auto" Classes="columns">
       <TextBlock Text="{Binding LightLabel}" VerticalAlignment="Center" Classes="label" />

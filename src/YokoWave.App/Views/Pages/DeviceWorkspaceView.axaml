@@ -17,6 +17,7 @@
           <TextBlock Text="{Binding SelectedContacts}" IsVisible="{Binding HasElectrodeReadings}" Classes="caption muted" />
           <TextBlock Text="{Binding DeviceHelp}" Classes="caption muted" TextWrapping="Wrap" />
           <components:DeviceFeaturesView />
+          <ItemsControl ItemsSource="{Binding HardwareSelection}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:DeviceHardwareOptionsViewModel"><components:DeviceHardwareOptionsView /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
         </StackPanel>
       </Border>
       <components:DeviceTelemetryView DataContext="{Binding Telemetry}" />

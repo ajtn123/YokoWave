@@ -148,12 +148,13 @@ public sealed record SessionRecord(Guid Id, DateTimeOffset StartedAt, double Dur
     double? PeakC = null, IReadOnlyList<PipelineContentRecord>? Contents = null);
 
 public sealed record AppSettings(double DefaultLimit = 60, string? Language = null, bool UseBluetooth = false, int TimerLimitMinutes = 120,
-    List<RemoteEndpointSettings>? RemoteEndpoints = null, bool ShowContacts = true, bool AutoConnect = false, List<string>? AutoConnectDevices = null);
+    List<RemoteEndpointSettings>? RemoteEndpoints = null, bool ShowContacts = true, bool AutoConnect = false, List<string>? AutoConnectDevices = null,
+    List<DeviceOutputSettings>? DeviceOutputs = null);
 
 public sealed record WorkspaceData(int SchemaVersion, List<WaveformPreset> Presets,
     List<SessionRecord> Sessions, AppSettings Settings, SessionStatistics? Statistics = null)
 {
-    public const int CurrentSchema = 9;
+    public const int CurrentSchema = 10;
     public static WorkspaceData Empty => new(CurrentSchema, [], [], new(), new());
 }
 

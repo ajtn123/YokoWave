@@ -37,6 +37,7 @@ public sealed class DevicesPaneViewModel : ObservableObject, IAsyncDisposable
         }
     }
     public List<string> AutoConnectDevices => _autoConnector.RememberedDevices.ToList();
+    public List<DeviceOutputSettings> OutputSettings => _controller.OutputSettings.ToList();
     public DeviceTelemetryViewModel Telemetry { get; }
     public ProtocolFeaturesViewModel ProtocolFeatures { get; }
     public RemoteSourcesViewModel RemoteSources { get; }
@@ -55,6 +56,7 @@ public sealed class DevicesPaneViewModel : ObservableObject, IAsyncDisposable
     public int ConnectedCount => Devices.Count(d => d.IsConnected);
     public string ConnectedSummary => $"{ConnectedCount:00} / {Devices.Count:00}";
     public bool HasSelection => SelectedDevice is not null;
+    public ObservableCollection<DeviceHardwareOptionsViewModel> HardwareSelection { get; } = [];
     public bool SelectedConnected => SelectedDevice?.IsConnected == true;
     public string SelectedName => SelectedDevice?.Name ?? L10n.Get("Device.None");
     public string SelectedKind => SelectedDevice?.Kind ?? L10n.Get("Device.ConnectHelp");
@@ -88,6 +90,8 @@ public sealed class DevicesPaneViewModel : ObservableObject, IAsyncDisposable
         get => _selected;
         set
         {
+            if (_selected == value)
+                return;
             if (_selected is { } previous)
                 previous.IsSelected = false;
             if (!Set(ref _selected, value))
@@ -131,6 +135,7 @@ public sealed class DevicesPaneViewModel : ObservableObject, IAsyncDisposable
     public void LoadConnectionPreferences(AppSettings settings)
     {
         _autoConnector.Load(settings.AutoConnect, settings.AutoConnectDevices ?? []);
+        _controller.LoadOutputSettings(settings.DeviceOutputs ?? []);
         Raise(nameof(AutoConnect));
     }
     public void StartAutoConnect() => _monitor ??= MonitorConnectionsAsync();
@@ -186,7 +191,10 @@ public sealed class DevicesPaneViewModel : ObservableObject, IAsyncDisposable
                 if (Devices.FirstOrDefault(d => d.Id == device.Id) is { } existing)
                     existing.UpdateReadings(device);
                 else
-                    Devices.Add(new(device, Devices.Count + 1, d => { SelectedDevice = d; return Task.CompletedTask; }, ToggleConnectionAsync, _error));
+                    Devices.Add(new(device, Devices.Count + 1, d => { SelectedDevice = d; return Task.CompletedTask; }, ToggleConnectionAsync, _error)
+                    {
+                        HardwareOptions = new(device, _controller, () => !_disposed && !_controller.IsDeviceBusy(device.Id), _save, _error)
+                    });
             }
             SelectedDevice ??= Devices.FirstOrDefault();
             Refresh();
@@ -294,8 +302,16 @@ public sealed class DevicesPaneViewModel : ObservableObject, IAsyncDisposable
     });
     public void Refresh()
     {
+        var hardware = SelectedDevice?.HardwareOptions is { HasOptions: true } options ? options : null;
+        if ((HardwareSelection.FirstOrDefault() != hardware) || (hardware is null && HardwareSelection.Count > 0))
+        {
+            HardwareSelection.Clear();
+            if (hardware is not null)
+                HardwareSelection.Add(hardware);
+        }
         foreach (var item in Devices)
         {
+            item.HardwareOptions?.Refresh();
             var connection = _controller.Connections.GetValueOrDefault(item.Id);
             item.IsConnected = connection is not null;
             item.OutputA = connection is null ? 0 : WaveformRendering.Strength(connection.Output, 0);
