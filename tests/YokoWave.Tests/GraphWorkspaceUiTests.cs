@@ -32,13 +32,13 @@ public sealed class GraphWorkspaceUiTests
         first.RebindDevice("$device", device.Id);
         vm.Pipelines.DuplicateCommand.Execute(null);
         var second = vm.Pipelines.Selected!;
-        Assert.DoesNotContain(device.Id, second.BoundDeviceIds);
-        var placeholder = Assert.Single(second.BoundDeviceIds);
+        Assert.DoesNotContain(device.Id, second.AssignedDeviceIds);
+        var placeholder = Assert.Single(second.ReferencedDeviceIds);
         Assert.ThrowsAny<InvalidOperationException>(() => second.RebindDevice(placeholder, device.Id));
-        Assert.DoesNotContain(device.Id, second.BoundDeviceIds);
+        Assert.DoesNotContain(device.Id, second.AssignedDeviceIds);
         first.RebindDevice(device.Id, "$device");
         second.RebindDevice(placeholder, device.Id);
-        Assert.Contains(device.Id, second.BoundDeviceIds);
+        Assert.Contains(device.Id, second.AssignedDeviceIds);
         Assert.False(first.CanUndo);
         await vm.Pipelines.SaveAsync();
     }
@@ -128,7 +128,10 @@ public sealed class GraphWorkspaceUiTests
         vm.Pipelines.SaveTemplateCommand.Execute(null);
         await Wait(() => vm.Pipelines.SelectedTemplate?.IsBuiltIn == false);
         vm.Pipelines.Add();
-        Assert.Equal(SubgraphExpansion.Type, Assert.Single(vm.Pipelines.Selected!.Nodes).Type);
+        var wrapper = Assert.Single(vm.Pipelines.Selected!.Nodes).ToDefinition();
+        Assert.Equal(SubgraphExpansion.Type, wrapper.Type);
+        var subgraph = (SubgraphNode)vm.Pipelines.Selected.Registry.Get(wrapper.Type).Read(wrapper.Configuration);
+        Assert.Empty(subgraph.Graph.AssignedDevices!);
         await vm.Pipelines.SaveAsync();
         await vm.SaveAsync();
         var saved = await File.ReadAllTextAsync(Path.Combine(folder.Path, "pipelines.json"), TestContext.Current.CancellationToken);

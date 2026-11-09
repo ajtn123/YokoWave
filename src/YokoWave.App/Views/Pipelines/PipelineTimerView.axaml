@@ -1,16 +1,18 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:YokoWave.App.ViewModels.Pipelines" xmlns:l="using:YokoWave.App.Localization"
              x:Class="YokoWave.App.Views.Pipelines.PipelineTimerView" x:DataType="vm:PipelineEditorViewModel">
-  <Grid ColumnDefinitions="Auto,*,Auto" Classes="columns timer-row pipeline-timer">
-    <CheckBox IsChecked="{Binding TimerEnabled}" IsEnabled="{Binding CanEdit}" Classes="compact"
+  <StackPanel Classes="inline">
+    <CheckBox Content="{l:Loc Session.Timer}" IsChecked="{Binding TimerEnabled}" IsEnabled="{Binding CanEdit}" Classes="pipeline-toolbar-toggle"
               ToolTip.Tip="{l:Loc Session.Timer}" AutomationProperties.Name="{l:Loc Session.Timer}" />
-    <Grid Grid.Column="1">
-      <Slider x:Name="PipelineDurationSlider" Minimum="1" Maximum="{Binding TimerLimitSeconds}" Value="{Binding DurationSeconds}"
-              TickFrequency="1" SmallChange="1" LargeChange="60" IsSnapToTickEnabled="True"
-              IsEnabled="{Binding CanEditDuration}" IsVisible="{Binding !ShowTimerProgress}" AutomationProperties.Name="{l:Loc Session.Timer}" />
-      <ProgressBar x:Name="PipelineTimerProgress" Minimum="0" Maximum="1" Value="{Binding TimerProgress}"
-                   IsVisible="{Binding ShowTimerProgress}" Classes="session-timer" AutomationProperties.Name="{l:Loc Session.Remaining}" />
+    <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="{DynamicResource Space.Small}" IsVisible="{Binding TimerEnabled}">
+      <Grid Classes="pipeline-timer-track">
+        <Slider x:Name="PipelineDurationSlider" Minimum="1" Maximum="{Binding TimerLimitSeconds}" Value="{Binding DurationSeconds}"
+                TickFrequency="1" SmallChange="1" LargeChange="60" IsSnapToTickEnabled="True"
+                IsEnabled="{Binding CanEditDuration}" IsVisible="{Binding ShowTimerSlider}" AutomationProperties.Name="{l:Loc Session.Timer}" />
+        <ProgressBar x:Name="PipelineTimerProgress" Minimum="0" Maximum="1" Value="{Binding TimerProgress}"
+                     IsVisible="{Binding ShowTimerProgress}" Classes="session-timer" AutomationProperties.Name="{l:Loc Session.Remaining}" />
+      </Grid>
+      <TextBlock Grid.Column="1" Text="{Binding TimerReadout}" Classes="timer-readout pipeline-timer-readout" />
     </Grid>
-    <TextBlock Grid.Column="2" Text="{Binding TimerReadout}" Classes="timer-readout" />
-  </Grid>
+  </StackPanel>
 </UserControl>

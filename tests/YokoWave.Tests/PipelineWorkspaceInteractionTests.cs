@@ -83,7 +83,7 @@ public sealed class PipelineWorkspaceInteractionTests
     }
 
     [AvaloniaFact]
-    public async Task DeviceCardsAssignMultipleOutputsDetachAndLockDuringPlayback()
+    public async Task DeviceMembershipDoesNotAddNodesPersistsAndLocksDuringPlayback()
     {
         using var directory = new TestFolder();
         await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new(directory.Path));
@@ -95,6 +95,9 @@ public sealed class PipelineWorkspaceInteractionTests
         Dispatcher.UIThread.RunJobs();
         var cards = vm.Pipelines.UnassignedDevices.Where(c => c.Device?.Device.Kind == DeviceKind.DualChannel).ToArray();
         Assert.Equal(2, cards.Length);
+        var nodeIds = editor.Nodes.Select(n => n.Id).ToArray();
+        var connections = editor.Connections.Select(c => c.Definition).ToArray();
+        var layout = editor.ToDocument().Layout;
         foreach (var card in cards)
         {
             Assert.True(card.AssignmentCommand.CanExecute(null));
@@ -103,16 +106,27 @@ public sealed class PipelineWorkspaceInteractionTests
         }
         var group = Assert.Single(vm.Pipelines.Groups);
         Assert.Equal(2, group.Devices.Count);
-        Assert.Equal(4, editor.Nodes.Count(n => n.Type == BuiltInNodes.ChannelOutput));
+        Assert.Equal(nodeIds, editor.Nodes.Select(n => n.Id));
+        Assert.Equal(connections, editor.Connections.Select(c => c.Definition));
+        Assert.Equal(layout, editor.ToDocument().Layout);
+        Assert.Equal(2, editor.Nodes.Count(n => n.Type == BuiltInNodes.ChannelOutput));
+        Assert.All(editor.Nodes.OfType<ChannelOutputEditorViewModel>(), n => Assert.Equal(cards[0].Id, n.DeviceId));
+        Assert.Contains(cards[1].Id, editor.AssignedDeviceIds);
+        Assert.DoesNotContain(cards[1].Id, editor.ReferencedDeviceIds);
+        await vm.Pipelines.SaveAsync();
+        var stored = Assert.Single(await new PipelineStore(directory.Path).LoadAsync());
+        Assert.Equal(2, stored.AssignedDevices!.Length);
         Assert.DoesNotContain(vm.Pipelines.UnassignedDevices, c => cards.Select(d => d.Id).Contains(c.Id));
         await editor.StartAsync();
         Dispatcher.UIThread.RunJobs();
         Assert.All(group.Devices, card => Assert.False(card.AssignmentCommand.CanExecute(null)));
         await editor.StopAsync();
         Dispatcher.UIThread.RunJobs();
-        group.Devices.First().AssignmentCommand.Execute(null);
+        group.Devices.Last().AssignmentCommand.Execute(null);
         Dispatcher.UIThread.RunJobs();
         Assert.Single(group.Devices);
+        Assert.Equal(nodeIds, editor.Nodes.Select(n => n.Id));
+        Assert.Equal(connections, editor.Connections.Select(c => c.Definition));
         Assert.Equal(2, editor.Nodes.Count(n => n.Type == BuiltInNodes.ChannelOutput));
         Assert.Single(vm.Pipelines.UnassignedDevices, c => cards.Select(d => d.Id).Contains(c.Id));
         await editor.StartAsync();
@@ -121,11 +135,84 @@ public sealed class PipelineWorkspaceInteractionTests
         await vm.Devices.ToggleConnectionAsync(remaining);
         Dispatcher.UIThread.RunJobs();
         Assert.Empty(group.Devices);
-        Assert.Contains(remaining.Id, editor.BoundDeviceIds);
+        Assert.Contains(remaining.Id, editor.AssignedDeviceIds);
         Assert.DoesNotContain(editor.Devices, d => d.Id == remaining.Id);
         await vm.Devices.ToggleConnectionAsync(remaining);
         Dispatcher.UIThread.RunJobs();
         Assert.Same(remaining, Assert.Single(group.Devices).Device);
+        Assert.Single(group.Devices).AssignmentCommand.Execute(null);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Empty(group.Devices);
+        Assert.Empty(editor.AssignedDeviceIds);
+        Assert.All(editor.ReferencedDeviceIds, id => Assert.StartsWith("$", id));
+        Assert.Equal(nodeIds, editor.Nodes.Select(n => n.Id));
+        Assert.Equal(connections, editor.Connections.Select(c => c.Definition));
+        Assert.Equal(layout, editor.ToDocument().Layout);
+    }
+
+    [AvaloniaFact]
+    public async Task DevicesCanJoinWithoutOutputSlotsAndOnlyReferencedDevicesAreUsedAtRuntime()
+    {
+        using var directory = new TestFolder();
+        var controller = new DeviceController(new SimulationTransport());
+        await using var vm = new MainViewModel(controller, new(directory.Path));
+        await vm.InitializeAsync();
+        foreach (var device in vm.Devices.Devices.Where(d => d.Device.Kind == DeviceKind.DualChannel))
+            await vm.Devices.ToggleConnectionAsync(device);
+        Dispatcher.UIThread.RunJobs();
+        var editor = vm.Pipelines.Selected!;
+        foreach (var node in editor.Nodes)
+            editor.SelectedNodes.Add(node);
+        editor.DeleteSelectionCommand.Execute(null);
+        Assert.Empty(editor.Nodes);
+        var first = vm.Pipelines.UnassignedDevices[0];
+        first.AssignmentCommand.Execute(null);
+        Assert.Empty(editor.Nodes);
+        Assert.Contains(first.Id, editor.AssignedDeviceIds);
+        Assert.False(editor.CanStart);
+        var output = Assert.IsType<ChannelOutputEditorViewModel>(editor.AddNode(BuiltInNodes.ChannelOutput));
+        var second = vm.Pipelines.UnassignedDevices.Single();
+        second.AssignmentCommand.Execute(null);
+        Assert.Equal(output.Id, Assert.Single(editor.Nodes).Id);
+        Assert.Equal(second.Id, Assert.Single(editor.Nodes.OfType<ChannelOutputEditorViewModel>()).DeviceId);
+        Assert.Empty(editor.Connections);
+        vm.Pipelines.Add();
+        var other = vm.Pipelines.Selected!;
+        Assert.ThrowsAny<InvalidOperationException>(() => other.RebindDevice("$device", first.Id));
+        await editor.StartAsync();
+        Assert.Null(controller.DeviceOwner(first.Id));
+        Assert.Equal(editor.Session.OwnerId, controller.DeviceOwner(second.Id));
+        await vm.Devices.ToggleConnectionAsync(first.Device);
+        Assert.Equal(PipelineState.Running, editor.Session.State);
+        await editor.StopAsync();
+        await vm.Pipelines.SaveAsync();
+        var stored = (await new PipelineStore(directory.Path).LoadAsync()).Single(p => p.Id == editor.Id);
+        Assert.Equal(new[] { first.Id, second.Id }.Order(), stored.AssignedDevices!.Order());
+    }
+
+    [AvaloniaFact]
+    public async Task AutomaticSlotAssignmentDoesNotBindTwoOutputsToTheSameChannel()
+    {
+        using var directory = new TestFolder();
+        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new(directory.Path));
+        await vm.InitializeAsync();
+        foreach (var device in vm.Devices.Devices.Where(d => d.Device.Kind == DeviceKind.DualChannel))
+            await vm.Devices.ToggleConnectionAsync(device);
+        Dispatcher.UIThread.RunJobs();
+        var editor = vm.Pipelines.Selected!;
+        foreach (var node in editor.Nodes)
+            editor.SelectedNodes.Add(node);
+        editor.DeleteSelectionCommand.Execute(null);
+        editor.AddNode(BuiltInNodes.ChannelOutput);
+        editor.AddNode(BuiltInNodes.ChannelOutput);
+        var nodeIds = editor.Nodes.Select(n => n.Id).ToArray();
+        foreach (var card in vm.Pipelines.UnassignedDevices.ToArray())
+            card.AssignmentCommand.Execute(null);
+        Assert.Equal(nodeIds, editor.Nodes.Select(n => n.Id));
+        Assert.Equal(2, editor.Nodes.OfType<ChannelOutputEditorViewModel>().Select(n => n.DeviceId).Distinct().Count());
+        Assert.True(editor.CanStart);
+        await editor.StartAsync();
+        await editor.StopAsync();
     }
 
     [AvaloniaFact]
@@ -143,10 +230,10 @@ public sealed class PipelineWorkspaceInteractionTests
         {
             Dispatcher.UIThread.RunJobs();
             var name = window.GetVisualDescendants().OfType<TextBox>().Single(t => t.Classes.Contains("pipeline-name"));
-            Assert.InRange(name.Bounds.Height, 20, 32);
             var template = window.GetVisualDescendants().OfType<ComboBox>().Single(t => t.Classes.Contains("pipeline-create"));
             var create = window.GetVisualDescendants().OfType<Button>().Single(t => t.Classes.Contains("pipeline-create"));
             Assert.Equal(template.Bounds.Height, create.Bounds.Height);
+            Assert.Equal(template.Bounds.Height, name.Bounds.Height);
             var label = create.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text == L10n.Get("Mode.Add"));
             var center = label.TranslatePoint(new Point(0, label.Bounds.Height / 2), create)!.Value.Y;
             Assert.InRange(Math.Abs(center - create.Bounds.Height / 2), 0, 1);
@@ -172,6 +259,10 @@ public sealed class PipelineWorkspaceInteractionTests
             var menu = canvas.ContextMenu!;
             Assert.True(menu.IsOpen);
             Assert.Equal(window.FontFamily, menu.FontFamily);
+            Assert.False(editor.DeleteSelectionCommand.CanExecute(null));
+            var delete = menu.Items.OfType<MenuItem>().Single(i => Equals(i.Header, L10n.Get("Pipeline.Delete")));
+            Assert.False(delete.IsEffectivelyEnabled);
+            Assert.Contains(menu.Items.OfType<MenuItem>(), i => Equals(i.Header, L10n.Get("Pipeline.Fit")));
             var position = canvas.MouseLocation;
             var add = Assert.IsType<MenuItem>(menu.Items[0]);
             var constant = add.Items.Cast<MenuItem>().Single(i => Equals(i.Header, L10n.Get("Pipeline.Node.Constant")));
@@ -193,6 +284,47 @@ public sealed class PipelineWorkspaceInteractionTests
             Dispatcher.UIThread.RunJobs();
             editor.SelectedNodes.Clear();
             editor.SelectedNodes.Add(editor.Nodes.First(n => n.HasStrengthLimit));
+            Dispatcher.UIThread.RunJobs();
+            var toolbar = workspace.GetVisualDescendants().OfType<WrapPanel>().Single(p => p.Name == "PlaybackToolbar");
+            var playback = toolbar.Children.OfType<Button>().Single(b => b.Name == "PlaybackButton");
+            var timer = toolbar.GetVisualDescendants().OfType<PipelineTimerView>().Single();
+            var slider = timer.FindControl<Slider>("PipelineDurationSlider")!;
+            var progress = timer.FindControl<ProgressBar>("PipelineTimerProgress")!;
+            Assert.All(toolbar.Children, control => Assert.Equal(template.Bounds.Height, control.Bounds.Height));
+            Assert.DoesNotContain(toolbar.GetVisualDescendants().OfType<Button>(), b => Equals(b.Content, L10n.Get("Pipeline.Fit")) || Equals(b.Content, L10n.Get("Pipeline.Pause")));
+            Assert.False(slider.IsVisible);
+            Assert.False(progress.IsVisible);
+            Assert.InRange(timer.Bounds.Width, 1, 120);
+            var playbackBounds = playback.Bounds;
+            Assert.Equal(L10n.Get("Pipeline.Start"), playback.Content);
+            Assert.True(editor.DeleteSelectionCommand.CanExecute(null));
+            editor.TimerEnabled = true;
+            editor.DurationSeconds = 90;
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(slider.IsVisible);
+            Assert.InRange(timer.Bounds.Width, 1, 245);
+            await editor.TogglePlaybackCommand.ExecuteAsync();
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(PipelineState.Running, editor.Session.State);
+            Assert.Equal(L10n.Get("Pipeline.Stop"), playback.Content);
+            Assert.Equal(playbackBounds, playback.Bounds);
+            Assert.False(slider.IsVisible);
+            Assert.True(progress.IsEffectivelyVisible);
+            Assert.False(editor.DeleteSelectionCommand.CanExecute(null));
+            Assert.DoesNotContain(workspace.GetVisualDescendants().OfType<TextBlock>(), t => t.IsEffectivelyVisible &&
+                (t.Text == L10n.Get("Pipeline.State.Idle") || t.Text == L10n.Get("Pipeline.State.Running")));
+            await editor.TogglePlaybackCommand.ExecuteAsync();
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(PipelineState.Idle, editor.Session.State);
+            Assert.Equal(L10n.Get("Pipeline.Start"), playback.Content);
+            Assert.Equal(playbackBounds, playback.Bounds);
+            Assert.True(slider.IsVisible);
+            editor.TimerEnabled = false;
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(slider.IsVisible);
+            Assert.Equal(90, editor.DurationSeconds);
+            var fit = menu.Items.OfType<MenuItem>().Single(i => Equals(i.Header, L10n.Get("Pipeline.Fit")));
+            fit.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
             Dispatcher.UIThread.RunJobs();
             using var frame = window.CaptureRenderedFrame();
             Assert.NotNull(frame);

@@ -70,6 +70,7 @@ public sealed class PipelineCompiler(NodeTypeRegistry registry)
             !double.IsFinite(source.DurationSeconds) || source.DurationSeconds is < 1 or > 7200 ||
             source.Nodes is null || source.Connections is null || source.Layout is null || source.Nodes.Length > 1000 || source.Connections.Length > 8000 ||
             source.Nodes.Any(n => n is null || n.Configuration.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null) ||
+            source.AssignedDevices is { } assigned && (assigned.Length > 256 || assigned.Any(id => string.IsNullOrWhiteSpace(id) || id.Length > 512 || id.StartsWith('$')) || assigned.Distinct(StringComparer.Ordinal).Count() != assigned.Length) ||
             source.Layout.Any(l => l is null || !double.IsFinite(l.X) || !double.IsFinite(l.Y)))
             return (null, [new("Pipeline.Error.Document")]);
         PipelineDocument document;
@@ -190,7 +191,7 @@ public sealed class PipelineCompiler(NodeTypeRegistry registry)
         {
             foreach (var binding in node.Registration.Resources(node.Configuration))
             {
-                if (bindings.Any(b => Conflicts(b, binding)))
+                if (bindings.Any(b => b.ConflictsWith(binding)))
                     errors.Add(new("Pipeline.Error.DuplicateOutput", node.Id));
                 bindings.Add(binding);
                 if (devices is not null && (!devices.TryGetValue(binding.DeviceId, out var device) || !Accepts(binding, device) || !AcceptsConfiguration(node.Configuration, device)))
@@ -200,16 +201,6 @@ public sealed class PipelineCompiler(NodeTypeRegistry registry)
         return bindings.ToArray();
     }
 
-    private static bool Conflicts(DeviceOutputBinding a, DeviceOutputBinding b)
-    {
-        if (a.DeviceId != b.DeviceId)
-            return false;
-        if (a.Kind == OutputBindingKind.Export || b.Kind == OutputBindingKind.Export)
-            return true;
-        var aOutput = a.Kind is OutputBindingKind.Channel or OutputBindingKind.Pump or OutputBindingKind.Native or OutputBindingKind.Router;
-        var bOutput = b.Kind is OutputBindingKind.Channel or OutputBindingKind.Pump or OutputBindingKind.Native or OutputBindingKind.Router;
-        return aOutput && bOutput && (a.Kind != OutputBindingKind.Channel || b.Kind != OutputBindingKind.Channel || a.Channel == b.Channel);
-    }
     private static bool AcceptsConfiguration(object config, DeviceDescriptor device) => config switch
     {
         NativeOutputNode native => (native.Settings ?? new()).Accepts(device),

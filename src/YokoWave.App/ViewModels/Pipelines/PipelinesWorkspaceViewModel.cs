@@ -140,10 +140,11 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
         var services = new PipelineServices(_audio);
         var registry = RemotePipelineNodes.Register(BuiltInNodes.CreateRegistry());
         var bindings = SubgraphExpansion.Expand(document).Nodes.SelectMany(n => registry.Get(n.Type).Resources(registry.Get(n.Type).Read(n.Configuration)));
-        if (bindings.Any(b => !b.DeviceId.StartsWith('$') && Pipelines.Any(p => p.BoundDeviceIds.Contains(b.DeviceId))))
+        var assigned = (document.AssignedDevices ?? []).Concat(bindings.Select(b => b.DeviceId).Where(id => !id.StartsWith('$')));
+        if (assigned.Any(id => Pipelines.Any(p => p.AssignedDeviceIds.Contains(id))))
             throw new LocalizedOperationException("Error.DeviceInUse");
         var editor = new PipelineEditorViewModel(document, _controller, _presets, ReportError, _completed, _timerLimit(), services, registry);
-        editor.CanBindDevice = id => !Pipelines.Any(p => p.Id != editor.Id && p.BoundDeviceIds.Contains(id));
+        editor.CanBindDevice = id => !Pipelines.Any(p => p.Id != editor.Id && p.AssignedDeviceIds.Contains(id));
         editor.GetDefaultOutputLimit = _defaultLimit;
         editor.Session.Changed += OnSessionChanged;
         editor.Edited += OnEdited;
@@ -169,10 +170,10 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
                 Groups.Add(group);
             }
             group.IsSelected = editor == Selected;
-            SynchronizeCards(group.Devices, connected.Where(d => editor.BoundDeviceIds.Contains(d.Id)).ToArray(), editor);
+            SynchronizeCards(group.Devices, connected.Where(d => editor.AssignedDeviceIds.Contains(d.Id)).ToArray(), editor);
             group.Refresh();
         }
-        var assigned = Pipelines.SelectMany(p => p.BoundDeviceIds).ToHashSet(StringComparer.Ordinal);
+        var assigned = Pipelines.SelectMany(p => p.AssignedDeviceIds).ToHashSet(StringComparer.Ordinal);
         SynchronizeCards(UnassignedDevices, connected.Where(d => !assigned.Contains(d.Id)).ToArray(), null);
         foreach (var device in UnassignedDevices)
             device.Refresh();
@@ -199,7 +200,19 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
         var bindings = SubgraphExpansion.Expand(document).Nodes.SelectMany(n => registry.Get(n.Type).Resources(registry.Get(n.Type).Read(n.Configuration)))
             .Select(b => b.DeviceId).Where(id => !id.StartsWith('$')).Distinct().Select((id, index) => (id, replacement: "$device" + (index + 1)))
             .ToDictionary(p => p.id, p => p.replacement);
-        return document with { Nodes = document.Nodes.Select(n => SubgraphExpansion.MapDevices(n, bindings)).ToArray() };
+        PipelineDocument ClearAssignments(PipelineDocument graph) => graph with
+        {
+            AssignedDevices = [],
+            Nodes = graph.Nodes.Select(node =>
+            {
+                var mapped = SubgraphExpansion.MapDevices(node, bindings);
+                if (mapped.Type != SubgraphExpansion.Type)
+                    return mapped;
+                var subgraph = (SubgraphNode)registry.Get(mapped.Type).Read(mapped.Configuration);
+                return NodeDefinition.Create(mapped.Type, subgraph with { Graph = ClearAssignments(subgraph.Graph) }, mapped.Id);
+            }).ToArray()
+        };
+        return ClearAssignments(document);
     }
     public void AddDocument(PipelineDocument document) => Selected = AddEditor(document);
     private async Task DeleteAsync()
@@ -304,7 +317,7 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
     }
     public async Task StopForDeviceAsync(string id, string reason)
     {
-        foreach (var editor in Pipelines.Where(p => p.BoundDeviceIds.Contains(id)))
+        foreach (var editor in Pipelines.Where(p => p.ReferencedDeviceIds.Contains(id)))
             await editor.StopAsync(reason);
     }
     public bool UsesWaveform(Guid id)

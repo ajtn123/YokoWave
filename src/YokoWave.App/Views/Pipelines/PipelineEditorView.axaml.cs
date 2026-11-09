@@ -22,6 +22,8 @@ public sealed partial class PipelineEditorView : UserControl
                 return;
             _menuLocation = Canvas.MouseLocation;
             var nodes = new MenuItem { Header = L10n.Get("Pipeline.AddNode"), IsEnabled = editor.CanEdit };
+            var fit = new MenuItem { Header = L10n.Get("Pipeline.Fit") };
+            fit.Click += FitGraph;
             nodes.ItemsSource = editor.Registry.Types.Select(type =>
             {
                 var item = new MenuItem { Header = L10n.Get(type.NameKey) };
@@ -35,12 +37,12 @@ public sealed partial class PipelineEditorView : UserControl
             }).ToArray();
             menu.ItemsSource = new object[]
             {
-                nodes, new Separator(),
+                nodes, fit, new Separator(),
                 new MenuItem { Header = L10n.Get("Pipeline.Undo"), Command = editor.UndoCommand, IsEnabled = editor.CanUndo },
                 new MenuItem { Header = L10n.Get("Pipeline.Redo"), Command = editor.RedoCommand, IsEnabled = editor.CanRedo },
                 new MenuItem { Header = L10n.Get("Pipeline.Copy"), Command = editor.CopyCommand },
                 new MenuItem { Header = L10n.Get("Pipeline.Paste"), Command = editor.PasteCommand, IsEnabled = editor.CanEdit },
-                new MenuItem { Header = L10n.Get("Pipeline.Delete"), Command = editor.DeleteSelectionCommand, IsEnabled = editor.CanEdit }
+                new MenuItem { Header = L10n.Get("Pipeline.Delete"), Command = editor.DeleteSelectionCommand }
             };
         }
         menu.Opening += (_, _) => PopulateMenu();

@@ -9,12 +9,12 @@
   <Style Selector="StackPanel.pipeline-list">
     <Setter Property="Width" Value="{DynamicResource Size.PipelineListWidth}" />
   </Style>
-  <Style Selector="ComboBox.pipeline-create, Button.pipeline-create">
+  <Style Selector="ComboBox.pipeline-create, Button.pipeline-create, TextBox.pipeline-name, Button.pipeline-playback, CheckBox.pipeline-toolbar-toggle">
     <Setter Property="Height" Value="{DynamicResource Size.ControlMinHeight}" />
     <Setter Property="MinHeight" Value="{DynamicResource Size.ControlMinHeight}" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
-  <Style Selector="Button.pipeline-create">
+  <Style Selector="Button.pipeline-create, Button.pipeline-playback, CheckBox.pipeline-toolbar-toggle">
     <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
   <Style Selector="Border.pipeline-palette">
@@ -31,14 +31,21 @@
   </Style>
   <Style Selector="TextBox.pipeline-name">
     <Setter Property="Width" Value="{DynamicResource Size.PipelineNameWidth}" />
-    <Setter Property="Height" Value="{DynamicResource Size.SmallControlMinHeight}" />
-    <Setter Property="MinHeight" Value="{DynamicResource Size.SmallControlMinHeight}" />
     <Setter Property="Padding" Value="{DynamicResource Padding.ButtonSmall}" />
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
-  <Style Selector="Grid.pipeline-timer">
-    <Setter Property="Width" Value="{DynamicResource Size.PipelineTimerWidth}" />
+  <Style Selector="views|PipelineTimerView">
+    <Setter Property="Height" Value="{DynamicResource Size.ControlMinHeight}" />
+  </Style>
+  <Style Selector="Grid.pipeline-timer-track">
+    <Setter Property="Width" Value="{DynamicResource Size.PipelineTimerTrackWidth}" />
+  </Style>
+  <Style Selector="TextBlock.pipeline-timer-readout">
+    <Setter Property="Width" Value="{DynamicResource Size.PipelineTimerReadoutWidth}" />
+  </Style>
+  <Style Selector="Button.pipeline-playback">
+    <Setter Property="Width" Value="{DynamicResource Size.PipelineActionWidth}" />
   </Style>
   <Style Selector="Button.pipeline-add">
     <Setter Property="HorizontalAlignment" Value="Stretch" />

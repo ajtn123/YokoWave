@@ -14,16 +14,12 @@
     <DataTemplate DataType="vm:NodeEditorViewModel"><views:NodeInspectorView /></DataTemplate>
   </UserControl.DataTemplates>
   <Grid RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource Space.Medium}">
-    <WrapPanel Classes="pipeline-toolbar">
+    <WrapPanel x:Name="PlaybackToolbar" Classes="pipeline-toolbar">
       <TextBox Text="{Binding Name}" MaxLength="60" IsEnabled="{Binding CanEdit}" Classes="pipeline-name" />
-      <Button Content="{l:Loc Pipeline.Start}" Classes="primary small" Command="{Binding StartCommand}" />
-      <Button Content="{Binding PauseLabel}" Classes="small" Command="{Binding PauseCommand}" />
-      <Button Content="{l:Loc Pipeline.Stop}" Classes="danger small" Command="{Binding StopCommand}" />
+      <Button x:Name="PlaybackButton" Content="{Binding PlaybackAction}" Classes="small pipeline-playback" Classes.primary="{Binding !CanStop}" Classes.danger="{Binding CanStop}" Command="{Binding TogglePlaybackCommand}" />
       <views:PipelineTimerView />
-      <TextBlock Text="{Binding StateLabel}" Classes="caption muted" VerticalAlignment="Center" />
-      <Button Content="{l:Loc Pipeline.Fit}" Classes="small" Click="FitGraph" />
-      <CheckBox Content="{l:Loc Pipeline.ShowNodes}" IsChecked="{Binding ShowPalette}" />
-      <CheckBox Content="{l:Loc Pipeline.ShowInspector}" IsChecked="{Binding ShowInspector}" />
+      <CheckBox Content="{l:Loc Pipeline.ShowNodes}" IsChecked="{Binding ShowPalette}" Classes="pipeline-toolbar-toggle" />
+      <CheckBox Content="{l:Loc Pipeline.ShowInspector}" IsChecked="{Binding ShowInspector}" Classes="pipeline-toolbar-toggle" />
     </WrapPanel>
     <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource Space.Medium}">
       <Border Classes="card pipeline-palette" IsVisible="{Binding ShowPalette}">
@@ -42,7 +38,7 @@
             <Button Content="{l:Loc Pipeline.Redo}" Command="{Binding RedoCommand}" IsEnabled="{Binding CanRedo}" Classes="small" />
             <Button Content="{l:Loc Pipeline.Copy}" Command="{Binding CopyCommand}" Classes="small" />
             <Button Content="{l:Loc Pipeline.Paste}" Command="{Binding PasteCommand}" IsEnabled="{Binding CanEdit}" Classes="small" />
-            <Button Content="{l:Loc Pipeline.Delete}" Command="{Binding DeleteSelectionCommand}" IsEnabled="{Binding CanEdit}" Classes="small danger" />
+            <Button Content="{l:Loc Pipeline.Delete}" Command="{Binding DeleteSelectionCommand}" Classes="small danger" />
           </StackPanel>
         </ScrollViewer>
       </Border>
@@ -110,7 +106,7 @@
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
-            <TextBlock Text="{Binding BoundDevices}" Classes="caption muted" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding DeviceSummary}" Classes="caption muted" TextWrapping="Wrap" />
             <TextBlock Text="{Binding InputStatus}" Classes="caption error" TextWrapping="Wrap" />
           </StackPanel>
         </ScrollViewer>

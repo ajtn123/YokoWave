@@ -43,6 +43,7 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
     public event EventHandler<WaveformPreset>? WaveformCreated;
     private readonly List<PipelineDocument> _undo = [];
     private readonly List<PipelineDocument> _redo = [];
+    private readonly HashSet<string> _assignedDevices = new(StringComparer.Ordinal);
     private PipelineDocument? _clipboard;
     private bool _restoring;
     private string _name;
@@ -78,20 +79,21 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
     public bool CanEdit => !Session.HoldsResources && !Nodes.OfType<AudioNodeEditorViewModel>().Any(n => n.IsCalibrating);
     public bool CanUndo => CanEdit && _undo.Count > 0 && BindingsAvailable(_undo[^1]);
     public bool CanRedo => CanEdit && _redo.Count > 0 && BindingsAvailable(_redo[^1]);
-    public bool CanStart => CanEdit && Diagnostics.Count == 0 && BoundDeviceIds.All(id =>
+    public bool CanStart => CanEdit && Diagnostics.Count == 0 && ReferencedDeviceIds.Count > 0 && ReferencedDeviceIds.All(id =>
         CanBindDevice?.Invoke(id) != false && _controller.Connections.ContainsKey(id) && !_controller.IsDeviceBusy(id));
     public bool CanStop => Session.HoldsResources;
-    public bool CanPause => Session.State is PipelineState.Running or PipelineState.Paused;
-    public string StateLabel => L10n.Get($"Pipeline.State.{Session.State}");
-    public string PauseLabel => L10n.Get(Session.State == PipelineState.Paused ? "Pipeline.Resume" : "Pipeline.Pause");
-    public bool ShowTimerProgress => !CanEdit && TimerEnabled;
+    public bool CanDeleteSelection => CanEdit && SelectedNodes.Count > 0;
+    public string PlaybackAction => L10n.Get(CanStop ? "Pipeline.Stop" : "Pipeline.Start");
+    public bool ShowTimerProgress => CanStop && TimerEnabled;
+    public bool ShowTimerSlider => !CanStop && TimerEnabled;
     public bool CanEditDuration => CanEdit && TimerEnabled;
     public double TimerProgress => Math.Clamp((Session.Remaining?.TotalSeconds ?? DurationSeconds) / DurationSeconds, 0, 1);
     public string TimerReadout => TimerEnabled ? TimeSpan.FromSeconds(Math.Ceiling(CanEdit ? DurationSeconds : Session.Remaining?.TotalSeconds ?? DurationSeconds))
         .ToString(DurationSeconds >= 3600 ? @"h\:mm\:ss" : @"mm\:ss") : L10n.Get("Session.NoTimer");
-    public string BoundDevices => string.Join(", ", BoundDeviceIds.Select(id => Devices.FirstOrDefault(d => d.Id == id)?.Name ?? id));
-    public IReadOnlyList<string> BoundDeviceIds => GetBoundDevices();
-    private IReadOnlyList<string> GetBoundDevices()
+    public string DeviceSummary => string.Join(", ", AssignedDeviceIds.Select(id => Devices.FirstOrDefault(d => d.Id == id)?.Name ?? id));
+    public IReadOnlyList<string> AssignedDeviceIds => _assignedDevices.ToArray();
+    public IReadOnlyList<string> ReferencedDeviceIds => GetReferencedDevices();
+    private IReadOnlyList<string> GetReferencedDevices()
     {
         try
         {
@@ -135,10 +137,8 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
     public ICommand CreateConnectionCommand { get; }
     public ICommand RemoveConnectionCommand { get; }
     public ICommand DisconnectConnectorCommand { get; }
-    public AsyncCommand StartCommand { get; }
-    public AsyncCommand StopCommand { get; }
-    public AsyncCommand PauseCommand { get; }
-    public ICommand DeleteSelectionCommand { get; }
+    public AsyncCommand TogglePlaybackCommand { get; }
+    public ActionCommand DeleteSelectionCommand { get; }
     public ICommand CopyCommand { get; }
     public ICommand PasteCommand { get; }
     public ICommand UndoCommand { get; }
@@ -173,17 +173,21 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
             foreach (var connection in Connections.Where(c => c.Source == port || c.Target == port).ToArray())
                 Connections.Remove(connection);
         }));
-        StartCommand = new(StartAsync, onError, () => CanStart);
-        StopCommand = new(() => StopAsync(), onError, () => CanStop);
-        PauseCommand = new(() => Session.PauseAsync(), onError, () => CanPause);
-        DeleteSelectionCommand = new ActionCommand(DeleteSelection);
+        TogglePlaybackCommand = new(() => CanStop ? StopAsync() : StartAsync(), onError, () => CanStop || CanStart);
+        DeleteSelectionCommand = new(DeleteSelection, () => CanDeleteSelection);
         CopyCommand = new ActionCommand(CopySelection);
         PasteCommand = new ActionCommand(Paste);
         UndoCommand = new ActionCommand(() => RestoreHistory(_undo, _redo));
         RedoCommand = new ActionCommand(() => RestoreHistory(_redo, _undo));
         foreach (var registration in Registry.Types)
             Palette.Add(new(registration, () => AddNode(registration.Type)));
-        SelectedNodes.CollectionChanged += (_, _) => { Raise(nameof(SelectedNode)); Raise(nameof(HasSelectedNode)); };
+        SelectedNodes.CollectionChanged += (_, _) =>
+        {
+            Raise(nameof(SelectedNode));
+            Raise(nameof(HasSelectedNode));
+            Raise(nameof(CanDeleteSelection));
+            DeleteSelectionCommand.NotifyCanExecuteChanged();
+        };
         Restore(document);
     }
 
@@ -192,7 +196,8 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
         DurationSeconds, TimerEnabled, Inputs: Nodes.SelectMany(n => n.Inputs).Where(p => p.IsExposed)
             .Select(p => new ExposedPort(p.Node.Id.ToString("N") + "." + p.Port.Id, p.Port.NameKey, new(p.Node.Id, p.Port.Id), p.Port.Parameter, p.Port.Kind)).ToArray(),
         Outputs: Nodes.SelectMany(n => n.Outputs).Where(p => p.IsExposed)
-            .Select(p => new ExposedPort(p.Node.Id.ToString("N") + "." + p.Port.Id, p.Port.NameKey, new(p.Node.Id, p.Port.Id), p.Port.Parameter, p.Port.Kind)).ToArray());
+            .Select(p => new ExposedPort(p.Node.Id.ToString("N") + "." + p.Port.Id, p.Port.NameKey, new(p.Node.Id, p.Port.Id), p.Port.Parameter, p.Port.Kind)).ToArray(),
+        AssignedDevices: AssignedDeviceIds.ToArray());
     public void MarkEdited()
     {
         if (!_restoring)
@@ -213,6 +218,7 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
         var document = ToDocument();
         Restore(document with
         {
+            AssignedDevices = AssignedDeviceIds.Where(id => id != current).Concat(replacement.StartsWith('$') ? [] : new[] { replacement }).Distinct(StringComparer.Ordinal).ToArray(),
             Nodes = document.Nodes.Select(n => SubgraphExpansion.MapDevices(n, new Dictionary<string, string> { [current] = replacement })).ToArray()
         });
     });
@@ -239,7 +245,8 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
             return;
         var before = ToDocument();
         mutation();
-        if (!layoutOnly && BoundDeviceIds.Any(id => !id.StartsWith('$') && CanBindDevice?.Invoke(id) == false))
+        _assignedDevices.UnionWith(ReferencedDeviceIds.Where(id => !id.StartsWith('$')));
+        if (!layoutOnly && AssignedDeviceIds.Any(id => CanBindDevice?.Invoke(id) == false))
         {
             Restore(before);
             throw new Core.Localization.LocalizedOperationException("Error.DeviceInUse");
@@ -285,15 +292,20 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
         return true;
     }
 
-    private void DeleteSelection() => Edit(() =>
+    private void DeleteSelection()
     {
-        var selected = SelectedNodes.ToHashSet();
-        foreach (var connection in Connections.Where(c => selected.Contains(c.Source.Node) || selected.Contains(c.Target.Node)).ToArray())
-            Connections.Remove(connection);
-        foreach (var node in selected)
-            Nodes.Remove(node);
-        SelectedNodes.Clear();
-    });
+        if (!CanDeleteSelection)
+            return;
+        Edit(() =>
+        {
+            var selected = SelectedNodes.ToHashSet();
+            foreach (var connection in Connections.Where(c => selected.Contains(c.Source.Node) || selected.Contains(c.Target.Node)).ToArray())
+                Connections.Remove(connection);
+            foreach (var node in selected)
+                Nodes.Remove(node);
+            SelectedNodes.Clear();
+        });
+    }
 
     private void CopySelection()
     {
@@ -334,8 +346,9 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
         Restore(previous);
         Edited?.Invoke(this, EventArgs.Empty);
     }
-    private bool BindingsAvailable(PipelineDocument document) => SubgraphExpansion.Expand(document).Nodes.SelectMany(n =>
-        Registry.Get(n.Type).Resources(Registry.Get(n.Type).Read(n.Configuration))).All(b => b.DeviceId.StartsWith('$') || CanBindDevice?.Invoke(b.DeviceId) != false);
+    private bool BindingsAvailable(PipelineDocument document) => (document.AssignedDevices ?? []).All(id => CanBindDevice?.Invoke(id) != false) &&
+        SubgraphExpansion.Expand(document).Nodes.SelectMany(n => Registry.Get(n.Type).Resources(Registry.Get(n.Type).Read(n.Configuration)))
+            .All(b => b.DeviceId.StartsWith('$') || CanBindDevice?.Invoke(b.DeviceId) != false);
 
     private void Restore(PipelineDocument document)
     {
@@ -343,6 +356,8 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
         try
         {
             _name = document.Name;
+            _assignedDevices.Clear();
+            _assignedDevices.UnionWith(document.AssignedDevices ?? []);
             _timerEnabled = document.TimerEnabled;
             _durationSeconds = Math.Min(document.DurationSeconds, _timerLimitSeconds);
             SelectedNodes.Clear();
@@ -365,6 +380,7 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
                 var target = Nodes.Single(n => n.Id == connection.Target.Node).Inputs.Single(p => p.Port.Id == connection.Target.Port);
                 Connections.Add(new(source, target));
             }
+            _assignedDevices.UnionWith(ReferencedDeviceIds.Where(id => !id.StartsWith('$')));
         }
         finally { _restoring = false; }
         foreach (var property in new[] { nameof(Name), nameof(TimerEnabled), nameof(DurationSeconds) })
@@ -400,7 +416,7 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
                 node.RefreshDevices();
         }
         RefreshState();
-        var bindings = BoundDeviceIds;
+        var bindings = ReferencedDeviceIds;
         if (!Bindings.Select(b => b.Id).SequenceEqual(bindings))
         {
             Bindings.Clear();
@@ -453,12 +469,11 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
 
     private void RefreshState()
     {
-        foreach (var property in new[] { nameof(CanEdit), nameof(CanUndo), nameof(CanRedo), nameof(CanStart), nameof(CanStop), nameof(CanPause),
-            nameof(StateLabel), nameof(PauseLabel), nameof(ShowTimerProgress), nameof(CanEditDuration), nameof(TimerProgress), nameof(TimerReadout), nameof(BoundDevices), nameof(InputStatus) })
+        foreach (var property in new[] { nameof(CanEdit), nameof(CanUndo), nameof(CanRedo), nameof(CanStart), nameof(CanStop), nameof(CanDeleteSelection),
+            nameof(PlaybackAction), nameof(ShowTimerProgress), nameof(ShowTimerSlider), nameof(CanEditDuration), nameof(TimerProgress), nameof(TimerReadout), nameof(DeviceSummary), nameof(InputStatus) })
             Raise(property);
-        StartCommand.NotifyCanExecuteChanged();
-        StopCommand.NotifyCanExecuteChanged();
-        PauseCommand.NotifyCanExecuteChanged();
+        TogglePlaybackCommand.NotifyCanExecuteChanged();
+        DeleteSelectionCommand.NotifyCanExecuteChanged();
         var endpoints = Services.Endpoints.Select(p => new PipelineEndpointViewModel(p.Value.Url, p.Value.Kind,
             Services.Credentials.GetValueOrDefault(p.Key)?.Token ?? "")).ToArray();
         if (!Endpoints.SequenceEqual(endpoints))

@@ -58,7 +58,13 @@ public enum OutputBindingKind
 {
     Channel, Pump, Native, Router, Sensor, Command, Export, ControlEndpoint
 }
-public sealed record DeviceOutputBinding(string DeviceId, OutputBindingKind Kind, int Channel = 0);
+public sealed record DeviceOutputBinding(string DeviceId, OutputBindingKind Kind, int Channel = 0)
+{
+    private bool IsOutput => Kind is OutputBindingKind.Channel or OutputBindingKind.Pump or OutputBindingKind.Native or OutputBindingKind.Router;
+    public bool ConflictsWith(DeviceOutputBinding other) => DeviceId == other.DeviceId &&
+        (Kind == OutputBindingKind.Export || other.Kind == OutputBindingKind.Export ||
+         IsOutput && other.IsOutput && (Kind != OutputBindingKind.Channel || other.Kind != OutputBindingKind.Channel || Channel == other.Channel));
+}
 public sealed record ConstantNode(double Value = 0);
 public sealed record WaveformNode(Guid WaveformId, int Channel = 0);
 public sealed record GainNode(double Gain = 1);

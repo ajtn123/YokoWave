@@ -26,7 +26,7 @@
             <StackPanel Classes="field">
               <Button Command="{Binding SelectCommand}" Classes="mode-select">
                 <ContentControl Content="{Binding Editor}"><ContentControl.ContentTemplate><DataTemplate x:DataType="vm:PipelineEditorViewModel">
-                  <StackPanel Classes="field"><TextBlock Text="{Binding Name}" Classes="small emphasis" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding StateLabel}" Classes="caption accent" /></StackPanel>
+                  <TextBlock Text="{Binding Name}" Classes="small emphasis" TextTrimming="CharacterEllipsis" />
                 </DataTemplate></ContentControl.ContentTemplate></ContentControl>
               </Button>
               <ItemsControl ItemsSource="{Binding Devices}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:PipelineDeviceCardViewModel"><views:PipelineDeviceCardView /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
