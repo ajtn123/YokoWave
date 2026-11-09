@@ -16,7 +16,6 @@
   "Pipeline.Copy": "Copy nodes",
   "Pipeline.Paste": "Paste nodes",
   "Pipeline.Device": "Connected device",
-  "Pipeline.SourceChannel": "Waveform channel",
   "Pipeline.OutputChannel": "Output channel",
   "Pipeline.PortHelp": "Drag between numeric ports. Strength: 0–1; frequency: Hz. Select a node to edit. Unconnected inputs use defaults. Connected inputs with missing or invalid data inhibit output.",
   "Pipeline.PumpHelp": "Direction: 0=off, 1=forward, 2=reverse. Water: 0=off, 1=on. Durations are whole seconds. A timed command is sent when its parameters change.",
@@ -945,5 +944,10 @@
   "Wave.PulseWidth": "Pulse width (0–1)",
   "Wave.UseChannels": "Set signed channel amplitudes (−1–1)",
   "Wave.ChannelCount": "{0} channels",
-  "Status.LocalDataCleared": "Local data cleared."
+  "Status.LocalDataCleared": "Local data cleared.",
+  "Pipeline.Port.levelA": "Level A",
+  "Pipeline.Port.levelB": "Level B",
+  "Pipeline.Port.levelC": "Level C",
+  "Pipeline.SentStrength": "Sent strength · {0}",
+  "Pipeline.OutputUnknown": "Output state unknown"
 }

@@ -54,7 +54,7 @@ internal sealed class ConstantProcessor(double value) : ISignalProcessor
     public void Evaluate(NodeEvaluationContext context) => context.Output("value", NumericSignal.Constant(context.Constant(value)));
 }
 
-internal sealed class WaveformProcessor(WaveformPreset preset, int channel) : ISignalProcessor, IInteractiveProcessor
+internal sealed class WaveformProcessor(WaveformPreset preset) : ISignalProcessor, IInteractiveProcessor
 {
     private WaveformPreset _preset = preset;
     private bool _restart;
@@ -76,9 +76,7 @@ internal sealed class WaveformProcessor(WaveformPreset preset, int channel) : IS
             _restart = false;
         }
         var samples = WaveformGenerator.Window(_preset, context.Elapsed.TotalSeconds - _epoch);
-        context.Output("level", new(samples.Select(s => s.Level * s.ChannelMagnitude(channel)).ToArray(), DateTimeOffset.MaxValue));
-        context.Output("frequency", new(samples.Select(s => s.FrequencyHz).ToArray(), DateTimeOffset.MaxValue));
-        context.Output("pulseWidth", new(samples.Select(s => s.PulseWidth).ToArray(), DateTimeOffset.MaxValue));
+        WaveformPorts.Write(context, _preset, samples);
     }
 }
 

@@ -24,6 +24,7 @@ public sealed class NodePortViewModel(NodeEditorViewModel node, NodePort port) :
     public NodePort Port { get; } = port;
     public Point Anchor { get => _anchor; set => Set(ref _anchor, value); }
     public bool IsConnected { get => _connected; set => Set(ref _connected, value); }
+    public bool IsAvailable => Node.IsPortAvailable(Port);
     public string Title => L10n.Get(Port.NameKey) + (Port.Parameter?.Unit is { Length: > 0 } unit ? $" ({(unit == "ratio" ? "0–1" : unit)})" : "");
     public string Detail => Port.Direction == PortDirection.Input && Port.Parameter is { } spec
         ? L10n.Format("Pipeline.Port.Range", spec.Minimum, spec.Maximum, spec.DefaultValue) : Title;
@@ -31,6 +32,7 @@ public sealed class NodePortViewModel(NodeEditorViewModel node, NodePort port) :
     {
         Raise(nameof(Title));
         Raise(nameof(Detail));
+        Raise(nameof(IsAvailable));
     }
 }
 
@@ -78,6 +80,9 @@ public abstract class NodeEditorViewModel : ObservableObject
     public string Type { get; }
     public string Title => L10n.Get(Editor.Registry.Get(Type).NameKey);
     public virtual string Summary => "";
+    public bool HasSummary => Summary.Length > 0;
+    public virtual IReadOnlyList<SentStrengthViewModel> SentStrength => [];
+    public virtual bool IsPortAvailable(NodePort port) => true;
     public virtual PresetItem? Preview => null;
     public double PreviewPhase => Preview is { } preset ?
         Editor.Session.NodeStatus.GetValueOrDefault(Id) is { } status ? 1 - status.RemainingSeconds / preset.Preset.PeriodSeconds :
@@ -134,6 +139,7 @@ public abstract class NodeEditorViewModel : ObservableObject
     {
         Raise(nameof(Title));
         Raise(nameof(Summary));
+        Raise(nameof(HasSummary));
         Raise(nameof(CanEdit));
         Raise(nameof(StatusText));
         Raise(nameof(Preview));
@@ -174,17 +180,13 @@ public interface IWaveformNodeEditor
 }
 public sealed class WaveformEditorNodeViewModel : NodeEditorViewModel, IWaveformNodeEditor
 {
-    public IReadOnlyList<SessionOption> Channels { get; } = ChannelChoices.Create();
-    public SessionOption? SelectedChannel { get => Channels.FirstOrDefault(c => c.Value == Channel); set { if (value is not null) Channel = value.Value; } }
     private Guid _waveformId;
-    private int _channel;
     public override string Summary => SelectedPreset?.Name ?? L10n.Get("Pipeline.Error.Waveform");
     public override PresetItem? Preview => SelectedPreset;
     public WaveformEditorNodeViewModel(PipelineEditorViewModel editor, NodeDefinition definition) : base(editor, definition)
     {
         var config = (WaveformNode)editor.Registry.Get(Type).Read(definition.Configuration);
         _waveformId = config.WaveformId;
-        _channel = config.Channel;
     }
     public ObservableCollection<PresetItem> Presets => Editor.Presets;
     public PresetItem? SelectedPreset
@@ -199,26 +201,12 @@ public sealed class WaveformEditorNodeViewModel : NodeEditorViewModel, IWaveform
             }
         }
     }
-    public int Channel
-    {
-        get => _channel;
-        set
-        {
-            if (value is >= 0 and <= 2 && value != _channel)
-                Change(() => Set(ref _channel, value));
-        }
-    }
-    protected override NodeDefinition BuildDefinition() => NodeDefinition.Create(Type, new WaveformNode(_waveformId, Channel), Id);
+    public override bool IsPortAvailable(NodePort port) => WaveformPorts.IsAvailable(port, SelectedPreset?.Preset);
+    protected override NodeDefinition BuildDefinition() => NodeDefinition.Create(Type, new WaveformNode(_waveformId), Id);
     public bool SelectWaveform(PresetItem preset)
     {
         SelectedPreset = preset;
         return true;
-    }
-    public override void RefreshLocalization()
-    {
-        base.RefreshLocalization();
-        foreach (var channel in Channels)
-            channel.RefreshLocalization();
     }
 }
 
@@ -259,6 +247,10 @@ public sealed class LimitEditorViewModel : NodeEditorViewModel
 public abstract class DeviceOutputEditorViewModel : NodeEditorViewModel
 {
     private string _deviceId;
+    private readonly ObservableCollection<SentStrengthViewModel> _sentStrength = [];
+    public override IReadOnlyList<SentStrengthViewModel> SentStrength => _sentStrength;
+    protected virtual IEnumerable<int> MeterChannels => HasStrengthLimit && Editor.FindDevice(DeviceId) is { IsInput: false, Kind: not Core.DeviceKind.Pump } device
+        ? Enumerable.Range(0, 3).Where(device.HasChannel) : [];
     public override string Summary => SelectedDevice?.Name ?? DeviceId;
     protected DeviceOutputEditorViewModel(PipelineEditorViewModel editor, NodeDefinition definition, string deviceId) : base(editor, definition) => _deviceId = deviceId;
     public string DeviceId => _deviceId;
@@ -276,10 +268,25 @@ public abstract class DeviceOutputEditorViewModel : NodeEditorViewModel
         }
     }
     internal virtual void RefreshDevices() => Raise(nameof(SelectedDevice));
+    public override void RefreshLocalization()
+    {
+        base.RefreshLocalization();
+        var channels = MeterChannels.ToArray();
+        if (!_sentStrength.Select(meter => meter.Channel).SequenceEqual(channels))
+        {
+            _sentStrength.Clear();
+            foreach (var channel in channels)
+                _sentStrength.Add(new(channel));
+        }
+        var (frame, unknown) = Editor.ReadSentOutput(DeviceId);
+        foreach (var meter in _sentStrength)
+            meter.Update(meter.Channel == 0 ? frame.ChannelA : meter.Channel == 1 ? frame.ChannelB : frame.ChannelC, unknown);
+    }
 }
 
 public sealed class ChannelOutputEditorViewModel : DeviceOutputEditorViewModel
 {
+    protected override IEnumerable<int> MeterChannels => [Channel];
     public ObservableCollection<SessionOption> Channels { get; } = [];
     public SessionOption? SelectedChannel { get => Channels.FirstOrDefault(c => c.Value == Channel); set { if (value is not null) Channel = value.Value; } }
 

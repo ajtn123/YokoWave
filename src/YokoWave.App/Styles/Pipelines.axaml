@@ -61,6 +61,15 @@
     <Setter Property="HorizontalAlignment" Value="Stretch" />
     <Setter Property="Margin" Value="{DynamicResource Margin.AboveSmall}" />
   </Style>
+  <Style Selector="ProgressBar.node-strength">
+    <Setter Property="MinWidth" Value="{DynamicResource Size.NodeStrengthWidth}" />
+    <Setter Property="Height" Value="{DynamicResource Size.NodeStrengthHeight}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+    <Setter Property="Background" Value="{DynamicResource RaisedBrush}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+    <Setter Property="ClipToBounds" Value="True" />
+  </Style>
   <Style Selector="n|NodifyEditor">
     <Setter Property="Background" Value="{DynamicResource CanvasBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />

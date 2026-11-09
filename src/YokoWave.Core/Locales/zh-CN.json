@@ -16,7 +16,6 @@
   "Pipeline.Copy": "复制节点",
   "Pipeline.Paste": "粘贴节点",
   "Pipeline.Device": "已连接设备",
-  "Pipeline.SourceChannel": "波形通道",
   "Pipeline.OutputChannel": "输出通道",
   "Pipeline.PortHelp": "拖动连接数值端口。强度为 0–1，频率为 Hz；选中节点可编辑参数。未连接端口使用默认值，已连接输入缺失或无效时输出归零等待。",
   "Pipeline.PumpHelp": "方向：0 关闭、1 正转、2 反转。水泵：0 关闭、1 开启。时长为整数秒，参数变化时发送定时指令。",
@@ -945,5 +944,10 @@
   "Wave.PulseWidth": "脉宽（0–1）",
   "Wave.UseChannels": "设置带符号的通道幅度（−1–1）",
   "Wave.ChannelCount": "{0} 个通道",
-  "Status.LocalDataCleared": "本地数据已清除。"
+  "Status.LocalDataCleared": "本地数据已清除。",
+  "Pipeline.Port.levelA": "电平 A",
+  "Pipeline.Port.levelB": "电平 B",
+  "Pipeline.Port.levelC": "电平 C",
+  "Pipeline.SentStrength": "已发送强度 · {0}",
+  "Pipeline.OutputUnknown": "输出状态未知"
 }

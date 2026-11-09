@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/ajtn123/YokoWave/main/schemas/waveforms.schema.json",
+  "title": "YokoWave waveform collection",
+  "description": "The top-level array used by waveforms.json, built-in waveform resources, and import/export. Empty arrays are valid storage; imports additionally require 1–100 unique waveform IDs.",
+  "type": "array",
+  "items": { "$ref": "waveform.schema.json" }
+}

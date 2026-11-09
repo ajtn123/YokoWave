@@ -9,6 +9,8 @@
   <x:Double x:Key="Size.PipelineTimerTrackWidth">96</x:Double>
   <x:Double x:Key="Size.PipelineTimerReadoutWidth">48</x:Double>
   <x:Double x:Key="Size.PipelineNodeWidth">160</x:Double>
+  <x:Double x:Key="Size.NodeStrengthHeight">6</x:Double>
+  <x:Double x:Key="Size.NodeStrengthWidth">64</x:Double>
   <x:UInt32 x:Key="Size.PipelineGrid">8</x:UInt32>
   <x:Double x:Key="FontSize.FinePrint">9</x:Double>
   <x:Double x:Key="FontSize.Caption">10</x:Double>

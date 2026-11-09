@@ -63,9 +63,7 @@ internal sealed class PlaylistProcessor : ISignalProcessor, IInteractiveProcesso
         if (_settings.StopWhenComplete && _settings.Order == PlaybackOrder.Once)
             context.Completion(completed, "Reason.WaveComplete");
         var samples = WaveformGenerator.Window(_current, elapsed, _settings.Phase, repeat: _settings.Order != PlaybackOrder.Once);
-        context.Output("level", new(samples.Select(s => completed ? 0 : s.Level * s.ChannelMagnitude(_settings.Channel)).ToArray(), DateTimeOffset.MaxValue));
-        context.Output("frequency", new(samples.Select(s => s.FrequencyHz).ToArray(), DateTimeOffset.MaxValue));
-        context.Output("pulseWidth", new(samples.Select(s => s.PulseWidth).ToArray(), DateTimeOffset.MaxValue));
+        WaveformPorts.Write(context, _current, samples, completed);
         var position = _settings.Order == PlaybackOrder.Once ? elapsed : elapsed % _current.PeriodSeconds;
         context.Status(new(completed ? "Safe" : "Tracking", Waveform: _current.Id, RemainingSeconds: Math.Max(0, _current.PeriodSeconds - position)));
     }

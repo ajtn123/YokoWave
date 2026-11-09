@@ -63,7 +63,18 @@
           </n:NodifyEditor.ItemContainerTheme>
           <n:NodifyEditor.ItemTemplate>
             <DataTemplate x:DataType="vm:NodeEditorViewModel">
-              <nodes:Node Header="{Binding Title}" Content="{Binding Summary}" Input="{Binding Inputs}" Output="{Binding Outputs}">
+              <nodes:Node Header="{Binding Title}" Content="{Binding}" Input="{Binding Inputs}" Output="{Binding Outputs}">
+                <nodes:Node.ContentTemplate>
+                  <DataTemplate x:DataType="vm:NodeEditorViewModel">
+                    <StackPanel Classes="field">
+                      <TextBlock Text="{Binding Summary}" IsVisible="{Binding HasSummary}" />
+                      <ItemsControl ItemsSource="{Binding SentStrength}">
+                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Classes="field" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:SentStrengthViewModel"><views:SentStrengthView /></DataTemplate></ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+                  </DataTemplate>
+                </nodes:Node.ContentTemplate>
                 <nodes:Node.InputConnectorTemplate>
                   <DataTemplate x:DataType="vm:NodePortViewModel">
                     <nodes:NodeInput Header="{Binding Title}" Anchor="{Binding Anchor, Mode=OneWayToSource}"
@@ -73,7 +84,7 @@
                 <nodes:Node.OutputConnectorTemplate>
                   <DataTemplate x:DataType="vm:NodePortViewModel">
                     <nodes:NodeOutput Header="{Binding Title}" Anchor="{Binding Anchor, Mode=OneWayToSource}"
-                                      IsConnected="{Binding IsConnected}" ToolTip.Tip="{Binding Detail}" />
+                                      IsConnected="{Binding IsConnected}" IsVisible="{Binding IsAvailable}" ToolTip.Tip="{Binding Detail}" />
                   </DataTemplate>
                 </nodes:Node.OutputConnectorTemplate>
               </nodes:Node>
@@ -81,7 +92,7 @@
           </n:NodifyEditor.ItemTemplate>
           <n:NodifyEditor.ConnectionTemplate>
             <DataTemplate x:DataType="vm:ConnectionViewModel">
-              <connections:Connection Source="{Binding Source.Anchor}" Target="{Binding Target.Anchor}" />
+              <connections:Connection Source="{Binding Source.Anchor}" Target="{Binding Target.Anchor}" IsVisible="{Binding Source.IsAvailable}" />
             </DataTemplate>
           </n:NodifyEditor.ConnectionTemplate>
           <n:NodifyEditor.PendingConnectionTemplate>

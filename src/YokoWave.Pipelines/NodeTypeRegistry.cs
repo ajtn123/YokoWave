@@ -66,7 +66,7 @@ public sealed record DeviceOutputBinding(string DeviceId, OutputBindingKind Kind
          IsOutput && other.IsOutput && (Kind != OutputBindingKind.Channel || other.Kind != OutputBindingKind.Channel || Channel == other.Channel));
 }
 public sealed record ConstantNode(double Value = 0);
-public sealed record WaveformNode(Guid WaveformId, int Channel = 0);
+public sealed record WaveformNode(Guid WaveformId);
 public sealed record GainNode(double Gain = 1);
 public sealed record LimitNode(double Limit = .6);
 public sealed record ChannelOutputNode(string DeviceId = "", int Channel = 0, double Limit = .6);
@@ -85,9 +85,8 @@ public static partial class BuiltInNodes
         .Register(new NodeRegistration<ConstantNode>(Constant, "Pipeline.Node.Constant",
             [NodePort.Output("value", "Pipeline.Port.Value")], c => double.IsFinite(c.Value), (c, _) => new ConstantProcessor(c.Value)))
         .Register(new NodeRegistration<WaveformNode>(Waveform, "Pipeline.Node.Waveform",
-            [NodePort.Output("level", "Pipeline.Port.Strength", "ratio"), NodePort.Output("frequency", "Pipeline.Port.Frequency", "Hz"),
-             NodePort.Output("pulseWidth", "Pipeline.Port.PulseWidth", "ratio")], c => c.WaveformId != Guid.Empty && c.Channel is >= 0 and <= 2,
-            (c, waves) => new WaveformProcessor(waves[c.WaveformId], c.Channel), waveformReferences: c => [c.WaveformId]))
+            WaveformPorts.Create(), c => c.WaveformId != Guid.Empty,
+            (c, waves) => new WaveformProcessor(waves[c.WaveformId]), waveformReferences: c => [c.WaveformId]))
         .Register(new NodeRegistration<GainNode>(Gain, "Pipeline.Node.Gain",
             [NodePort.Input("value", "Pipeline.Port.Value", double.MinValue, double.MaxValue),
              NodePort.Input("gain", "Pipeline.Port.Gain", -1000, 1000, 1), NodePort.Output("value", "Pipeline.Port.Value")],

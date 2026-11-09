@@ -8,8 +8,6 @@ namespace YokoWave.App.ViewModels.Pipelines;
 
 public sealed class PlaylistEditorViewModel : NodeEditorViewModel, IWaveformNodeEditor
 {
-    public IReadOnlyList<SessionOption> Channels { get; } = ChannelChoices.Create();
-    public SessionOption? SelectedChannel { get => Channels.FirstOrDefault(c => c.Value == _settings.Channel); set { if (value is not null) Change(() => _settings = _settings with { Channel = value.Value }); } }
     public double Phase { get => _settings.Phase; set { if (double.IsFinite(value)) Change(() => _settings = _settings with { Phase = value }); } }
     public bool RestartOnTrigger { get => _settings.RestartOnTrigger; set => Change(() => _settings = _settings with { RestartOnTrigger = value }); }
     public bool StopWhenComplete { get => _settings.StopWhenComplete; set => Change(() => _settings = _settings with { StopWhenComplete = value }); }
@@ -41,9 +39,10 @@ public sealed class PlaylistEditorViewModel : NodeEditorViewModel, IWaveformNode
                 Change(() => { _settings = _settings with { Order = (PlaybackOrder)value.Value }; Raise(); });
         }
     }
-    public override string Summary => Editor.Session.NodeStatus.TryGetValue(Id, out var status) && status.Waveform is { } id
-        ? Presets.FirstOrDefault(p => p.Preset.Id == id)?.Name ?? SelectedPreset?.Name ?? "" : SelectedPreset?.Name ?? "";
-    public override PresetItem? Preview => Editor.Session.NodeStatus.GetValueOrDefault(Id)?.Waveform is { } id ? Presets.FirstOrDefault(p => p.Preset.Id == id) : SelectedPreset;
+    public override string Summary => Preview?.Name ?? "";
+    public override PresetItem? Preview => Editor.Session.HoldsResources && Editor.Session.NodeStatus.GetValueOrDefault(Id)?.Waveform is { } id
+        ? Presets.FirstOrDefault(p => p.Preset.Id == id) : SelectedPreset;
+    public override bool IsPortAvailable(NodePort port) => WaveformPorts.IsAvailable(port, Preview?.Preset);
     public ICommand AddWaveCommand { get; }
     public ICommand RemoveWaveCommand { get; }
     public ICommand MoveUpCommand { get; }
@@ -83,7 +82,7 @@ public sealed class PlaylistEditorViewModel : NodeEditorViewModel, IWaveformNode
     public override void RefreshLocalization()
     {
         base.RefreshLocalization();
-        foreach (var order in Orders.Concat(Channels))
+        foreach (var order in Orders)
             order.RefreshLocalization();
     }
 }

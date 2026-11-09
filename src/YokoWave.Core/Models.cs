@@ -64,6 +64,9 @@ public sealed record WaveformPreset(
     [property: JsonRequired] int FormatVersion = 1)
 {
     public static IReadOnlyList<WaveformPreset> BuiltIn => DefaultWaveformCatalog.Presets;
+    [JsonIgnore]
+    public int ChannelCount => Shape == WaveShape.Sampled && Samples is { Length: > 0 }
+        ? Samples.Max(sample => sample.Channels?.Length ?? 1) : 1;
 
     public void Validate()
     {
@@ -154,7 +157,7 @@ public sealed record AppSettings(double DefaultLimit = 60, string? Language = nu
 public sealed record WorkspaceData(int SchemaVersion, List<WaveformPreset> Presets,
     List<SessionRecord> Sessions, AppSettings Settings, SessionStatistics? Statistics = null)
 {
-    public const int CurrentSchema = 10;
+    public const int CurrentSchema = 11;
     public static WorkspaceData Empty => new(CurrentSchema, [], [], new(), new());
 }
 

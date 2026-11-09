@@ -1,0 +1,8 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:YokoWave.App.ViewModels.Pipelines"
+             x:Class="YokoWave.App.Views.Pipelines.SentStrengthView" x:DataType="vm:SentStrengthViewModel">
+  <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource Space.Small}">
+    <TextBlock Text="{Binding ChannelName}" Classes="caption muted" VerticalAlignment="Center" />
+    <ProgressBar Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding Value}" IsIndeterminate="{Binding IsUnknown}" Classes="node-strength"
+                 ToolTip.Tip="{Binding Label}" AutomationProperties.Name="{Binding Label}" />
+  </Grid>
+</UserControl>

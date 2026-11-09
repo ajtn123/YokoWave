@@ -4,7 +4,7 @@ using YokoWave.Core.Bluetooth;
 namespace YokoWave.Pipelines;
 
 public sealed record PlaylistNode(Guid WaveformId, Guid[]? Playlist = null, PlaybackOrder Order = PlaybackOrder.Repeat,
-    int Channel = 0, double Phase = 0, bool RestartOnTrigger = false, bool StopWhenComplete = true);
+    double Phase = 0, bool RestartOnTrigger = false, bool StopWhenComplete = true);
 public sealed record TouchNode(TouchPlayback Playback = TouchPlayback.Momentary);
 public sealed record AudioNode(AudioSettings Settings);
 public sealed record SensorNode(string DeviceId = "");
@@ -64,8 +64,8 @@ public static partial class BuiltInNodes
     private static NodeTypeRegistry RegisterFeatures(NodeTypeRegistry registry) => registry
         .Register(SubgraphExpansion.Registration())
         .Register(new NodeRegistration<PlaylistNode>(Playlist, "Pipeline.Node.Playlist",
-            [In("trigger", 0, 1), Out("level"), Out("frequency"), Out("pulseWidth")],
-            c => c.WaveformId != Guid.Empty && Enum.IsDefined(c.Order) && c.Channel is >= 0 and <= 2 && double.IsFinite(c.Phase) &&
+            WaveformPorts.Create(trigger: true),
+            c => c.WaveformId != Guid.Empty && Enum.IsDefined(c.Order) && double.IsFinite(c.Phase) &&
                 (c.Order is not (PlaybackOrder.Sequential or PlaybackOrder.Random) || c.Playlist is { Length: > 0 and <= 100 }),
             (c, waves) => new PlaylistProcessor(c, waves), waveformReferences: c => new[] { c.WaveformId }.Concat(c.Playlist ?? [])))
         .Register(new NodeRegistration<TouchNode>(Touch, "Pipeline.Node.Touch", [Out("level"), Out("frequency"), Out("pulseWidth")],

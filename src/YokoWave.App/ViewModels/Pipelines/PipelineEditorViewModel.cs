@@ -391,6 +391,16 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
     }
 
     public DeviceDescriptor? FindDevice(string id) => _controller.Connections.GetValueOrDefault(id)?.Device;
+    internal (OutputFrame Frame, bool Unknown) ReadSentOutput(string id)
+    {
+        if (!Session.HoldsResources)
+            return (OutputFrame.Zero, false);
+        if (Session.State == PipelineState.Faulted)
+            return (OutputFrame.Zero, true);
+        if (_controller.DeviceOwner(id) == Session.OwnerId && _controller.Connections.TryGetValue(id, out var connection))
+            return (connection.Output, false);
+        return (OutputFrame.Zero, Session.State == PipelineState.Running);
+    }
 
     public void RefreshDevices()
     {

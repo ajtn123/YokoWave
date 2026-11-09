@@ -81,8 +81,8 @@ public sealed class GraphFeatureTests
         var b = new PipelineBuilder("playlist", 1);
         var playlist = b.Add(BuiltInNodes.Playlist, new PlaylistNode(a.Id, [a.Id, bWave.Id], order));
         var other = b.Add(BuiltInNodes.Playlist, new PlaylistNode(a.Id));
-        Sink(b, playlist, "level");
-        Sink(b, other, "level", 1);
+        Sink(b, playlist, "levelA");
+        Sink(b, other, "levelA", 1);
         var runtime = Runtime(b, a, bWave);
         Assert.Equal(60, Level(runtime));
         var frame = runtime.Evaluate(TimeSpan.FromSeconds(1), Now.AddSeconds(1));

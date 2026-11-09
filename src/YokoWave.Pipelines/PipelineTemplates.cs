@@ -31,8 +31,8 @@ public static class PipelineTemplates
         var b = new PipelineBuilder(p.Name, p.Limit);
         for (var channel = 0; channel < p.Channels; channel++)
         {
-            var wave = b.Add(BuiltInNodes.Playlist, new PlaylistNode(Asset(p).Id, [Asset(p).Id], Channel: channel == 1 ? 1 : 0, Phase: channel == 1 ? .5 : 0));
-            b.Channel(p.DeviceId, channel, wave, "level", wave, "frequency", wave, "pulseWidth");
+            var wave = b.Add(BuiltInNodes.Playlist, new PlaylistNode(Asset(p).Id, [Asset(p).Id], Phase: channel == 1 ? .5 : 0));
+            b.Channel(p.DeviceId, channel, wave, WaveformPorts.Level(channel < Asset(p).ChannelCount ? channel : 0), wave, "frequency", wave, "pulseWidth");
         }
         return b.Build();
     }
@@ -81,9 +81,9 @@ public static class PipelineTemplates
         b.Connect(count, "activity", cycle, "activity");
         for (var channel = 0; channel < p.Channels; channel++)
         {
-            var wave = b.Add(BuiltInNodes.Playlist, new PlaylistNode(Asset(p).Id, [Asset(p).Id], Channel: channel == 1 ? 1 : 0, Phase: channel == 1 ? .5 : 0));
+            var wave = b.Add(BuiltInNodes.Playlist, new PlaylistNode(Asset(p).Id, [Asset(p).Id], Phase: channel == 1 ? .5 : 0));
             var gate = b.Add(BuiltInNodes.Gain, new GainNode());
-            b.Connect(wave, "level", gate, "value");
+            b.Connect(wave, WaveformPorts.Level(channel < Asset(p).ChannelCount ? channel : 0), gate, "value");
             b.Connect(cycle, "gate", gate, "gain");
             b.Channel(p.DeviceId, channel, gate, "value", wave, "frequency", wave, "pulseWidth");
         }
@@ -105,9 +105,9 @@ public static class PipelineTemplates
         for (var channel = 0; channel < p.Channels; channel++)
         {
             var wave = b.Add(BuiltInNodes.Playlist, new PlaylistNode(Asset(p).Id, random ? WaveformPreset.BuiltIn.Select(w => w.Id).ToArray() : [Asset(p).Id],
-                random ? PlaybackOrder.Random : PlaybackOrder.Repeat, Channel: channel == 1 ? 1 : 0, Phase: channel == 1 && !random ? .5 : 0, RestartOnTrigger: random));
+                random ? PlaybackOrder.Random : PlaybackOrder.Repeat, Phase: channel == 1 && !random ? .5 : 0, RestartOnTrigger: random));
             var gate = b.Add(BuiltInNodes.Gain, new GainNode());
-            b.Connect(wave, "level", gate, "value");
+            b.Connect(wave, WaveformPorts.Level(channel < Asset(p).ChannelCount ? channel : 0), gate, "value");
             b.Connect(cycle, "gate", gate, "gain");
             b.Connect(cycle, "trigger", wave, "trigger");
             b.Channel(p.DeviceId, channel, gate, "value", wave, "frequency", wave, "pulseWidth");

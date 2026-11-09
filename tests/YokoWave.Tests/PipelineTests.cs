@@ -140,7 +140,7 @@ public sealed class PipelineTests
         var wave = NodeDefinition.Create(BuiltInNodes.Waveform, new WaveformNode(preset.Id));
         var cap = Number(1);
         var output = Output();
-        var plan = Compiler().Compile(Graph([wave, cap, output], Edge(wave, output, source: "level"),
+        var plan = Compiler().Compile(Graph([wave, cap, output], Edge(wave, output, source: "levelA"),
             Edge(wave, output, "frequency", "frequency"), Edge(wave, output, "pulseWidth", "pulseWidth"), Edge(cap, output, "limit")), [preset]);
         preset.Samples![0] = new(1, 100); // Editing the asset after compilation cannot change a running snapshot.
         var frame = new PipelineRuntime(plan, new HashSet<string>()).Evaluate(TimeSpan.FromSeconds(.075), DateTimeOffset.UtcNow).Outputs["one"];

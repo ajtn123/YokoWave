@@ -63,8 +63,9 @@ internal sealed record RemotePipelineProgram(PipelineDocument Graph, WaveformPre
             {
                 if (!device.HasChannel(channel))
                     continue;
-                var wave = builder.Add(BuiltInNodes.Playlist, new PlaylistNode(channel == 1 ? settings.ChannelBWaveform?.Id ?? preset.Id : preset.Id,
-                    settings.Playlist?.Select(w => w.Id).ToArray(), settings.Order, Channel: channel == 1 ? 1 : 0, Phase: channel == 1 && settings.ChannelBWaveform is null && settings.OffsetChannelB ? .5 : 0));
+                var asset = channel == 1 ? settings.ChannelBWaveform ?? preset : preset;
+                var wave = builder.Add(BuiltInNodes.Playlist, new PlaylistNode(asset.Id,
+                    settings.Playlist?.Select(w => w.Id).ToArray(), settings.Order, Phase: channel == 1 && settings.ChannelBWaveform is null && settings.OffsetChannelB ? .5 : 0));
                 waves.Add(wave.Id);
                 var strength = Strength(channel);
                 var automation = builder.Add(BuiltInNodes.Automation, new AutomationNode(settings.Strength ?? new()));
@@ -72,7 +73,7 @@ internal sealed record RemotePipelineProgram(PipelineDocument Graph, WaveformPre
                 var output = builder.Add(BuiltInNodes.ChannelOutput, new ChannelOutputNode(device.Id, channel, Math.Min(maximum, settings.OutputLimit) / 100));
                 builder.Connect(strength, "value", automation, "value");
                 builder.Connect(automation, "value", gain, "gain");
-                builder.Connect(wave, "level", gain, "value");
+                builder.Connect(wave, WaveformPorts.Level(channel < asset.ChannelCount ? channel : 0), gain, "value");
                 builder.Connect(gain, "value", output, "strength");
                 builder.Connect(wave, "frequency", output, "frequency");
                 builder.Connect(wave, "pulseWidth", output, "pulseWidth");

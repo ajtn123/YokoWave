@@ -10,7 +10,7 @@
       </StackPanel>
     </DataTemplate>
     <DataTemplate DataType="vm:WaveformEditorNodeViewModel">
-      <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
+      <StackPanel Classes="field">
         <TextBlock Text="{l:Loc Pipeline.Node.Waveform}" Classes="muted" />
         <ComboBox ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}">
           <ComboBox.ItemTemplate>
@@ -19,8 +19,6 @@
             </DataTemplate>
           </ComboBox.ItemTemplate>
         </ComboBox>
-        <TextBlock Text="{l:Loc Pipeline.SourceChannel}" Classes="muted" />
-        <ComboBox ItemsSource="{Binding Channels}" SelectedItem="{Binding SelectedChannel}"><ComboBox.ItemTemplate><DataTemplate x:DataType="items:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
       </StackPanel>
     </DataTemplate>
     <DataTemplate DataType="vm:GainEditorViewModel">
@@ -90,8 +88,6 @@
           <ComboBox.ItemTemplate><DataTemplate x:DataType="items:PresetItem"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
         </ComboBox>
         <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
-          <TextBlock Text="{l:Loc Pipeline.SourceChannel}" Classes="field-label" />
-          <ComboBox ItemsSource="{Binding Channels}" SelectedItem="{Binding SelectedChannel}"><ComboBox.ItemTemplate><DataTemplate x:DataType="items:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
           <TextBlock Text="{l:Loc Pipeline.Phase}" Classes="field-label" /><NumericUpDown Value="{Binding Phase}" Increment="0.01" />
           <CheckBox Content="{l:Loc Pipeline.RestartOnTrigger}" IsChecked="{Binding RestartOnTrigger}" />
           <CheckBox Content="{l:Loc Pipeline.StopWhenComplete}" IsChecked="{Binding StopWhenComplete}" />
@@ -186,11 +182,11 @@
       <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
         <TextBlock Text="{l:Loc Pipeline.Inputs}" Classes="muted" />
         <ItemsControl ItemsSource="{Binding Inputs}">
-          <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:NodePortViewModel"><CheckBox Content="{Binding Title}" IsChecked="{Binding IsExposed}" /></DataTemplate></ItemsControl.ItemTemplate>
+          <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:NodePortViewModel"><CheckBox Content="{Binding Title}" IsChecked="{Binding IsExposed}" IsVisible="{Binding IsAvailable}" /></DataTemplate></ItemsControl.ItemTemplate>
         </ItemsControl>
         <TextBlock Text="{l:Loc Pipeline.Outputs}" Classes="muted" />
         <ItemsControl ItemsSource="{Binding Outputs}">
-          <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:NodePortViewModel"><CheckBox Content="{Binding Title}" IsChecked="{Binding IsExposed}" /></DataTemplate></ItemsControl.ItemTemplate>
+          <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:NodePortViewModel"><CheckBox Content="{Binding Title}" IsChecked="{Binding IsExposed}" IsVisible="{Binding IsAvailable}" /></DataTemplate></ItemsControl.ItemTemplate>
         </ItemsControl>
       </StackPanel>
     </Expander>
