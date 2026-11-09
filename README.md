@@ -60,6 +60,8 @@ Windows、macOS 和 Linux 共用同一个桌面入口。真实 BLE 后端目前�
 
 ## 开发验证
 
+代码放置、命名、字段与属性、语言特性和排版遵循 [代码风格](docs/code-style.md)，模块职责见 [架构说明](docs/architecture.md)。
+
 开发阶段只构建和测试，无需每次执行 `publish`。
 
 ```sh
