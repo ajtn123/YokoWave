@@ -66,7 +66,8 @@ public static partial class BuiltInNodes
         .Register(new NodeRegistration<PlaylistNode>(Playlist, "Pipeline.Node.Playlist",
             WaveformPorts.Create(trigger: true),
             c => c.WaveformId != Guid.Empty && Enum.IsDefined(c.Order) && double.IsFinite(c.Phase) &&
-                (c.Order is not (PlaybackOrder.Sequential or PlaybackOrder.Random) || c.Playlist is { Length: > 0 and <= 100 }),
+                (c.Playlist is null || c.Playlist.Length <= 100 && c.Playlist.All(id => id != Guid.Empty) && c.Playlist.Distinct().Count() == c.Playlist.Length) &&
+                (c.Order is not (PlaybackOrder.Sequential or PlaybackOrder.Random) || c.Playlist?.Contains(c.WaveformId) == true),
             (c, waves) => new PlaylistProcessor(c, waves), waveformReferences: c => new[] { c.WaveformId }.Concat(c.Playlist ?? [])))
         .Register(new NodeRegistration<TouchNode>(Touch, "Pipeline.Node.Touch", [Out("level"), Out("frequency"), Out("pulseWidth")],
             c => Enum.IsDefined(c.Playback), (c, _) => new TouchProcessor(c)))

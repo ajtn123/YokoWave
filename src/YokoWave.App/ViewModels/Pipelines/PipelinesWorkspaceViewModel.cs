@@ -93,7 +93,7 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
         _audio = audio ?? new UnavailableAudioInputFactory();
         DevicePane = devicePane;
         AddCommand = new ActionCommand(Add);
-        DuplicateCommand = new ActionCommand(() => { if (Selected is { } p) Selected = AddEditor(Unbind(p.ToDocument()) with { Id = Guid.NewGuid(), Name = L10n.Format("Pipeline.CopyName", p.Name) }); });
+        DuplicateCommand = new ActionCommand(Duplicate);
         DeleteCommand = new(DeleteAsync, onError, () => CanEditSelected);
         SaveCommand = new(SaveAsync, onError);
         SaveTemplateCommand = new(SaveTemplateAsync, onError, () => CanEditSelected);
@@ -192,8 +192,22 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
     {
         if (!_loaded || _disposed || SelectedTemplate is not { } template)
             return;
-        var name = L10n.Format("Mode.InstanceName", template.Name, Pipelines.Count + 1);
+        var name = FormatGeneratedName(template.Name, stem => L10n.Format("Mode.InstanceName", stem, Pipelines.Count + 1));
         Selected = AddEditor(Unbind(template.Create(name, _defaultLimit())));
+    }
+    private void Duplicate()
+    {
+        if (Selected is not { } editor)
+            return;
+        var name = FormatGeneratedName(editor.Name, stem => L10n.Format("Pipeline.CopyName", stem));
+        Selected = AddEditor(Unbind(editor.ToDocument()) with { Id = Guid.NewGuid(), Name = name });
+    }
+    private static string FormatGeneratedName(string name, Func<string, string> format)
+    {
+        var length = Math.Min(name.Length, PipelineDocument.MaximumNameLength - format("").Length);
+        if (length > 0 && char.IsHighSurrogate(name[length - 1]))
+            length--;
+        return format(name[..length]);
     }
     private static PipelineDocument Unbind(PipelineDocument document)
     {
@@ -232,7 +246,7 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
             return;
         var graph = editor.ToDocument();
         var name = string.IsNullOrWhiteSpace(TemplateName) ? graph.Name : TemplateName;
-        if (name.Length > 60)
+        if (name.Length > PipelineDocument.MaximumNameLength)
             throw new LocalizedArgumentException("Pipeline.Error.Document");
         var preset = new PipelinePreset(Guid.NewGuid(), name, PipelineJson.Snapshot(graph), graph.Inputs ?? [], graph.Outputs ?? []);
         await _store.SavePresetsAsync(_userTemplates.Append(preset));

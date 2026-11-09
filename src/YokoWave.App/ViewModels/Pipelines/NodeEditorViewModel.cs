@@ -16,8 +16,8 @@ public sealed class NodePortViewModel(NodeEditorViewModel node, NodePort port) :
     {
         get => _exposed; set
         {
-            if (Set(ref _exposed, value))
-                Node.MarkExposureChanged();
+            if (value != _exposed)
+                Node.EditExposure(() => Set(ref _exposed, value));
         }
     }
     public NodeEditorViewModel Node { get; } = node;
@@ -25,6 +25,7 @@ public sealed class NodePortViewModel(NodeEditorViewModel node, NodePort port) :
     public Point Anchor { get => _anchor; set => Set(ref _anchor, value); }
     public bool IsConnected { get => _connected; set => Set(ref _connected, value); }
     public bool IsAvailable => Node.IsPortAvailable(Port);
+    internal void RestoreExposure(bool value) => _exposed = value;
     public string Title => L10n.Get(Port.NameKey) + (Port.Parameter?.Unit is { Length: > 0 } unit ? $" ({(unit == "ratio" ? "0–1" : unit)})" : "");
     public string Detail => Port.Direction == PortDirection.Input && Port.Parameter is { } spec
         ? L10n.Format("Pipeline.Port.Range", spec.Minimum, spec.Maximum, spec.DefaultValue) : Title;
@@ -134,7 +135,7 @@ public abstract class NodeEditorViewModel : ObservableObject
             (port.Direction == PortDirection.Input ? Inputs : Outputs).Add(new(this, port));
     }
     protected void Change(Action change, bool live = false) => Editor.Edit(change, live: live);
-    internal void MarkExposureChanged() => Editor.MarkEdited();
+    internal void EditExposure(Action change) => Editor.Edit(change);
     public virtual void RefreshLocalization()
     {
         Raise(nameof(Title));

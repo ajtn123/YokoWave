@@ -233,12 +233,12 @@ internal sealed class AutomationProcessor(StrengthSettings settings) : ISignalPr
             _bucket = bucket;
             _addition = _random.NextDouble() * settings.RandomAddition;
         }
-        context.Output("value", Signals.Map(level, value => value <= 0 ? 0 : Math.Clamp(value + (settings.Mode switch
+        context.Output("value", NumericSignal.Combine(level, boost, (value, addition) => value <= 0 ? 0 : Math.Clamp(value + (settings.Mode switch
         {
             StrengthMode.RandomIncrease => _addition / 100,
             StrengthMode.StepIncrease => Math.Min(Math.Max(value, settings.Ceiling / 100) - value, bucket * settings.Step / 100),
             _ => 0
-        }) + (_boost || boost.IsValid(context.Now) && boost.At(0) > 0 ? settings.Boost / 100 : 0), 0, 1)));
+        }) + (_boost || addition > 0 ? settings.Boost / 100 : 0), 0, 1)));
     }
 }
 

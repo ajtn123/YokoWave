@@ -66,17 +66,12 @@ public sealed class PipelineCompiler(NodeTypeRegistry registry)
         IEnumerable<WaveformPreset> waveforms, IReadOnlyDictionary<string, DeviceDescriptor>? devices)
     {
         List<PipelineDiagnostic> errors = [];
-        if (source.Version != 1 || source.Id == Guid.Empty || string.IsNullOrWhiteSpace(source.Name) || source.Name.Length > 60 ||
-            !double.IsFinite(source.DurationSeconds) || source.DurationSeconds is < 1 or > 7200 ||
-            source.Nodes is null || source.Connections is null || source.Layout is null || source.Nodes.Length > 1000 || source.Connections.Length > 8000 ||
-            source.Nodes.Any(n => n is null || n.Configuration.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null) ||
-            source.AssignedDevices is { } assigned && (assigned.Length > 256 || assigned.Any(id => string.IsNullOrWhiteSpace(id) || id.Length > 512 || id.StartsWith('$')) || assigned.Distinct(StringComparer.Ordinal).Count() != assigned.Length) ||
-            source.Layout.Any(l => l is null || !double.IsFinite(l.X) || !double.IsFinite(l.Y)))
-            return (null, [new("Pipeline.Error.Document")]);
         PipelineDocument document;
         try
         {
-            document = SubgraphExpansion.Expand(PipelineJson.Snapshot(source));
+            var snapshot = PipelineJson.Snapshot(source);
+            document = SubgraphExpansion.Expand(snapshot);
+            PipelineDocumentValidation.ValidateInterfaces(snapshot, registry, errors);
         }
         catch (PipelineValidationException error)
         {

@@ -112,7 +112,7 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
         get => _name;
         set
         {
-            if (!string.IsNullOrWhiteSpace(value) && value.Length <= 60 && value != _name)
+            if (!string.IsNullOrWhiteSpace(value) && value.Length <= PipelineDocument.MaximumNameLength && value != _name)
                 Edit(() => Set(ref _name, value));
         }
     }
@@ -201,11 +201,6 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
         Outputs: Nodes.SelectMany(n => n.Outputs).Where(p => p.IsExposed)
             .Select(p => new ExposedPort(p.Node.Id.ToString("N") + "." + p.Port.Id, p.Port.NameKey, new(p.Node.Id, p.Port.Id), p.Port.Parameter, p.Port.Kind)).ToArray(),
         AssignedDevices: AssignedDeviceIds.ToArray());
-    public void MarkEdited()
-    {
-        if (!_restoring)
-            Edited?.Invoke(this, EventArgs.Empty);
-    }
     public void AddRecording(WaveformPreset preset) => WaveformCreated?.Invoke(this, preset);
     public bool UsesWaveform(Guid id) => SubgraphExpansion.Expand(ToDocument()).Nodes.Any(n =>
         Registry.Get(n.Type).WaveformReferences(Registry.Get(n.Type).Read(n.Configuration)).Contains(id));
@@ -372,9 +367,9 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
                     node.RestoreLocation(new(layout.X, layout.Y));
                 Nodes.Add(node);
                 foreach (var port in node.Inputs)
-                    port.IsExposed = document.Inputs?.Any(p => p.Address.Node == node.Id && p.Address.Port == port.Port.Id) == true;
+                    port.RestoreExposure(document.Inputs?.Any(p => p.Address.Node == node.Id && p.Address.Port == port.Port.Id) == true);
                 foreach (var port in node.Outputs)
-                    port.IsExposed = document.Outputs?.Any(p => p.Address.Node == node.Id && p.Address.Port == port.Port.Id) == true;
+                    port.RestoreExposure(document.Outputs?.Any(p => p.Address.Node == node.Id && p.Address.Port == port.Port.Id) == true);
             }
             foreach (var connection in document.Connections)
             {

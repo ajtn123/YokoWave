@@ -22,6 +22,70 @@ namespace YokoWave.Tests;
 public sealed class GraphWorkspaceUiTests
 {
     [AvaloniaFact]
+    public async Task TemplatePortsSupportUndoSaveInstantiateExpandAndReload()
+    {
+        using var folder = new TestFolder();
+        await using var controller = new DeviceController(new SimulationTransport());
+        await controller.ConnectAsync(new("out", "out", DeviceKind.DualChannel, 80, -40), TestContext.Current.CancellationToken);
+        List<Exception> errors = [];
+        Guid copyId;
+        {
+            await using var workspace = new PipelinesWorkspaceViewModel(controller, folder.Path,
+                new(WaveformPreset.BuiltIn.Select(w => new PresetItem(w))), errors.Add, _ => { }, () => 7200, () => .6);
+            await workspace.LoadAsync();
+            var builder = new PipelineBuilder(new string('t', PipelineDocument.MaximumNameLength));
+            var value = builder.Add(BuiltInNodes.Constant, new ConstantNode(.4));
+            var output = builder.Add(BuiltInNodes.ChannelOutput, new ChannelOutputNode("out"));
+            builder.Connect(value, "value", output, "strength");
+            workspace.AddDocument(builder.Build());
+            var editor = workspace.Selected!;
+            NodePortViewModel Input() => editor.Nodes.OfType<ChannelOutputEditorViewModel>().Single().Inputs.Single(p => p.Port.Id == "strength");
+            Input().IsExposed = true;
+            Assert.Single(editor.ToDocument().Inputs!);
+            editor.UndoCommand.Execute(null);
+            Assert.Empty(editor.ToDocument().Inputs!);
+            editor.RedoCommand.Execute(null);
+            Assert.Single(editor.ToDocument().Inputs!);
+            editor.Nodes.OfType<ConstantEditorViewModel>().Single().Outputs.Single().IsExposed = true;
+            await editor.StartAsync();
+            Input().IsExposed = false;
+            Assert.True(Input().IsExposed);
+            await editor.StopAsync();
+            workspace.DuplicateCommand.Execute(null);
+            Assert.Equal(PipelineDocument.MaximumNameLength, workspace.Selected!.Name.Length);
+            Assert.EndsWith(L10n.Format("Pipeline.CopyName", ""), workspace.Selected.Name);
+            workspace.Selected = editor;
+            workspace.TemplateName = new string('w', PipelineDocument.MaximumNameLength);
+            await workspace.SaveTemplateCommand.ExecuteAsync();
+            workspace.Add();
+            var copy = workspace.Selected!;
+            Assert.Equal(PipelineDocument.MaximumNameLength, copy.Name.Length);
+            Assert.EndsWith(workspace.Pipelines.Count.ToString(L10n.Current.Culture), copy.Name);
+            copyId = copy.Id;
+            var wrapper = Assert.Single(copy.Nodes);
+            Assert.Empty(copy.Diagnostics);
+            Assert.DoesNotContain("out", copy.AssignedDeviceIds);
+            Assert.Single(wrapper.Inputs).IsExposed = true;
+            Assert.Single(wrapper.Outputs).IsExposed = true;
+            copy.ExpandSubgraphs();
+            Assert.Empty(copy.Diagnostics);
+            Assert.Single(copy.ToDocument().Inputs!);
+            Assert.Single(copy.ToDocument().Outputs!);
+            await workspace.SaveAsync();
+        }
+        await using var reopened = new PipelinesWorkspaceViewModel(controller, folder.Path,
+            new(WaveformPreset.BuiltIn.Select(w => new PresetItem(w))), errors.Add, _ => { }, () => 7200, () => .6);
+        await reopened.LoadAsync();
+        var restored = reopened.Pipelines.Single(p => p.Id == copyId);
+        Assert.Single(restored.ToDocument().Inputs!);
+        Assert.Single(restored.ToDocument().Outputs!);
+        var plan = new PipelineCompiler(restored.Registry).Compile(restored.ToDocument(), []);
+        var frame = Assert.Single(new PipelineRuntime(plan, new HashSet<string>()).Evaluate(TimeSpan.Zero, DateTimeOffset.UtcNow).Outputs).Value;
+        Assert.Equal(40, frame.ChannelA);
+        Assert.Empty(errors);
+    }
+
+    [AvaloniaFact]
     public async Task CopiesStartUnboundAndIdleDevicesCannotBelongToTwoGraphs()
     {
         using var folder = new TestFolder();

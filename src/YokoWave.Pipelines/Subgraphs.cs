@@ -21,11 +21,24 @@ public static class SubgraphExpansion
     }
 
     public static NodeRegistration Registration() => new NodeRegistration<SubgraphNode>(Type, "Pipeline.Node.Subgraph", [],
-        c => c.Graph is not null && c.Inputs is not null && c.Outputs is not null &&
-            c.Inputs.Select(p => p.Id).Distinct().Count() == c.Inputs.Length && c.Outputs.Select(p => p.Id).Distinct().Count() == c.Outputs.Length,
+        ValidConfiguration,
         (_, _) => new NoopProcessor(), dynamicPorts: c =>
             c.Inputs.Select(p => new NodePort(p.Id, p.NameKey, PortDirection.Input, p.Parameter ?? new("", double.MinValue, double.MaxValue, 0), p.Kind))
                 .Concat(c.Outputs.Select(p => new NodePort(p.Id, p.NameKey, PortDirection.Output, Kind: p.Kind))).ToArray());
+
+    private static bool ValidConfiguration(SubgraphNode configuration)
+    {
+        if (configuration.Graph is null || configuration.Inputs is null || configuration.Outputs is null)
+            return false;
+        try
+        {
+            PipelineDocumentValidation.EnsureValid(configuration.Graph);
+            PipelineDocumentValidation.EnsurePorts(configuration.Graph, configuration.Inputs, PortDirection.Input);
+            PipelineDocumentValidation.EnsurePorts(configuration.Graph, configuration.Outputs, PortDirection.Output);
+            return true;
+        }
+        catch (PipelineValidationException) { return false; }
+    }
 
     public static NodeDefinition MapDevices(NodeDefinition node, IReadOnlyDictionary<string, string> devices)
     {
@@ -65,16 +78,31 @@ public static class SubgraphExpansion
         };
     }
 
-    public static PipelineDocument Expand(PipelineDocument document) => ExpandCore(document, 0).Document;
-    private sealed record Expansion(PipelineDocument Document, Dictionary<PortAddress, PortAddress> Inputs, Dictionary<PortAddress, PortAddress> Outputs);
+    public static PipelineDocument Expand(PipelineDocument document)
+    {
+        var expanded = ExpandCore(document, 0);
+        var defaults = expanded.Defaults.Where(p => !expanded.Document.Connections.Any(c => c.Target == p.Key)).ToArray();
+        var result = expanded.Document with
+        {
+            Nodes = [.. expanded.Document.Nodes, .. defaults.Select(p => NodeDefinition.Create(BuiltInNodes.Constant, new ConstantNode(p.Value.Value), p.Value.Id))],
+            Connections = [.. expanded.Document.Connections, .. defaults.Select(p => new PipelineConnection(new(p.Value.Id, "value"), p.Key))]
+        };
+        PipelineDocumentValidation.EnsureValid(result);
+        return result;
+    }
+    private sealed record InputDefault(Guid Id, double Value);
+    private sealed record Expansion(PipelineDocument Document, Dictionary<PortAddress, PortAddress> Inputs,
+        Dictionary<PortAddress, PortAddress> Outputs, Dictionary<PortAddress, InputDefault> Defaults);
     private static Expansion ExpandCore(PipelineDocument document, int depth)
     {
         if (depth > 16)
             throw new PipelineValidationException([new("Pipeline.Error.SubgraphDepth")]);
+        PipelineDocumentValidation.EnsureValid(document);
         List<NodeDefinition> nodes = [];
         List<PipelineConnection> connections = [];
         List<NodeLayout> layout = [];
         Dictionary<PortAddress, PortAddress> inputs = [], outputs = [];
+        Dictionary<PortAddress, InputDefault> defaults = [];
         foreach (var node in document.Nodes)
         {
             if (node.Type != Type)
@@ -86,6 +114,9 @@ public static class SubgraphExpansion
             var subgraph = node.Configuration.Deserialize<SubgraphNode>(PipelineJson.Options) ?? throw new JsonException();
             if (subgraph.Graph?.Nodes is null || subgraph.Graph.Connections is null || subgraph.Graph.Layout is null || subgraph.Inputs is null || subgraph.Outputs is null)
                 throw new PipelineValidationException([new("Pipeline.Error.Configuration", node.Id)]);
+            PipelineDocumentValidation.EnsureValid(subgraph.Graph);
+            PipelineDocumentValidation.EnsurePorts(subgraph.Graph, subgraph.Inputs, PortDirection.Input);
+            PipelineDocumentValidation.EnsurePorts(subgraph.Graph, subgraph.Outputs, PortDirection.Output);
             var ids = subgraph.Graph.Nodes.ToDictionary(n => n.Id, n => Combine(node.Id, n.Id));
             PortAddress Remap(PortAddress port) => new(ids[port.Node], port.Port);
             var position = document.Layout.FirstOrDefault(l => l.Node == node.Id);
@@ -93,28 +124,31 @@ public static class SubgraphExpansion
             {
                 Nodes = subgraph.Graph.Nodes.Select(n => MapDevices(n with { Id = ids[n.Id] }, subgraph.Devices ?? [])).ToArray(),
                 Connections = subgraph.Graph.Connections.Select(c => new PipelineConnection(Remap(c.Source), Remap(c.Target))).ToArray(),
-                Layout = subgraph.Graph.Layout.Select(l => new NodeLayout(ids[l.Node], l.X + (position?.X ?? 0), l.Y + (position?.Y ?? 0))).ToArray()
+                Layout = subgraph.Graph.Layout.Select(l => new NodeLayout(ids[l.Node], l.X + (position?.X ?? 0), l.Y + (position?.Y ?? 0))).ToArray(),
+                Inputs = subgraph.Graph.Inputs?.Select(p => p with { Address = Remap(p.Address) }).ToArray(),
+                Outputs = subgraph.Graph.Outputs?.Select(p => p with { Address = Remap(p.Address) }).ToArray()
             };
             var expanded = ExpandCore(nested, depth + 1);
             nodes.AddRange(expanded.Document.Nodes);
             connections.AddRange(expanded.Document.Connections);
             layout.AddRange(expanded.Document.Layout);
+            foreach (var entry in expanded.Defaults)
+                defaults.Add(entry.Key, entry.Value);
             foreach (var port in subgraph.Inputs)
             {
                 var target = Remap(port.Address);
                 var input = expanded.Inputs.GetValueOrDefault(target, target);
                 inputs.Add(new(node.Id, port.Id), input);
-                if (port.Kind == PortValueKind.Numeric && port.Parameter is { } parameter &&
-                    !document.Connections.Any(c => c.Target == new PortAddress(node.Id, port.Id)))
+                if (document.Connections.Any(c => c.Target == new PortAddress(node.Id, port.Id)))
                 {
-                    var value = NodeDefinition.Create(BuiltInNodes.Constant, new ConstantNode(parameter.DefaultValue), Combine(node.Id, input.Node));
-                    // Each exposed input gets its own stable default node, even on the same inner processor.
-                    value = value with
-                    {
-                        Id = Combine(value.Id, new Guid(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(port.Id))[..16]))
-                    };
-                    nodes.Add(value);
-                    connections.Add(new(new(value.Id, "value"), input));
+                    connections.RemoveAll(c => c.Target == input);
+                    defaults.Remove(input);
+                }
+                else if (port.Kind == PortValueKind.Numeric && port.Parameter is { } parameter && !connections.Any(c => c.Target == input))
+                {
+                    // Defer defaults until all enclosing templates have resolved their input overrides.
+                    var id = Combine(Combine(node.Id, input.Node), new Guid(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(port.Id))[..16]));
+                    defaults[input] = new(id, parameter.DefaultValue);
                 }
             }
             foreach (var port in subgraph.Outputs)
@@ -130,8 +164,10 @@ public static class SubgraphExpansion
         {
             Nodes = nodes.ToArray(),
             Connections = connections.ToArray(),
-            Layout = layout.ToArray()
-        }, inputs, outputs);
+            Layout = layout.ToArray(),
+            Inputs = document.Inputs?.Select(p => p with { Address = inputs.GetValueOrDefault(p.Address, p.Address) }).ToArray(),
+            Outputs = document.Outputs?.Select(p => p with { Address = outputs.GetValueOrDefault(p.Address, p.Address) }).ToArray()
+        }, inputs, outputs, defaults);
     }
     private static Guid Combine(Guid parent, Guid child)
     {

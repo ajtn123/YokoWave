@@ -164,6 +164,33 @@ public sealed class PipelineTests
     }
 
     [Fact]
+    public void StrengthProgressionPreservesBoostSamplesExpiryAndSimulatedProvenance()
+    {
+        var now = DateTimeOffset.UtcNow;
+        NumericSignal boost = new([0, 1, 0, 1], now.AddSeconds(1));
+        var registry = BuiltInNodes.CreateRegistry().Register(new NodeRegistration<TestInputNode>("test.boost", "Pipeline.Port.boost",
+            [NodePort.Output("value", "Pipeline.Port.Value")], _ => true, (_, _) => new TestInputProcessor(() => boost)));
+        var input = NodeDefinition.Create("test.boost", new TestInputNode());
+        var level = Number(.4);
+        var automation = NodeDefinition.Create(BuiltInNodes.Automation, new AutomationNode(new(Boost: 20)));
+        var output = Output();
+        var plan = new PipelineCompiler(registry).Compile(Graph([input, level, automation, output],
+            Edge(level, automation, "value"), Edge(input, automation, "boost"), Edge(automation, output)), []);
+        var runtime = new PipelineRuntime(plan, new HashSet<string>());
+        var frame = runtime.Evaluate(TimeSpan.Zero, now).Outputs["one"];
+        var expected = new[] { .4, .6, .4, .6 };
+        Assert.Equal(expected.Length, frame.WindowA!.Count);
+        for (var i = 0; i < expected.Length; i++)
+            Assert.Equal(expected[i], frame.WindowA[i].Level * frame.ChannelA / 100, 8);
+        Assert.Equal(0, runtime.Evaluate(TimeSpan.Zero, now.AddSeconds(2)).Outputs["one"].ChannelA);
+        boost = NumericSignal.Missing;
+        Assert.Equal(0, runtime.Evaluate(TimeSpan.Zero, now).Outputs["one"].ChannelA);
+        boost = new([1], now.AddSeconds(1), Simulated: true);
+        Assert.Equal(0, runtime.Evaluate(TimeSpan.Zero, now).Outputs["one"].ChannelA);
+        Assert.Equal(60, new PipelineRuntime(plan, new HashSet<string> { "one" }).Evaluate(TimeSpan.Zero, now).Outputs["one"].ChannelA, 8);
+    }
+
+    [Fact]
     public void MissingExpiredInvalidAndSimulatedInputsCannotReachRealOutputsAndFanoutEvaluatesOnce()
     {
         var now = DateTimeOffset.UtcNow;
