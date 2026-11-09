@@ -50,6 +50,7 @@
     <Setter Property="MinHeight" Value="{DynamicResource Size.ControlMinHeight}" />
   </Style>
   <Style Selector="ProgressBar.session-timer">
+    <Setter Property="MinWidth" Value="0" />
     <Setter Property="Height" Value="{DynamicResource Size.TimerProgressHeight}" />
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />

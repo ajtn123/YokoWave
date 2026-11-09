@@ -17,11 +17,7 @@
   <Style Selector="Button.pipeline-create, Button.pipeline-playback, CheckBox.pipeline-toolbar-toggle">
     <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
-  <Style Selector="CheckBox.pipeline-toolbar-toggle /template/ ContentPresenter">
-    <Setter Property="VerticalAlignment" Value="Center" />
-    <Setter Property="VerticalContentAlignment" Value="Center" />
-  </Style>
-  <Style Selector="CheckBox.pipeline-toolbar-toggle /template/ ContentPresenter TextBlock">
+  <Style Selector="CheckBox.pipeline-toolbar-toggle /template/ Grid#RootGrid > Grid">
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
   <Style Selector="Border.pipeline-palette">
@@ -48,6 +44,7 @@
   </Style>
   <Style Selector="Grid.pipeline-timer-track">
     <Setter Property="Width" Value="{DynamicResource Size.PipelineTimerTrackWidth}" />
+    <Setter Property="ClipToBounds" Value="True" />
   </Style>
   <Style Selector="Grid.pipeline-timer-track Slider">
     <Setter Property="VerticalAlignment" Value="Center" />

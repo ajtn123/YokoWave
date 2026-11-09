@@ -309,6 +309,9 @@ public sealed class PipelineWorkspaceInteractionTests
                 var checkboxLabel = checkbox.GetVisualDescendants().OfType<TextBlock>().Single(t => t.IsEffectivelyVisible);
                 var labelCenter = checkboxLabel.TranslatePoint(new Point(0, checkboxLabel.Bounds.Height / 2), checkbox)!.Value.Y;
                 Assert.InRange(Math.Abs(labelCenter - checkbox.Bounds.Height / 2), 0, 1);
+                var square = checkbox.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "NormalRectangle");
+                var squareCenter = square.TranslatePoint(new Point(0, square.Bounds.Height / 2), checkbox)!.Value.Y;
+                Assert.InRange(Math.Abs(squareCenter - labelCenter), 0, 1);
             }
             var thumb = slider.GetVisualDescendants().OfType<Avalonia.Controls.Primitives.Thumb>().Single();
             var thumbCenter = thumb.TranslatePoint(new Point(0, thumb.Bounds.Height / 2), toolbar)!.Value.Y;
@@ -328,6 +331,21 @@ public sealed class PipelineWorkspaceInteractionTests
             Assert.Equal(playbackBounds.Height, playback.Bounds.Height);
             Assert.False(slider.IsVisible);
             Assert.True(progress.IsEffectivelyVisible);
+            Assert.DoesNotContain(timer.GetVisualDescendants().OfType<CheckBox>(), c => c.IsEffectivelyVisible);
+            var track = Assert.IsType<Grid>(progress.Parent);
+            Assert.InRange(progress.Bounds.Left, 0, track.Bounds.Width);
+            Assert.InRange(progress.Bounds.Right, 0, track.Bounds.Width);
+            var timerReadout = timer.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Classes.Contains("pipeline-timer-readout"));
+            var progressRight = progress.TranslatePoint(new Point(progress.Bounds.Width, 0), timer)!.Value.X;
+            var readoutLeft = timerReadout.TranslatePoint(default, timer)!.Value.X;
+            Assert.True(progressRight <= readoutLeft);
+            using (var runningFrame = window.CaptureRenderedFrame())
+            {
+                Assert.NotNull(runningFrame);
+                var runningScreenshots = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../artifacts/screenshots"));
+                Directory.CreateDirectory(runningScreenshots);
+                runningFrame.Save(Path.Combine(runningScreenshots, "pipeline-toolbar-running.png"), PngBitmapEncoderOptions.Default);
+            }
             Assert.False(editor.DeleteSelectionCommand.CanExecute(null));
             Assert.DoesNotContain(workspace.GetVisualDescendants().OfType<TextBlock>(), t => t.IsEffectivelyVisible &&
                 (t.Text == L10n.Get("Pipeline.State.Idle") || t.Text == L10n.Get("Pipeline.State.Running")));

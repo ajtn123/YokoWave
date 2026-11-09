@@ -176,7 +176,7 @@
   "Help.StorageTitle": "Session history and local data",
   "Help.Storage": "Statistics, global settings, pipeline templates, custom waveforms and sessions are separate local files. Auto-connect preferences and device IDs are saved in settings.json. Saved pipelines retain their device bindings and never start automatically. Session logs roll at 128 KiB and keep one old file; cumulative statistics remain. Development versions reset older data formats.",
   "Help.TimerTitle": "Timer",
-  "Help.Timer": "Enable the timer and drag the duration slider; arrow keys adjust by one second. Starting replaces the slider with shrinking progress and a countdown. Turning the timer off hides the slider and readout, keeps the selected duration, and runs until you stop it.",
+  "Help.Timer": "Enable the timer and drag the duration slider; arrow keys adjust by one second. Starting hides the timer toggle and slider, and shows a shrinking progress bar beside the countdown. Turning the timer off hides the slider and readout, keeps the selected duration, and runs until you stop it.",
   "Help.TimerLimit": "Set the slider maximum under Settings → Maximum timer duration, from 1–120 minutes. Lowering it shortens all mode durations that exceed it. Each mode’s timer is locked while starting or running; the global maximum is locked while any mode is starting or running.",
   "Help.WavesTitle": "Waveforms",
   "Help.Waves": "Built-in waveforms cannot be deleted or overwritten; copy one to edit it. Waveform JSON stores only the general format; protocol conversion happens during playback.",

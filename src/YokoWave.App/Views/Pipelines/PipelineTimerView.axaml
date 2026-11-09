@@ -2,7 +2,7 @@
              xmlns:vm="using:YokoWave.App.ViewModels.Pipelines" xmlns:l="using:YokoWave.App.Localization"
              x:Class="YokoWave.App.Views.Pipelines.PipelineTimerView" x:DataType="vm:PipelineEditorViewModel">
   <StackPanel Classes="inline">
-    <CheckBox Content="{l:Loc Session.Timer}" IsChecked="{Binding TimerEnabled}" IsEnabled="{Binding CanEdit}" Classes="pipeline-toolbar-toggle"
+    <CheckBox Content="{l:Loc Session.Timer}" IsChecked="{Binding TimerEnabled}" IsEnabled="{Binding CanEdit}" IsVisible="{Binding !ShowTimerProgress}" Classes="pipeline-toolbar-toggle"
               ToolTip.Tip="{l:Loc Session.Timer}" AutomationProperties.Name="{l:Loc Session.Timer}" />
     <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="{DynamicResource Space.Small}" IsVisible="{Binding TimerEnabled}">
       <Grid Classes="pipeline-timer-track">
