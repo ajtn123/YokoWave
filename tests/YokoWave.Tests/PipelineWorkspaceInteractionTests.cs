@@ -89,6 +89,10 @@ public sealed class PipelineWorkspaceInteractionTests
         await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new(directory.Path));
         await vm.InitializeAsync();
         var editor = vm.Pipelines.Selected!;
+        Assert.Empty(vm.Pipelines.UnassignedDevices);
+        foreach (var device in vm.Devices.Devices.Where(d => d.Device.Kind == DeviceKind.DualChannel))
+            await vm.Devices.ToggleConnectionAsync(device);
+        Dispatcher.UIThread.RunJobs();
         var cards = vm.Pipelines.UnassignedDevices.Where(c => c.Device?.Device.Kind == DeviceKind.DualChannel).ToArray();
         Assert.Equal(2, cards.Length);
         foreach (var card in cards)
@@ -101,8 +105,6 @@ public sealed class PipelineWorkspaceInteractionTests
         Assert.Equal(2, group.Devices.Count);
         Assert.Equal(4, editor.Nodes.Count(n => n.Type == BuiltInNodes.ChannelOutput));
         Assert.DoesNotContain(vm.Pipelines.UnassignedDevices, c => cards.Select(d => d.Id).Contains(c.Id));
-        foreach (var card in group.Devices.ToArray())
-            await vm.Devices.ToggleConnectionAsync(card.Device!);
         await editor.StartAsync();
         Dispatcher.UIThread.RunJobs();
         Assert.All(group.Devices, card => Assert.False(card.AssignmentCommand.CanExecute(null)));
@@ -115,6 +117,15 @@ public sealed class PipelineWorkspaceInteractionTests
         Assert.Single(vm.Pipelines.UnassignedDevices, c => cards.Select(d => d.Id).Contains(c.Id));
         await editor.StartAsync();
         await editor.StopAsync();
+        var remaining = Assert.Single(group.Devices).Device;
+        await vm.Devices.ToggleConnectionAsync(remaining);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Empty(group.Devices);
+        Assert.Contains(remaining.Id, editor.BoundDeviceIds);
+        Assert.DoesNotContain(editor.Devices, d => d.Id == remaining.Id);
+        await vm.Devices.ToggleConnectionAsync(remaining);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Same(remaining, Assert.Single(group.Devices).Device);
     }
 
     [AvaloniaFact]
@@ -124,6 +135,8 @@ public sealed class PipelineWorkspaceInteractionTests
         await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new(directory.Path));
         await vm.InitializeAsync();
         var editor = vm.Pipelines.Selected!;
+        foreach (var device in vm.Devices.Devices.Where(d => d.Device.Kind == DeviceKind.DualChannel))
+            await vm.Devices.ToggleConnectionAsync(device);
         var window = new Window { Width = 1600, Height = 950, Content = new MainView { DataContext = vm }, RequestedThemeVariant = ThemeVariant.Dark };
         window.Show();
         try
@@ -137,14 +150,17 @@ public sealed class PipelineWorkspaceInteractionTests
             var label = create.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text == L10n.Get("Mode.Add"));
             var center = label.TranslatePoint(new Point(0, label.Bounds.Height / 2), create)!.Value.Y;
             Assert.InRange(Math.Abs(center - create.Bounds.Height / 2), 0, 1);
-            foreach (var deviceCard in window.GetVisualDescendants().OfType<DeviceCardView>())
+            var workspace = window.GetVisualDescendants().OfType<PipelinesWorkspaceView>().Single();
+            var pipelineCards = workspace.GetVisualDescendants().OfType<DeviceCardView>().ToArray();
+            Assert.Equal(2, pipelineCards.Length);
+            foreach (var deviceCard in pipelineCards)
             {
-                var cardBorder = Assert.IsType<Border>(deviceCard.Content);
+                Assert.True(Assert.IsType<DeviceItem>(deviceCard.DataContext).IsConnected);
+                Assert.False(deviceCard.ShowConnectionAction);
                 var connect = deviceCard.GetVisualDescendants().OfType<Button>().Single(b => b.Classes.Contains("connection-action"));
-                var right = connect.TranslatePoint(new Point(connect.Bounds.Width, 0), cardBorder)!.Value.X;
-                Assert.True(cardBorder.Bounds.Width - right >= cardBorder.Padding.Right);
-                Assert.True(cardBorder.Padding.Right > 0);
+                Assert.False(connect.IsVisible);
             }
+            Assert.DoesNotContain(workspace.GetVisualDescendants().OfType<Button>(), b => ReferenceEquals(b.Command, vm.Devices.ScanCommand));
             var canvas = window.GetVisualDescendants().OfType<NodifyEditor>().Single();
             var border = Assert.IsType<Border>(canvas.Parent);
             Assert.Equal(default, border.Padding);
@@ -170,7 +186,7 @@ public sealed class PipelineWorkspaceInteractionTests
             Dispatcher.UIThread.RunJobs();
             Assert.False(menu.IsOpen);
             var card = vm.Pipelines.UnassignedDevices.First(c => c.Device?.Device.Kind == DeviceKind.DualChannel);
-            var sharedCard = window.GetVisualDescendants().OfType<DeviceCardView>().Single(v => ReferenceEquals(v.DataContext, card.Device));
+            var sharedCard = workspace.GetVisualDescendants().OfType<DeviceCardView>().Single(v => ReferenceEquals(v.DataContext, card.Device));
             Assert.Same(card.AssignmentCommand, sharedCard.AssignmentCommand);
             Assert.Equal(card.AssignmentAction, sharedCard.AssignmentLabel);
             sharedCard.AssignmentCommand!.Execute(null);
@@ -187,6 +203,23 @@ public sealed class PipelineWorkspaceInteractionTests
             var document = await File.ReadAllTextAsync(Path.Combine(directory.Path, "pipelines.json"), TestContext.Current.CancellationToken);
             Assert.DoesNotContain("OutputLimit", document);
             Assert.Contains("Limit", document);
+            await vm.NavigateAsync("devices");
+            Dispatcher.UIThread.RunJobs();
+            var deviceCards = window.GetVisualDescendants().OfType<DeviceCardView>().Where(v => v.IsEffectivelyVisible).ToArray();
+            Assert.Equal(vm.Devices.Devices.Count, deviceCards.Length);
+            foreach (var deviceCard in deviceCards)
+            {
+                Assert.True(deviceCard.ShowConnectionAction);
+                var cardBorder = Assert.IsType<Border>(deviceCard.Content);
+                var connect = deviceCard.GetVisualDescendants().OfType<Button>().Single(b => b.Classes.Contains("connection-action"));
+                Assert.True(connect.IsEffectivelyVisible);
+                var right = connect.TranslatePoint(new Point(connect.Bounds.Width, 0), cardBorder)!.Value.X;
+                Assert.True(cardBorder.Bounds.Width - right >= cardBorder.Padding.Right);
+                Assert.True(cardBorder.Padding.Right > 0);
+            }
+            using var devicesFrame = window.CaptureRenderedFrame();
+            Assert.NotNull(devicesFrame);
+            devicesFrame.Save(Path.Combine(screenshots, "device-auto-connect.png"), PngBitmapEncoderOptions.Default);
         }
         finally { window.Close(); }
     }

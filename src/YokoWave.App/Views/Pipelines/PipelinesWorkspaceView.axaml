@@ -1,6 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:l="using:YokoWave.App.Localization" xmlns:vm="using:YokoWave.App.ViewModels.Pipelines"
-             xmlns:views="using:YokoWave.App.Views.Pipelines" xmlns:items="using:YokoWave.App.ViewModels"
+             xmlns:views="using:YokoWave.App.Views.Pipelines"
              x:Class="YokoWave.App.Views.Pipelines.PipelinesWorkspaceView" x:DataType="vm:PipelinesWorkspaceViewModel">
   <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource Space.Medium}">
     <ScrollViewer HorizontalScrollBarVisibility="Disabled">
@@ -15,9 +15,6 @@
             <MenuItem Header="{l:Loc Pipeline.DeleteTemplate}" Command="{Binding DeleteTemplateCommand}" />
           </ContextMenu>
         </StackPanel.ContextMenu>
-        <ContentControl Content="{Binding DevicePane}"><ContentControl.ContentTemplate><DataTemplate x:DataType="items:DevicesPaneViewModel">
-          <Grid ColumnDefinitions="*,Auto" Classes="columns"><TextBlock Text="{Binding ConnectedSummary}" Classes="muted label" VerticalAlignment="Center" /><Button Grid.Column="1" Content="{Binding ScanLabel}" Command="{Binding ScanCommand}" Classes="small" /></Grid>
-        </DataTemplate></ContentControl.ContentTemplate></ContentControl>
         <Grid ColumnDefinitions="*,Auto" Classes="columns">
           <ComboBox ItemsSource="{Binding Templates}" SelectedItem="{Binding SelectedTemplate}" HorizontalAlignment="Stretch" Classes="pipeline-create" AutomationProperties.Name="{l:Loc Pipeline.Template}">
             <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PipelineTemplateChoice"><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /></DataTemplate></ComboBox.ItemTemplate>
@@ -33,7 +30,7 @@
                 </DataTemplate></ContentControl.ContentTemplate></ContentControl>
               </Button>
               <ItemsControl ItemsSource="{Binding Devices}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:PipelineDeviceCardViewModel"><views:PipelineDeviceCardView /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
-              <TextBlock Text="{l:Loc Mode.NoDevices}" IsVisible="{Binding !HasDevices}" Classes="caption muted" />
+              <TextBlock Text="{l:Loc Pipeline.NoConnectedDevices}" IsVisible="{Binding !HasDevices}" Classes="caption muted" />
             </StackPanel>
           </Border>
         </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>

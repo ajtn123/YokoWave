@@ -13,6 +13,7 @@
       </Button>
       <TextBlock Text="{Binding OutputSummary}" IsVisible="{Binding HasOutput}" Classes="caption muted" TextWrapping="Wrap" />
       <Button Content="{Binding ConnectionAction}" Command="{Binding ConnectCommand}" HorizontalAlignment="Right"
+              IsVisible="{Binding ShowConnectionAction, ElementName=Card}"
               Classes="small connection-action" Classes.primary="{Binding !IsConnected}" Classes.danger="{Binding IsConnected}" />
       <Button Content="{Binding AssignmentLabel, ElementName=Card}" Command="{Binding AssignmentCommand, ElementName=Card}"
               IsVisible="{Binding ShowAssignmentAction, ElementName=Card}" Classes="small" />

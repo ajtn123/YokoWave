@@ -6,7 +6,7 @@ using YokoWave.Core.Localization;
 
 namespace YokoWave.App.ViewModels;
 
-public sealed class DevicesPaneViewModel : ObservableObject, IDisposable
+public sealed class DevicesPaneViewModel : ObservableObject, IAsyncDisposable
 {
     private readonly DeviceController _controller;
     private readonly Func<IDeviceTransport> _bluetoothFactory;
@@ -15,9 +15,28 @@ public sealed class DevicesPaneViewModel : ObservableObject, IDisposable
     private readonly Func<Guid, string?> _ownerName;
     private readonly Action<Exception> _error;
     private readonly Action<string, object?[]> _notify;
+    private readonly Func<Task> _save;
+    private readonly DeviceAutoConnector _autoConnector;
+    private readonly SemaphoreSlim _operations = new(1, 1);
+    private readonly CancellationTokenSource _lifetime = new();
+    private Task? _monitor;
+    private Task _preferenceSave = Task.CompletedTask;
     private DeviceItem? _selected;
     private bool _scanning, _featuresBusy, _disposed;
     public ObservableCollection<DeviceItem> Devices { get; } = [];
+    public bool AutoConnect
+    {
+        get => _autoConnector.Enabled;
+        set
+        {
+            if (_disposed || value == _autoConnector.Enabled)
+                return;
+            _autoConnector.Enabled = value;
+            Raise();
+            _preferenceSave = SavePreferencesAsync(_preferenceSave);
+        }
+    }
+    public List<string> AutoConnectDevices => _autoConnector.RememberedDevices.ToList();
     public DeviceTelemetryViewModel Telemetry { get; }
     public ProtocolFeaturesViewModel ProtocolFeatures { get; }
     public RemoteSourcesViewModel RemoteSources { get; }
@@ -29,6 +48,7 @@ public sealed class DevicesPaneViewModel : ObservableObject, IDisposable
         {
             Set(ref _scanning, value);
             Raise(nameof(ScanLabel));
+            ScanCommand.NotifyCanExecuteChanged();
         }
     }
     public string ScanLabel => L10n.Get(IsScanning ? "Device.Scanning" : "Device.Scan");
@@ -91,6 +111,13 @@ public sealed class DevicesPaneViewModel : ObservableObject, IDisposable
         _ownerName = ownerName;
         _error = error;
         _notify = notify;
+        _save = save;
+        _autoConnector = new(controller, id => _stopForDevice(id, "Reason.ConnectionChanged"), device =>
+        {
+            Refresh();
+            if (!_disposed)
+                _notify("Status.Connected", [device.Name]);
+        }, error => { if (!_disposed) _error(error); });
         Telemetry = new(controller, error);
         ProtocolFeatures = new(controller, error);
         RemoteSources = new(controller, ScanAsync, save, id => stopForDevice(id, "Reason.ConnectionChanged"), error);
@@ -101,14 +128,57 @@ public sealed class DevicesPaneViewModel : ObservableObject, IDisposable
         controller.Faulted += OnFault;
         L10n.Current.PropertyChanged += OnLanguage;
     }
-    public async Task ScanAsync()
+    public void LoadConnectionPreferences(AppSettings settings)
     {
-        if (IsScanning)
-            return;
-        IsScanning = true;
+        _autoConnector.Load(settings.AutoConnect, settings.AutoConnectDevices ?? []);
+        Raise(nameof(AutoConnect));
+    }
+    public void StartAutoConnect() => _monitor ??= MonitorConnectionsAsync();
+    private async Task SavePreferencesAsync(Task previous)
+    {
+        await previous;
         try
         {
-            var found = await _controller.ScanAsync();
+            await _save();
+        }
+        catch (Exception error) { if (!_disposed) _error(error); }
+    }
+    private async Task MonitorConnectionsAsync()
+    {
+        var reported = false;
+        try
+        {
+            while (true)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(5), _controller.Clock, _lifetime.Token);
+                if (!_autoConnector.NeedsDiscovery || IsScanning)
+                    continue;
+                try
+                {
+                    await ScanCoreAsync(automatic: true);
+                    reported = false;
+                }
+                catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { break; }
+                catch (Exception error)
+                {
+                    if (!reported && !_disposed)
+                        _error(error);
+                    reported = true;
+                }
+            }
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+    }
+    public Task ScanAsync() => ScanCoreAsync(automatic: false);
+    private async Task ScanCoreAsync(bool automatic)
+    {
+        if (_disposed || IsScanning)
+            return;
+        await _operations.WaitAsync(_lifetime.Token);
+        try
+        {
+            IsScanning = true;
+            var found = await _controller.ScanAsync(_lifetime.Token);
             foreach (var old in Devices.Where(d => !d.IsConnected && found.All(n => n.Id != d.Id)).ToArray())
                 Devices.Remove(old);
             foreach (var device in found)
@@ -120,55 +190,87 @@ public sealed class DevicesPaneViewModel : ObservableObject, IDisposable
             }
             SelectedDevice ??= Devices.FirstOrDefault();
             Refresh();
-            _notify(UsesLocalBluetooth ? "Status.BluetoothDiscovered" : "Status.Discovered", [found.Count]);
+            if (!automatic)
+                _notify(UsesLocalBluetooth ? "Status.BluetoothDiscovered" : "Status.Discovered", [found.Count]);
+            await _autoConnector.ConnectAvailableAsync(found, _lifetime.Token);
+            Refresh();
         }
-        finally { IsScanning = false; }
+        finally
+        {
+            _operations.Release();
+            IsScanning = false;
+        }
     }
     public async Task ChangeTransportAsync(bool bluetooth)
     {
-        if (bluetooth == UsesLocalBluetooth)
+        if (_disposed || bluetooth == UsesLocalBluetooth)
             return;
         if (IsScanning)
             throw new LocalizedOperationException("Error.BluetoothBusy");
-        await _stopAll("Reason.TransportChanged");
-        foreach (var id in _controller.Connections.Keys.ToArray())
-            await _controller.DisconnectAsync(id);
-        await _controller.ChangeTransportAsync(bluetooth ? _bluetoothFactory() : new SimulationTransport());
-        SelectedDevice = null;
-        Devices.Clear();
-        Refresh();
+        await _operations.WaitAsync(_lifetime.Token);
+        try
+        {
+            await _stopAll("Reason.TransportChanged");
+            foreach (var id in _controller.Connections.Keys.ToArray())
+                await _controller.DisconnectAsync(id, _lifetime.Token);
+            await _controller.ChangeTransportAsync(bluetooth ? _bluetoothFactory() : new SimulationTransport());
+            SelectedDevice = null;
+            Devices.Clear();
+            Refresh();
+        }
+        finally { _operations.Release(); }
     }
     public async Task ToggleConnectionAsync(DeviceItem device)
     {
-        if (!device.IsConnected)
+        if (_disposed)
+            return;
+        var disconnect = device.IsConnected;
+        if (disconnect)
+            _autoConnector.Forget(device.Id);
+        await _operations.WaitAsync(_lifetime.Token);
+        try
         {
-            await _controller.ConnectAsync(device.Device);
-            SelectedDevice = device;
-            _notify("Status.Connected", [device.Name]);
+            if (!disconnect)
+            {
+                await _controller.ConnectAsync(device.Device, _lifetime.Token);
+                _autoConnector.Remember(device.Id);
+                SelectedDevice = device;
+                await _save();
+                _notify("Status.Connected", [device.Name]);
+            }
+            else
+            {
+                List<Exception> errors = [];
+                try
+                {
+                    await _stopForDevice(device.Id, "Reason.ConnectionChanged");
+                }
+                catch (Exception error) { errors.Add(error); }
+                try
+                {
+                    await _controller.DisconnectAsync(device.Id, _lifetime.Token);
+                }
+                catch (Exception error) { errors.Add(error); }
+                try
+                {
+                    await _save();
+                }
+                catch (Exception error) { errors.Add(error); }
+                Refresh();
+                if (errors.Count > 0)
+                    throw new LocalizedAggregateException("Error.Cleanup", errors);
+                _notify("Status.Disconnected", [device.Name]);
+            }
         }
-        else
+        finally
         {
-            List<Exception> errors = [];
-            try
-            {
-                await _stopForDevice(device.Id, "Reason.ConnectionChanged");
-            }
-            catch (Exception error) { errors.Add(error); }
-            try
-            {
-                await _controller.DisconnectAsync(device.Id);
-            }
-            catch (Exception error) { errors.Add(error); }
+            _operations.Release();
             Refresh();
-            if (errors.Count > 0)
-                throw new LocalizedAggregateException("Error.Cleanup", errors);
-            _notify("Status.Disconnected", [device.Name]);
         }
-        Refresh();
     }
     private async Task FeatureAsync(Func<string, Task> action)
     {
-        if (SelectedDevice is not { IsConnected: true } device || _featuresBusy || _controller.IsDeviceBusy(device.Id))
+        if (_disposed || SelectedDevice is not { IsConnected: true } device || _featuresBusy || _controller.IsDeviceBusy(device.Id))
             return;
         _featuresBusy = true;
         Refresh();
@@ -222,11 +324,36 @@ public sealed class DevicesPaneViewModel : ObservableObject, IDisposable
         RemoteSources.RefreshLocalization();
         Refresh();
     }
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
+        if (_disposed)
+            return;
         _disposed = true;
+        List<Exception> errors = [];
+        try
+        {
+            await _lifetime.CancelAsync();
+        }
+        catch (Exception error) { errors.Add(error); }
+        try
+        {
+            if (_monitor is not null)
+                await _monitor;
+        }
+        catch (Exception error) { errors.Add(error); }
+        await _operations.WaitAsync();
+        _operations.Release();
+        try
+        {
+            await _preferenceSave;
+        }
+        catch (Exception error) { errors.Add(error); }
         _controller.Changed -= OnChanged;
         _controller.Faulted -= OnFault;
         L10n.Current.PropertyChanged -= OnLanguage;
+        _operations.Dispose();
+        _lifetime.Dispose();
+        if (errors.Count > 0)
+            throw new LocalizedAggregateException("Error.Cleanup", errors);
     }
 }

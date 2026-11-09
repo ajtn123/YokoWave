@@ -157,6 +157,7 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
     private void OnDeviceCollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) => RefreshDeviceGroups();
     private void RefreshDeviceGroups()
     {
+        var connected = DevicePane?.Devices.Where(d => d.IsConnected).ToArray() ?? [];
         foreach (var removed in Groups.Where(g => !Pipelines.Contains(g.Editor)).ToArray())
             Groups.Remove(removed);
         foreach (var editor in Pipelines)
@@ -168,23 +169,22 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
                 Groups.Add(group);
             }
             group.IsSelected = editor == Selected;
-            var ids = editor.BoundDeviceIds.Where(id => !id.StartsWith('$')).ToArray();
-            SynchronizeCards(group.Devices, ids, editor);
+            SynchronizeCards(group.Devices, connected.Where(d => editor.BoundDeviceIds.Contains(d.Id)).ToArray(), editor);
             group.Refresh();
         }
         var assigned = Pipelines.SelectMany(p => p.BoundDeviceIds).ToHashSet(StringComparer.Ordinal);
-        SynchronizeCards(UnassignedDevices, DevicePane?.Devices.Where(d => !assigned.Contains(d.Id)).Select(d => d.Id).ToArray() ?? [], null);
+        SynchronizeCards(UnassignedDevices, connected.Where(d => !assigned.Contains(d.Id)).ToArray(), null);
         foreach (var device in UnassignedDevices)
             device.Refresh();
         Raise(nameof(HasUnassignedDevices));
     }
-    private void SynchronizeCards(ObservableCollection<PipelineDeviceCardViewModel> cards, string[] ids, PipelineEditorViewModel? owner)
+    private void SynchronizeCards(ObservableCollection<PipelineDeviceCardViewModel> cards, DeviceItem[] devices, PipelineEditorViewModel? owner)
     {
-        foreach (var removed in cards.Where(c => !ids.Contains(c.Id) || c.Device != DevicePane?.Devices.FirstOrDefault(d => d.Id == c.Id)).ToArray())
+        foreach (var removed in cards.Where(c => !devices.Contains(c.Device)).ToArray())
             cards.Remove(removed);
-        foreach (var id in ids)
-            if (cards.All(c => c.Id != id))
-                cards.Add(new(this, id, DevicePane?.Devices.FirstOrDefault(d => d.Id == id), owner));
+        foreach (var device in devices)
+            if (cards.All(c => c.Device != device))
+                cards.Add(new(this, device, owner));
     }
     public void Add()
     {

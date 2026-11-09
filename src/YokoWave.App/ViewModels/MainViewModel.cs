@@ -89,6 +89,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         await Devices.ChangeTransportAsync(data.Settings.UseBluetooth);
         await Pipelines.LoadAsync();
         _initialized = true;
+        Devices.StartAutoConnect();
         await Devices.ScanAsync();
         if (_store.LoadWarning is { } warning)
             ShowError(new IOException(warning));
@@ -171,6 +172,11 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         List<Exception> errors = [];
         try
         {
+            await Devices.DisposeAsync();
+        }
+        catch (Exception error) { errors.Add(error); }
+        try
+        {
             await Pipelines.DisposeAsync();
         }
         catch (Exception error) { errors.Add(error); }
@@ -181,7 +187,6 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         catch (Exception error) { errors.Add(error); }
         Pipelines.PropertyChanged -= OnPipelinesChanged;
         L10n.Current.PropertyChanged -= OnLanguageChanged;
-        Devices.Dispose();
         Settings.Dispose();
         Waveforms.Dispose();
         History.Dispose();

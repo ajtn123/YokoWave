@@ -76,9 +76,11 @@ public sealed class SettingsViewModel : ObservableObject, IDisposable
             Refresh();
         }, error, () => !_devices.IsScanning);
         L10n.Current.PropertyChanged += OnLanguage;
+        _devices.PropertyChanged += OnDevicesChanged;
     }
     public void Load(AppSettings settings)
     {
+        _devices.LoadConnectionPreferences(settings);
         ShowContacts = settings.ShowContacts;
         _defaultLimit = settings.DefaultLimit;
         _timerLimit = settings.TimerLimitMinutes;
@@ -89,13 +91,19 @@ public sealed class SettingsViewModel : ObservableObject, IDisposable
         foreach (var property in new[] { nameof(DefaultLimit), nameof(TimerLimitMinutes), nameof(SelectedLanguage), nameof(SelectedTransport) })
             Raise(property);
     }
-    public AppSettings Snapshot() => new(DefaultLimit, SelectedLanguage?.Code, _devices.UsesLocalBluetooth, (int)TimerLimitMinutes, RemoteSources.ToSettings(), ShowContacts);
+    public AppSettings Snapshot() => new(DefaultLimit, SelectedLanguage?.Code, _devices.UsesLocalBluetooth, (int)TimerLimitMinutes, RemoteSources.ToSettings(), ShowContacts,
+        _devices.AutoConnect, _devices.AutoConnectDevices);
     public void Refresh()
     {
         Raise(nameof(IsAnyRunning));
         Raise(nameof(DriverLabel));
         Raise(nameof(TransportHelp));
         SaveSettingsCommand.NotifyCanExecuteChanged();
+    }
+    private void OnDevicesChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(DevicesPaneViewModel.IsScanning) or nameof(DevicesPaneViewModel.TransportName))
+            Refresh();
     }
     private void OnLanguage(object? sender, PropertyChangedEventArgs e)
     {
@@ -115,5 +123,9 @@ public sealed class SettingsViewModel : ObservableObject, IDisposable
         }
         catch (Exception error) { _error(error); }
     }
-    public void Dispose() => L10n.Current.PropertyChanged -= OnLanguage;
+    public void Dispose()
+    {
+        L10n.Current.PropertyChanged -= OnLanguage;
+        _devices.PropertyChanged -= OnDevicesChanged;
+    }
 }

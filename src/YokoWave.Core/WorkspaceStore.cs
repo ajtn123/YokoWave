@@ -142,6 +142,9 @@ public sealed class WorkspaceStore(string directory)
         if (data.Statistics is { } statistics && (statistics.SessionCount < 0 || !double.IsFinite(statistics.TotalDurationSeconds) || statistics.TotalDurationSeconds < 0))
             throw new LocalizedArgumentException("Error.InvalidRecords");
         var settings = data.Settings;
+        if (settings.AutoConnectDevices is { } devices && (devices.Count > 256 || devices.Any(id => string.IsNullOrWhiteSpace(id) || id.Length > 512) ||
+            devices.Distinct(StringComparer.Ordinal).Count() != devices.Count))
+            throw new LocalizedArgumentException("Error.InvalidSettings");
         if (settings.RemoteEndpoints is { } endpoints)
         {
             if (endpoints.Count > 16 || endpoints.Any(endpoint => endpoint is null) || endpoints.Select(endpoint => endpoint.Id).Distinct().Count() != endpoints.Count)

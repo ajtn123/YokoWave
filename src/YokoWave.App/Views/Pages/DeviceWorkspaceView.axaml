@@ -21,6 +21,7 @@
       </Border>
       <components:DeviceTelemetryView DataContext="{Binding Telemetry}" />
       <components:ProtocolFeaturesView DataContext="{Binding ProtocolFeatures}" />
+      <components:RemoteSourcesView DataContext="{Binding RemoteSources}" />
     </StackPanel>
   </Grid>
 </UserControl>

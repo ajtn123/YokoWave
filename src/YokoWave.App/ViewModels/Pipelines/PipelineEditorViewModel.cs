@@ -390,7 +390,6 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
     {
         var descriptors = _controller.Connections.Values.Select(c => c.Device).ToArray();
         var desired = descriptors.Where(d => CanBindDevice?.Invoke(d.Id) != false).Select(d => new PipelineDeviceOption(d.Id, d.Name))
-            .Concat(BoundDeviceIds.Where(id => descriptors.All(d => d.Id != id)).Select(id => new PipelineDeviceOption(id, id)))
             .Prepend(new("$device", L10n.Get("Pipeline.Unbound"))).DistinctBy(d => d.Id).ToArray();
         if (!Devices.SequenceEqual(desired))
         {

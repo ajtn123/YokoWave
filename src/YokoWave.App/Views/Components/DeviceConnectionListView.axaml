@@ -3,6 +3,8 @@
              x:Class="YokoWave.App.Views.Components.DeviceConnectionListView" x:DataType="vm:DevicesPaneViewModel">
   <StackPanel Classes="items">
     <Button Content="{Binding ScanLabel}" Command="{Binding ScanCommand}" Classes="small" />
+    <CheckBox Content="{l:Loc Device.AutoConnect}" IsChecked="{Binding AutoConnect}" Classes="caption" />
+    <TextBlock Text="{l:Loc Device.AutoConnectHelp}" Classes="caption muted" TextWrapping="Wrap" />
     <TextBlock Text="{Binding ConnectedSummary}" Classes="muted label" />
     <ItemsControl ItemsSource="{Binding Devices}">
       <ItemsControl.ItemTemplate>

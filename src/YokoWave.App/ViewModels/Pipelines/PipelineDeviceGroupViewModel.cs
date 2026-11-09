@@ -7,24 +7,22 @@ public sealed class PipelineDeviceCardViewModel : ObservableObject
 {
     private readonly PipelinesWorkspaceViewModel _workspace;
     private readonly PipelineEditorViewModel? _owner;
-    public DeviceItem? Device { get; }
-    public string Id { get; }
-    public bool IsKnown => Device is not null;
+    public DeviceItem Device { get; }
+    public string Id => Device.Id;
     public string AssignmentAction => L10n.Get(_owner is null ? "Mode.Assign" : "Mode.Detach");
-    public bool CanChangeAssignment => _owner?.CanEdit ?? (_workspace.Selected is { } selected && Device is { } device && PipelineDeviceBindingEditor.CanAssign(selected, device.Device));
+    public bool CanChangeAssignment => Device.IsConnected && (_owner?.CanEdit ?? (_workspace.Selected is { } selected && PipelineDeviceBindingEditor.CanAssign(selected, Device.Device)));
     public AsyncCommand AssignmentCommand { get; }
-    public PipelineDeviceCardViewModel(PipelinesWorkspaceViewModel workspace, string id, DeviceItem? device, PipelineEditorViewModel? owner = null)
+    public PipelineDeviceCardViewModel(PipelinesWorkspaceViewModel workspace, DeviceItem device, PipelineEditorViewModel? owner = null)
     {
         _workspace = workspace;
         _owner = owner;
-        Id = id;
         Device = device;
         AssignmentCommand = new(() =>
         {
             if (_owner is not null)
                 PipelineDeviceBindingEditor.Detach(_owner, Id);
-            else if (_workspace.Selected is { } selected && Device is { } item)
-                PipelineDeviceBindingEditor.Assign(selected, item.Device);
+            else if (_workspace.Selected is { } selected)
+                PipelineDeviceBindingEditor.Assign(selected, Device.Device);
             return Task.CompletedTask;
         }, workspace.ReportError, () => CanChangeAssignment);
     }

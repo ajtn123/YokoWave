@@ -4,13 +4,9 @@
              x:Class="YokoWave.App.Views.Pipelines.PipelineDeviceCardView" x:DataType="vm:PipelineDeviceCardViewModel">
   <StackPanel>
     <ContentControl Content="{Binding Device}"><ContentControl.ContentTemplate><DataTemplate x:DataType="items:DeviceItem">
-      <components:DeviceCardView ShowAssignmentAction="True"
+      <components:DeviceCardView ShowAssignmentAction="True" ShowConnectionAction="False"
         AssignmentCommand="{Binding $parent[views:PipelineDeviceCardView].((vm:PipelineDeviceCardViewModel)DataContext).AssignmentCommand}"
         AssignmentLabel="{Binding $parent[views:PipelineDeviceCardView].((vm:PipelineDeviceCardViewModel)DataContext).AssignmentAction}" />
     </DataTemplate></ContentControl.ContentTemplate></ContentControl>
-    <Border Classes="list-item device-card" IsVisible="{Binding !IsKnown}"><StackPanel Classes="field">
-      <TextBlock Text="{Binding Id}" Classes="caption muted" TextWrapping="Wrap" />
-      <Button Content="{Binding AssignmentAction}" Command="{Binding AssignmentCommand}" Classes="small" />
-    </StackPanel></Border>
   </StackPanel>
 </UserControl>
