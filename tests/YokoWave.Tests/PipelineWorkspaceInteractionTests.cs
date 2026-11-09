@@ -12,6 +12,8 @@ using Nodify.Avalonia;
 using YokoWave.App.ViewModels;
 using YokoWave.App.Views;
 using YokoWave.App.Views.Components;
+using YokoWave.App.Views.Pipelines;
+using YokoWave.App.ViewModels.Pipelines;
 using YokoWave.Core;
 using YokoWave.Core.Localization;
 using YokoWave.Pipelines;
@@ -21,6 +23,65 @@ namespace YokoWave.Tests;
 
 public sealed class PipelineWorkspaceInteractionTests
 {
+    [AvaloniaFact]
+    public async Task ManagementMenuTargetsRightClickedPipelineAndSavesNamedTemplates()
+    {
+        using var directory = new TestFolder();
+        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new(directory.Path));
+        await vm.InitializeAsync();
+        var first = vm.Pipelines.Selected!;
+        vm.Pipelines.Add();
+        Assert.NotSame(first, vm.Pipelines.Selected);
+        var window = new Window { Width = 1600, Height = 950, Content = new MainView { DataContext = vm } };
+        window.Show();
+        try
+        {
+            Dispatcher.UIThread.RunJobs();
+            var group = window.GetVisualDescendants().OfType<Border>().Single(b => b.Classes.Contains("mode-group") && b.DataContext is PipelineDeviceGroupViewModel g && g.Editor == first);
+            var at = group.TranslatePoint(new Point(group.Bounds.Width / 2, 25), window)!.Value;
+            window.MouseMove(at);
+            window.MouseDown(at, MouseButton.Right);
+            window.MouseUp(at, MouseButton.Right);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Same(first, vm.Pipelines.Selected);
+            var list = window.GetVisualDescendants().OfType<StackPanel>().Single(p => p.Classes.Contains("pipeline-list"));
+            var menu = list.ContextMenu!;
+            Assert.True(menu.IsOpen);
+            var items = menu.Items.OfType<MenuItem>().ToArray();
+            Assert.Same(vm.Pipelines.DuplicateCommand, items.Single(i => Equals(i.Header, L10n.Get("Pipeline.Duplicate"))).Command);
+            Assert.Same(vm.Pipelines.SaveCommand, items.Single(i => Equals(i.Header, L10n.Get("Pipeline.Save"))).Command);
+            Assert.Same(vm.Pipelines.DeleteCommand, items.Single(i => Equals(i.Header, L10n.Get("Pipeline.Delete"))).Command);
+            Assert.Same(vm.Pipelines.DeleteTemplateCommand, items.Single(i => Equals(i.Header, L10n.Get("Pipeline.DeleteTemplate"))).Command);
+            var save = items.Single(i => Equals(i.Header, L10n.Get("Pipeline.SaveTemplate")));
+            var popup = TopLevel.GetTopLevel(save)!;
+            var saveAt = save.TranslatePoint(new Point(save.Bounds.Width / 2, save.Bounds.Height / 2), popup)!.Value;
+            popup.MouseMove(saveAt);
+            popup.MouseDown(saveAt, MouseButton.Left);
+            popup.MouseUp(saveAt, MouseButton.Left);
+            Dispatcher.UIThread.RunJobs();
+            var dialog = Assert.IsType<SavePipelineTemplateWindow>(Assert.Single(window.OwnedWindows));
+            var input = dialog.GetVisualDescendants().OfType<TextBox>().Single();
+            Assert.True(input.IsFocused);
+            dialog.KeyTextInput("custom pipeline template");
+            dialog.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, "\r");
+            for (var i = 0; i < 100 && vm.Pipelines.SelectedTemplate?.Name != "custom pipeline template"; i++)
+            {
+                Dispatcher.UIThread.RunJobs();
+                await Task.Delay(10, TestContext.Current.CancellationToken);
+            }
+            Assert.Equal("custom pipeline template", vm.Pipelines.SelectedTemplate?.Name);
+            Assert.Empty(window.OwnedWindows);
+            Assert.True(vm.Pipelines.DeleteTemplateCommand.CanExecute(null));
+            Assert.Same(first, vm.Pipelines.Selected);
+        }
+        finally
+        {
+            foreach (var dialog in window.OwnedWindows.ToArray())
+                dialog.Close();
+            window.Close();
+        }
+    }
+
     [AvaloniaFact]
     public async Task DeviceCardsAssignMultipleOutputsDetachAndLockDuringPlayback()
     {
@@ -73,6 +134,9 @@ public sealed class PipelineWorkspaceInteractionTests
             var template = window.GetVisualDescendants().OfType<ComboBox>().Single(t => t.Classes.Contains("pipeline-create"));
             var create = window.GetVisualDescendants().OfType<Button>().Single(t => t.Classes.Contains("pipeline-create"));
             Assert.Equal(template.Bounds.Height, create.Bounds.Height);
+            var label = create.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text == L10n.Get("Mode.Add"));
+            var center = label.TranslatePoint(new Point(0, label.Bounds.Height / 2), create)!.Value.Y;
+            Assert.InRange(Math.Abs(center - create.Bounds.Height / 2), 0, 1);
             foreach (var deviceCard in window.GetVisualDescendants().OfType<DeviceCardView>())
             {
                 var cardBorder = Assert.IsType<Border>(deviceCard.Content);

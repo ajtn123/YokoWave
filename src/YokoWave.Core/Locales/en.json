@@ -931,5 +931,5 @@
   "Nav.Pipelines": "◇    Pipelines",
   "Pipeline.OutputLimit": "Output strength limit (0–1)",
   "Pipeline.AddNode": "Add node",
-  "Pipeline.Manage": "Manage pipelines and templates"
+  "Dialog.Cancel": "Cancel"
 }

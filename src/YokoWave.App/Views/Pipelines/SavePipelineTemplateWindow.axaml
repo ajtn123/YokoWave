@@ -1,0 +1,15 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l="using:YokoWave.App.Localization" xmlns:vm="using:YokoWave.App.ViewModels.Pipelines"
+        x:Class="YokoWave.App.Views.Pipelines.SavePipelineTemplateWindow" x:DataType="vm:PipelinesWorkspaceViewModel"
+        Classes="pipeline-template-dialog" Title="{l:Loc Pipeline.SaveTemplate}" SizeToContent="Height" CanResize="False" ShowInTaskbar="False" WindowStartupLocation="CenterOwner">
+  <Border Classes="card compact">
+    <StackPanel Classes="items">
+      <TextBlock Text="{l:Loc Pipeline.TemplateName}" Classes="field-label" />
+      <TextBox x:Name="TemplateNameInput" Text="{Binding TemplateName}" PlaceholderText="{Binding Selected.Name}" MaxLength="60" />
+      <StackPanel Classes="actions" HorizontalAlignment="Right">
+        <Button Content="{l:Loc Dialog.Cancel}" Click="Cancel" IsCancel="True" Classes="small" />
+        <Button Content="{l:Loc Pipeline.Save}" Click="Save" IsDefault="True" Classes="small primary" />
+      </StackPanel>
+    </StackPanel>
+  </Border>
+</Window>

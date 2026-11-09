@@ -931,5 +931,5 @@
   "Nav.Pipelines": "◇    节点玩法",
   "Pipeline.OutputLimit": "输出强度上限（0–1）",
   "Pipeline.AddNode": "添加节点",
-  "Pipeline.Manage": "管理玩法与模板"
+  "Dialog.Cancel": "取消"
 }

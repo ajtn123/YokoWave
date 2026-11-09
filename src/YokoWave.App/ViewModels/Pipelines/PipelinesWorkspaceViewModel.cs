@@ -63,11 +63,13 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
             if (!Set(ref _selected, value))
                 return;
             RefreshDeviceGroups();
+            Raise(nameof(CanEditSelected));
             DeleteCommand.NotifyCanExecuteChanged();
             SaveTemplateCommand.NotifyCanExecuteChanged();
         }
     }
     public string TemplateName { get => _templateName; set => Set(ref _templateName, value); }
+    public bool CanEditSelected => Selected?.CanEdit == true;
     public bool IsAnyRunning => Pipelines.Any(p => p.Session.HoldsResources);
     public ICommand AddCommand { get; }
     public ICommand DuplicateCommand { get; }
@@ -92,9 +94,9 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
         DevicePane = devicePane;
         AddCommand = new ActionCommand(Add);
         DuplicateCommand = new ActionCommand(() => { if (Selected is { } p) Selected = AddEditor(Unbind(p.ToDocument()) with { Id = Guid.NewGuid(), Name = L10n.Format("Pipeline.CopyName", p.Name) }); });
-        DeleteCommand = new(DeleteAsync, onError, () => Selected?.CanEdit == true);
+        DeleteCommand = new(DeleteAsync, onError, () => CanEditSelected);
         SaveCommand = new(SaveAsync, onError);
-        SaveTemplateCommand = new(SaveTemplateAsync, onError, () => Selected?.CanEdit == true);
+        SaveTemplateCommand = new(SaveTemplateAsync, onError, () => CanEditSelected);
         DeleteTemplateCommand = new(DeleteTemplateAsync, onError, () => SelectedTemplate is { IsBuiltIn: false });
         foreach (var template in PipelineTemplates.All.Concat([RemotePipelineNodes.GattTemplate, RemotePipelineNodes.ControlTemplate]))
             Templates.Add(new(template));
@@ -240,6 +242,7 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
         RefreshDeviceGroups();
         foreach (var pipeline in Pipelines)
             pipeline.RefreshDevices();
+        Raise(nameof(CanEditSelected));
         DeleteCommand.NotifyCanExecuteChanged();
         SaveTemplateCommand.NotifyCanExecuteChanged();
     }
@@ -249,6 +252,7 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
             return;
         RefreshDeviceGroups();
         Raise(nameof(IsAnyRunning));
+        Raise(nameof(CanEditSelected));
         DeleteCommand.NotifyCanExecuteChanged();
         SaveTemplateCommand.NotifyCanExecuteChanged();
     });
