@@ -4,7 +4,10 @@ using YokoWave.Core.Bluetooth;
 namespace YokoWave.Pipelines;
 
 public sealed record PlaylistNode(Guid WaveformId, Guid[]? Playlist = null, PlaybackOrder Order = PlaybackOrder.Repeat,
-    double Phase = 0, bool RestartOnTrigger = false, bool StopWhenComplete = true);
+    double Phase = 0, bool RestartOnTrigger = false, bool StopWhenComplete = true)
+{
+    public bool AcceptsWaveform(Guid id) => Order is not (PlaybackOrder.Sequential or PlaybackOrder.Random) || Playlist?.Contains(id) == true;
+}
 public sealed record TouchNode(TouchPlayback Playback = TouchPlayback.Momentary);
 public sealed record AudioNode(AudioSettings Settings);
 public sealed record SensorNode(string DeviceId = "");

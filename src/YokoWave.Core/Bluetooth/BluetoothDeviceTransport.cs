@@ -6,8 +6,9 @@ namespace YokoWave.Core.Bluetooth;
 public partial class BluetoothDeviceTransport(IBluetoothAdapter adapter) : IDeviceTransport, IDeviceStatusSource,
     IElectricalDeviceFeatures, IElectricalMotionSource, IInputDeviceFeatures, IDeviceCommandTransport, IRawGattTransport
 {
-    private sealed class Connection(IBluetoothConnection link, BluetoothProtocolDriver driver)
+    private sealed class Connection(BluetoothPeripheral peripheral, IBluetoothConnection link, BluetoothProtocolDriver driver)
     {
+        public BluetoothPeripheral Peripheral { get; } = peripheral;
         public IBluetoothConnection Link
         { get; } = link;
         public BluetoothProtocolDriver Driver { get; set; } = driver;
@@ -66,7 +67,7 @@ public partial class BluetoothDeviceTransport(IBluetoothAdapter adapter) : IDevi
         void Publish(DeviceStatusUpdate update) => StatusChanged?.Invoke(this, update);
         void Fault(Exception error) => Faulted?.Invoke(this, new(device.Id, false, error));
         var driver = BluetoothProtocolDriverFactory.Create(device.Id, profile, link, Publish, Fault);
-        var connection = new Connection(link, driver);
+        var connection = new Connection(peripheral, link, driver);
         connection.CommandRequested = command => _ = ExecuteRequestedCommandAsync(connection, command, connection.Generation);
         driver.CommandRequested += connection.CommandRequested;
         connection.Primary = bytes =>

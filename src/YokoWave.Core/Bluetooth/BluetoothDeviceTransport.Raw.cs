@@ -27,7 +27,7 @@ public partial class BluetoothDeviceTransport
             connection.Generation++;
             connection.RawLease = lease;
             var profile = connection.Driver.Profile;
-            var peripheral = _discovered[id];
+            var peripheral = connection.Peripheral;
             var kind = profile.Domain switch { OutputDomain.Motor => DeviceKind.Vibration, OutputDomain.Pump => DeviceKind.Pump, OutputDomain.Input => DeviceKind.Sensor, _ => DeviceKind.DualChannel };
             return new(new(id, peripheral.Name, kind, null, peripheral.Signal, profile.Protocol.ToString()), Attributes(connection), connection.Link.MaximumWriteLength);
         }
@@ -53,7 +53,9 @@ public partial class BluetoothDeviceTransport
     {
         await WithRaw(id, lease, async connection =>
         {
-            if (writes.Count is < 1 or > 16 || writes.Sum(write => (long)write.DelayAfterMilliseconds) > 100) throw new LocalizedArgumentException("Error.ProtocolSettings");
+            if (writes is null || writes.Count is < 1 or > 16 || writes.Any(write => write is null) ||
+                writes.Sum(write => (long)write.DelayAfterMilliseconds) > 100)
+                throw new LocalizedArgumentException("Error.ProtocolSettings");
             foreach (var write in writes)
             {
                 var attribute = Attributes(connection).FirstOrDefault(attribute => attribute.Address == write.Address);

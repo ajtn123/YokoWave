@@ -20,6 +20,8 @@
 - `lease.renew` 和 `lease.release` 参数为 `{ "lease": "UUID" }`，只能由取得租约的连接调用。续期返回当前服务端 `clockMilliseconds`。自带客户端按超时的三分之一续期，租约撤销通知为 `lease.revoked`。
 - 每个 `gatt.*` / `control.*` 请求都包含 `lease`、严格递增的 `sequence`，以及服务端单调时钟中的 `deadline`（毫秒）。执行前拒绝过期或超过当前时钟 1 秒的截止时间。客户端用 hello／续期时钟加本地单调经过时间估算，不依赖两台电脑的系统时间；自带客户端使用 500 ms 截止时间。
 
+播放与手动输出请求先校验完整参数、波形采样、目标能力及图定义，再修改硬件选项或替换当前播放；参数错误返回 `-32602` 并保留当前播放。顺序／随机播放只接受列表内的实时波形切换，在全部目标校验通过后才提交。传感器可接收统一设备连接流程的零输出请求，非零输出仍被拒绝。
+
 示例请求：
 
 ```json
@@ -62,6 +64,8 @@
 | `control.command` | `deviceId`、`command`；按设备能力执行下表的强类型命令 |
 | `control.status` | `deviceId`；返回遥测、电量、运动、接触和灯光状态 |
 | `control.subscribe` / `control.unsubscribe` | `deviceId`；按 100 ms 采样，仅在状态变化时推送 `control.status` 通知 `{ lease, status }` |
+
+状态中的 `telemetryClockMilliseconds` 与 `motionClockMilliseconds` 分别表示遥测和运动读数的采集时刻，使用服务端单调时钟，可能因采集早于服务端启动而为负值；缺失表示没有有效采集时间。客户端将其换算为输入年龄，状态刷新不会延长旧读数的有效期，新采样恢复有效输入。`motion.capturedAt` 不用于跨主机的新鲜度判断。
 
 声控、滑动及运动等有实时输入的玩法由自带客户端在控制端运行，通过 GATT 发送；高层 API 也可由第三方程序消费自己的输入并发送统一帧。高层服务端不远程打开麦克风或读取客户端文件。
 

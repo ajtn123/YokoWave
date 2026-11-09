@@ -128,6 +128,8 @@ public sealed partial class DeviceController : IAsyncDisposable
 
     private async Task ApplyStatusAsync(object? sender, DeviceStatusUpdate update, DateTimeOffset receivedAt)
     {
+        DateTimeOffset CapturedAt(TimeSpan? age) => age is { } elapsed && (elapsed < TimeSpan.Zero || elapsed > receivedAt - DateTimeOffset.MinValue)
+            ? DateTimeOffset.MinValue : receivedAt - (age ?? TimeSpan.Zero);
         try
         {
             using (await _operations.AcquireAsync([update.DeviceId]))
@@ -159,10 +161,10 @@ public sealed partial class DeviceController : IAsyncDisposable
                 if (update.Telemetry is { } telemetry)
                 {
                     connection.Telemetry = (connection.Telemetry ?? new()).Merge(telemetry);
-                    connection.TelemetryCapturedAt = receivedAt;
+                    connection.TelemetryCapturedAt = CapturedAt(update.TelemetryAge);
                 }
                 if (update.MotionAngle is { } angle && double.IsFinite(angle) && angle is >= 0 and <= 180)
-                    connection.Motion = new(angle, ++connection.MotionSequence, receivedAt, connection.Steps);
+                    connection.Motion = new(angle, ++connection.MotionSequence, CapturedAt(update.MotionAge), connection.Steps);
             }
             NotifyChanged();
         }

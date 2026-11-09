@@ -18,7 +18,8 @@ public sealed class DeviceStatusUpdate(string deviceId, int? battery = null,
     ElectrodeContact? contactA = null, ElectrodeContact? contactB = null,
     bool? outputAEnabled = null, bool? outputBEnabled = null,
     byte? hardwareVersion = null, byte? softwareVersion = null, bool? lightEnabled = null,
-    double? motionAngle = null, int? steps = null, int? channelMask = null, DeviceTelemetry? telemetry = null) : EventArgs
+    double? motionAngle = null, int? steps = null, int? channelMask = null, DeviceTelemetry? telemetry = null,
+    TimeSpan? motionAge = null, TimeSpan? telemetryAge = null) : EventArgs
 {
     public string DeviceId { get; } = deviceId;
     public int? Battery { get; } = battery;
@@ -33,6 +34,8 @@ public sealed class DeviceStatusUpdate(string deviceId, int? battery = null,
     public int? Steps { get; } = steps;
     public int? ChannelMask { get; } = channelMask;
     public DeviceTelemetry? Telemetry { get; } = telemetry;
+    public TimeSpan? MotionAge { get; } = motionAge;
+    public TimeSpan? TelemetryAge { get; } = telemetryAge;
 }
 
 public sealed class DeviceTransportFault(string deviceId, bool disconnected, Exception error) : EventArgs

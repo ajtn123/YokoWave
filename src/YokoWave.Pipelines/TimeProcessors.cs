@@ -23,7 +23,7 @@ internal sealed class PlaylistProcessor : ISignalProcessor, IInteractiveProcesso
             return;
         var waveform = control.Read<WaveformPreset>();
         waveform.Validate();
-        if (_settings.Order is PlaybackOrder.Sequential or PlaybackOrder.Random && !(_settings.Playlist?.Contains(waveform.Id) ?? false))
+        if (!_settings.AcceptsWaveform(waveform.Id))
             throw new LocalizedOperationException("Error.PlaylistWave");
         _current = waveform;
         _restart = true;

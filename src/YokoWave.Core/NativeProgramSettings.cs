@@ -76,7 +76,7 @@ public sealed record NativeProgramOutput(NativeProgramSettings Settings, double 
         if (Settings.Kind == NativeProgramKind.MotorPreset && (frame.OutputLimit != 100 ||
             frame.Hardware is { ChannelALimit: not 100 } or { ChannelBLimit: not 100 } ||
             new[] { frame.ChannelA, frame.ChannelB, frame.ChannelC }.Any(value => value is > 0 and < 100)))
-            throw new Localization.LocalizedOperationException("Error.NativeMotorLimit");
+            throw new Localization.LocalizedArgumentException("Error.NativeMotorLimit");
     }
 }
 

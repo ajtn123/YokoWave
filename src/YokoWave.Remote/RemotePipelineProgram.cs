@@ -1,3 +1,4 @@
+using System.Text.Json;
 using YokoWave.Core;
 using YokoWave.Core.Localization;
 using YokoWave.Pipelines;
@@ -7,6 +8,13 @@ namespace YokoWave.Remote;
 internal sealed record RemotePipelineProgram(PipelineDocument Graph, WaveformPreset[] Assets,
     Dictionary<int, List<Guid>> Strengths, List<Guid> Waves, Guid? FrameSource = null)
 {
+    public void ValidateWaveform(WaveformPreset waveform)
+    {
+        waveform.Validate();
+        foreach (var node in Graph.Nodes.Where(n => n.Type == BuiltInNodes.Playlist))
+            if (!node.Configuration.Deserialize<PlaylistNode>(PipelineJson.Options)!.AcceptsWaveform(waveform.Id))
+                throw new LocalizedArgumentException("Error.PlaylistWave");
+    }
     public static RemotePipelineProgram Manual(IEnumerable<DeviceDescriptor> targets, OutputFrame frame, double maximum)
     {
         var builder = new PipelineBuilder(L10n.Get("Remote.Control"), Math.Min(maximum, frame.OutputLimit) / 100);
@@ -53,6 +61,13 @@ internal sealed record RemotePipelineProgram(PipelineDocument Graph, WaveformPre
             }
             if (settings.Kind == RemotePlaybackKind.NativeProgram)
             {
+                if (settings.NativeProgram is { Kind: NativeProgramKind.MotorPreset } motor)
+                {
+                    var cap = Math.Min(maximum, settings.OutputLimit);
+                    double Level(int channel, int selected) => device.HasChannel(channel) && selected > 0 ? Math.Min(levels[channel], cap) : 0;
+                    new NativeProgramOutput(motor, 0, request.DurationSeconds).ValidateOutput(new(
+                        Level(0, motor.PresetA), Level(1, motor.PresetB), 20, ChannelC: Level(2, motor.PresetC), OutputLimit: cap, Hardware: settings.Hardware));
+                }
                 var sink = builder.Add(BuiltInNodes.NativeOutput, new NativeOutputNode(device.Id, settings.NativeProgram, Limit: Math.Min(maximum, settings.OutputLimit) / 100));
                 for (var channel = 0; channel < 3; channel++)
                     if (device.HasChannel(channel))

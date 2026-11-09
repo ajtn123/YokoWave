@@ -78,7 +78,7 @@ public sealed class ProtocolFeatureTests
         var count = link.Writes.Count;
         await transport.SendAsync(device.Id, frame, TestContext.Current.CancellationToken);
         Assert.Equal(count, link.Writes.Count);
-        await Assert.ThrowsAsync<LocalizedOperationException>(() => transport.SendAsync(device.Id, frame with { OutputLimit = 60 }, cancellationToken: TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<LocalizedArgumentException>(() => transport.SendAsync(device.Id, frame with { OutputLimit = 60 }, cancellationToken: TestContext.Current.CancellationToken));
         await Assert.ThrowsAsync<LocalizedArgumentException>(() => transport.SendAsync(device.Id, frame with { NativeProgram = native with { Settings = native.Settings with { PresetA = 6 } } }, cancellationToken: TestContext.Current.CancellationToken));
     }
 

@@ -161,8 +161,13 @@ public sealed class WebSocketRpcPeer : IAsyncDisposable
         }
         catch (Exception error)
         {
-            var code = error is RemoteRpcException rpc ? rpc.Code : -32000;
-            var key = error switch { RemoteRpcException rpcError => rpcError.Key, ILocalizedError localized => localized.LocalizedMessage.Key, JsonException or ArgumentException => "Error.RemoteRequest", _ => "Error.RemoteOperation" };
+            var code = error switch
+            {
+                RemoteRpcException rpc => rpc.Code,
+                JsonException or ArgumentException or Pipelines.PipelineValidationException => -32602,
+                _ => -32000
+            };
+            var key = error switch { RemoteRpcException rpcError => rpcError.Key, ILocalizedError localized => localized.LocalizedMessage.Key, JsonException or ArgumentException or Pipelines.PipelineValidationException => "Error.RemoteRequest", _ => "Error.RemoteOperation" };
             failure = new { code, message = key };
             System.Diagnostics.Trace.TraceWarning("Remote operation {0} failed: {1}", method, error);
         }

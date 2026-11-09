@@ -113,9 +113,15 @@ public sealed class WebSocketControlTransport : IDeviceTransport, IDeviceStatusS
         foreach (var pair in _links.Where(p => p.Value.Id == lease && p.Value.DeviceId == status.DeviceId))
             Update(pair.Key, status);
     }
-    private void Update(string id, RemoteStatus status) => StatusChanged?.Invoke(this, new(id, status.Battery,
-        status.ContactA, status.ContactB, lightEnabled: status.LightEnabled, motionAngle: status.Motion?.Angle,
-        steps: status.Motion?.Steps, telemetry: status.Telemetry, hardwareVersion: status.HardwareVersion, softwareVersion: status.SoftwareVersion));
+    private void Update(string id, RemoteStatus status)
+    {
+        if (!_links.TryGetValue(id, out var link))
+            return;
+        StatusChanged?.Invoke(this, new(id, status.Battery,
+            status.ContactA, status.ContactB, lightEnabled: status.LightEnabled, motionAngle: status.Motion?.Angle,
+            steps: status.Motion?.Steps, telemetry: status.Telemetry, hardwareVersion: status.HardwareVersion, softwareVersion: status.SoftwareVersion,
+            motionAge: link.InputAge(status.MotionClockMilliseconds), telemetryAge: link.InputAge(status.TelemetryClockMilliseconds)));
+    }
     public async Task DisconnectAsync(string deviceId, CancellationToken cancellationToken = default)
     {
         if (_links.TryRemove(deviceId, out var link))

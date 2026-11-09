@@ -24,7 +24,7 @@ public sealed class PlaylistEditorViewModel : NodeEditorViewModel, IWaveformNode
         {
             if (value is null || value.Preset.Id == _settings.WaveformId)
                 return;
-            if (!CanEdit && _settings.Order is PlaybackOrder.Sequential or PlaybackOrder.Random && !(_settings.Playlist?.Contains(value.Preset.Id) ?? false))
+            if (!CanEdit && !_settings.AcceptsWaveform(value.Preset.Id))
                 return;
             Change(() => { _settings = _settings with { WaveformId = value.Preset.Id }; Raise(); }, live: true);
             Editor.Session.Update(NodeControl.Create(Id, "waveform", value.Preset));

@@ -157,7 +157,8 @@ public sealed class RemoteExportSession : IAsyncDisposable
             throw new RemoteRpcException(-32602, "Error.RemoteRequest");
         if (_leases.Values.Any(lease => lease.PublicIds.Intersect(ids).Any()))
             throw new RemoteRpcException(-32002, "Error.DeviceInUse");
-        var lease = new RemoteDeviceLease(peer, type, ids, ids.Select(id => _exports[id]).ToArray(), _devices, _owner, Settings.ControlLimit, _controlDevices);
+        var lease = new RemoteDeviceLease(peer, type, ids, ids.Select(id => _exports[id]).ToArray(), _devices, _owner, Settings.ControlLimit,
+            () => _clock.ElapsedMilliseconds, _controlDevices);
         _leases.Add(lease.Id, lease);
         try
         {

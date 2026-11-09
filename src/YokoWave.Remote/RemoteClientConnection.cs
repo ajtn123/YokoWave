@@ -131,7 +131,15 @@ internal sealed class RemoteDeviceLink(WebSocketRpcPeer peer, RemoteDevice devic
                 Lost();
         }
     }
-    public bool IsFresh(long clock) => Volatile.Read(ref _lost) == 0 && Volatile.Read(ref _disposed) == 0 && _clock.Now - clock <= 500;
+    public bool IsFresh(long clock) => Volatile.Read(ref _lost) == 0 && Volatile.Read(ref _disposed) == 0 && InputAge(clock) <= TimeSpan.FromMilliseconds(500);
+    public TimeSpan InputAge(long? captured)
+    {
+        var expired = TimeSpan.FromDays(1);
+        if (captured is not { } timestamp)
+            return expired;
+        var milliseconds = (double)_clock.Now - timestamp;
+        return milliseconds < -500 ? expired : TimeSpan.FromMilliseconds(Math.Clamp(milliseconds, 0, expired.TotalMilliseconds));
+    }
     public void Lost()
     {
         if (Interlocked.Exchange(ref _lost, 1) != 0)

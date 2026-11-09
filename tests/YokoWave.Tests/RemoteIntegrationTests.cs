@@ -15,6 +15,127 @@ public sealed class RemoteIntegrationTests
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
+    [Fact]
+    public async Task ConnectedGattDeviceCanBeExportedAfterItDisappearsFromScanResults()
+    {
+        await using var host = await Host.Create(BluetoothProtocol.CoyoteV3);
+        host.Adapter.Peripherals.Clear();
+        Assert.Empty(await host.Controller.ScanAsync(Ct));
+        await using var client = await Client.Create(host.Server.Url!);
+        var device = Assert.Single(await client.Peer.CallAsync<RemoteDevice[]>("devices.list", ct: Ct));
+        var lease = await client.Acquire(device.Id, RemoteLeaseType.Gatt);
+        var description = await client.Execute<RemoteGattDescription>(lease, "gatt.describe", new { deviceId = device.Id });
+        Assert.Equal(host.Devices[0].Name, description.Device.Name);
+        await client.Release(lease);
+        Assert.False(host.Adapter.Links[host.Devices[0].Id].Closed);
+    }
+
+    [Theory]
+    [InlineData("play")]
+    [InlineData("output")]
+    [InlineData("duration")]
+    public async Task InvalidControlRequestsDoNotChangeHardwareSettingsOrStopExistingOutput(string operation)
+    {
+        await using var host = await Host.Create(BluetoothProtocol.CoyoteV3);
+        await using var client = await Client.Create(host.Server.Url!);
+        var device = Assert.Single(await client.Peer.CallAsync<RemoteDevice[]>("devices.list", ct: Ct));
+        var lease = await client.Acquire(device.Id, RemoteLeaseType.Control);
+        await client.Execute<bool>(lease, "control.output", new { frame = new OutputFrame(20, 15, 20) });
+        var oldSettings = host.Controller.GetOutputSettings(host.Devices[0].Id);
+        object parameters = operation switch
+        {
+            "play" => new { playback = new RemoteControlProgram(new(Gentle: true), ChannelA: -1) },
+            "duration" => new { playback = new RemoteControlProgram(new(Gentle: true), ChannelA: 20, DurationSeconds: 0) },
+            _ => new { frame = new OutputFrame(20, 15, 20, WindowA: [new(1, 0)], Gentle: true) }
+        };
+        var method = operation == "output" ? "control.output" : "control.play";
+        var failure = await Assert.ThrowsAsync<RemoteRpcException>(() => client.Execute<bool>(lease, method, parameters));
+        Assert.Equal(-32602, failure.Code);
+        Assert.Equal(oldSettings, host.Controller.GetOutputSettings(host.Devices[0].Id));
+        Assert.Equal(20, host.Controller.Connections[host.Devices[0].Id].Output.ChannelA);
+        await client.Execute<bool>(lease, "control.output", new { frame = new OutputFrame(10, 5, 20) });
+        Assert.Equal(10, host.Controller.Connections[host.Devices[0].Id].Output.ChannelA);
+    }
+
+    [Fact]
+    public async Task InvalidNativeMotorOutputRespectsServerCapBeforeReplacingPlayback()
+    {
+        await using var host = await Host.Create(BluetoothProtocol.YokonexMotor);
+        await using var client = await Client.Create(host.Server.Url!);
+        var device = Assert.Single(await client.Peer.CallAsync<RemoteDevice[]>("devices.list", ct: Ct));
+        var lease = await client.Acquire(device.Id, RemoteLeaseType.Control);
+        await client.Execute<bool>(lease, "control.output", new { frame = new OutputFrame(20, 15, 20) });
+        var motor = new NativeProgramSettings(NativeProgramKind.MotorPreset);
+        var outputFailure = await Assert.ThrowsAsync<RemoteRpcException>(() => client.Execute<bool>(lease, "control.output", new
+        {
+            frame = new OutputFrame(100, 100, 20, NativeProgram: new(motor, 0, null))
+        }));
+        Assert.Equal(-32602, outputFailure.Code);
+        Assert.Equal("Error.NativeMotorLimit", outputFailure.Key);
+        var programFailure = await Assert.ThrowsAsync<RemoteRpcException>(() => client.Execute<bool>(lease, "control.native", new
+        {
+            playback = new RemoteControlProgram(new(Kind: RemotePlaybackKind.NativeProgram, NativeProgram: motor), ChannelA: 100, ChannelB: 100)
+        }));
+        Assert.Equal(-32602, programFailure.Code);
+        Assert.Equal("Error.NativeMotorLimit", programFailure.Key);
+        Assert.Equal(20, host.Controller.Connections[host.Devices[0].Id].Output.ChannelA);
+        await client.Execute<bool>(lease, "control.output", new { frame = new OutputFrame(10, 5, 20) });
+        Assert.Equal(10, host.Controller.Connections[host.Devices[0].Id].Output.ChannelA);
+    }
+
+    [Fact]
+    public async Task InvalidLivePlaylistWaveformIsRejectedBeforeChangingAnyRunningNode()
+    {
+        await using var host = await Host.Create(BluetoothProtocol.CoyoteV3);
+        await using var client = await Client.Create(host.Server.Url!);
+        var device = Assert.Single(await client.Peer.CallAsync<RemoteDevice[]>("devices.list", ct: Ct));
+        var lease = await client.Acquire(device.Id, RemoteLeaseType.Control);
+        var wave = new WaveformPreset(Guid.NewGuid(), "wave", WaveShape.Custom, 1, 20, [1, 1]);
+        await client.Execute<bool>(lease, "control.playlist", new
+        {
+            playback = new RemoteControlProgram(new(Order: PlaybackOrder.Sequential, Playlist: [wave]), wave, 20, 15)
+        });
+        await Assert.ThrowsAsync<RemoteRpcException>(() => client.Execute<bool>(lease, "control.waveform", new { waveform = wave with { Id = Guid.NewGuid() } }));
+        await client.Execute<bool>(lease, "control.strength", new { channelA = 10, channelB = 5 });
+        Assert.Equal(10, host.Controller.Connections[host.Devices[0].Id].Output.ChannelA);
+    }
+
+    [Theory]
+    [InlineData(BluetoothProtocol.Civet)]
+    [InlineData(BluetoothProtocol.YokonexV1)]
+    public async Task ControlStatusRefreshDoesNotMakeOldSensorInputFreshAgain(BluetoothProtocol protocol)
+    {
+        await using var host = await Host.Create(protocol);
+        await using var transport = new WebSocketControlTransport(new(Guid.NewGuid(), "sensor", host.Server.Url!.ToString(), RemoteConnectionKind.Control), Host.Token);
+        await using var controller = new DeviceController(transport);
+        var device = Assert.Single(await controller.ScanAsync(Ct));
+        await controller.ConnectAsync(device, Ct);
+        var link = host.Adapter.Links[host.Devices[0].Id];
+        if (protocol == BluetoothProtocol.Civet)
+        {
+            link.Notify([0xd0, 0, 0, 0, 0, 0, 0, 0, 100, 0]);
+            await Wait(() => controller.Connections[device.Id].Telemetry?.PressureKpa == 1);
+        }
+        else
+        {
+            link.Notify(V1Protocol.WithChecksum([0x35, 0x71, 6, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]));
+            await Wait(() => controller.Connections[device.Id].Motion is not null);
+        }
+        await Task.Delay(2200, Ct);
+        var refreshed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        controller.Changed += (_, _) => refreshed.TrySetResult();
+        await transport.RefreshFeaturesAsync(device.Id, Ct);
+        await refreshed.Task.WaitAsync(TimeSpan.FromSeconds(2), Ct);
+        var captured = protocol == BluetoothProtocol.Civet ? controller.Connections[device.Id].TelemetryCapturedAt : controller.Connections[device.Id].Motion?.CapturedAt;
+        Assert.True(controller.Clock.GetUtcNow() - captured >= TimeSpan.FromSeconds(2));
+        if (protocol == BluetoothProtocol.Civet)
+        {
+            link.Notify([0xd0, 0, 0, 0, 0, 0, 0, 0, 200, 0]);
+            await Wait(() => controller.Connections[device.Id].Telemetry?.PressureKpa == 2);
+            Assert.True(controller.Clock.GetUtcNow() - controller.Connections[device.Id].TelemetryCapturedAt < TimeSpan.FromSeconds(2));
+        }
+    }
+
     [Theory]
     [InlineData(BluetoothProtocol.YokonexV1)]
     [InlineData(BluetoothProtocol.YokonexV2)]
@@ -206,6 +327,12 @@ public sealed class RemoteIntegrationTests
         var count = host.Adapter.Links[host.Devices[0].Id].Writes.Count;
         await Assert.ThrowsAsync<RemoteRpcException>(() => client.Execute<bool>(lease, "gatt.write", new { deviceId = device.Id, write = new GattWrite(new(Guid.NewGuid(), Guid.NewGuid()), [1]) }));
         await Assert.ThrowsAsync<RemoteRpcException>(() => client.Execute<bool>(lease, "gatt.write", new { deviceId = device.Id, write = new GattWrite(profile.Write, new byte[21]) }));
+        var invalidBatch = await Assert.ThrowsAsync<RemoteRpcException>(() => client.Execute<bool>(lease, "gatt.batch", new
+        {
+            deviceId = device.Id,
+            writes = new GattWrite[] { new(profile.Write, [1]), null! }
+        }));
+        Assert.Equal(-32602, invalidBatch.Code);
         var stale = await Assert.ThrowsAsync<RemoteRpcException>(() => client.Execute<bool>(lease, "gatt.write", new { deviceId = device.Id, write = new GattWrite(profile.Write, [1]), deadline = -1 }));
         Assert.Equal("Error.RemoteExpired", stale.Key);
         Assert.Equal(count, host.Adapter.Links[host.Devices[0].Id].Writes.Count);
