@@ -3,6 +3,7 @@
              xmlns:l="using:YokoWave.App.Localization"
              xmlns:vm="using:YokoWave.App.ViewModels"
              xmlns:pages="using:YokoWave.App.Views.Pages"
+             xmlns:pipelines="using:YokoWave.App.Views.Pipelines"
              x:Class="YokoWave.App.Views.MainView"
              x:DataType="vm:MainViewModel"
              Background="{DynamicResource CanvasBrush}">
@@ -19,6 +20,7 @@
         </StackPanel>
         <StackPanel Grid.Row="1">
           <Button Classes="nav" Classes.active="{Binding IsWorkspace}" Command="{Binding WorkspaceCommand}" Content="{l:Loc Nav.Devices}" />
+          <Button Classes="nav" Classes.active="{Binding IsPipelines}" Command="{Binding PipelinesCommand}" Content="{l:Loc Pipeline.Title}" />
           <Button Classes="nav" Classes.active="{Binding IsWaves}" Command="{Binding WavesCommand}" Content="{l:Loc Nav.Waves}" />
           <Button Classes="nav" Classes.active="{Binding IsHistory}" Command="{Binding HistoryCommand}" Content="{l:Loc Nav.History}" />
           <Border Classes="divider" />
@@ -41,6 +43,7 @@
             <TextBlock x:Name="PageTitleText" Text="{Binding PageTitle}" Classes="page-title" />
             <StackPanel x:Name="CompactNav" IsVisible="False" Margin="{DynamicResource Margin.AboveSmall}" Classes="inline">
               <Button Classes="small" Content="{l:Loc Nav.CompactDevices}" Command="{Binding WorkspaceCommand}" />
+              <Button Classes="small" Content="{l:Loc Pipeline.Title}" Command="{Binding PipelinesCommand}" />
               <Button Classes="small" Content="{l:Loc Nav.CompactWaves}" Command="{Binding WavesCommand}" />
               <Button Classes="small" Content="{l:Loc Nav.CompactHistory}" Command="{Binding HistoryCommand}" />
               <Button Classes="small" Content="{l:Loc Nav.CompactSettings}" Command="{Binding SettingsCommand}" />
@@ -52,7 +55,7 @@
         </Grid>
       </Border>
 
-      <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+      <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding !IsPipelines}">
         <Grid Margin="{DynamicResource Margin.Content}">
           <!-- Workspace -->
           <pages:DeviceWorkspaceView x:Name="WorkspacePage" IsVisible="{Binding IsWorkspace}" />
@@ -70,6 +73,9 @@
           <pages:HelpView x:Name="HelpPage" IsVisible="{Binding IsHelp}" />
         </Grid>
       </ScrollViewer>
+      <Border Grid.Row="1" IsVisible="{Binding IsPipelines}">
+        <pipelines:PipelinesWorkspaceView DataContext="{Binding Pipelines}" Classes="pipeline-workspace" />
+      </Border>
 
       <Border Grid.Row="2" Classes="statusbar">
         <Grid ColumnDefinitions="Auto,*">

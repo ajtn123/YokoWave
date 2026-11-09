@@ -6,6 +6,8 @@
     <AvaloniaResource Include="Assets/YokoWave.ico" />
     <ProjectReference Include="../YokoWave.Core/YokoWave.Core.csproj" />
     <ProjectReference Include="../YokoWave.Remote/YokoWave.Remote.csproj" />
+    <ProjectReference Include="../YokoWave.Pipelines/YokoWave.Pipelines.csproj" />
+    <PackageReference Include="Nodify.Avalonia" Version="2.0.0" />
     <PackageReference Include="Avalonia" Version="$(AvaloniaVersion)" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="$(AvaloniaVersion)" />
   </ItemGroup>

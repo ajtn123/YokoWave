@@ -6,6 +6,7 @@ using YokoWave.Core;
 using YokoWave.Core.Bluetooth;
 using YokoWave.Core.Localization;
 using YokoWave.Remote;
+using YokoWave.Pipelines;
 using Xunit;
 
 namespace YokoWave.Tests;
@@ -13,6 +14,31 @@ namespace YokoWave.Tests;
 public sealed class RemoteIntegrationTests
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    [Fact]
+    public async Task CompiledPipelineUsesExistingDriverOverWebSocketGattAndConfirmsStop()
+    {
+        await using var host = await Host.Create(BluetoothProtocol.CoyoteV3);
+        await using var client = new DeviceController(new BluetoothDeviceTransport(new WebSocketGattAdapter(
+            new(Guid.NewGuid(), "Pipeline loopback", host.Server.Url!.ToString()), Host.Token)));
+        var device = Assert.Single(await client.ScanAsync(Ct));
+        await client.ConnectAsync(device, Ct);
+        var value = NodeDefinition.Create(BuiltInNodes.Constant, new ConstantNode(.35));
+        var output = NodeDefinition.Create(BuiltInNodes.ChannelOutput, new ChannelOutputNode(device.Id));
+        var graph = new PipelineDocument(Guid.NewGuid(), "loopback", [value, output],
+            [new(new(value.Id, "value"), new(output.Id, "strength"))], []);
+        var plan = new PipelineCompiler(BuiltInNodes.CreateRegistry()).Compile(graph, [], new Dictionary<string, DeviceDescriptor> { [device.Id] = device });
+        await using var session = new PipelineSession(client);
+        await session.StartAsync(plan);
+        for (var i = 0; i < 100 && client.Connections[device.Id].Output.ChannelA == 0; i++)
+            await Task.Delay(10, Ct);
+        Assert.Equal(35, client.Connections[device.Id].Output.ChannelA);
+        Assert.Equal(session.OwnerId, client.DeviceOwner(device.Id));
+        await session.StopAsync();
+        Assert.Equal(OutputFrame.Zero, client.Connections[device.Id].Output);
+        Assert.Null(client.DeviceOwner(device.Id));
+        await client.DisconnectAsync(device.Id, Ct);
+    }
 
     [Theory]
     [InlineData(BluetoothProtocol.YokonexV1)]

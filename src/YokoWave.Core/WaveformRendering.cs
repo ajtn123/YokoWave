@@ -9,14 +9,14 @@ public static class WaveformRendering
     {
         IReadOnlyList<WaveformSample> Clip(int channel) => Enumerable.Range(0, 4).Select(index =>
             index * .025 >= remainingSeconds - 1e-9 ? new WaveformSample(0, 1, 0) : Sample(frame, channel, index)).ToArray();
-        return frame with { WindowA = Clip(0), WindowB = Clip(1) };
+        return frame with { WindowA = Clip(0), WindowB = Clip(1), WindowC = Clip(2) };
     }
     public static WaveformSample Sample(OutputFrame frame, int channel, int index = 0)
     {
-        var window = channel == 1 ? frame.WindowB : frame.WindowA;
+        var window = channel switch { 1 => frame.WindowB, 2 => frame.WindowC ?? frame.WindowA, _ => frame.WindowA };
         if (window is { Count: not 4 }) throw new LocalizedArgumentException("Error.Samples");
         var sample = window is not null ? window[index] ?? throw new LocalizedArgumentException("Error.Samples")
-            : channel == 1 ? frame.ReferenceSampleB ?? frame.ReferenceSample : frame.ReferenceSample;
+            : channel switch { 1 => frame.ReferenceSampleB ?? frame.ReferenceSample, 2 => frame.ReferenceSampleC ?? frame.ReferenceSample, _ => frame.ReferenceSample };
         sample ??= new(1, double.IsFinite(frame.Frequency) ? Math.Clamp(frame.Frequency, 1, 100) : 1);
         if (!sample.IsValid) throw new LocalizedArgumentException("Error.Samples");
         return sample;

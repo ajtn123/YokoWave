@@ -38,7 +38,8 @@ public sealed record OutputFrame(double ChannelA, double ChannelB, double Freque
     double ChannelC = 0,
     IReadOnlyList<WaveformSample>? WindowA = null, IReadOnlyList<WaveformSample>? WindowB = null,
     double OutputLimit = 100, PumpOutput? Pump = null, DgBalanceSettings? DgBalances = null,
-    NativeProgramOutput? NativeProgram = null, HardwareOutputSettings? Hardware = null)
+    NativeProgramOutput? NativeProgram = null, HardwareOutputSettings? Hardware = null,
+    WaveformSample? ReferenceSampleC = null, IReadOnlyList<WaveformSample>? WindowC = null)
 {
     public static OutputFrame Zero
     { get; } = new(0, 0, 1);

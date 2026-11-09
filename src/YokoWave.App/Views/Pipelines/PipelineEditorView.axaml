@@ -1,0 +1,169 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="using:YokoWave.App.Localization"
+             xmlns:vm="using:YokoWave.App.ViewModels.Pipelines"
+             xmlns:items="using:YokoWave.App.ViewModels"
+             xmlns:p="using:YokoWave.Pipelines"
+             xmlns:views="using:YokoWave.App.Views.Pipelines"
+             xmlns:n="clr-namespace:Nodify.Avalonia;assembly=Nodify.Avalonia"
+             xmlns:nodes="clr-namespace:Nodify.Avalonia.Nodes;assembly=Nodify.Avalonia"
+             xmlns:connections="clr-namespace:Nodify.Avalonia.Connections;assembly=Nodify.Avalonia"
+             x:Class="YokoWave.App.Views.Pipelines.PipelineEditorView"
+             x:DataType="vm:PipelineEditorViewModel">
+  <UserControl.DataTemplates>
+    <DataTemplate DataType="vm:ConstantEditorViewModel">
+      <StackPanel Classes="field">
+        <TextBlock Text="{l:Loc Pipeline.Port.Value}" Classes="muted" />
+        <NumericUpDown x:Name="ConstantValueInput" Value="{Binding Value}" Increment="0.01" />
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate DataType="vm:WaveformEditorNodeViewModel">
+      <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
+        <TextBlock Text="{l:Loc Pipeline.Node.Waveform}" Classes="muted" />
+        <ComboBox ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="items:PresetItem">
+              <TextBlock Text="{Binding Name}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+        <TextBlock Text="{l:Loc Pipeline.SourceChannel}" Classes="muted" />
+        <NumericUpDown Value="{Binding Channel}" Minimum="0" Maximum="2" Increment="1" />
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate DataType="vm:GainEditorViewModel">
+      <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
+        <TextBlock Text="{l:Loc Pipeline.Port.Gain}" Classes="muted" />
+        <NumericUpDown Value="{Binding Gain}" Minimum="-1000" Maximum="1000" Increment="0.01" />
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate DataType="vm:LimitEditorViewModel">
+      <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
+        <TextBlock Text="{l:Loc Pipeline.Port.Limit}" Classes="muted" />
+        <NumericUpDown Value="{Binding Limit}" Minimum="0" Maximum="1" Increment="0.01" />
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate DataType="vm:ChannelOutputEditorViewModel">
+      <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
+        <TextBlock Text="{l:Loc Pipeline.Device}" Classes="muted" />
+        <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}">
+          <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PipelineDeviceOption"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
+        </ComboBox>
+        <TextBlock Text="{l:Loc Pipeline.OutputChannel}" Classes="muted" />
+        <NumericUpDown Value="{Binding Channel}" Minimum="0" Maximum="2" Increment="1" />
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate DataType="vm:PumpOutputEditorViewModel">
+      <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
+        <TextBlock Text="{l:Loc Pipeline.Device}" Classes="muted" />
+        <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}">
+          <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PipelineDeviceOption"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
+        </ComboBox>
+        <TextBlock Text="{l:Loc Pipeline.PumpHelp}" Classes="caption muted" TextWrapping="Wrap" />
+      </StackPanel>
+    </DataTemplate>
+  </UserControl.DataTemplates>
+  <Grid RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource Space.Medium}">
+    <WrapPanel Classes="pipeline-toolbar">
+      <TextBox Text="{Binding Name}" MaxLength="60" IsEnabled="{Binding CanEdit}" Classes="pipeline-name" />
+      <Button Content="{l:Loc Pipeline.Start}" Classes="primary small" Command="{Binding StartCommand}" />
+      <Button Content="{Binding PauseLabel}" Classes="small" Command="{Binding PauseCommand}" />
+      <Button Content="{l:Loc Pipeline.Stop}" Classes="danger small" Command="{Binding StopCommand}" />
+      <views:PipelineTimerView />
+      <TextBlock Text="{Binding StateLabel}" Classes="caption muted" VerticalAlignment="Center" />
+      <Button Content="{l:Loc Pipeline.Fit}" Classes="small" Click="FitGraph" />
+      <CheckBox Content="{l:Loc Pipeline.ShowNodes}" IsChecked="{Binding ShowPalette}" />
+      <CheckBox Content="{l:Loc Pipeline.ShowInspector}" IsChecked="{Binding ShowInspector}" />
+    </WrapPanel>
+    <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{DynamicResource Space.Medium}">
+      <Border Classes="card pipeline-palette" IsVisible="{Binding ShowPalette}">
+        <ScrollViewer>
+          <StackPanel Classes="field">
+            <TextBlock Text="{l:Loc Pipeline.Nodes}" Classes="card-title" />
+            <ItemsControl ItemsSource="{Binding Palette}" IsEnabled="{Binding CanEdit}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:PipelinePaletteItem">
+                  <Button Content="{Binding Title}" Command="{Binding AddCommand}" Classes="small pipeline-add" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Button Content="{l:Loc Pipeline.Undo}" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}" Classes="small" />
+            <Button Content="{l:Loc Pipeline.Redo}" Command="{Binding RedoCommand}" IsEnabled="{Binding CanRedo}" Classes="small" />
+            <Button Content="{l:Loc Pipeline.Copy}" Command="{Binding CopyCommand}" Classes="small" />
+            <Button Content="{l:Loc Pipeline.Paste}" Command="{Binding PasteCommand}" IsEnabled="{Binding CanEdit}" Classes="small" />
+            <Button Content="{l:Loc Pipeline.Delete}" Command="{Binding DeleteSelectionCommand}" IsEnabled="{Binding CanEdit}" Classes="small danger" />
+          </StackPanel>
+        </ScrollViewer>
+      </Border>
+      <Border Grid.Column="1" Classes="card" ClipToBounds="True">
+        <n:NodifyEditor x:Name="Canvas" ItemsSource="{Binding Nodes}" Connections="{Binding Connections}"
+                        SelectedItems="{Binding SelectedNodes}" PendingConnection="{Binding PendingConnection}"
+                        ConnectionCompletedCommand="{Binding CreateConnectionCommand}"
+                        RemoveConnectionCommand="{Binding RemoveConnectionCommand}"
+                        DisconnectConnectorCommand="{Binding DisconnectConnectorCommand}">
+          <n:NodifyEditor.KeyBindings>
+            <KeyBinding Gesture="Delete" Command="{Binding DeleteSelectionCommand}" />
+            <KeyBinding Gesture="Ctrl+C" Command="{Binding CopyCommand}" />
+            <KeyBinding Gesture="Ctrl+V" Command="{Binding PasteCommand}" />
+            <KeyBinding Gesture="Ctrl+Z" Command="{Binding UndoCommand}" />
+            <KeyBinding Gesture="Ctrl+Y" Command="{Binding RedoCommand}" />
+          </n:NodifyEditor.KeyBindings>
+          <n:NodifyEditor.ItemContainerTheme>
+            <ControlTheme TargetType="n:ItemContainer" BasedOn="{StaticResource {x:Type n:ItemContainer}}" x:DataType="vm:NodeEditorViewModel">
+              <Setter Property="Location" Value="{Binding Location, Mode=TwoWay}" />
+              <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+            </ControlTheme>
+          </n:NodifyEditor.ItemContainerTheme>
+          <n:NodifyEditor.ItemTemplate>
+            <DataTemplate x:DataType="vm:NodeEditorViewModel">
+              <nodes:Node Header="{Binding Title}" Content="{Binding Summary}" Input="{Binding Inputs}" Output="{Binding Outputs}">
+                <nodes:Node.InputConnectorTemplate>
+                  <DataTemplate x:DataType="vm:NumericPortViewModel">
+                    <nodes:NodeInput Header="{Binding Title}" Anchor="{Binding Anchor, Mode=OneWayToSource}"
+                                     IsConnected="{Binding IsConnected}" ToolTip.Tip="{Binding Detail}" />
+                  </DataTemplate>
+                </nodes:Node.InputConnectorTemplate>
+                <nodes:Node.OutputConnectorTemplate>
+                  <DataTemplate x:DataType="vm:NumericPortViewModel">
+                    <nodes:NodeOutput Header="{Binding Title}" Anchor="{Binding Anchor, Mode=OneWayToSource}"
+                                      IsConnected="{Binding IsConnected}" ToolTip.Tip="{Binding Detail}" />
+                  </DataTemplate>
+                </nodes:Node.OutputConnectorTemplate>
+              </nodes:Node>
+            </DataTemplate>
+          </n:NodifyEditor.ItemTemplate>
+          <n:NodifyEditor.ConnectionTemplate>
+            <DataTemplate x:DataType="vm:ConnectionViewModel">
+              <connections:Connection Source="{Binding Source.Anchor}" Target="{Binding Target.Anchor}" />
+            </DataTemplate>
+          </n:NodifyEditor.ConnectionTemplate>
+          <n:NodifyEditor.PendingConnectionTemplate>
+            <DataTemplate><connections:PendingConnection AllowOnlyConnectors="True" EnablePreview="True" /></DataTemplate>
+          </n:NodifyEditor.PendingConnectionTemplate>
+        </n:NodifyEditor>
+      </Border>
+      <Border Grid.Column="2" Classes="card pipeline-inspector" IsVisible="{Binding ShowInspector}">
+        <ScrollViewer>
+          <StackPanel Classes="items">
+            <TextBlock Text="{l:Loc Pipeline.Inspector}" Classes="card-title" />
+            <TextBlock Text="{l:Loc Pipeline.PortHelp}" Classes="caption muted" TextWrapping="Wrap" />
+            <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
+              <TextBlock Text="{l:Loc Pipeline.SessionLimit}" Classes="muted" />
+              <NumericUpDown Value="{Binding OutputLimit}" Minimum="0" Maximum="1" Increment="0.01" />
+            </StackPanel>
+            <ContentControl Content="{Binding SelectedNode}" IsVisible="{Binding HasSelectedNode}" />
+            <TextBlock Text="{Binding BoundDevices}" Classes="caption muted" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding InputStatus}" Classes="caption error" TextWrapping="Wrap" />
+          </StackPanel>
+        </ScrollViewer>
+      </Border>
+    </Grid>
+    <ItemsControl Grid.Row="2" ItemsSource="{Binding Diagnostics}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="p:PipelineDiagnostic">
+          <TextBlock Text="{Binding Message}" Classes="caption error" TextWrapping="Wrap" />
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+  </Grid>
+</UserControl>

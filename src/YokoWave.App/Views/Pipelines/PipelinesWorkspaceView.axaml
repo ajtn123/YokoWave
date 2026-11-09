@@ -1,0 +1,31 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="using:YokoWave.App.Localization"
+             xmlns:vm="using:YokoWave.App.ViewModels.Pipelines"
+             xmlns:views="using:YokoWave.App.Views.Pipelines"
+             x:Class="YokoWave.App.Views.Pipelines.PipelinesWorkspaceView"
+             x:DataType="vm:PipelinesWorkspaceViewModel">
+  <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource Space.Medium}">
+    <StackPanel Classes="field pipeline-list">
+      <Button Content="{l:Loc Pipeline.Add}" Command="{Binding AddCommand}" Classes="small primary" />
+      <Button Content="{l:Loc Pipeline.Save}" Command="{Binding SaveCommand}" Classes="small" />
+      <Button Content="{l:Loc Pipeline.Delete}" Command="{Binding DeleteCommand}" Classes="small danger" />
+      <ListBox ItemsSource="{Binding Pipelines}" SelectedItem="{Binding Selected}">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:PipelineEditorViewModel">
+            <StackPanel Classes="field">
+              <TextBlock Text="{Binding Name}" TextWrapping="Wrap" />
+              <TextBlock Text="{Binding StateLabel}" Classes="caption muted" />
+              <TextBlock Text="{Binding BoundDevices}" Classes="caption muted" TextWrapping="Wrap" />
+            </StackPanel>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </StackPanel>
+    <ContentControl Grid.Column="1" Content="{Binding Selected}">
+      <ContentControl.ContentTemplate>
+        <DataTemplate x:DataType="vm:PipelineEditorViewModel"><views:PipelineEditorView /></DataTemplate>
+      </ContentControl.ContentTemplate>
+    </ContentControl>
+  </Grid>
+</UserControl>

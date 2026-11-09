@@ -1,0 +1,66 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="using:YokoWave.App.Views.Pipelines"
+        xmlns:n="clr-namespace:Nodify.Avalonia;assembly=Nodify.Avalonia"
+        xmlns:nodes="clr-namespace:Nodify.Avalonia.Nodes;assembly=Nodify.Avalonia"
+        xmlns:c="clr-namespace:Nodify.Avalonia.Connections;assembly=Nodify.Avalonia">
+  <Style Selector="views|PipelinesWorkspaceView.pipeline-workspace">
+    <Setter Property="Margin" Value="{DynamicResource Margin.AllSmall}" />
+  </Style>
+  <Style Selector="StackPanel.pipeline-list">
+    <Setter Property="Width" Value="{DynamicResource Size.PipelineListWidth}" />
+  </Style>
+  <Style Selector="Border.pipeline-palette">
+    <Setter Property="Width" Value="{DynamicResource Size.PipelinePaletteWidth}" />
+    <Setter Property="Padding" Value="{DynamicResource Padding.Small}" />
+  </Style>
+  <Style Selector="Border.pipeline-inspector">
+    <Setter Property="Width" Value="{DynamicResource Size.PipelineInspectorWidth}" />
+    <Setter Property="Padding" Value="{DynamicResource Padding.CardCompact}" />
+  </Style>
+  <Style Selector="WrapPanel.pipeline-toolbar">
+    <Setter Property="ItemSpacing" Value="{DynamicResource Space.Small}" />
+    <Setter Property="LineSpacing" Value="{DynamicResource Space.Small}" />
+  </Style>
+  <Style Selector="TextBox.pipeline-name">
+    <Setter Property="Width" Value="{DynamicResource Size.PipelineNameWidth}" />
+  </Style>
+  <Style Selector="Grid.pipeline-timer">
+    <Setter Property="Width" Value="{DynamicResource Size.PipelineTimerWidth}" />
+  </Style>
+  <Style Selector="Button.pipeline-add">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="Margin" Value="{DynamicResource Margin.AboveSmall}" />
+  </Style>
+  <Style Selector="n|NodifyEditor">
+    <Setter Property="Background" Value="{DynamicResource CanvasBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    <Setter Property="FontFamily" Value="{DynamicResource FontFamily.Ui}" />
+    <Setter Property="GridCellSize" Value="{DynamicResource Size.PipelineGrid}" />
+  </Style>
+  <Style Selector="nodes|Node[HasHeader=True]">
+    <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    <Setter Property="HeaderBrush" Value="{DynamicResource RaisedBrush}" />
+    <Setter Property="ContentBrush" Value="{DynamicResource SurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="ContentPadding" Value="{DynamicResource Padding.Small}" />
+    <Setter Property="MinWidth" Value="{DynamicResource Size.PipelineNodeWidth}" />
+  </Style>
+  <Style Selector="c|Connection">
+    <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
+  </Style>
+  <Style Selector="c|PendingConnection">
+    <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
+  </Style>
+  <Style Selector=":is(c|Connector)">
+    <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+  </Style>
+  <Style Selector="n|ItemContainer">
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+  </Style>
+  <Style Selector="n|ItemContainer[IsSelected=True]">
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+  </Style>
+</Styles>

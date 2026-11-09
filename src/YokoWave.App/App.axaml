@@ -12,9 +12,11 @@
   </Application.Resources>
   <Application.Styles>
     <FluentTheme />
+    <StyleInclude Source="avares://Nodify.Avalonia/Themes/Controls.xaml" />
     <StyleInclude Source="avares://YokoWave.App/Styles/Controls.axaml" />
     <StyleInclude Source="avares://YokoWave.App/Styles/Typography.axaml" />
     <StyleInclude Source="avares://YokoWave.App/Styles/Layout.axaml" />
     <StyleInclude Source="avares://YokoWave.App/Styles/Components.axaml" />
+    <StyleInclude Source="avares://YokoWave.App/Styles/Pipelines.axaml" />
   </Application.Styles>
 </Application>

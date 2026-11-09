@@ -6,6 +6,7 @@ using System.Windows.Input;
 using YokoWave.Core;
 using YokoWave.Core.Bluetooth;
 using YokoWave.Core.Localization;
+using YokoWave.App.ViewModels.Pipelines;
 
 namespace YokoWave.App.ViewModels;
 
@@ -92,7 +93,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             RefreshModeSelection();
         }
     }
-    public bool IsAnyRunning => Modes.Any(mode => !mode.CanEditRouting);
+    public bool IsAnyRunning => Modes.Any(mode => !mode.CanEditRouting) || Pipelines.IsAnyRunning;
     public string RunningModesSummary => L10n.Format("Mode.RunningCount", Modes.Count(mode => mode.IsRunning));
     public bool HasUnassignedDevices => UnassignedDevices.Count > 0;
     public double DefaultLimit
@@ -113,6 +114,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
                 return;
             foreach (var mode in Modes)
                 mode.OnTimerLimitChanged();
+            Pipelines.RefreshTimerLimit();
         }
     }
     public TransportOption? SelectedTransport
@@ -152,7 +154,10 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     public bool IsHistory => _page == "history";
     public bool IsSettings => _page == "settings";
     public bool IsHelp => _page == "help";
-    public string PageTitle => L10n.Get(_page switch { "waves" => "Page.Waves", "history" => "Page.History", "settings" => "Page.Settings", "help" => "Page.Help", _ => "Page.Devices" });
+    public bool IsPipelines => _page == "pipelines";
+    public string PageTitle => L10n.Get(_page switch { "pipelines" => "Pipeline.Title", "waves" => "Page.Waves", "history" => "Page.History", "settings" => "Page.Settings", "help" => "Page.Help", _ => "Page.Devices" });
+    public PipelinesWorkspaceViewModel Pipelines { get; }
+    public ICommand PipelinesCommand { get; }
     public bool IsScanning
     {
         get => _scanBusy;
@@ -257,12 +262,15 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         RemoteSources = new(controller, ScanAsync, () => SaveAsync(), id => StopModesForDeviceAsync(id, "Reason.ConnectionChanged"), ShowError);
         Telemetry = new(controller, ShowError);
         _store = store;
+        Pipelines = new(controller, store.DirectoryPath, Presets, ShowError, AddModeSession, () => TimerLimitMinutes * 60, () => DefaultLimit / 100);
+        Pipelines.PropertyChanged += OnPipelineStateChanged;
         _bluetoothFactory = bluetoothFactory ?? (() => new BluetoothDeviceTransport(new UnsupportedBluetoothAdapter()));
         AudioInputs = audioInputFactory ?? new UnavailableAudioInputFactory();
         _uiContext = SynchronizationContext.Current;
         _selectedTransport = TransportOptions.First(option => option.UseBluetooth == !controller.IsLocalSimulation);
         _selectedLanguage = Languages.First(language => language.Code == L10n.Current.Language);
         WorkspaceCommand = new AsyncCommand(() => NavigateAsync("workspace"), ShowError);
+        PipelinesCommand = new AsyncCommand(() => NavigateAsync("pipelines"), ShowError);
         WavesCommand = new AsyncCommand(() => NavigateAsync("waves"), ShowError);
         HistoryCommand = new AsyncCommand(() => NavigateAsync("history"), ShowError);
         SettingsCommand = new AsyncCommand(() => NavigateAsync("settings"), ShowError);
@@ -334,6 +342,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             Sessions.Add(new(record));
         }
         _statistics = data.Statistics ?? new(data.Sessions.Count, data.Sessions.Sum(record => record.DurationSeconds));
+        await Pipelines.LoadAsync();
         _settingsLoaded = true;
         Raise(nameof(SessionCount));
         Raise(nameof(TotalTime));
@@ -477,7 +486,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private void RefreshAssignableDevices()
     {
         foreach (var device in Devices)
-            device.CanAssign = SelectedMode.CanEditRouting && AssignedMode(device.Id) is null && SelectedMode.CanAssignDevice(device.Device);
+            device.CanAssign = SelectedMode.CanEditRouting && !_controller.IsDeviceBusy(device.Id) && AssignedMode(device.Id) is null && SelectedMode.CanAssignDevice(device.Device);
     }
     public async Task ToggleConnectionAsync(DeviceItem device)
     {
@@ -520,6 +529,8 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     public async Task StopAllModesAsync(string reason = "Reason.AllStopped")
     {
         List<Exception> errors = [];
+        try { await Pipelines.StopAllAsync(reason); }
+        catch (Exception error) { errors.Add(error); }
         foreach (var mode in Modes.ToArray())
             try
             {
@@ -534,13 +545,14 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     }
     private async Task StopModesForDeviceAsync(string id, string reason)
     {
+        await Pipelines.StopForDeviceAsync(id, reason);
         foreach (var mode in Modes.Where(mode => mode.TargetIds.Contains(id)).ToArray())
             await mode.StopAsync(reason, false);
     }
     public Task NavigateAsync(string page)
     {
         _page = page;
-        foreach (var property in new[] { nameof(IsWorkspace), nameof(IsWaves), nameof(IsHistory), nameof(IsSettings), nameof(IsHelp), nameof(PageTitle) })
+        foreach (var property in new[] { nameof(IsWorkspace), nameof(IsWaves), nameof(IsHistory), nameof(IsSettings), nameof(IsHelp), nameof(IsPipelines), nameof(PageTitle) })
             Raise(property);
         return Task.CompletedTask;
     }
@@ -638,6 +650,11 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         Notify("Status.SessionSaved", new StoredReason(record.Reason));
     }
     private void OnDeviceChanged(object? sender, EventArgs e) => RunOnUi(RefreshDevices);
+    private void OnPipelineStateChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(PipelinesWorkspaceViewModel.IsAnyRunning))
+            Raise(nameof(IsAnyRunning));
+    }
     private void OnTransportFaulted(object? sender, DeviceTransportFault fault) => RunOnUi(() => _ = GuardAsync(async () =>
     {
         await StopModesForDeviceAsync(fault.DeviceId, "Reason.ConnectionError");
@@ -663,7 +680,8 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             device.IsConnected = _controller.Connections.TryGetValue(device.Id, out var connection);
             device.OutputA = connection is null ? 0 : WaveformRendering.Strength(connection.Output, 0);
             device.OutputB = connection is null ? 0 : WaveformRendering.Strength(connection.Output, 1);
-            device.ActiveModeName = _controller.DeviceOwner(device.Id) is { } owner ? Modes.FirstOrDefault(mode => mode.Id == owner)?.Name : null;
+            device.ActiveModeName = _controller.DeviceOwner(device.Id) is { } owner ? Modes.FirstOrDefault(mode => mode.Id == owner)?.Name ??
+                Pipelines.Pipelines.FirstOrDefault(pipeline => pipeline.Session.OwnerId == owner)?.Name : null;
             if (connection is not null)
                 device.UpdateReadings(connection.Device);
         }
@@ -760,17 +778,22 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         if (_disposed)
             return;
         _disposed = true;
-        try
-        {
-            await StopAllModesAsync("Reason.Close");
-            await SaveAsync();
-        }
-        finally
-        {
-            _controller.Changed -= OnDeviceChanged;
-            _controller.Faulted -= OnTransportFaulted;
-            L10n.Current.PropertyChanged -= OnLanguageChanged;
-            await _controller.DisposeAsync();
-        }
+        List<Exception> errors = [];
+        try { await StopAllModesAsync("Reason.Close"); }
+        catch (Exception error) { errors.Add(error); }
+        try { await Pipelines.DisposeAsync(); }
+        catch (Exception error) { errors.Add(error); }
+        try { await SaveAsync(); }
+        catch (Exception error) { errors.Add(error); }
+        _controller.Changed -= OnDeviceChanged;
+        _controller.Faulted -= OnTransportFaulted;
+        L10n.Current.PropertyChanged -= OnLanguageChanged;
+        Pipelines.PropertyChanged -= OnPipelineStateChanged;
+        try { await _controller.DisposeAsync(); }
+        catch (Exception error) { errors.Add(error); }
+        if (errors.Count == 1)
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(errors[0]).Throw();
+        if (errors.Count > 1)
+            throw new LocalizedAggregateException("Error.Cleanup", errors);
     }
 }

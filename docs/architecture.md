@@ -4,6 +4,8 @@
 
 `Desktop → App → Remote → Core`，App 同时直接引用 Core。Core 不依赖 UI 或操作系统 API，包含传输抽象和独立的纯协议编码器。Remote 使用 ASP.NET Core 承载 WebSocket，不依赖 Avalonia 或原生蓝牙；共享界面使用编译绑定，不引入服务定位器或额外的 MVVM 框架。
 
+App 还引用纯 .NET 的 `Pipelines → Core`。节点页面使用独立的 `PipelineSession → DeviceController → IDeviceTransport` 链路，后台调度实际输出；Nodify.Avalonia 只属于 UI。图编译、数值端口、通道合并、节点编辑和当前支持范围见 [节点玩法](pipelines.md)。以下 `SessionEngine` 与视图定时推进的说明适用于普通玩法页面。
+
 `MainViewModel` 管理当前选择、命令和集合；`MainView` 负责导航外壳和定时调度。`Views/Pages` 分为设备工作台、波形资料库、会话记录、偏好设置和帮助五个页面。帮助页集中提供操作说明与已实现的功能限制，使用共享阅读宽度和卡片样式，并支持运行时语言切换；设置页保留配置项及其直接说明。`Views/Components` 中的波形编辑器与 JSON 导入导出组件由波形页组合，平台文件选择器由导入导出组件处理。设备页独立处理窄窗口堆叠布局。视图每 100 ms 请求一次会话推进，时间来自单调 `Stopwatch`，不会累计定时器误差。
 
 ## 输出链路

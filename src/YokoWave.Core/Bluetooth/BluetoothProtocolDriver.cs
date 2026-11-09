@@ -47,9 +47,11 @@ internal abstract class BluetoothProtocolDriver(string id, BluetoothDeviceProfil
             throw new LocalizedOperationException("Error.SensorOnly");
         if (_fault is { } error && (frame.ChannelA > 0 || frame.ChannelB > 0 || frame.ChannelC > 0 ||
             frame.Hardware is { AuxiliaryMotor: not AuxiliaryMotorMode.Off } || frame.Pump is { Direction: not PumpDirection.Off } or { Water: true })) throw error;
-        foreach (var sample in new[] { frame.ReferenceSample, frame.ReferenceSampleB }.OfType<WaveformSample>().Concat(frame.WindowA ?? []).Concat(frame.WindowB ?? []))
+        foreach (var sample in new[] { frame.ReferenceSample, frame.ReferenceSampleB, frame.ReferenceSampleC }.OfType<WaveformSample>()
+            .Concat(frame.WindowA ?? []).Concat(frame.WindowB ?? []).Concat(frame.WindowC ?? []))
             if (sample is null || !sample.IsValid) throw new LocalizedArgumentException("Error.Samples");
-        if (frame.WindowA is { Count: not 4 } || frame.WindowB is { Count: not 4 }) throw new LocalizedArgumentException("Error.Samples");
+        if (frame.WindowA is { Count: not 4 } || frame.WindowB is { Count: not 4 } || frame.WindowC is { Count: not 4 })
+            throw new LocalizedArgumentException("Error.Samples");
     }
     protected Task Write(byte[] packet, CancellationToken ct) => Link.WriteAsync(Profile.Write, packet, ct);
     protected async Task Battery(GattAddress address, CancellationToken ct)
