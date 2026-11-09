@@ -2,7 +2,13 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="using:YokoWave.App.Controls"
         xmlns:localization="using:YokoWave.Core.Localization">
+  <Style Selector="TextBox, ComboBox, NumericUpDown">
+    <Setter Property="MinHeight" Value="{DynamicResource Size.ControlMinHeight}" />
+    <Setter Property="MinWidth" Value="0" />
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.Body}" />
+  </Style>
   <Style Selector="NumericUpDown">
+    <Setter Property="VerticalContentAlignment" Value="Center" />
     <Setter Property="NumberFormat" Value="{ReflectionBinding Culture.NumberFormat, Source={x:Static localization:L10n.Current}}" />
   </Style>
   <Style Selector="controls|WaveformPlot">
@@ -38,6 +44,8 @@
     <Setter Property="CornerRadius" Value="{DynamicResource Radius.Card}" />
   </Style>
   <Style Selector="Button">
+    <Setter Property="MinHeight" Value="{DynamicResource Size.ControlMinHeight}" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
     <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
     <Setter Property="Padding" Value="{DynamicResource Padding.Button}" />
     <Setter Property="Background" Value="{DynamicResource RaisedBrush}" />
@@ -89,21 +97,34 @@
     <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
   </Style>
   <Style Selector="TextBox">
+    <Setter Property="VerticalContentAlignment" Value="Center" />
     <Setter Property="CornerRadius" Value="{DynamicResource Radius.Input}" />
     <Setter Property="Background" Value="{DynamicResource InputBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
     <Setter Property="Padding" Value="{DynamicResource Padding.Input}" />
   </Style>
   <Style Selector="ComboBox">
+    <Setter Property="VerticalContentAlignment" Value="Center" />
     <Setter Property="CornerRadius" Value="{DynamicResource Radius.Input}" />
     <Setter Property="Background" Value="{DynamicResource RaisedBrush}" />
-    <Setter Property="MinHeight" Value="{DynamicResource Size.ControlMinHeight}" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
   </Style>
   <Style Selector="Slider">
     <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
   </Style>
   <Style Selector="CheckBox">
     <Setter Property="FontSize" Value="{DynamicResource FontSize.Small}" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="ContentTemplate">
+      <DataTemplate x:DataType="x:String">
+        <TextBlock Text="{Binding}" TextWrapping="Wrap" VerticalAlignment="Center" FontSize="{Binding $parent[CheckBox].FontSize}" />
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="CheckBox[VerticalContentAlignment=Center] /template/ Grid#RootGrid > Grid">
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Margin" Value="0" />
   </Style>
   <Style Selector="Button.small">
     <Setter Property="Padding" Value="{DynamicResource Padding.ButtonSmall}" />

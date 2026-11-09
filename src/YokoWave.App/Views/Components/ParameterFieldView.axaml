@@ -5,8 +5,6 @@
     <TextBlock Text="{Binding Label}" Classes="field-label" IsVisible="{Binding !IsBoolean}" />
     <NumericUpDown Value="{Binding Number}" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}" IsVisible="{Binding IsNumber}" />
     <CheckBox Content="{Binding Label}" IsChecked="{Binding Enabled}" IsVisible="{Binding IsBoolean}" />
-    <ComboBox ItemsSource="{Binding Choices}" SelectedItem="{Binding Selected}" IsVisible="{Binding IsChoice}" HorizontalAlignment="Stretch">
-      <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
-    </ComboBox>
+    <ComboBox ItemsSource="{Binding Choices}" SelectedItem="{Binding Selected}" IsVisible="{Binding IsChoice}" HorizontalAlignment="Stretch" ItemTemplate="{DynamicResource Template.SessionOption}" />
   </StackPanel>
 </UserControl>

@@ -20,6 +20,18 @@
     <Setter Property="Orientation" Value="Horizontal" />
     <Setter Property="Spacing" Value="{DynamicResource Space.Small}" />
   </Style>
+  <Style Selector="WrapPanel.actions">
+    <Setter Property="ItemSpacing" Value="{DynamicResource Space.Medium}" />
+    <Setter Property="LineSpacing" Value="{DynamicResource Space.Small}" />
+  </Style>
+  <Style Selector="WrapPanel.form-fields">
+    <Setter Property="ItemSpacing" Value="{DynamicResource Space.Large}" />
+    <Setter Property="LineSpacing" Value="{DynamicResource Space.Medium}" />
+  </Style>
+  <Style Selector="StackPanel.form-field">
+    <Setter Property="Width" Value="{DynamicResource Size.FormFieldWidth}" />
+    <Setter Property="Spacing" Value="{DynamicResource Space.Small}" />
+  </Style>
   <Style Selector="Grid.form, Grid.columns">
     <Setter Property="ColumnSpacing" Value="{DynamicResource Space.Large}" />
     <Setter Property="RowSpacing" Value="{DynamicResource Space.Medium}" />

@@ -5,7 +5,7 @@
       <CheckBox Content="{l:Loc Estim.Gentle}" IsChecked="{Binding Gentle}" IsVisible="{Binding HasGentle}" />
       <StackPanel Classes="field" IsVisible="{Binding HasAuxiliary}">
         <TextBlock Text="{l:Loc Hardware.AuxiliaryMotor}" Classes="field-label" />
-        <ComboBox ItemsSource="{Binding AuxiliaryModes}" SelectedItem="{Binding AuxiliaryMode}"><ComboBox.ItemTemplate><DataTemplate x:DataType="vm:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+        <ComboBox ItemsSource="{Binding AuxiliaryModes}" SelectedItem="{Binding AuxiliaryMode}" ItemTemplate="{DynamicResource Template.SessionOption}" />
         <TextBlock Text="{l:Loc Hardware.AuxiliaryHelp}" Classes="caption muted" TextWrapping="Wrap" />
       </StackPanel>
       <CheckBox Content="{l:Loc Hardware.Relative}" IsChecked="{Binding RelativeStrength}" IsVisible="{Binding HasRelative}" />

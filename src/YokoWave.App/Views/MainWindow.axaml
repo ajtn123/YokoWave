@@ -3,7 +3,7 @@
         xmlns:l="using:YokoWave.App.Localization"
         xmlns:views="using:YokoWave.App.Views"
         x:Class="YokoWave.App.Views.MainWindow"
-        Width="1000" Height="600" MinWidth="600" MinHeight="600"
+        Width="{DynamicResource Size.MainWindowWidth}" Height="{DynamicResource Size.MainWindowHeight}" MinWidth="{DynamicResource Size.MainWindowMinWidth}" MinHeight="{DynamicResource Size.MainWindowMinHeight}"
         Title="{l:Loc App.Title}" Icon="avares://YokoWave.App/Assets/YokoWave.ico" WindowStartupLocation="CenterScreen">
   <views:MainView />
 </Window>

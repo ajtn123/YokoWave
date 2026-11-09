@@ -785,8 +785,8 @@
   "Pipeline.Outputs": "Outputs",
   "Pipeline.LeaseMilliseconds": "Lease duration (ms)",
   "Pipeline.LoopMedia": "Loop media",
-  "Pipeline.MoveDown": "Move down",
-  "Pipeline.MoveUp": "Move up",
+  "Collection.MoveDown": "Move down",
+  "Collection.MoveUp": "Move up",
   "Pipeline.NodeStatus": "{0} · level {1:0.##} · count {2} · {3:0}s",
   "Pipeline.PlaybackVolume": "Speaker volume",
   "Pipeline.RemoveWave": "Remove waveform",
@@ -950,8 +950,8 @@
   "Pipeline.Port.levelC": "Level C",
   "Pipeline.SentStrength": "Sent strength · {0}",
   "Pipeline.OutputUnknown": "Output state unknown",
-  "Pipeline.AddItem": "Add",
-  "Pipeline.RemoveItem": "Remove",
-  "Pipeline.Up": "Up",
-  "Pipeline.Down": "Down"
+  "Collection.Add": "Add",
+  "Collection.Remove": "Remove",
+  "Collection.Up": "Up",
+  "Collection.Down": "Down"
 }

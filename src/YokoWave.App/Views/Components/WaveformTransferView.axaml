@@ -8,12 +8,12 @@
     <StackPanel Classes="items">
       <TextBlock Text="{l:Loc Transfer.Title}" Classes="section-title" />
       <TextBlock Text="{l:Loc Transfer.Help}" Classes="muted label" TextWrapping="Wrap" />
-      <StackPanel Classes="actions">
+      <WrapPanel Classes="actions">
         <Button Content="{l:Loc Transfer.Generate}" Command="{Binding ExportCommand}" />
         <Button Content="{l:Loc Transfer.ImportText}" Command="{Binding ImportCommand}" />
         <Button x:Name="ImportFileButton" Content="{l:Loc Transfer.Open}" Click="ImportFileClick" />
         <Button x:Name="ExportFileButton" Content="{l:Loc Transfer.Save}" Click="ExportFileClick" />
-      </StackPanel>
+      </WrapPanel>
       <TextBox Text="{Binding TransferJson}" TextWrapping="Wrap" PlaceholderText="{l:Loc Transfer.Placeholder}" Classes="code-editor" />
     </StackPanel>
   </Border>

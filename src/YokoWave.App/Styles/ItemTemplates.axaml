@@ -1,0 +1,12 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:vm="using:YokoWave.App.ViewModels" xmlns:pipelines="using:YokoWave.App.ViewModels.Pipelines">
+  <DataTemplate x:Key="Template.SessionOption" x:DataType="vm:SessionOption">
+    <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+  </DataTemplate>
+  <DataTemplate x:Key="Template.DeviceOption" x:DataType="pipelines:PipelineDeviceOption">
+    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+  </DataTemplate>
+  <DataTemplate x:Key="Template.WaveformOption" x:DataType="vm:PresetItem">
+    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+  </DataTemplate>
+</ResourceDictionary>

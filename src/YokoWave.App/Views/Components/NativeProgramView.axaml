@@ -1,33 +1,36 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:items="using:YokoWave.App.ViewModels" xmlns:components="using:YokoWave.App.Views.Components" xmlns:l="using:YokoWave.App.Localization" x:Class="YokoWave.App.Views.Components.NativeProgramView" x:DataType="items:NativeProgramEditorViewModel">
-      <StackPanel Classes="field">
-        <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding SelectedKind}" HorizontalAlignment="Stretch">
-          <ComboBox.ItemTemplate><DataTemplate x:DataType="items:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
-        </ComboBox>
-        <StackPanel Classes="items" IsVisible="{Binding IsPreset}">
-          <TextBlock Text="{l:Loc Native.PresetHelp}" Classes="muted caption help" />
-          <Grid Classes="columns" ColumnDefinitions="*,*,*">
-<StackPanel Grid.Column="0"><StackPanel Classes="field"><TextBlock Text="{l:Loc Channel.A}" Classes="field-label" /><NumericUpDown Value="{Binding PresetA}" Minimum="0" Maximum="{Binding MaximumPreset}" FormatString="0" /></StackPanel></StackPanel>
-<StackPanel Grid.Column="1"><StackPanel Classes="field"><TextBlock Text="{l:Loc Channel.B}" Classes="field-label" /><NumericUpDown Value="{Binding PresetB}" Minimum="0" Maximum="{Binding MaximumPreset}" FormatString="0" /></StackPanel></StackPanel>
-<StackPanel Grid.Column="2" IsVisible="{Binding IsMotor}"><StackPanel Classes="field"><TextBlock Text="{l:Loc Channel.C}" Classes="field-label" /><NumericUpDown Value="{Binding PresetC}" Minimum="0" Maximum="{Binding MaximumPreset}" FormatString="0" /></StackPanel></StackPanel>
-          </Grid>
-        </StackPanel>
-        <StackPanel Classes="items" IsVisible="{Binding IsPulse}">
-          <TextBlock Text="{l:Loc Native.PulseHelp}" Classes="muted caption help" />
-<TextBlock Text="{l:Loc Channel.A}" Classes="emphasis" /><Grid Classes="columns" ColumnDefinitions="*,*,*"><StackPanel Grid.Column="0"><StackPanel Classes="field"><TextBlock Text="{l:Loc Native.X}" Classes="field-label" /><NumericUpDown Value="{Binding XA}" Minimum="0" Maximum="31" FormatString="0" /></StackPanel></StackPanel>
-<StackPanel Grid.Column="1"><StackPanel Classes="field"><TextBlock Text="{l:Loc Native.Y}" Classes="field-label" /><NumericUpDown Value="{Binding YA}" Minimum="0" Maximum="1023" FormatString="0" /></StackPanel></StackPanel>
-<StackPanel Grid.Column="2"><StackPanel Classes="field"><TextBlock Text="{l:Loc Native.Z}" Classes="field-label" /><NumericUpDown Value="{Binding ZA}" Minimum="0" Maximum="31" FormatString="0" /></StackPanel></StackPanel></Grid>
-<TextBlock Text="{l:Loc Channel.B}" Classes="emphasis" /><Grid Classes="columns" ColumnDefinitions="*,*,*"><StackPanel Grid.Column="0"><StackPanel Classes="field"><TextBlock Text="{l:Loc Native.X}" Classes="field-label" /><NumericUpDown Value="{Binding XB}" Minimum="0" Maximum="31" FormatString="0" /></StackPanel></StackPanel>
-<StackPanel Grid.Column="1"><StackPanel Classes="field"><TextBlock Text="{l:Loc Native.Y}" Classes="field-label" /><NumericUpDown Value="{Binding YB}" Minimum="0" Maximum="1023" FormatString="0" /></StackPanel></StackPanel>
-<StackPanel Grid.Column="2"><StackPanel Classes="field"><TextBlock Text="{l:Loc Native.Z}" Classes="field-label" /><NumericUpDown Value="{Binding ZB}" Minimum="0" Maximum="31" FormatString="0" /></StackPanel></StackPanel></Grid>
-        </StackPanel>
-        <StackPanel Classes="items" IsVisible="{Binding IsBuffered}">
-          <TextBlock Text="{l:Loc Native.BufferHelp}" Classes="muted caption help" />
-          <TextBlock Text="{l:Loc Channel.A}" Classes="field-label" />
-          <components:FrequencySequenceEditorView DataContext="{Binding BufferA}" />
-          <TextBlock Text="{l:Loc Channel.B}" Classes="field-label" />
-          <components:FrequencySequenceEditorView DataContext="{Binding BufferB}" />
-          <CheckBox Content="{l:Loc Native.Repeat}" IsChecked="{Binding Repeat}" />
-        </StackPanel>
-      </StackPanel>
-
+  <StackPanel Classes="field">
+    <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding SelectedKind}" ItemTemplate="{DynamicResource Template.SessionOption}" />
+    <StackPanel Classes="items" IsVisible="{Binding IsPreset}">
+      <TextBlock Text="{l:Loc Native.PresetHelp}" Classes="muted caption help" />
+      <WrapPanel Classes="form-fields">
+        <StackPanel Classes="form-field"><TextBlock Text="{l:Loc Channel.A}" Classes="field-label" /><NumericUpDown Value="{Binding PresetA}" Minimum="0" Maximum="{Binding MaximumPreset}" FormatString="0" /></StackPanel>
+        <StackPanel Classes="form-field"><TextBlock Text="{l:Loc Channel.B}" Classes="field-label" /><NumericUpDown Value="{Binding PresetB}" Minimum="0" Maximum="{Binding MaximumPreset}" FormatString="0" /></StackPanel>
+        <StackPanel Classes="form-field" IsVisible="{Binding IsMotor}"><TextBlock Text="{l:Loc Channel.C}" Classes="field-label" /><NumericUpDown Value="{Binding PresetC}" Minimum="0" Maximum="{Binding MaximumPreset}" FormatString="0" /></StackPanel>
+      </WrapPanel>
+    </StackPanel>
+    <StackPanel Classes="items" IsVisible="{Binding IsPulse}">
+      <TextBlock Text="{l:Loc Native.PulseHelp}" Classes="muted caption help" />
+      <TextBlock Text="{l:Loc Channel.A}" Classes="emphasis" />
+      <WrapPanel Classes="form-fields">
+        <StackPanel Classes="form-field"><TextBlock Text="{l:Loc Native.X}" Classes="field-label" /><NumericUpDown Value="{Binding XA}" Minimum="0" Maximum="31" FormatString="0" /></StackPanel>
+        <StackPanel Classes="form-field"><TextBlock Text="{l:Loc Native.Y}" Classes="field-label" /><NumericUpDown Value="{Binding YA}" Minimum="0" Maximum="1023" FormatString="0" /></StackPanel>
+        <StackPanel Classes="form-field"><TextBlock Text="{l:Loc Native.Z}" Classes="field-label" /><NumericUpDown Value="{Binding ZA}" Minimum="0" Maximum="31" FormatString="0" /></StackPanel>
+      </WrapPanel>
+      <TextBlock Text="{l:Loc Channel.B}" Classes="emphasis" />
+      <WrapPanel Classes="form-fields">
+        <StackPanel Classes="form-field"><TextBlock Text="{l:Loc Native.X}" Classes="field-label" /><NumericUpDown Value="{Binding XB}" Minimum="0" Maximum="31" FormatString="0" /></StackPanel>
+        <StackPanel Classes="form-field"><TextBlock Text="{l:Loc Native.Y}" Classes="field-label" /><NumericUpDown Value="{Binding YB}" Minimum="0" Maximum="1023" FormatString="0" /></StackPanel>
+        <StackPanel Classes="form-field"><TextBlock Text="{l:Loc Native.Z}" Classes="field-label" /><NumericUpDown Value="{Binding ZB}" Minimum="0" Maximum="31" FormatString="0" /></StackPanel>
+      </WrapPanel>
+    </StackPanel>
+    <StackPanel Classes="items" IsVisible="{Binding IsBuffered}">
+      <TextBlock Text="{l:Loc Native.BufferHelp}" Classes="muted caption help" />
+      <TextBlock Text="{l:Loc Channel.A}" Classes="field-label" />
+      <components:FrequencySequenceEditorView DataContext="{Binding BufferA}" />
+      <TextBlock Text="{l:Loc Channel.B}" Classes="field-label" />
+      <components:FrequencySequenceEditorView DataContext="{Binding BufferB}" />
+      <CheckBox Content="{l:Loc Native.Repeat}" IsChecked="{Binding Repeat}" />
+    </StackPanel>
+  </StackPanel>
 </UserControl>

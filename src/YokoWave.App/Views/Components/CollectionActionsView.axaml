@@ -1,0 +1,10 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="using:YokoWave.App.Localization" xmlns:components="using:YokoWave.App.Views.Components"
+             x:Class="YokoWave.App.Views.Components.CollectionActionsView" x:Name="Actions" x:DataType="components:CollectionActionsView">
+  <StackPanel Classes="collection-actions">
+    <Button Content="{l:Loc Collection.Add}" Command="{Binding AddCommand, ElementName=Actions}" Classes="small collection-action" ToolTip.Tip="{Binding AddDescription, ElementName=Actions}" AutomationProperties.Name="{Binding AddDescription, ElementName=Actions}" />
+    <Button Content="{l:Loc Collection.Remove}" Command="{Binding RemoveCommand, ElementName=Actions}" Classes="small collection-action" ToolTip.Tip="{Binding RemoveDescription, ElementName=Actions}" AutomationProperties.Name="{Binding RemoveDescription, ElementName=Actions}" />
+    <Button Content="{l:Loc Collection.Up}" Command="{Binding MoveUpCommand, ElementName=Actions}" Classes="small collection-action" ToolTip.Tip="{l:Loc Collection.MoveUp}" AutomationProperties.Name="{l:Loc Collection.MoveUp}" />
+    <Button Content="{l:Loc Collection.Down}" Command="{Binding MoveDownCommand, ElementName=Actions}" Classes="small collection-action" ToolTip.Tip="{l:Loc Collection.MoveDown}" AutomationProperties.Name="{l:Loc Collection.MoveDown}" />
+  </StackPanel>
+</UserControl>

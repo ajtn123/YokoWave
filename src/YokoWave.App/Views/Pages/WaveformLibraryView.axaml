@@ -31,11 +31,11 @@
         </DataTemplate>
       </ListBox.ItemTemplate>
     </ListBox>
-    <StackPanel Classes="actions">
+    <WrapPanel Classes="actions">
       <Button Classes="primary" Content="{l:Loc Wave.Use}" Command="{Binding UseWaveCommand}" />
       <Button Content="{l:Loc Wave.Edit}" Command="{Binding EditWaveCommand}" />
-      <Button x:Name="DeleteWaveButton" Content="{l:Loc Wave.Delete}" Command="{Binding DeleteWaveCommand}" />
-    </StackPanel>
+      <Button x:Name="DeleteWaveButton" Content="{l:Loc Wave.Delete}" Command="{Binding DeleteWaveCommand}" Classes="danger" />
+    </WrapPanel>
     <components:WaveformEditorView />
     <components:WaveformTransferView />
   </StackPanel>

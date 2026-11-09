@@ -10,9 +10,7 @@
       <TextBox Text="{Binding Url}" MaxLength="2048" />
       <TextBlock Text="{l:Loc Remote.Token}" Classes="field-label" />
       <TextBox Text="{Binding Token}" PasswordChar="●" MaxLength="256" />
-      <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind}">
-        <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
-      </ComboBox>
+      <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind}" ItemTemplate="{DynamicResource Template.SessionOption}" />
       <Button Content="{l:Loc Remote.Add}" Command="{Binding AddCommand}" Classes="primary" />
       <TextBlock Text="{l:Loc Remote.ClientHelp}" Classes="muted caption help" />
       <ItemsControl ItemsSource="{Binding Sources}">
@@ -25,7 +23,7 @@
                 <TextBox Text="{Binding Token}" PasswordChar="●" PlaceholderText="{l:Loc Remote.Token}" MaxLength="256" IsEnabled="{Binding !IsConnected}" />
                 <StackPanel Classes="inline">
                   <Button Content="{Binding ConnectionAction}" Command="{Binding ConnectCommand}" Classes="small connection-action" Classes.primary="{Binding !IsConnected}" Classes.danger="{Binding IsConnected}" />
-                  <Button Content="{l:Loc Remote.Remove}" Command="{Binding RemoveCommand}" Classes="small" />
+                  <Button Content="{l:Loc Remote.Remove}" Command="{Binding RemoveCommand}" Classes="small danger" />
                 </StackPanel>
               </StackPanel>
             </Border>

@@ -12,6 +12,7 @@
   <Style Selector="TextBlock.field-label">
     <Setter Property="FontSize" Value="{DynamicResource FontSize.Label}" />
     <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
   </Style>
   <Style Selector="TextBlock.caption, CheckBox.caption">
     <Setter Property="TextElement.FontSize" Value="{DynamicResource FontSize.Caption}" />

@@ -380,7 +380,7 @@ public sealed class PipelineWorkspaceInteractionTests
                 {
                     L10n.Current.SetLanguage(language);
                     Dispatcher.UIThread.RunJobs();
-                    var row = workspace.GetVisualDescendants().OfType<StackPanel>().Single(p => p.Classes.Contains("playlist-actions"));
+                    var row = workspace.GetVisualDescendants().OfType<StackPanel>().Single(p => p.Classes.Contains("collection-actions"));
                     var actions = row.Children.OfType<Button>().ToArray();
                     Assert.Equal(4, actions.Length);
                     Assert.Single(actions.Select(button => button.Bounds.Y).Distinct());

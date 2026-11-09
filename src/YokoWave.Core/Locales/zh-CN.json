@@ -785,8 +785,8 @@
   "Pipeline.Outputs": "输出",
   "Pipeline.LeaseMilliseconds": "租约时长（毫秒）",
   "Pipeline.LoopMedia": "循环媒体",
-  "Pipeline.MoveDown": "下移",
-  "Pipeline.MoveUp": "上移",
+  "Collection.MoveDown": "下移",
+  "Collection.MoveUp": "上移",
   "Pipeline.NodeStatus": "{0} · 数值 {1:0.##} · 计数 {2} · {3:0}秒",
   "Pipeline.PlaybackVolume": "扬声器音量",
   "Pipeline.RemoveWave": "移除波形",
@@ -950,8 +950,8 @@
   "Pipeline.Port.levelC": "电平 C",
   "Pipeline.SentStrength": "已发送强度 · {0}",
   "Pipeline.OutputUnknown": "输出状态未知",
-  "Pipeline.AddItem": "添加",
-  "Pipeline.RemoveItem": "移除",
-  "Pipeline.Up": "上移",
-  "Pipeline.Down": "下移"
+  "Collection.Add": "添加",
+  "Collection.Remove": "移除",
+  "Collection.Up": "上移",
+  "Collection.Down": "下移"
 }

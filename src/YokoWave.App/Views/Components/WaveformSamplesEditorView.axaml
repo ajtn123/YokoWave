@@ -1,24 +1,24 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:YokoWave.App.ViewModels"
-             xmlns:l="using:YokoWave.App.Localization" x:Class="YokoWave.App.Views.Components.WaveformSamplesEditorView" x:DataType="vm:WaveformSamplesEditorViewModel">
+             xmlns:l="using:YokoWave.App.Localization" xmlns:components="using:YokoWave.App.Views.Components" x:Class="YokoWave.App.Views.Components.WaveformSamplesEditorView" x:DataType="vm:WaveformSamplesEditorViewModel">
   <StackPanel Classes="field">
     <ListBox ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}" Classes="sequence-editor"><ListBox.ItemTemplate><DataTemplate x:DataType="vm:WaveformSampleRow">
       <StackPanel Classes="field">
-        <Grid ColumnDefinitions="*,*,*" Classes="columns">
-          <StackPanel Classes="field"><TextBlock Text="{l:Loc Wave.Level}" Classes="field-label" /><NumericUpDown Value="{Binding Level}" Minimum="0" Maximum="1" Increment="0.01" /></StackPanel>
-          <StackPanel Grid.Column="1" Classes="field"><TextBlock Text="{l:Loc Wave.Frequency}" Classes="field-label" /><NumericUpDown Value="{Binding FrequencyHz}" Minimum="1" Maximum="100" /></StackPanel>
-          <StackPanel Grid.Column="2" Classes="field"><TextBlock Text="{l:Loc Wave.PulseWidth}" Classes="field-label" /><NumericUpDown Value="{Binding PulseWidth}" Minimum="0" Maximum="1" Increment="0.01" /></StackPanel>
-        </Grid>
+        <WrapPanel Classes="form-fields">
+          <StackPanel Classes="form-field"><TextBlock Text="{l:Loc Wave.Level}" Classes="field-label" /><NumericUpDown Value="{Binding Level}" Minimum="0" Maximum="1" Increment="0.01" /></StackPanel>
+          <StackPanel Classes="form-field"><TextBlock Text="{l:Loc Wave.Frequency}" Classes="field-label" /><NumericUpDown Value="{Binding FrequencyHz}" Minimum="1" Maximum="100" /></StackPanel>
+          <StackPanel Classes="form-field"><TextBlock Text="{l:Loc Wave.PulseWidth}" Classes="field-label" /><NumericUpDown Value="{Binding PulseWidth}" Minimum="0" Maximum="1" Increment="0.01" /></StackPanel>
+        </WrapPanel>
         <CheckBox Content="{l:Loc Wave.UseChannels}" IsChecked="{Binding UseChannels}" Classes="caption" />
         <StackPanel IsVisible="{Binding UseChannels}" Classes="field">
-          <ComboBox ItemsSource="{Binding ChannelCounts}" SelectedItem="{Binding ChannelCount}"><ComboBox.ItemTemplate><DataTemplate x:DataType="vm:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
-          <Grid ColumnDefinitions="*,*,*" Classes="columns">
-            <StackPanel Classes="field"><TextBlock Text="{l:Loc Channel.A}" Classes="field-label" /><NumericUpDown Value="{Binding ChannelA}" Minimum="-1" Maximum="1" Increment="0.01" /></StackPanel>
-            <StackPanel Grid.Column="1" Classes="field"><TextBlock Text="{l:Loc Channel.B}" Classes="field-label" /><NumericUpDown Value="{Binding ChannelB}" Minimum="-1" Maximum="1" Increment="0.01" /></StackPanel>
-            <StackPanel Grid.Column="2" Classes="field"><TextBlock Text="{l:Loc Channel.C}" Classes="field-label" /><NumericUpDown Value="{Binding ChannelC}" Minimum="-1" Maximum="1" Increment="0.01" /></StackPanel>
-          </Grid>
+          <ComboBox ItemsSource="{Binding ChannelCounts}" SelectedItem="{Binding ChannelCount}" ItemTemplate="{DynamicResource Template.SessionOption}" />
+          <WrapPanel Classes="form-fields">
+            <StackPanel Classes="form-field"><TextBlock Text="{l:Loc Channel.A}" Classes="field-label" /><NumericUpDown Value="{Binding ChannelA}" Minimum="-1" Maximum="1" Increment="0.01" /></StackPanel>
+            <StackPanel Classes="form-field"><TextBlock Text="{l:Loc Channel.B}" Classes="field-label" /><NumericUpDown Value="{Binding ChannelB}" Minimum="-1" Maximum="1" Increment="0.01" /></StackPanel>
+            <StackPanel Classes="form-field"><TextBlock Text="{l:Loc Channel.C}" Classes="field-label" /><NumericUpDown Value="{Binding ChannelC}" Minimum="-1" Maximum="1" Increment="0.01" /></StackPanel>
+          </WrapPanel>
         </StackPanel>
       </StackPanel>
     </DataTemplate></ListBox.ItemTemplate></ListBox>
-    <WrapPanel Classes="pipeline-toolbar"><Button Content="{l:Loc Sequence.Add}" Command="{Binding AddCommand}" Classes="small" /><Button Content="{l:Loc Sequence.Remove}" Command="{Binding RemoveCommand}" Classes="small" /><Button Content="{l:Loc Pipeline.MoveUp}" Command="{Binding MoveUpCommand}" Classes="small" /><Button Content="{l:Loc Pipeline.MoveDown}" Command="{Binding MoveDownCommand}" Classes="small" /></WrapPanel>
+    <components:CollectionActionsView AddCommand="{Binding AddCommand}" RemoveCommand="{Binding RemoveCommand}" MoveUpCommand="{Binding MoveUpCommand}" MoveDownCommand="{Binding MoveDownCommand}" AddDescription="{l:Loc Sequence.Add}" RemoveDescription="{l:Loc Sequence.Remove}" />
   </StackPanel>
 </UserControl>

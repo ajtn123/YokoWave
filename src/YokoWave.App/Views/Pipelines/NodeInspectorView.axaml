@@ -5,56 +5,46 @@
   <UserControl.DataTemplates>
     <DataTemplate DataType="vm:ConstantEditorViewModel">
       <StackPanel Classes="field">
-        <TextBlock Text="{l:Loc Pipeline.Port.Value}" Classes="muted" />
+        <TextBlock Text="{l:Loc Pipeline.Port.Value}" Classes="field-label" />
         <NumericUpDown x:Name="ConstantValueInput" Value="{Binding Value}" Increment="0.01" />
       </StackPanel>
     </DataTemplate>
     <DataTemplate DataType="vm:WaveformEditorNodeViewModel">
       <StackPanel Classes="field">
-        <TextBlock Text="{l:Loc Pipeline.Node.Waveform}" Classes="muted" />
-        <ComboBox ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}">
-          <ComboBox.ItemTemplate>
-            <DataTemplate x:DataType="items:PresetItem">
-              <TextBlock Text="{Binding Name}" />
-            </DataTemplate>
-          </ComboBox.ItemTemplate>
-        </ComboBox>
+        <TextBlock Text="{l:Loc Pipeline.Node.Waveform}" Classes="field-label" />
+        <ComboBox ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" ItemTemplate="{DynamicResource Template.WaveformOption}" />
       </StackPanel>
     </DataTemplate>
     <DataTemplate DataType="vm:GainEditorViewModel">
       <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
-        <TextBlock Text="{l:Loc Pipeline.Port.Gain}" Classes="muted" />
+        <TextBlock Text="{l:Loc Pipeline.Port.Gain}" Classes="field-label" />
         <NumericUpDown Value="{Binding Gain}" Minimum="-1000" Maximum="1000" Increment="0.01" />
       </StackPanel>
     </DataTemplate>
     <DataTemplate DataType="vm:LimitEditorViewModel">
       <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
-        <TextBlock Text="{l:Loc Pipeline.Port.Limit}" Classes="muted" />
+        <TextBlock Text="{l:Loc Pipeline.Port.Limit}" Classes="field-label" />
         <NumericUpDown Value="{Binding Limit}" Minimum="0" Maximum="1" Increment="0.01" />
       </StackPanel>
     </DataTemplate>
     <DataTemplate DataType="vm:ChannelOutputEditorViewModel">
       <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
-        <TextBlock Text="{l:Loc Pipeline.Device}" Classes="muted" />
-        <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}">
-          <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PipelineDeviceOption"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
-        </ComboBox>
-        <TextBlock Text="{l:Loc Pipeline.OutputChannel}" Classes="muted" />
-        <ComboBox ItemsSource="{Binding Channels}" SelectedItem="{Binding SelectedChannel}"><ComboBox.ItemTemplate><DataTemplate x:DataType="items:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+        <TextBlock Text="{l:Loc Pipeline.Device}" Classes="field-label" />
+        <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}" ItemTemplate="{DynamicResource Template.DeviceOption}" />
+        <TextBlock Text="{l:Loc Pipeline.OutputChannel}" Classes="field-label" />
+        <ComboBox ItemsSource="{Binding Channels}" SelectedItem="{Binding SelectedChannel}" ItemTemplate="{DynamicResource Template.SessionOption}" />
       </StackPanel>
     </DataTemplate>
     <DataTemplate DataType="vm:PumpOutputEditorViewModel">
       <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
-        <TextBlock Text="{l:Loc Pipeline.Device}" Classes="muted" />
-        <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}">
-          <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PipelineDeviceOption"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
-        </ComboBox>
+        <TextBlock Text="{l:Loc Pipeline.Device}" Classes="field-label" />
+        <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}" ItemTemplate="{DynamicResource Template.DeviceOption}" />
         <TextBlock Text="{l:Loc Pipeline.PumpHelp}" Classes="caption muted" TextWrapping="Wrap" />
       </StackPanel>
     </DataTemplate>
     <DataTemplate DataType="vm:NativeOutputEditorViewModel">
       <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
-        <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}"><ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PipelineDeviceOption"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+        <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}" ItemTemplate="{DynamicResource Template.DeviceOption}" />
         <components:NativeProgramView DataContext="{Binding NativeEditor}" />
         <CheckBox Content="{l:Loc Pipeline.StopWhenComplete}" IsChecked="{Binding StopWhenComplete}" />
         <TextBlock Text="{Binding ValidationError}" Classes="muted caption" />
@@ -62,7 +52,7 @@
     </DataTemplate>
     <DataTemplate DataType="vm:SimulatedInputEditorViewModel"><StackPanel Classes="field"><TextBlock Text="{l:Loc Pipeline.SimulatedHelp}" Classes="caption muted" TextWrapping="Wrap" /><NumericUpDown Value="{Binding Value}" /></StackPanel></DataTemplate>
     <DataTemplate DataType="vm:PumpTimerEditorViewModel"><StackPanel Classes="field">
-      <ComboBox ItemsSource="{Binding Directions}" SelectedItem="{Binding Direction}"><ComboBox.ItemTemplate><DataTemplate x:DataType="items:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+      <ComboBox ItemsSource="{Binding Directions}" SelectedItem="{Binding Direction}" ItemTemplate="{DynamicResource Template.SessionOption}" />
       <CheckBox Content="{l:Loc Pump.Water}" IsChecked="{Binding Water}" />
       <TextBlock Text="{l:Loc Pump.PeristalticSeconds}" Classes="field-label" /><NumericUpDown Value="{Binding PeristalticSeconds}" Minimum="0" Maximum="65535" />
       <TextBlock Text="{l:Loc Pump.WaterSeconds}" Classes="field-label" /><NumericUpDown Value="{Binding WaterSeconds}" Minimum="0" Maximum="65535" />
@@ -71,38 +61,25 @@
     <DataTemplate DataType="vm:ConfigurationNodeViewModel"><Panel /></DataTemplate>
     <DataTemplate DataType="vm:CommandNodeEditorViewModel">
       <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
-        <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}"><ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PipelineDeviceOption"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+        <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}" ItemTemplate="{DynamicResource Template.DeviceOption}" />
         <ComboBox ItemsSource="{Binding Commands}" SelectedItem="{Binding SelectedCommand}"><ComboBox.ItemTemplate><DataTemplate x:DataType="items:ProtocolCommandOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
         <ItemsControl ItemsSource="{Binding CommandParameters}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="items:ParameterFieldViewModel"><components:ParameterFieldView /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
         <CheckBox Content="{l:Loc Pipeline.OnStart}" IsChecked="{Binding OnStart}" />
       </StackPanel>
     </DataTemplate>
     <DataTemplate DataType="vm:ResourceNodeViewModel">
-      <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}" IsEnabled="{Binding CanEdit}">
-        <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PipelineDeviceOption"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
-      </ComboBox>
+      <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}" IsEnabled="{Binding CanEdit}" ItemTemplate="{DynamicResource Template.DeviceOption}" />
     </DataTemplate>
     <DataTemplate DataType="vm:PlaylistEditorViewModel">
       <StackPanel Classes="field">
-        <ComboBox ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}">
-          <ComboBox.ItemTemplate><DataTemplate x:DataType="items:PresetItem"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
-        </ComboBox>
+        <ComboBox ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" ItemTemplate="{DynamicResource Template.WaveformOption}" />
         <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
           <TextBlock Text="{l:Loc Pipeline.Phase}" Classes="field-label" /><NumericUpDown Value="{Binding Phase}" Increment="0.01" />
           <CheckBox Content="{l:Loc Pipeline.RestartOnTrigger}" IsChecked="{Binding RestartOnTrigger}" />
           <CheckBox Content="{l:Loc Pipeline.StopWhenComplete}" IsChecked="{Binding StopWhenComplete}" />
-          <ComboBox ItemsSource="{Binding Orders}" SelectedItem="{Binding SelectedOrder}">
-            <ComboBox.ItemTemplate><DataTemplate x:DataType="items:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
-          </ComboBox>
-          <ListBox ItemsSource="{Binding Playlist}" SelectedItem="{Binding SelectedEntry}">
-            <ListBox.ItemTemplate><DataTemplate x:DataType="items:PresetItem"><TextBlock Text="{Binding Name}" /></DataTemplate></ListBox.ItemTemplate>
-          </ListBox>
-          <StackPanel Classes="inline playlist-actions">
-            <Button Content="{l:Loc Pipeline.AddItem}" Command="{Binding AddWaveCommand}" Classes="small playlist-action" ToolTip.Tip="{l:Loc Pipeline.AddWave}" AutomationProperties.Name="{l:Loc Pipeline.AddWave}" />
-            <Button Content="{l:Loc Pipeline.RemoveItem}" Command="{Binding RemoveWaveCommand}" Classes="small playlist-action" ToolTip.Tip="{l:Loc Pipeline.RemoveWave}" AutomationProperties.Name="{l:Loc Pipeline.RemoveWave}" />
-            <Button Content="{l:Loc Pipeline.Up}" Command="{Binding MoveUpCommand}" Classes="small playlist-action" ToolTip.Tip="{l:Loc Pipeline.MoveUp}" AutomationProperties.Name="{l:Loc Pipeline.MoveUp}" />
-            <Button Content="{l:Loc Pipeline.Down}" Command="{Binding MoveDownCommand}" Classes="small playlist-action" ToolTip.Tip="{l:Loc Pipeline.MoveDown}" AutomationProperties.Name="{l:Loc Pipeline.MoveDown}" />
-          </StackPanel>
+          <ComboBox ItemsSource="{Binding Orders}" SelectedItem="{Binding SelectedOrder}" ItemTemplate="{DynamicResource Template.SessionOption}" />
+          <ListBox ItemsSource="{Binding Playlist}" SelectedItem="{Binding SelectedEntry}" ItemTemplate="{DynamicResource Template.WaveformOption}" />
+          <components:CollectionActionsView AddCommand="{Binding AddWaveCommand}" RemoveCommand="{Binding RemoveWaveCommand}" MoveUpCommand="{Binding MoveUpCommand}" MoveDownCommand="{Binding MoveDownCommand}" AddDescription="{l:Loc Pipeline.AddWave}" RemoveDescription="{l:Loc Pipeline.RemoveWave}" />
         </StackPanel>
       </StackPanel>
     </DataTemplate>
@@ -115,12 +92,8 @@
     </DataTemplate>
     <DataTemplate DataType="vm:AudioNodeEditorViewModel">
       <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
-        <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding Source}">
-          <ComboBox.ItemTemplate><DataTemplate x:DataType="items:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
-        </ComboBox>
-        <ComboBox ItemsSource="{Binding FollowModes}" SelectedItem="{Binding Follow}">
-          <ComboBox.ItemTemplate><DataTemplate x:DataType="items:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
-        </ComboBox>
+        <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding Source}" ItemTemplate="{DynamicResource Template.SessionOption}" />
+        <ComboBox ItemsSource="{Binding FollowModes}" SelectedItem="{Binding Follow}" ItemTemplate="{DynamicResource Template.SessionOption}" />
         <StackPanel Classes="field" IsVisible="{Binding IsMedia}">
           <TextBox Text="{Binding MediaPath}" PlaceholderText="{l:Loc Audio.File}" />
           <Button Content="{l:Loc Pipeline.Browse}" Click="BrowseMedia" />

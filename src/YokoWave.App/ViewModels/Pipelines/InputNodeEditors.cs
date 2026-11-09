@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Windows.Input;
 using YokoWave.Core;
 using YokoWave.Core.Localization;
 using YokoWave.Pipelines;
@@ -15,7 +14,15 @@ public sealed class PlaylistEditorViewModel : NodeEditorViewModel, IWaveformNode
     private PresetItem? _selectedEntry;
     public ObservableCollection<PresetItem> Presets => Editor.Presets;
     public ObservableCollection<PresetItem> Playlist { get; } = [];
-    public PresetItem? SelectedEntry { get => _selectedEntry; set => Set(ref _selectedEntry, value); }
+    public PresetItem? SelectedEntry
+    {
+        get => _selectedEntry;
+        set
+        {
+            if (Set(ref _selectedEntry, value))
+                RefreshCollectionCommands();
+        }
+    }
     public IReadOnlyList<SessionOption> Orders { get; } = Enum.GetValues<PlaybackOrder>().Select(o => new SessionOption((int)o, "Playback." + o)).ToArray();
     public PresetItem? SelectedPreset
     {
@@ -43,10 +50,10 @@ public sealed class PlaylistEditorViewModel : NodeEditorViewModel, IWaveformNode
     public override PresetItem? Preview => Editor.Session.HoldsResources && Editor.Session.NodeStatus.GetValueOrDefault(Id)?.Waveform is { } id
         ? Presets.FirstOrDefault(p => p.Preset.Id == id) : SelectedPreset;
     public override bool IsPortAvailable(NodePort port) => WaveformPorts.IsAvailable(port, Preview?.Preset);
-    public ICommand AddWaveCommand { get; }
-    public ICommand RemoveWaveCommand { get; }
-    public ICommand MoveUpCommand { get; }
-    public ICommand MoveDownCommand { get; }
+    public ActionCommand AddWaveCommand { get; }
+    public ActionCommand RemoveWaveCommand { get; }
+    public ActionCommand MoveUpCommand { get; }
+    public ActionCommand MoveDownCommand { get; }
     public PlaylistEditorViewModel(PipelineEditorViewModel editor, NodeDefinition definition) : base(editor, definition)
     {
         _settings = (PlaylistNode)editor.Registry.Get(Type).Read(definition.Configuration);
@@ -56,12 +63,33 @@ public sealed class PlaylistEditorViewModel : NodeEditorViewModel, IWaveformNode
         AddWaveCommand = new ActionCommand(() => Change(() =>
         {
             if (SelectedPreset is { } selected && Playlist.Count < 100 && Playlist.All(p => p.Preset.Id != selected.Preset.Id))
+            {
                 Playlist.Add(selected);
+                SelectedEntry = selected;
+            }
             SavePlaylist();
-        }));
-        RemoveWaveCommand = new ActionCommand(() => Change(() => { if (SelectedEntry is { } entry) Playlist.Remove(entry); SavePlaylist(); }));
-        MoveUpCommand = new ActionCommand(() => Move(-1));
-        MoveDownCommand = new ActionCommand(() => Move(1));
+        }), () => CanEdit && SelectedPreset is { } preset && Playlist.Count < 100 && Playlist.All(p => p.Preset.Id != preset.Preset.Id));
+        RemoveWaveCommand = new ActionCommand(() => Change(() =>
+        {
+            if (SelectedEntry is not { } entry)
+                return;
+            var index = Playlist.IndexOf(entry);
+            Playlist.Remove(entry);
+            SelectedEntry = Playlist.ElementAtOrDefault(Math.Min(index, Playlist.Count - 1));
+            SavePlaylist();
+        }), () => CanEdit && SelectedEntry is { } entry && Playlist.Contains(entry));
+        MoveUpCommand = new ActionCommand(() => Move(-1), () => CanMove(-1));
+        MoveDownCommand = new ActionCommand(() => Move(1), () => CanMove(1));
+        Playlist.CollectionChanged += (_, _) => RefreshCollectionCommands();
+    }
+    private bool CanMove(int offset) => CanEdit && SelectedEntry is { } entry && Playlist.IndexOf(entry) is var index &&
+        index >= 0 && index + offset >= 0 && index + offset < Playlist.Count;
+    private void RefreshCollectionCommands()
+    {
+        AddWaveCommand.NotifyCanExecuteChanged();
+        RemoveWaveCommand.NotifyCanExecuteChanged();
+        MoveUpCommand.NotifyCanExecuteChanged();
+        MoveDownCommand.NotifyCanExecuteChanged();
     }
     private void Move(int offset) => Change(() =>
     {
@@ -69,7 +97,10 @@ public sealed class PlaylistEditorViewModel : NodeEditorViewModel, IWaveformNode
             return;
         var index = Playlist.IndexOf(entry);
         if (index + offset >= 0 && index + offset < Playlist.Count)
+        {
             Playlist.Move(index, index + offset);
+            SelectedEntry = entry;
+        }
         SavePlaylist();
     });
     private void SavePlaylist() => _settings = _settings with { Playlist = Playlist.Select(p => p.Preset.Id).ToArray() };
@@ -84,6 +115,7 @@ public sealed class PlaylistEditorViewModel : NodeEditorViewModel, IWaveformNode
         base.RefreshLocalization();
         foreach (var order in Orders)
             order.RefreshLocalization();
+        RefreshCollectionCommands();
     }
 }
 

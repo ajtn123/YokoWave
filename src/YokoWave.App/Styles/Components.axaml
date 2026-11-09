@@ -1,8 +1,16 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="using:YokoWave.App.Controls">
+  <Style Selector="StackPanel.collection-actions">
+    <Setter Property="Orientation" Value="Horizontal" />
+    <Setter Property="Spacing" Value="{DynamicResource Space.XSmall}" />
+  </Style>
+  <Style Selector="Button.collection-action">
+    <Setter Property="Padding" Value="{DynamicResource Padding.CompactButton}" />
+  </Style>
   <Style Selector="TextBox.code-editor">
     <Setter Property="AcceptsReturn" Value="True" />
+    <Setter Property="VerticalContentAlignment" Value="Top" />
     <Setter Property="Height" Value="{DynamicResource Size.JsonEditorHeight}" />
     <Setter Property="FontFamily" Value="{DynamicResource FontFamily.Code}" />
     <Setter Property="FontSize" Value="{DynamicResource FontSize.Label}" />

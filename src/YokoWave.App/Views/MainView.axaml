@@ -41,14 +41,14 @@
         <Grid ColumnDefinitions="*,Auto">
           <StackPanel Classes="field">
             <TextBlock x:Name="PageTitleText" Text="{Binding PageTitle}" Classes="page-title" />
-            <StackPanel x:Name="CompactNav" IsVisible="False" Margin="{DynamicResource Margin.AboveSmall}" Classes="inline">
+            <WrapPanel x:Name="CompactNav" IsVisible="False" Margin="{DynamicResource Margin.AboveSmall}" Classes="actions">
               <Button Classes="small" Content="{l:Loc Nav.CompactDevices}" Command="{Binding WorkspaceCommand}" />
               <Button Classes="small" Content="{l:Loc Pipeline.Title}" Command="{Binding PipelinesCommand}" />
               <Button Classes="small" Content="{l:Loc Nav.CompactWaves}" Command="{Binding WavesCommand}" />
               <Button Classes="small" Content="{l:Loc Nav.CompactHistory}" Command="{Binding HistoryCommand}" />
               <Button Classes="small" Content="{l:Loc Nav.CompactSettings}" Command="{Binding SettingsCommand}" />
               <Button x:Name="CompactHelpButton" Classes="small" Content="{l:Loc Nav.CompactHelp}" Command="{Binding HelpCommand}" />
-            </StackPanel>
+            </WrapPanel>
           </StackPanel>
           <Button Grid.Column="1" x:Name="StopAllButton" Classes="danger" Content="{l:Loc Action.StopAll}" Command="{Binding EmergencyStopCommand}"
                   VerticalAlignment="Center" ToolTip.Tip="{l:Loc Action.StopAllTip}" AutomationProperties.Name="{l:Loc Action.StopAllName}" />

@@ -7,6 +7,7 @@
       <ResourceDictionary.MergedDictionaries>
         <ResourceInclude Source="avares://YokoWave.App/Styles/Palette.axaml" />
         <ResourceInclude Source="avares://YokoWave.App/Styles/Metrics.axaml" />
+        <ResourceInclude Source="avares://YokoWave.App/Styles/ItemTemplates.axaml" />
       </ResourceDictionary.MergedDictionaries>
     </ResourceDictionary>
   </Application.Resources>
