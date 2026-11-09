@@ -6,15 +6,17 @@ namespace YokoWave.Pipelines;
 internal sealed class DeviceOutputCoordinator(PipelinePlan plan, IReadOnlySet<string> simulatedDevices)
 {
     private readonly Dictionary<Guid, double> _limits = [];
-    public void SetLimit(Guid node, double value) => _limits[node] = value;
-    public double Limit(Guid node, double configured) => _limits.GetValueOrDefault(node, configured);
     private readonly Dictionary<string, (double Peak, WaveformSample[] Samples)[]> _channels = [];
     private readonly Dictionary<string, PumpOutput> _pumps = [];
     private readonly Dictionary<string, OutputFrame> _native = [];
     private readonly Dictionary<string, OutputFrame> _options = [];
     private readonly HashSet<string> _validChannels = new(StringComparer.Ordinal);
-    public void Zero(string deviceId) => _native[deviceId] = OutputFrame.Zero;
     private TimeSpan _elapsed;
+
+    public void SetLimit(Guid node, double value) => _limits[node] = value;
+    public double Limit(Guid node, double configured) => _limits.GetValueOrDefault(node, configured);
+    public void Zero(string deviceId) => _native[deviceId] = OutputFrame.Zero;
+
     public void Clear(TimeSpan elapsed)
     {
         _elapsed = elapsed;
@@ -24,9 +26,6 @@ internal sealed class DeviceOutputCoordinator(PipelinePlan plan, IReadOnlySet<st
         _options.Clear();
         _validChannels.Clear();
     }
-
-    private bool Accepts(string device, DateTimeOffset now, params NumericSignal[] signals) =>
-        signals.All(s => s.IsValid(now) && (!s.Simulated || simulatedDevices.Contains(device)));
 
     public void Channel(ChannelOutputNode binding, NumericSignal strength, NumericSignal frequency,
         NumericSignal width, NumericSignal limit, DateTimeOffset now, OutputFrame? options = null)
@@ -38,9 +37,9 @@ internal sealed class DeviceOutputCoordinator(PipelinePlan plan, IReadOnlySet<st
         _validChannels.Add(binding.DeviceId);
         if (options is not null)
             _options[binding.DeviceId] = options;
-        var levels = Enumerable.Range(0, 4).Select(i => plan.Duration is { } duration && _elapsed.TotalSeconds + i * .025 >= duration.TotalSeconds
+        double[] levels = Enumerable.Range(0, 4).Select(i => plan.Duration is { } duration && _elapsed.TotalSeconds + i * .025 >= duration.TotalSeconds
             ? 0 : Math.Min(strength.At(i), Math.Min(limit.At(i), binding.Limit))).ToArray();
-        var peak = levels.Max();
+        double peak = levels.Max();
         var samples = Enumerable.Range(0, 4).Select(i => new WaveformSample(peak == 0 ? 0 : levels[i] / peak,
             frequency.At(i), width.At(i))).ToArray();
         channels[binding.Channel] = (peak * 100, samples);
@@ -48,9 +47,9 @@ internal sealed class DeviceOutputCoordinator(PipelinePlan plan, IReadOnlySet<st
 
     public void Native(NativeOutputNode binding, double a, double b, double c, NativeProgramSettings program, TimeSpan elapsed, double? remaining = null, OutputFrame? options = null)
     {
-        var presets = program.Kind is NativeProgramKind.ElectricalPreset or NativeProgramKind.MotorPreset;
-        var frame = new OutputFrame(presets && program.PresetA == 0 ? 0 : Math.Min(a, binding.Limit) * 100,
-            presets && program.PresetB == 0 ? 0 : Math.Min(b, binding.Limit) * 100, 20,
+        bool usesFixedProgram = program.Kind is NativeProgramKind.ElectricalPreset or NativeProgramKind.MotorPreset;
+        var frame = new OutputFrame(usesFixedProgram && program.PresetA == 0 ? 0 : Math.Min(a, binding.Limit) * 100,
+            usesFixedProgram && program.PresetB == 0 ? 0 : Math.Min(b, binding.Limit) * 100, 20,
             ChannelC: program.Kind == NativeProgramKind.MotorPreset && program.PresetC > 0 ? Math.Min(c, binding.Limit) * 100 : 0,
             OutputLimit: binding.Limit * 100, NativeProgram: new(program, elapsed.TotalSeconds,
                 plan.Duration is { } duration ? Math.Min(remaining ?? double.MaxValue, Math.Max(0, (duration - _elapsed).TotalSeconds)) : remaining),
@@ -76,7 +75,7 @@ internal sealed class DeviceOutputCoordinator(PipelinePlan plan, IReadOnlySet<st
     public IReadOnlyDictionary<string, OutputFrame> Build()
     {
         Dictionary<string, OutputFrame> frames = [];
-        foreach (var id in plan.OutputDeviceIds)
+        foreach (string id in plan.OutputDeviceIds)
         {
             if (_native.TryGetValue(id, out var native))
             {
@@ -105,4 +104,7 @@ internal sealed class DeviceOutputCoordinator(PipelinePlan plan, IReadOnlySet<st
         }
         return frames;
     }
+
+    private bool Accepts(string device, DateTimeOffset now, params NumericSignal[] signals) =>
+        signals.All(s => s.IsValid(now) && (!s.Simulated || simulatedDevices.Contains(device)));
 }

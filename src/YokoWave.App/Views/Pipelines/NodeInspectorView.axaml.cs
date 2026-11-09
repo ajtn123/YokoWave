@@ -77,6 +77,9 @@ public sealed partial class NodeInspectorView : UserControl
             if (files.FirstOrDefault()?.TryGetLocalPath() is { } path && node.CanEdit)
                 node.MediaPath = path;
         }
-        catch (Exception error) { node.ReportError(error); }
+        catch (Exception error)
+        {
+            node.ReportError(error);
+        }
     }
 }

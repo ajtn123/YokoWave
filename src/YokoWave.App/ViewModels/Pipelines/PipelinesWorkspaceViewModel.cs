@@ -9,41 +9,26 @@ using YokoWave.Remote;
 
 namespace YokoWave.App.ViewModels.Pipelines;
 
-public sealed class PipelineTemplateChoice(PipelineTemplate? builtIn = null, PipelinePreset? preset = null) : ObservableObject
-{
-    public string Name => builtIn is not null ? L10n.Get(builtIn.NameKey) : preset!.Name;
-    public bool IsBuiltIn => builtIn is not null;
-    public Guid? PresetId => preset?.Id;
-    public PipelineDocument Create(string name, double limit)
-    {
-        if (builtIn is not null)
-            return builtIn.Create(new(name, Limit: limit));
-        var graph = preset!.Graph;
-        var wrapper = NodeDefinition.Create(SubgraphExpansion.Type, new SubgraphNode(graph, preset.Inputs, preset.Outputs));
-        return new(Guid.NewGuid(), name, [wrapper], [], [new(wrapper.Id, 40, 40)], graph.DurationSeconds, graph.TimerEnabled);
-    }
-    public void RefreshLocalization() => Raise(nameof(Name));
-}
-
 public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDisposable
 {
     private readonly DeviceController _controller;
     private readonly PipelineStore _store;
-    private readonly ObservableCollection<PresetItem> _presets;
-    public Action<Exception> ReportError { get; }
+    private readonly ObservableCollection<WaveformItem> _waveforms;
     private readonly Action<SessionRecord> _completed;
     private readonly IAudioInputFactory _audio;
-    private readonly Func<double> _timerLimit, _defaultLimit;
-    private readonly List<PipelinePreset> _userTemplates = [];
+    private readonly Func<double> _timerLimit;
+    private readonly Func<double> _defaultLimit;
+    private readonly List<SavedPipelineTemplate> _userTemplates = [];
     private PipelineEditorViewModel? _selected;
     private PipelineTemplateChoice? _template;
-    private bool _loaded, _disposed;
-    private long _revision, _savedRevision;
+    private bool _loaded;
+    private bool _disposed;
+    private long _revision;
+    private long _savedRevision;
     private string _templateName = "";
+    public Action<Exception> ReportError { get; }
     public ObservableCollection<PipelineEditorViewModel> Pipelines { get; } = [];
-    public ObservableCollection<PipelineDeviceGroupViewModel> Groups { get; } = [];
-    public ObservableCollection<PipelineDeviceCardViewModel> UnassignedDevices { get; } = [];
-    public bool HasUnassignedDevices => UnassignedDevices.Count > 0;
+    public PipelineDeviceGroupsViewModel DeviceGroups { get; }
     public ObservableCollection<PipelineTemplateChoice> Templates { get; } = [];
     public DevicesPaneViewModel? DevicePane { get; }
     public PipelineTemplateChoice? SelectedTemplate
@@ -77,21 +62,22 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
     public AsyncCommand SaveCommand { get; }
     public AsyncCommand SaveTemplateCommand { get; }
     public AsyncCommand DeleteTemplateCommand { get; }
-    public event EventHandler<WaveformPreset>? WaveformCreated;
+    public event EventHandler<WaveformAsset>? WaveformCreated;
 
-    public PipelinesWorkspaceViewModel(DeviceController controller, string directory, ObservableCollection<PresetItem> presets,
+    public PipelinesWorkspaceViewModel(DeviceController controller, string directory, ObservableCollection<WaveformItem> waveforms,
         Action<Exception> onError, Action<SessionRecord> completed, Func<double> timerLimit, Func<double> defaultLimit,
         IAudioInputFactory? audio = null, DevicesPaneViewModel? devicePane = null)
     {
         _controller = controller;
         _store = new(directory);
-        _presets = presets;
+        _waveforms = waveforms;
         ReportError = onError;
         _completed = completed;
         _timerLimit = timerLimit;
         _defaultLimit = defaultLimit;
         _audio = audio ?? new UnavailableAudioInputFactory();
         DevicePane = devicePane;
+        DeviceGroups = new(() => Selected, editor => Selected = editor, onError);
         AddCommand = new ActionCommand(Add);
         DuplicateCommand = new ActionCommand(Duplicate);
         DeleteCommand = new(DeleteAsync, onError, () => CanEditSelected);
@@ -113,13 +99,13 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
         if (_loaded)
             return;
         var documents = await _store.LoadAsync();
-        var templates = await _store.LoadPresetsAsync();
+        var templates = await _store.LoadTemplatesAsync();
         try
         {
-            foreach (var preset in templates)
+            foreach (var templateAsset in templates)
             {
-                _userTemplates.Add(preset);
-                Templates.Add(new(preset: preset));
+                _userTemplates.Add(templateAsset);
+                Templates.Add(new(savedTemplate: templateAsset));
             }
             foreach (var document in documents)
                 AddEditor(document);
@@ -133,6 +119,99 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
             throw new LocalizedIOException("Pipeline.Error.Storage", error);
         }
     }
+    public void Add()
+    {
+        if (!_loaded || _disposed || SelectedTemplate is not { } template)
+            return;
+        string name = FormatGeneratedName(template.Name, stem => L10n.Format("Mode.InstanceName", stem, Pipelines.Count + 1));
+        Selected = AddEditor(Unbind(template.Create(name, _defaultLimit())));
+    }
+    public void AddDocument(PipelineDocument document) => Selected = AddEditor(document);
+    public async Task SaveAsync()
+    {
+        if (!_loaded || _savedRevision == _revision && File.Exists(_store.FilePath))
+            return;
+        long revision = _revision;
+        await _store.SaveAsync(Pipelines.Select(p => p.ToDocument()));
+        _savedRevision = Math.Max(_savedRevision, revision);
+    }
+    public void RefreshTimerLimit()
+    {
+        foreach (var pipeline in Pipelines)
+            pipeline.SetTimerLimit(_timerLimit());
+        _revision++;
+    }
+    public async Task StopAllAsync(string reason)
+    {
+        List<Exception> errors = [];
+        foreach (var editor in Pipelines)
+        {
+            try
+            {
+                await editor.StopAsync(reason);
+            }
+            catch (Exception error)
+            {
+                errors.Add(error);
+            }
+        }
+        if (errors.Count > 0)
+            throw new LocalizedAggregateException("Error.StopUnconfirmed", errors);
+    }
+    public async Task StopForDeviceAsync(string id, string reason)
+    {
+        foreach (var editor in Pipelines.Where(p => p.ReferencedDeviceIds.Contains(id)))
+            await editor.StopAsync(reason);
+    }
+    public bool UsesWaveform(Guid id)
+    {
+        if (Pipelines.Any(p => p.UsesWaveform(id)))
+            return true;
+        var registry = RemotePipelineNodes.Register(BuiltInNodes.CreateRegistry());
+        return _userTemplates.Any(p => SubgraphExpansion.Expand(p.Graph).Nodes.Any(n => registry.Get(n.Type).WaveformReferences(registry.Get(n.Type).Read(n.Configuration)).Contains(id)));
+    }
+    public void RefreshWaveforms()
+    {
+        foreach (var pipeline in Pipelines)
+            pipeline.Validate();
+    }
+    public async ValueTask DisposeAsync()
+    {
+        if (_disposed)
+            return;
+        _disposed = true;
+        List<Exception> errors = [];
+        foreach (var editor in Pipelines)
+        {
+            try
+            {
+                await editor.DisposeAsync();
+            }
+            catch (Exception error)
+            {
+                errors.Add(error);
+            }
+            finally
+            {
+                Unsubscribe(editor);
+            }
+        }
+        try
+        {
+            await SaveAsync();
+        }
+        catch (Exception error)
+        {
+            errors.Add(error);
+        }
+        Pipelines.CollectionChanged -= OnDeviceCollectionChanged;
+        if (DevicePane is not null)
+            DevicePane.Devices.CollectionChanged -= OnDeviceCollectionChanged;
+        _controller.Changed -= OnDevicesChanged;
+        L10n.Current.PropertyChanged -= OnLanguageChanged;
+        if (errors.Count > 0)
+            throw new LocalizedAggregateException("Error.Cleanup", errors);
+    }
     private PipelineEditorViewModel AddEditor(PipelineDocument document)
     {
         if (Pipelines.Count >= 32)
@@ -143,7 +222,7 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
         var assigned = (document.AssignedDevices ?? []).Concat(bindings.Select(b => b.DeviceId).Where(id => !id.StartsWith('$')));
         if (assigned.Any(id => Pipelines.Any(p => p.AssignedDeviceIds.Contains(id))))
             throw new LocalizedOperationException("Error.DeviceInUse");
-        var editor = new PipelineEditorViewModel(document, _controller, _presets, ReportError, _completed, _timerLimit(), services, registry,
+        var editor = new PipelineEditorViewModel(document, _controller, _waveforms, ReportError, _completed, _timerLimit(), services, registry,
             DevicePane is { } devices ? devices.FlushPreferencesAsync : null);
         editor.CanBindDevice = id => !Pipelines.Any(p => p.Id != editor.Id && p.AssignedDeviceIds.Contains(id));
         editor.GetDefaultOutputLimit = _defaultLimit;
@@ -155,56 +234,23 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
         _revision++;
         return editor;
     }
-    private void OnWaveformCreated(object? sender, WaveformPreset preset) => WaveformCreated?.Invoke(this, preset);
+    private void OnWaveformCreated(object? sender, WaveformAsset waveform) => WaveformCreated?.Invoke(this, waveform);
     private void OnDeviceCollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) => RefreshDeviceGroups();
     private void RefreshDeviceGroups()
     {
         var connected = DevicePane?.Devices.Where(d => d.IsConnected).ToArray() ?? [];
-        foreach (var removed in Groups.Where(g => !Pipelines.Contains(g.Editor)).ToArray())
-            Groups.Remove(removed);
-        foreach (var editor in Pipelines)
-        {
-            var group = Groups.FirstOrDefault(g => g.Editor == editor);
-            if (group is null)
-            {
-                group = new(this, editor);
-                Groups.Add(group);
-            }
-            group.IsSelected = editor == Selected;
-            SynchronizeCards(group.Devices, connected.Where(d => editor.AssignedDeviceIds.Contains(d.Id)).ToArray(), editor);
-            group.Refresh();
-        }
-        var assigned = Pipelines.SelectMany(p => p.AssignedDeviceIds).ToHashSet(StringComparer.Ordinal);
-        SynchronizeCards(UnassignedDevices, connected.Where(d => !assigned.Contains(d.Id)).ToArray(), null);
-        foreach (var device in UnassignedDevices)
-            device.Refresh();
-        Raise(nameof(HasUnassignedDevices));
-    }
-    private void SynchronizeCards(ObservableCollection<PipelineDeviceCardViewModel> cards, DeviceItem[] devices, PipelineEditorViewModel? owner)
-    {
-        foreach (var removed in cards.Where(c => !devices.Contains(c.Device)).ToArray())
-            cards.Remove(removed);
-        foreach (var device in devices)
-            if (cards.All(c => c.Device != device))
-                cards.Add(new(this, device, owner));
-    }
-    public void Add()
-    {
-        if (!_loaded || _disposed || SelectedTemplate is not { } template)
-            return;
-        var name = FormatGeneratedName(template.Name, stem => L10n.Format("Mode.InstanceName", stem, Pipelines.Count + 1));
-        Selected = AddEditor(Unbind(template.Create(name, _defaultLimit())));
+        DeviceGroups.Refresh(Pipelines, connected);
     }
     private void Duplicate()
     {
         if (Selected is not { } editor)
             return;
-        var name = FormatGeneratedName(editor.Name, stem => L10n.Format("Pipeline.CopyName", stem));
+        string name = FormatGeneratedName(editor.Name, stem => L10n.Format("Pipeline.CopyName", stem));
         Selected = AddEditor(Unbind(editor.ToDocument()) with { Id = Guid.NewGuid(), Name = name });
     }
     private static string FormatGeneratedName(string name, Func<string, string> format)
     {
-        var length = Math.Min(name.Length, PipelineDocument.MaximumNameLength - format("").Length);
+        int length = Math.Min(name.Length, PipelineDocument.MaximumNameLength - format("").Length);
         if (length > 0 && char.IsHighSurrogate(name[length - 1]))
             length--;
         return format(name[..length]);
@@ -229,7 +275,6 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
         };
         return ClearAssignments(document);
     }
-    public void AddDocument(PipelineDocument document) => Selected = AddEditor(document);
     private async Task DeleteAsync()
     {
         if (Selected is not { CanEdit: true } editor)
@@ -245,21 +290,21 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
         if (Selected is not { CanEdit: true } editor)
             return;
         var graph = editor.ToDocument();
-        var name = string.IsNullOrWhiteSpace(TemplateName) ? graph.Name : TemplateName;
+        string name = string.IsNullOrWhiteSpace(TemplateName) ? graph.Name : TemplateName;
         if (name.Length > PipelineDocument.MaximumNameLength)
             throw new LocalizedArgumentException("Pipeline.Error.Document");
-        var preset = new PipelinePreset(Guid.NewGuid(), name, PipelineJson.Snapshot(graph), graph.Inputs ?? [], graph.Outputs ?? []);
-        await _store.SavePresetsAsync(_userTemplates.Append(preset));
-        _userTemplates.Add(preset);
-        var choice = new PipelineTemplateChoice(preset: preset);
+        var templateAsset = new SavedPipelineTemplate(Guid.NewGuid(), name, PipelineJson.Snapshot(graph), graph.Inputs ?? [], graph.Outputs ?? []);
+        await _store.SaveTemplatesAsync(_userTemplates.Append(templateAsset));
+        _userTemplates.Add(templateAsset);
+        var choice = new PipelineTemplateChoice(savedTemplate: templateAsset);
         Templates.Add(choice);
         SelectedTemplate = choice;
     }
     private async Task DeleteTemplateAsync()
     {
-        if (SelectedTemplate is not { IsBuiltIn: false, PresetId: { } id } selected)
+        if (SelectedTemplate is not { IsBuiltIn: false, TemplateId: { } id } selected)
             return;
-        await _store.SavePresetsAsync(_userTemplates.Where(p => p.Id != id));
+        await _store.SaveTemplatesAsync(_userTemplates.Where(p => p.Id != id));
         _userTemplates.RemoveAll(p => p.Id == id);
         Templates.Remove(selected);
         SelectedTemplate = Templates.FirstOrDefault();
@@ -302,83 +347,10 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
         foreach (var pipeline in Pipelines)
             pipeline.RefreshLocalization();
     }
-    public async Task SaveAsync()
-    {
-        if (!_loaded || _savedRevision == _revision && File.Exists(_store.FilePath))
-            return;
-        var revision = _revision;
-        await _store.SaveAsync(Pipelines.Select(p => p.ToDocument()));
-        _savedRevision = Math.Max(_savedRevision, revision);
-    }
-    public void RefreshTimerLimit()
-    {
-        foreach (var pipeline in Pipelines)
-            pipeline.SetTimerLimit(_timerLimit());
-        _revision++;
-    }
-    public async Task StopAllAsync(string reason)
-    {
-        List<Exception> errors = [];
-        foreach (var editor in Pipelines)
-        {
-            try
-            {
-                await editor.StopAsync(reason);
-            }
-            catch (Exception error) { errors.Add(error); }
-        }
-        if (errors.Count > 0)
-            throw new LocalizedAggregateException("Error.StopUnconfirmed", errors);
-    }
-    public async Task StopForDeviceAsync(string id, string reason)
-    {
-        foreach (var editor in Pipelines.Where(p => p.ReferencedDeviceIds.Contains(id)))
-            await editor.StopAsync(reason);
-    }
-    public bool UsesWaveform(Guid id)
-    {
-        if (Pipelines.Any(p => p.UsesWaveform(id)))
-            return true;
-        var registry = RemotePipelineNodes.Register(BuiltInNodes.CreateRegistry());
-        return _userTemplates.Any(p => SubgraphExpansion.Expand(p.Graph).Nodes.Any(n => registry.Get(n.Type).WaveformReferences(registry.Get(n.Type).Read(n.Configuration)).Contains(id)));
-    }
-    public void RefreshWaveforms()
-    {
-        foreach (var pipeline in Pipelines)
-            pipeline.Validate();
-    }
     private void Unsubscribe(PipelineEditorViewModel editor)
     {
         editor.Session.Changed -= OnSessionChanged;
         editor.Edited -= OnEdited;
         editor.WaveformCreated -= OnWaveformCreated;
-    }
-    public async ValueTask DisposeAsync()
-    {
-        if (_disposed)
-            return;
-        _disposed = true;
-        List<Exception> errors = [];
-        foreach (var editor in Pipelines)
-        {
-            try
-            {
-                await editor.DisposeAsync();
-            }
-            catch (Exception error) { errors.Add(error); }
-            finally { Unsubscribe(editor); }
-        }
-        try
-        {
-            await SaveAsync();
-        }
-        catch (Exception error) { errors.Add(error); }
-        Pipelines.CollectionChanged -= OnDeviceCollectionChanged;
-        if (DevicePane is not null)
-            DevicePane.Devices.CollectionChanged -= OnDeviceCollectionChanged;
-        _controller.Changed -= OnDevicesChanged;
-        L10n.Current.PropertyChanged -= OnLanguageChanged;
-        if (errors.Count > 0)
-            throw new LocalizedAggregateException("Error.Cleanup", errors);
     }
 }

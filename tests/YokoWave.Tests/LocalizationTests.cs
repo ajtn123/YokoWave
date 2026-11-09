@@ -1,6 +1,6 @@
 using System.Text;
-using YokoWave.Core.Localization;
 using Xunit;
+using YokoWave.Core.Localization;
 
 namespace YokoWave.Tests;
 
@@ -11,7 +11,7 @@ public sealed class LocalizationTests
     [InlineData("zh-CN")]
     public void LocalizedExceptionsKeepTheirCauseAndTranslateWhenLanguageChanges(string language)
     {
-        var previous = L10n.Current.Language;
+        string previous = L10n.Current.Language;
         try
         {
             L10n.Current.SetLanguage(language);
@@ -25,11 +25,15 @@ public sealed class LocalizationTests
                 Assert.Equal(((ILocalizedError)error).LocalizedMessage.Value, error.Message);
                 Assert.Contains(error.Message, error.ToString());
             }
-            var messages = errors.Select(error => error.Message).ToArray();
+            string[] messages = errors.Select(error => error.Message).ToArray();
             L10n.Current.SetLanguage(language == "en" ? "zh-CN" : "en");
-            for (var index = 0; index < errors.Length; index++) Assert.NotEqual(messages[index], errors[index].Message);
+            for (int index = 0; index < errors.Length; index++)
+                Assert.NotEqual(messages[index], errors[index].Message);
         }
-        finally { L10n.Current.SetLanguage(previous); }
+        finally
+        {
+            L10n.Current.SetLanguage(previous);
+        }
     }
 
     [Fact]

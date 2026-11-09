@@ -7,47 +7,58 @@ internal sealed class YokonexPumpDriver(string id, BluetoothDeviceProfile profil
 {
     private TaskCompletionSource? _stopped;
     protected override DeviceCommandHandlers CreateCommandHandlers() => new DeviceCommandHandlers()
-        .Add<QueryDevice>(async (command, ct) =>
+        .Add<QueryDevice>(async (command, cancellationToken) =>
         {
             if (command.Query is DeviceQuery.All)
             {
-                await Write(YokonexToyProtocol.PumpCommand(4), ct);
-                await Write(YokonexToyProtocol.PumpCommand(5), ct);
+                await WriteAsync(YokonexToyProtocol.PumpCommand(4), cancellationToken).ConfigureAwait(false);
+                await WriteAsync(YokonexToyProtocol.PumpCommand(5), cancellationToken).ConfigureAwait(false);
             }
-            else if (command.Query == DeviceQuery.Battery) await Write(YokonexToyProtocol.PumpCommand(5), ct);
-            else throw new Localization.LocalizedOperationException("Error.DeviceFeatures");
+            else if (command.Query == DeviceQuery.Battery)
+            {
+                await WriteAsync(YokonexToyProtocol.PumpCommand(5), cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                throw new Localization.LocalizedOperationException("Error.DeviceFeatures");
+            }
         });
-    public override async Task Initialize(CancellationToken ct)
+    public override async Task InitializeAsync(CancellationToken cancellationToken)
     {
-        await Stop(ct);
-        await Write(YokonexToyProtocol.PumpCommand(4), ct);
-        await Write(YokonexToyProtocol.PumpCommand(5), ct);
+        await StopAsync(cancellationToken).ConfigureAwait(false);
+        await WriteAsync(YokonexToyProtocol.PumpCommand(4), cancellationToken).ConfigureAwait(false);
+        await WriteAsync(YokonexToyProtocol.PumpCommand(5), cancellationToken).ConfigureAwait(false);
     }
-    public override async Task Stop(CancellationToken ct)
+    public override async Task StopAsync(CancellationToken cancellationToken)
     {
         var stopped = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         _stopped = stopped;
-        await Write(YokonexToyProtocol.PumpCommand(3), ct);
-        await Write(YokonexToyProtocol.PumpCommand(4), ct);
-        await Confirm(stopped.Task, ct, "Error.BluetoothStopState");
+        await WriteAsync(YokonexToyProtocol.PumpCommand(3), cancellationToken).ConfigureAwait(false);
+        await WriteAsync(YokonexToyProtocol.PumpCommand(4), cancellationToken).ConfigureAwait(false);
+        await ConfirmAsync(stopped.Task, cancellationToken, "Error.BluetoothStopState").ConfigureAwait(false);
     }
-    public override async Task Send(OutputFrame frame, CancellationToken ct)
+    public override async Task SendAsync(OutputFrame frame, CancellationToken cancellationToken)
     {
         if (frame.Pump is { } pump && (pump.Direction != PumpDirection.Off || pump.Water))
         {
             pump.Validate();
-            await Write(YokonexToyProtocol.PumpCommand(1, pump.Direction, seconds: (ushort)Math.Max(1, pump.PeristalticSeconds)), ct);
-            await Write(YokonexToyProtocol.PumpCommand(2, water: pump.Water, seconds: (ushort)Math.Max(1, pump.WaterSeconds)), ct);
+            await WriteAsync(YokonexToyProtocol.PumpCommand(1, pump.Direction, seconds: (ushort)Math.Max(1, pump.PeristalticSeconds)), cancellationToken).ConfigureAwait(false);
+            await WriteAsync(YokonexToyProtocol.PumpCommand(2, water: pump.Water, seconds: (ushort)Math.Max(1, pump.WaterSeconds)), cancellationToken).ConfigureAwait(false);
         }
-        else await Stop(ct);
+        else
+        {
+            await StopAsync(cancellationToken).ConfigureAwait(false);
+        }
     }
     public override void OnNotification(GattNotification notification)
     {
-        if (notification.Address != Profile.Notify || YokonexToyProtocol.DecryptPump(notification.Data) is not { } plain) return;
+        if (notification.Address != Profile.Notify || YokonexToyProtocol.DecryptPump(notification.Data) is not { } plain)
+            return;
         switch (plain[3])
         {
             case 1 when plain[4] <= 2 && plain[5] <= 1:
-                if (plain[4] == 0 && plain[5] == 0) _stopped?.TrySetResult();
+                if (plain[4] == 0 && plain[5] == 0)
+                    _stopped?.TrySetResult();
                 Publish(new(Id, outputAEnabled: plain[4] != 0, outputBEnabled: plain[5] != 0,
                     telemetry: new(Peristaltic: (PumpDirection)plain[4], WaterPump: plain[5] != 0)));
                 break;

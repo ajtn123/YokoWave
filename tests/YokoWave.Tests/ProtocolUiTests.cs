@@ -2,12 +2,12 @@ using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Xunit;
 using YokoWave.App.ViewModels;
 using YokoWave.App.Views.Components;
 using YokoWave.Core;
 using YokoWave.Core.Bluetooth;
 using YokoWave.Core.Localization;
-using Xunit;
 
 namespace YokoWave.Tests;
 
@@ -21,7 +21,7 @@ public sealed class ProtocolUiTests
         var devices = await controller.ScanAsync(TestContext.Current.CancellationToken);
         var editor = new ProtocolFeaturesViewModel(controller, error => throw error);
         var window = new Window { Content = new ProtocolFeaturesView { DataContext = editor } };
-        var language = L10n.Current.Language;
+        string language = L10n.Current.Language;
         try
         {
             window.Show();
@@ -38,7 +38,7 @@ public sealed class ProtocolUiTests
                     Assert.DoesNotContain(editor.Parameters, field => field.Label.Contains("ReadOnly", StringComparison.Ordinal));
                     foreach (var field in editor.Parameters.Where(field => field.IsChoice))
                         Assert.NotEmpty(field.Choices);
-                    var draft = editor.Json;
+                    string draft = editor.Json;
                     L10n.Current.SetLanguage("en");
                     editor.RefreshLocalization();
                     L10n.Current.SetLanguage("zh-CN");
@@ -68,5 +68,4 @@ public sealed class ProtocolUiTests
             L10n.Current.SetLanguage(language);
         }
     }
-
 }

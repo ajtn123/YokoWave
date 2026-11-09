@@ -5,11 +5,11 @@ internal sealed class CivetDriver(string id, BluetoothDeviceProfile profile, IBl
 {
     protected override byte[] Stream(bool enabled) => CivetProtocol.Stream(enabled);
     protected override DeviceCommandHandlers CreateCommandHandlers() => new DeviceCommandHandlers()
-        .Add<QueryDevice>((command, ct) => command.Query is DeviceQuery.All or DeviceQuery.Battery
-            ? ReadBattery(ct) : throw new Localization.LocalizedOperationException("Error.DeviceFeatures"))
-        .Add<ConfigureSensorStream>((command, ct) => Write(CivetProtocol.Stream(command.Enabled), ct))
-        .Add<ConfigurePressureSensor>((command, ct) => Write(CivetProtocol.Configure(command), ct));
+        .Add<QueryDevice>((command, cancellationToken) => command.Query is DeviceQuery.All or DeviceQuery.Battery
+            ? ReadBatteryAsync(cancellationToken) : throw new Localization.LocalizedOperationException("Error.DeviceFeatures"))
+        .Add<ConfigureSensorStream>((command, cancellationToken) => WriteAsync(CivetProtocol.Stream(command.Enabled), cancellationToken))
+        .Add<ConfigurePressureSensor>((command, cancellationToken) => WriteAsync(CivetProtocol.Configure(command), cancellationToken));
     protected override DeviceTelemetry? ParseTelemetry(byte[] data) => CivetProtocol.Parse(data);
-    protected override Task ReadBattery(CancellationToken ct) => Battery(BluetoothDeviceProfiles.DgBattery, ct);
-    public override Task ResetInput(CancellationToken ct) => Write(CivetProtocol.Configure(new(true)), ct);
+    protected override Task ReadBatteryAsync(CancellationToken cancellationToken) => QueryBatteryAsync(BluetoothDeviceProfiles.DgBattery, cancellationToken);
+    public override Task ResetInputAsync(CancellationToken cancellationToken) => WriteAsync(CivetProtocol.Configure(new(true)), cancellationToken);
 }

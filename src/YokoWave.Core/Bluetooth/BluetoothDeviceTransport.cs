@@ -3,37 +3,26 @@ using YokoWave.Core.Localization;
 
 namespace YokoWave.Core.Bluetooth;
 
-public partial class BluetoothDeviceTransport(IBluetoothAdapter adapter) : IDeviceTransport, IDeviceStatusSource,
+/// <summary>Discovers peripherals and routes operations to independently serialized device sessions.</summary>
+public sealed class BluetoothDeviceTransport : IDeviceTransport, IDeviceStatusSource,
     IElectricalDeviceFeatures, IElectricalMotionSource, IInputDeviceFeatures, IDeviceCommandTransport, IRawGattTransport
 {
-    private sealed class Connection(BluetoothPeripheral peripheral, IBluetoothConnection link, BluetoothProtocolDriver driver)
-    {
-        public BluetoothPeripheral Peripheral { get; } = peripheral;
-        public IBluetoothConnection Link
-        { get; } = link;
-        public BluetoothProtocolDriver Driver { get; set; } = driver;
-        public Guid? RawLease;
-        public bool Restoring;
-        public int Generation;
-        public SemaphoreSlim Gate
-        { get; } = new(1, 1);
-        public TaskCompletionSource Initialized
-        { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        public Action<byte[]>? Primary;
-        public Action<GattNotification>? Additional;
-        public Action? Disconnected;
-        public Action<DeviceCommand>? CommandRequested;
-        public volatile bool Closing, Closed;
-    }
-    private readonly ConcurrentDictionary<string, Connection> _connections = new();
+    private readonly IBluetoothAdapter _adapter;
+    private readonly ConcurrentDictionary<string, BluetoothDeviceSession> _connections = new();
     private readonly ConcurrentDictionary<string, BluetoothPeripheral> _discovered = new();
+
     public bool IsSimulation => false;
     public string DisplayName => L10n.Get("Mode.Bluetooth");
+
     public event EventHandler<DeviceStatusUpdate>? StatusChanged;
     public event EventHandler<DeviceTransportFault>? Faulted;
+    public event Action<GattDeviceNotification>? GattNotificationReceived;
+
+    public BluetoothDeviceTransport(IBluetoothAdapter adapter) => _adapter = adapter;
+
     public async Task<IReadOnlyList<DeviceDescriptor>> ScanAsync(CancellationToken cancellationToken = default)
     {
-        var found = await adapter.ScanAsync(cancellationToken);
+        var found = await _adapter.ScanAsync(cancellationToken).ConfigureAwait(false);
         _discovered.Clear();
         List<DeviceDescriptor> devices = [];
         foreach (var peripheral in found)
@@ -41,17 +30,11 @@ public partial class BluetoothDeviceTransport(IBluetoothAdapter adapter) : IDevi
             if (BluetoothDeviceProfiles.Identify(peripheral.Name, peripheral.Services) is not { } profile)
                 continue;
             _discovered[peripheral.Id] = peripheral;
-            var kind = profile.Domain switch
-            {
-                OutputDomain.Motor => DeviceKind.Vibration,
-                OutputDomain.Pump => DeviceKind.Pump,
-                OutputDomain.Input => DeviceKind.Sensor,
-                _ => DeviceKind.DualChannel
-            };
-            devices.Add(new(peripheral.Id, peripheral.Name, kind, null, peripheral.Signal, profile.Protocol.ToString(), Origin: peripheral.Origin, Simulated: peripheral.Simulated));
+            devices.Add(Describe(peripheral, profile));
         }
         return devices;
     }
+
     public async Task ConnectAsync(DeviceDescriptor device, CancellationToken cancellationToken = default)
     {
         if (!_discovered.TryGetValue(device.Id, out var peripheral) || BluetoothDeviceProfiles.Identify(peripheral.Name, peripheral.Services) is not { } profile)
@@ -60,210 +43,92 @@ public partial class BluetoothDeviceTransport(IBluetoothAdapter adapter) : IDevi
             throw new LocalizedOperationException("Error.PawFirmware");
         if (_connections.TryGetValue(device.Id, out var existing))
         {
-            await existing.Initialized.Task.WaitAsync(cancellationToken);
+            await existing.Initialization.WaitAsync(cancellationToken).ConfigureAwait(false);
             return;
         }
-        var link = await adapter.ConnectAsync(peripheral, cancellationToken);
-        void Publish(DeviceStatusUpdate update) => StatusChanged?.Invoke(this, update);
-        void Fault(Exception error) => Faulted?.Invoke(this, new(device.Id, false, error));
-        var driver = BluetoothProtocolDriverFactory.Create(device.Id, profile, link, Publish, Fault);
-        var connection = new Connection(peripheral, link, driver);
-        connection.CommandRequested = command => _ = ExecuteRequestedCommandAsync(connection, command, connection.Generation);
-        driver.CommandRequested += connection.CommandRequested;
-        connection.Primary = bytes =>
-        {
-            DispatchNotification(device.Id, connection, new(profile.Notify, bytes));
-        };
-        connection.Additional = value =>
-        {
-            DispatchNotification(device.Id, connection, value);
-        };
-        connection.Disconnected = () =>
-        {
-            if (!connection.Closing) Faulted?.Invoke(this, new(device.Id, true, new LocalizedIOException("Error.BluetoothDisconnected")));
-        };
-        link.NotificationReceived += connection.Primary;
-        link.AdditionalNotificationReceived += connection.Additional;
-        link.Disconnected += connection.Disconnected;
-        await connection.Gate.WaitAsync();
+        var link = await _adapter.ConnectAsync(peripheral, cancellationToken).ConfigureAwait(false);
+        var connection = new BluetoothDeviceSession(Describe(peripheral, profile), profile, link,
+            update => StatusChanged?.Invoke(this, update), fault => Faulted?.Invoke(this, fault), notification => GattNotificationReceived?.Invoke(notification));
         if (!_connections.TryAdd(device.Id, connection))
         {
-            connection.Gate.Release();
-            await Close(connection);
-            await Get(device.Id).Initialized.Task.WaitAsync(cancellationToken);
+            await connection.DiscardAsync().ConfigureAwait(false);
+            await Get(device.Id).Initialization.WaitAsync(cancellationToken).ConfigureAwait(false);
             return;
         }
         try
         {
-            await driver.Initialize(cancellationToken);
-            Publish(new(device.Id, telemetry: new(MaximumWriteLength: link.MaximumWriteLength)));
-            connection.Initialized.TrySetResult();
+            await connection.InitializeAsync(cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception error)
+        catch
         {
-            connection.Initialized.TrySetCanceled();
             _connections.TryRemove(device.Id, out _);
-            List<Exception> cleanupErrors = [];
-            try
-            {
-                await driver.Stop(CancellationToken.None);
-            }
-            catch (Exception cleanupError)
-            {
-                cleanupErrors.Add(cleanupError);
-            }
-            try
-            {
-                await Close(connection);
-            }
-            catch (Exception cleanupError)
-            {
-                cleanupErrors.Add(cleanupError);
-            }
-            if (cleanupErrors.Count > 0)
-                throw new LocalizedAggregateException("Error.Cleanup", [error, .. cleanupErrors]);
             throw;
         }
-        finally
-        {
-            connection.Gate.Release();
-        }
     }
-    private Connection Get(string id) => _connections.TryGetValue(id, out var connection) && !connection.Closing
-        ? connection : throw new LocalizedOperationException("Error.NotConnected");
-    private async Task ExecuteRequestedCommandAsync(Connection connection, DeviceCommand command, int generation)
-    {
-        try
-        {
-            await connection.Initialized.Task;
-            await connection.Gate.WaitAsync();
-            try
-            {
-                if (!connection.Closing && !connection.Closed && connection.RawLease is null && generation == connection.Generation) await connection.Driver.ExecuteCommand(command, CancellationToken.None);
-            }
-            finally
-            {
-                connection.Gate.Release();
-            }
-        }
-        catch (OperationCanceledException) when (!connection.Initialized.Task.IsCompletedSuccessfully) { }
-        catch (Exception error)
-        {
-            System.Diagnostics.Trace.TraceError("Protocol maintenance failed: {0}", error);
-        }
-    }
-    private async Task<T> WithConnection<T>(string id, Func<BluetoothProtocolDriver, Task<T>> action, CancellationToken ct, bool stopRaw = false)
-    {
-        var connection = Get(id);
-        await connection.Initialized.Task.WaitAsync(ct);
-        await connection.Gate.WaitAsync(ct);
-        try
-        {
-            if (connection.Closing)
-                throw new LocalizedIOException("Error.BluetoothDisconnected");
-            if (connection.RawLease is not null)
-            {
-                if (!stopRaw) throw new LocalizedOperationException("Error.RemoteRawOwned");
-                await RestoreDriver(connection, id, ct);
-            }
-            return await action(connection.Driver);
-        }
-        finally
-        {
-            connection.Gate.Release();
-        }
-    }
-    public Task SendAsync(string deviceId, OutputFrame frame, CancellationToken cancellationToken = default) => WithConnection(deviceId, async driver =>
-    {
-        if (!double.IsFinite(frame.OutputLimit) || frame.OutputLimit is < 0 or > 100)
-            throw new LocalizedArgumentException("Error.InvalidSettings");
-        double Clamp(double value) => double.IsFinite(value) ? Math.Clamp(value, 0, frame.OutputLimit) : 0;
-        frame = frame with
-        {
-            ChannelA = Math.Min(Clamp(frame.ChannelA), frame.Hardware?.ChannelALimit ?? 100),
-            ChannelB = Math.Min(Clamp(frame.ChannelB), frame.Hardware?.ChannelBLimit ?? 100),
-            ChannelC = Clamp(frame.ChannelC)
-        };
-        driver.Check(frame);
-        // Zero is a stop on output devices, and a no-op on sensor-only links.
-        if (frame == OutputFrame.Zero)
-            await driver.Stop(cancellationToken);
-        else
-            await driver.Send(frame, cancellationToken);
-        return true;
-    }, cancellationToken, frame == OutputFrame.Zero);
+
+    public Task SendAsync(string deviceId, OutputFrame frame, CancellationToken cancellationToken = default) => Get(deviceId).SendAsync(frame, cancellationToken);
     public Task<ElectricalFeatureState> RefreshFeaturesAsync(string deviceId, CancellationToken cancellationToken = default) =>
-        WithConnection(deviceId, driver => driver.RefreshFeatures(cancellationToken), cancellationToken);
+        Get(deviceId).WithDriverAsync(driver => driver.RefreshFeaturesAsync(cancellationToken), cancellationToken);
     public Task<bool> SetLightAsync(string deviceId, bool enabled, CancellationToken cancellationToken = default) =>
-        WithConnection(deviceId, driver => driver.SetLight(enabled, cancellationToken), cancellationToken);
+        Get(deviceId).WithDriverAsync(driver => driver.SetLightAsync(enabled, cancellationToken), cancellationToken);
     public Task SetMotionStreamingAsync(string deviceId, bool enabled, CancellationToken cancellationToken = default) =>
-        WithConnection(deviceId, async driver =>
-        {
-            await driver.SetMotion(enabled, cancellationToken);
-            return true;
-        }, cancellationToken);
+        Get(deviceId).WithDriverAsync(driver => driver.SetMotionAsync(enabled, cancellationToken), cancellationToken);
     public Task ResetInputAsync(string deviceId, CancellationToken cancellationToken = default) =>
-        WithConnection(deviceId, async driver =>
-        {
-            await driver.ResetInput(cancellationToken);
-            return true;
-        }, cancellationToken);
+        Get(deviceId).WithDriverAsync(driver => driver.ResetInputAsync(cancellationToken), cancellationToken);
     public Task ExecuteCommandAsync(string deviceId, DeviceCommand command, CancellationToken cancellationToken = default) =>
-        WithConnection(deviceId, async driver =>
-        {
-            await driver.ExecuteCommand(command, cancellationToken);
-            return true;
-        }, cancellationToken);
+        Get(deviceId).WithDriverAsync(driver => driver.ExecuteCommandAsync(command, cancellationToken), cancellationToken);
+    public Task<GattDescription> OpenGattAsync(string id, Guid lease, CancellationToken cancellationToken = default) => Get(id).OpenGattAsync(lease, cancellationToken);
+    public Task<byte[]?> ReadGattAsync(string id, Guid lease, GattAddress address, CancellationToken cancellationToken = default) => Get(id).ReadGattAsync(lease, address, cancellationToken);
+    public Task WriteGattAsync(string id, Guid lease, IReadOnlyList<GattWrite> writes, CancellationToken cancellationToken = default) => Get(id).WriteGattAsync(lease, writes, cancellationToken);
+    public Task CloseGattAsync(string id, Guid lease, CancellationToken cancellationToken = default) => Get(id).CloseGattAsync(lease, cancellationToken);
+
     public async Task DisconnectAsync(string deviceId, CancellationToken cancellationToken = default)
     {
-        if (!_connections.TryRemove(deviceId, out var connection))
-            return;
-        await connection.Gate.WaitAsync();
-        try
-        {
-            connection.Closing = true;
-            try
-            {
-                if (connection.RawLease is not null) await RestoreDriver(connection, deviceId, cancellationToken);
-                await connection.Driver.Shutdown(cancellationToken);
-            }
-            finally
-            {
-                await Close(connection);
-            }
-        }
-        finally
-        {
-            connection.Gate.Release();
-        }
+        if (_connections.TryRemove(deviceId, out var connection))
+            await connection.DisconnectAsync(cancellationToken).ConfigureAwait(false);
     }
-    private static async ValueTask Close(Connection connection)
-    {
-        connection.Closing = connection.Closed = true;
-        connection.Link.NotificationReceived -= connection.Primary;
-        connection.Link.AdditionalNotificationReceived -= connection.Additional;
-        connection.Link.Disconnected -= connection.Disconnected;
-        connection.Driver.CommandRequested -= connection.CommandRequested;
-        await connection.Link.DisposeAsync();
-    }
+
     public async ValueTask DisposeAsync()
     {
         List<Exception> errors = [];
-        foreach (var id in _connections.Keys)
+        foreach (string id in _connections.Keys)
+        {
             try
             {
-                await DisconnectAsync(id);
+                await DisconnectAsync(id).ConfigureAwait(false);
             }
             catch (Exception error)
             {
                 errors.Add(error);
             }
-        if (adapter is IAsyncDisposable disposable)
+        }
+        if (_adapter is IAsyncDisposable disposable)
         {
-            try { await disposable.DisposeAsync(); }
-            catch (Exception error) { errors.Add(error); }
+            try
+            {
+                await disposable.DisposeAsync().ConfigureAwait(false);
+            }
+            catch (Exception error)
+            {
+                errors.Add(error);
+            }
         }
         if (errors.Count > 0)
             throw new LocalizedAggregateException("Error.Cleanup", errors);
+    }
+
+    private BluetoothDeviceSession Get(string id) => _connections.TryGetValue(id, out var connection) && !connection.IsClosing
+        ? connection : throw new LocalizedOperationException("Error.NotConnected");
+
+    private static DeviceDescriptor Describe(BluetoothPeripheral peripheral, BluetoothDeviceProfile profile)
+    {
+        var kind = profile.Domain switch
+        {
+            OutputDomain.Motor => DeviceKind.Vibration,
+            OutputDomain.Pump => DeviceKind.Pump,
+            OutputDomain.Input => DeviceKind.Sensor,
+            _ => DeviceKind.DualChannel
+        };
+        return new(peripheral.Id, peripheral.Name, kind, null, peripheral.Signal, profile.Protocol.ToString(), Origin: peripheral.Origin, Simulated: peripheral.Simulated);
     }
 }

@@ -6,7 +6,7 @@
   <DataTemplate x:Key="Template.DeviceOption" x:DataType="pipelines:PipelineDeviceOption">
     <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
   </DataTemplate>
-  <DataTemplate x:Key="Template.WaveformOption" x:DataType="vm:PresetItem">
+  <DataTemplate x:Key="Template.WaveformOption" x:DataType="vm:WaveformItem">
     <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
   </DataTemplate>
 </ResourceDictionary>

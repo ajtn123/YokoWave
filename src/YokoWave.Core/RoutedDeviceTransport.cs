@@ -19,47 +19,51 @@ public sealed class RoutedDeviceTransport : IDeviceTransport, IDeviceStatusSourc
     public RoutedDeviceTransport(IDeviceTransport local) => Add("local", local);
     public void Add(string key, IDeviceTransport transport)
     {
-        if (!_providers.TryAdd(key, transport)) throw new LocalizedOperationException("Error.RemoteExists");
+        if (!_providers.TryAdd(key, transport))
+            throw new LocalizedOperationException("Error.RemoteExists");
         if (transport is IDeviceStatusSource source)
         {
             source.StatusChanged += ForwardStatus;
             source.Faulted += ForwardFault;
         }
-        if (transport is IRawGattTransport raw) raw.GattNotificationReceived += ForwardGatt;
+        if (transport is IRawGattTransport raw)
+            raw.GattNotificationReceived += ForwardGatt;
     }
-    private void ForwardStatus(object? sender, DeviceStatusUpdate value) => StatusChanged?.Invoke(this, value);
-    private void ForwardFault(object? sender, DeviceTransportFault value) => Faulted?.Invoke(this, value);
-    private void ForwardGatt(GattDeviceNotification value) => GattNotificationReceived?.Invoke(value);
     public async Task RemoveAsync(string key)
     {
-        if (!_providers.TryRemove(key, out var provider)) return;
+        if (!_providers.TryRemove(key, out var provider))
+            return;
         if (provider is IDeviceStatusSource source)
         {
             source.StatusChanged -= ForwardStatus;
             source.Faulted -= ForwardFault;
         }
-        if (provider is IRawGattTransport raw) raw.GattNotificationReceived -= ForwardGatt;
-        foreach (var pair in _routes.Where(pair => pair.Value == provider).ToArray()) _routes.TryRemove(pair.Key, out _);
-        await provider.DisposeAsync();
+        if (provider is IRawGattTransport raw)
+            raw.GattNotificationReceived -= ForwardGatt;
+        foreach (var pair in _routes.Where(pair => pair.Value == provider).ToArray())
+            _routes.TryRemove(pair.Key, out _);
+        await provider.DisposeAsync().ConfigureAwait(false);
     }
     public async Task ReplaceLocalAsync(IDeviceTransport next)
     {
-        await RemoveAsync("local");
+        await RemoveAsync("local").ConfigureAwait(false);
         Add("local", next);
     }
-    private IDeviceTransport Provider(string id) => _routes.TryGetValue(id, out var provider) ? provider : throw new LocalizedOperationException("Error.BluetoothRescan");
     public bool IsSimulated(string id) => Provider(id).IsSimulation;
     public IReadOnlyList<string> DeviceIds(string key) => _providers.TryGetValue(key, out var provider) ? _routes.Where(pair => pair.Value == provider).Select(pair => pair.Key).ToArray() : [];
-    private T Feature<T>(string id) => Provider(id) is T feature ? feature : throw new LocalizedOperationException("Error.DeviceFeatures");
     public async Task<IReadOnlyList<DeviceDescriptor>> ScanAsync(CancellationToken cancellationToken = default)
     {
         var scans = _providers.Select(async pair =>
         {
             try
             {
-                var devices = await pair.Value.ScanAsync(cancellationToken);
+                var devices = await pair.Value.ScanAsync(cancellationToken).ConfigureAwait(false);
                 foreach (var device in devices)
-                    if (!_routes.TryAdd(device.Id, pair.Value) && _routes[device.Id] != pair.Value) throw new LocalizedOperationException("Error.RemoteIdCollision");
+                {
+                    if (!_routes.TryAdd(device.Id, pair.Value) && _routes[device.Id] != pair.Value)
+                        throw new LocalizedOperationException("Error.RemoteIdCollision");
+                }
+
                 return devices.Select(device => device with { Simulated = device.Simulated ?? pair.Value.IsSimulation }).ToArray();
             }
             catch (Exception error) when (pair.Key != "local" && error is not OperationCanceledException)
@@ -68,11 +72,12 @@ public sealed class RoutedDeviceTransport : IDeviceTransport, IDeviceStatusSourc
                 return [];
             }
         }).ToArray();
-        return (await Task.WhenAll(scans)).SelectMany(devices => devices).ToArray();
+        return (await Task.WhenAll(scans).ConfigureAwait(false)).SelectMany(devices => devices).ToArray();
     }
     public Task ConnectAsync(DeviceDescriptor device, CancellationToken cancellationToken = default)
     {
-        if (!_routes.ContainsKey(device.Id) && device.Origin == DeviceOrigin.Local) _routes.TryAdd(device.Id, _providers["local"]);
+        if (!_routes.ContainsKey(device.Id) && device.Origin == DeviceOrigin.Local)
+            _routes.TryAdd(device.Id, _providers["local"]);
         return Provider(device.Id).ConnectAsync(device, cancellationToken);
     }
     public Task SendAsync(string deviceId, OutputFrame frame, CancellationToken cancellationToken = default) => Provider(deviceId).SendAsync(deviceId, frame, cancellationToken);
@@ -83,18 +88,30 @@ public sealed class RoutedDeviceTransport : IDeviceTransport, IDeviceStatusSourc
     public Task SetMotionStreamingAsync(string deviceId, bool enabled, CancellationToken cancellationToken = default) => Provider(deviceId) is IElectricalMotionSource motion
         ? motion.SetMotionStreamingAsync(deviceId, enabled, cancellationToken) : Provider(deviceId).IsSimulation ? Task.CompletedTask : throw new LocalizedOperationException("Error.MotionUnavailable");
     public Task ResetInputAsync(string deviceId, CancellationToken cancellationToken = default) => Feature<IInputDeviceFeatures>(deviceId).ResetInputAsync(deviceId, cancellationToken);
-    public Task<GattDescription> OpenGattAsync(string id, Guid lease, CancellationToken ct = default) => Feature<IRawGattTransport>(id).OpenGattAsync(id, lease, ct);
-    public Task<byte[]?> ReadGattAsync(string id, Guid lease, GattAddress address, CancellationToken ct = default) => Feature<IRawGattTransport>(id).ReadGattAsync(id, lease, address, ct);
-    public Task WriteGattAsync(string id, Guid lease, IReadOnlyList<GattWrite> writes, CancellationToken ct = default) => Feature<IRawGattTransport>(id).WriteGattAsync(id, lease, writes, ct);
-    public Task CloseGattAsync(string id, Guid lease, CancellationToken ct = default) => Feature<IRawGattTransport>(id).CloseGattAsync(id, lease, ct);
+    public Task<GattDescription> OpenGattAsync(string id, Guid lease, CancellationToken cancellationToken = default) => Feature<IRawGattTransport>(id).OpenGattAsync(id, lease, cancellationToken);
+    public Task<byte[]?> ReadGattAsync(string id, Guid lease, GattAddress address, CancellationToken cancellationToken = default) => Feature<IRawGattTransport>(id).ReadGattAsync(id, lease, address, cancellationToken);
+    public Task WriteGattAsync(string id, Guid lease, IReadOnlyList<GattWrite> writes, CancellationToken cancellationToken = default) => Feature<IRawGattTransport>(id).WriteGattAsync(id, lease, writes, cancellationToken);
+    public Task CloseGattAsync(string id, Guid lease, CancellationToken cancellationToken = default) => Feature<IRawGattTransport>(id).CloseGattAsync(id, lease, cancellationToken);
     public async ValueTask DisposeAsync()
     {
         List<Exception> errors = [];
-        foreach (var key in _providers.Keys)
+        foreach (string key in _providers.Keys)
         {
-            try { await RemoveAsync(key); }
-            catch (Exception error) { errors.Add(error); }
+            try
+            {
+                await RemoveAsync(key).ConfigureAwait(false);
+            }
+            catch (Exception error)
+            {
+                errors.Add(error);
+            }
         }
-        if (errors.Count > 0) throw new LocalizedAggregateException("Error.Cleanup", errors);
+        if (errors.Count > 0)
+            throw new LocalizedAggregateException("Error.Cleanup", errors);
     }
+    private void ForwardStatus(object? sender, DeviceStatusUpdate value) => StatusChanged?.Invoke(this, value);
+    private void ForwardFault(object? sender, DeviceTransportFault value) => Faulted?.Invoke(this, value);
+    private void ForwardGatt(GattDeviceNotification value) => GattNotificationReceived?.Invoke(value);
+    private IDeviceTransport Provider(string id) => _routes.TryGetValue(id, out var provider) ? provider : throw new LocalizedOperationException("Error.BluetoothRescan");
+    private T Feature<T>(string id) => Provider(id) is T feature ? feature : throw new LocalizedOperationException("Error.DeviceFeatures");
 }

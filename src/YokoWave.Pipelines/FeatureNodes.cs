@@ -43,12 +43,12 @@ public static partial class BuiltInNodes
     public const string FrameInput = "control.frame";
     public const string RouterOutput = "device.router";
     public static bool IsOutput(string type) => type is ChannelOutput or PumpOutput or NativeOutput or RouterOutput;
-    private static bool ValidLimit(double limit) => double.IsFinite(limit) && limit is >= 0 and <= 1;
     public static NodePort[] FramePorts() => new[] { 'A', 'B', 'C' }.SelectMany(c => new[]
     {
         Out("strength" + c), Out("frequency" + c), Out("width" + c)
     }).Concat(new[] { "direction", "water", "peristalticSeconds", "waterSeconds" }.Select(Out))
         .Append(NodePort.Intent("intent", "Pipeline.Port.intent", PortDirection.Output)).ToArray();
+    private static bool ValidLimit(double limit) => double.IsFinite(limit) && limit is >= 0 and <= 1;
 
     private static NodePort In(string id, double min = double.MinValue, double max = double.MaxValue, double value = 0, bool integer = false) =>
         NodePort.Input(id, $"Pipeline.Port.{id}", min, max, value, integer: integer);
@@ -60,7 +60,10 @@ public static partial class BuiltInNodes
             validate();
             return true;
         }
-        catch (Exception error) when (error is ArgumentException or InvalidOperationException) { return false; }
+        catch (Exception error) when (error is ArgumentException or InvalidOperationException)
+        {
+            return false;
+        }
     }
     private static bool Finite(params double[] values) => values.All(double.IsFinite);
 

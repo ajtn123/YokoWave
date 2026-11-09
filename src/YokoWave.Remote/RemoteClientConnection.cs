@@ -15,69 +15,78 @@ internal sealed class RemoteClientConnection(RemoteEndpointSettings settings, st
     public long HelloAt { get; private set; }
     public event Action<string, JsonElement>? Notification;
     public event Action? Disconnected;
-    public async Task ConnectAsync(CancellationToken ct)
+    public async Task ConnectAsync(CancellationToken cancellationToken)
     {
         settings.Validate();
-        await _gate.WaitAsync(ct);
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
             if (Peer is { Completion.IsCompleted: false })
                 return;
             if (Peer is not null)
-                await Peer.DisposeAsync();
+                await Peer.DisposeAsync().ConfigureAwait(false);
             var socket = new ClientWebSocket();
             socket.Options.AddSubProtocol(RemoteProtocol.SubProtocol);
-            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeout.CancelAfter(TimeSpan.FromSeconds(10));
             try
             {
-                await socket.ConnectAsync(new Uri(settings.Url), timeout.Token);
+                await socket.ConnectAsync(new Uri(settings.Url), timeout.Token).ConfigureAwait(false);
                 Peer = new(socket);
                 Peer.Notification += (method, value) => Notification?.Invoke(method, value);
                 Peer.Start();
                 await Peer.CallAsync<bool>("system.authenticate", new
                 {
                     token
-                }, timeout.Token);
-                Hello = await Peer.CallAsync<RemoteHello>("system.hello", ct: timeout.Token);
+                }, timeout.Token).ConfigureAwait(false);
+                Hello = await Peer.CallAsync<RemoteHello>("system.hello", cancellationToken: timeout.Token).ConfigureAwait(false);
                 HelloAt = System.Diagnostics.Stopwatch.GetTimestamp();
                 if (Hello.Version != RemoteProtocol.Version)
                     throw new LocalizedOperationException("Error.RemoteVersion");
-                _ = Observe(Peer);
+                _ = ObserveAsync(Peer);
             }
             catch (Exception error)
             {
                 try
                 {
                     if (Peer is not null)
-                        await Peer.DisposeAsync();
+                        await Peer.DisposeAsync().ConfigureAwait(false);
                     else
                         socket.Dispose();
                 }
-                catch (Exception cleanup) { throw new LocalizedAggregateException("Error.Cleanup", [error, cleanup]); }
+                catch (Exception cleanup)
+                {
+                    throw new LocalizedAggregateException("Error.Cleanup", [error, cleanup]);
+                }
                 throw;
             }
         }
-        finally { _gate.Release(); }
-    }
-    private async Task Observe(WebSocketRpcPeer peer)
-    {
-        await peer.Completion;
-        if (ReferenceEquals(Peer, peer))
-            Disconnected?.Invoke();
+        finally
+        {
+            _gate.Release();
+        }
     }
     public string Key(string id) => $"ws:{settings.Id:N}:{Hello.ServerId:N}:{id}";
     public async ValueTask DisposeAsync()
     {
-        await _gate.WaitAsync();
+        await _gate.WaitAsync().ConfigureAwait(false);
         try
         {
             _disposed = true;
             if (Peer is not null)
-                await Peer.DisposeAsync();
+                await Peer.DisposeAsync().ConfigureAwait(false);
         }
-        finally { _gate.Release(); }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+    private async Task ObserveAsync(WebSocketRpcPeer peer)
+    {
+        await peer.Completion.ConfigureAwait(false);
+        if (ReferenceEquals(Peer, peer))
+            Disconnected?.Invoke();
     }
 }
 
@@ -89,14 +98,15 @@ internal sealed class RemoteDeviceLink(WebSocketRpcPeer peer, RemoteDevice devic
     private readonly RemoteClock _clock = new(serverClock, clockAt);
     private Task _renew = Task.CompletedTask;
     private long _sequence;
-    private int _lost, _disposed;
+    private int _lost;
+    private int _disposed;
     public Guid Id => lease.Id;
     public string DeviceId => device.Id;
     public event Action? Disconnected;
-    public void Start() => _renew = Renew();
-    public async Task<T> Call<T>(string method, object args, CancellationToken ct = default)
+    public void Start() => _renew = RenewAsync();
+    public async Task<T> CallAsync<T>(string method, object args, CancellationToken cancellationToken = default)
     {
-        await _gate.WaitAsync(ct);
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             if (Volatile.Read(ref _lost) != 0 || Volatile.Read(ref _disposed) != 0)
@@ -106,29 +116,12 @@ internal sealed class RemoteDeviceLink(WebSocketRpcPeer peer, RemoteDevice devic
             parameters["deviceId"] = device.Id;
             parameters["sequence"] = ++_sequence;
             parameters["deadline"] = _clock.Now + 500;
-            using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, _lifetime.Token);
-            return await peer.CallAsync<T>(method, parameters, linked.Token);
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetime.Token);
+            return await peer.CallAsync<T>(method, parameters, linked.Token).ConfigureAwait(false);
         }
-        finally { _gate.Release(); }
-    }
-    private async Task Renew()
-    {
-        try
+        finally
         {
-            using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(Math.Max(100, lease.LeaseMilliseconds / 3)));
-            while (await timer.WaitForNextTickAsync(_lifetime.Token))
-            {
-                var heartbeat = await peer.CallAsync<RemoteHeartbeat>("lease.renew", new
-                {
-                    lease = lease.Id
-                }, _lifetime.Token, abortOnCancellation: false);
-                _clock.Update(heartbeat.ClockMilliseconds);
-            }
-        }
-        catch (Exception error) when (error is not StackOverflowException and not OutOfMemoryException)
-        {
-            if (!_lifetime.IsCancellationRequested)
-                Lost();
+            _gate.Release();
         }
     }
     public bool IsFresh(long clock) => Volatile.Read(ref _lost) == 0 && Volatile.Read(ref _disposed) == 0 && InputAge(clock) <= TimeSpan.FromMilliseconds(500);
@@ -137,7 +130,7 @@ internal sealed class RemoteDeviceLink(WebSocketRpcPeer peer, RemoteDevice devic
         var expired = TimeSpan.FromDays(1);
         if (captured is not { } timestamp)
             return expired;
-        var milliseconds = (double)_clock.Now - timestamp;
+        double milliseconds = (double)_clock.Now - timestamp;
         return milliseconds < -500 ? expired : TimeSpan.FromMilliseconds(Math.Clamp(milliseconds, 0, expired.TotalMilliseconds));
     }
     public void Lost()
@@ -155,16 +148,38 @@ internal sealed class RemoteDeviceLink(WebSocketRpcPeer peer, RemoteDevice devic
         try
         {
             if (Volatile.Read(ref _lost) == 0)
+            {
                 await peer.CallAsync<bool>("lease.release", new
                 {
                     lease = lease.Id
-                });
+                }).ConfigureAwait(false);
+            }
         }
         catch (Exception error) when (error is RemoteRpcException or IOException or OperationCanceledException or WebSocketException) { }
         finally
         {
-            await _renew;
+            await _renew.ConfigureAwait(false);
             _lifetime.Dispose();
+        }
+    }
+    private async Task RenewAsync()
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(Math.Max(100, lease.LeaseMilliseconds / 3)));
+            while (await timer.WaitForNextTickAsync(_lifetime.Token).ConfigureAwait(false))
+            {
+                var heartbeat = await peer.CallAsync<RemoteHeartbeat>("lease.renew", new
+                {
+                    lease = lease.Id
+                }, _lifetime.Token, abortOnCancellation: false).ConfigureAwait(false);
+                _clock.Update(heartbeat.ClockMilliseconds);
+            }
+        }
+        catch (Exception error) when (error is not StackOverflowException and not OutOfMemoryException)
+        {
+            if (!_lifetime.IsCancellationRequested)
+                Lost();
         }
     }
 }

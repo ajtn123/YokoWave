@@ -8,6 +8,7 @@ using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Xunit;
 using YokoWave.App.Controls;
 using YokoWave.App.ViewModels;
 using YokoWave.App.ViewModels.Pipelines;
@@ -15,7 +16,6 @@ using YokoWave.App.Views;
 using YokoWave.Core;
 using YokoWave.Core.Localization;
 using YokoWave.Pipelines;
-using Xunit;
 
 namespace YokoWave.Tests;
 
@@ -31,7 +31,7 @@ public sealed class GraphWorkspaceUiTests
         Guid copyId;
         {
             await using var workspace = new PipelinesWorkspaceViewModel(controller, folder.Path,
-                new(WaveformPreset.BuiltIn.Select(w => new PresetItem(w))), errors.Add, _ => { }, () => 7200, () => .6);
+                new(WaveformAsset.BuiltIn.Select(w => new WaveformItem(w))), errors.Add, _ => { }, () => 7200, () => .6);
             await workspace.LoadAsync();
             var builder = new PipelineBuilder(new string('t', PipelineDocument.MaximumNameLength));
             var value = builder.Add(BuiltInNodes.Constant, new ConstantNode(.4));
@@ -74,7 +74,7 @@ public sealed class GraphWorkspaceUiTests
             await workspace.SaveAsync();
         }
         await using var reopened = new PipelinesWorkspaceViewModel(controller, folder.Path,
-            new(WaveformPreset.BuiltIn.Select(w => new PresetItem(w))), errors.Add, _ => { }, () => 7200, () => .6);
+            new(WaveformAsset.BuiltIn.Select(w => new WaveformItem(w))), errors.Add, _ => { }, () => 7200, () => .6);
         await reopened.LoadAsync();
         var restored = reopened.Pipelines.Single(p => p.Id == copyId);
         Assert.Single(restored.ToDocument().Inputs!);
@@ -97,7 +97,7 @@ public sealed class GraphWorkspaceUiTests
         vm.Pipelines.DuplicateCommand.Execute(null);
         var second = vm.Pipelines.Selected!;
         Assert.DoesNotContain(device.Id, second.AssignedDeviceIds);
-        var placeholder = Assert.Single(second.ReferencedDeviceIds);
+        string placeholder = Assert.Single(second.ReferencedDeviceIds);
         Assert.ThrowsAny<InvalidOperationException>(() => second.RebindDevice(placeholder, device.Id));
         Assert.DoesNotContain(device.Id, second.AssignedDeviceIds);
         first.RebindDevice(device.Id, "$device");
@@ -114,7 +114,7 @@ public sealed class GraphWorkspaceUiTests
         await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new(folder.Path));
         await vm.InitializeAsync();
         var previous = Logger.Sink;
-        var language = L10n.Current.Language;
+        string language = L10n.Current.Language;
         var sink = new BindingSink();
         Logger.Sink = sink;
         var view = new MainView { DataContext = vm };
@@ -128,7 +128,7 @@ public sealed class GraphWorkspaceUiTests
                 var node = editor.Nodes.FirstOrDefault(n => n.Type == registration.Type) ?? editor.AddNode(registration.Type);
                 editor.SelectedNodes.Clear();
                 editor.SelectedNodes.Add(node);
-                foreach (var locale in new[] { "en", "zh-CN" })
+                foreach (string? locale in new[] { "en", "zh-CN" })
                 {
                     L10n.Current.SetLanguage(locale);
                     Dispatcher.UIThread.RunJobs();
@@ -143,7 +143,7 @@ public sealed class GraphWorkspaceUiTests
                 Dispatcher.UIThread.RunJobs();
                 Assert.NotEmpty(vm.Pipelines.Selected!.Nodes);
             }
-            foreach (var page in new[] { "devices", "waves", "history", "settings", "help", "pipelines" })
+            foreach (string? page in new[] { "devices", "waves", "history", "settings", "help", "pipelines" })
             {
                 await vm.NavigateAsync(page);
                 Dispatcher.UIThread.RunJobs();
@@ -173,12 +173,12 @@ public sealed class GraphWorkspaceUiTests
         foreach (var constant in editor.Nodes.OfType<ConstantEditorViewModel>())
             constant.Value = .25;
         editor.TimerEnabled = false;
-        var snapshot = JsonSerializer.Serialize(editor.ToDocument(), PipelineJson.Options);
+        string snapshot = JsonSerializer.Serialize(editor.ToDocument(), PipelineJson.Options);
         await editor.StartAsync();
         await vm.NavigateAsync("help");
         Assert.Equal(PipelineState.Running, editor.Session.State);
         Assert.False(editor.CanEdit);
-        var count = editor.Nodes.Count;
+        int count = editor.Nodes.Count;
         editor.AddNode(BuiltInNodes.Constant);
         Assert.Equal(count, editor.Nodes.Count);
         foreach (var output in editor.Nodes.Where(n => n.HasStrengthLimit))
@@ -198,13 +198,13 @@ public sealed class GraphWorkspaceUiTests
         Assert.Empty(subgraph.Graph.AssignedDevices!);
         await vm.Pipelines.SaveAsync();
         await vm.SaveAsync();
-        var saved = await File.ReadAllTextAsync(Path.Combine(folder.Path, "pipelines.json"), TestContext.Current.CancellationToken);
+        string saved = await File.ReadAllTextAsync(Path.Combine(folder.Path, "pipelines.json"), TestContext.Current.CancellationToken);
         Assert.DoesNotContain("PipelineSession", saved);
         Assert.DoesNotContain("Token", saved);
         Assert.DoesNotContain("\n", saved);
         Assert.False(File.Exists(Path.Combine(folder.Path, "modes.json")));
         Assert.NotEmpty(snapshot);
-        Assert.Single(await new PipelineStore(folder.Path).LoadPresetsAsync());
+        Assert.Single(await new PipelineStore(folder.Path).LoadTemplatesAsync());
     }
 
     [AvaloniaFact]
@@ -218,7 +218,7 @@ public sealed class GraphWorkspaceUiTests
         var editor = vm.Pipelines.Selected!;
         var native = editor.Nodes.OfType<NativeOutputEditorViewModel>().Single();
         native.NativeEditor.PresetA = 7;
-        var before = JsonSerializer.Serialize(editor.ToDocument(), PipelineJson.Options);
+        string before = JsonSerializer.Serialize(editor.ToDocument(), PipelineJson.Options);
         L10n.Current.SetLanguage("en");
         Dispatcher.UIThread.RunJobs();
         Assert.Equal(before, JsonSerializer.Serialize(editor.ToDocument(), PipelineJson.Options));
@@ -243,12 +243,15 @@ public sealed class GraphWorkspaceUiTests
             Dispatcher.UIThread.RunJobs();
             Assert.NotEqual(accent, Assert.IsAssignableFrom<ISolidColorBrush>(plot.ChannelABrush).Color);
         }
-        finally { window.Close(); }
+        finally
+        {
+            window.Close();
+        }
     }
 
     private static async Task Wait(Func<bool> condition)
     {
-        for (var i = 0; i < 100 && !condition(); i++)
+        for (int i = 0; i < 100 && !condition(); i++)
         {
             Dispatcher.UIThread.RunJobs();
             await Task.Delay(10, TestContext.Current.CancellationToken);

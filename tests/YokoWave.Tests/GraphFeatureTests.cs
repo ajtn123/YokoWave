@@ -1,24 +1,14 @@
 using System.Text.Json;
+using Xunit;
 using YokoWave.Core;
 using YokoWave.Core.Bluetooth;
 using YokoWave.Pipelines;
-using Xunit;
 
 namespace YokoWave.Tests;
 
 public sealed class GraphFeatureTests
 {
-    private static readonly DateTimeOffset Now = DateTimeOffset.Parse("2026-11-08T00:00:00Z");
-    private static WaveformPreset Wave(double frequency = 20, double seconds = 1) => new(Guid.NewGuid(), "wave", WaveShape.Custom, seconds, frequency, [1, 1]);
-    private static PipelineRuntime Runtime(PipelineBuilder graph, params WaveformPreset[] waves) => new(
-        new PipelineCompiler(BuiltInNodes.CreateRegistry()).Compile(graph.Build(), waves), new HashSet<string> { "out", "sensor" });
-    private static NodeDefinition Sink(PipelineBuilder b, NodeDefinition source, string port = "value", int channel = 0, double limit = .6)
-    {
-        var output = b.Add(BuiltInNodes.ChannelOutput, new ChannelOutputNode("out", channel, Limit: limit));
-        b.Connect(source, port, output, "strength");
-        return output;
-    }
-    private static double Level(PipelineRuntime runtime, double seconds = 0) => runtime.Evaluate(TimeSpan.FromSeconds(seconds), Now.AddSeconds(seconds)).Outputs["out"].ChannelA;
+    private static readonly DateTimeOffset _now = DateTimeOffset.Parse("2026-11-08T00:00:00Z");
     public static IEnumerable<object[]> Templates => PipelineTemplates.All.Select(t => new object[] { t.Key });
 
     [Theory]
@@ -34,15 +24,15 @@ public sealed class GraphFeatureTests
         await using var controller = new DeviceController(new BluetoothDeviceTransport(adapter));
         var device = Assert.Single(await controller.ScanAsync(TestContext.Current.CancellationToken));
         await controller.ConnectAsync(device, TestContext.Current.CancellationToken);
-        foreach (var waveform in WaveformPreset.BuiltIn)
+        foreach (var waveform in WaveformAsset.BuiltIn)
         {
-            var saved = JsonSerializer.Serialize(waveform);
+            string saved = JsonSerializer.Serialize(waveform);
             var graph = PipelineTemplates.Create("waveform", new("wave", device.Id, Waveform: waveform, Channels: device.ChannelCount));
-            var runtime = new PipelineRuntime(new PipelineCompiler(BuiltInNodes.CreateRegistry()).Compile(graph, WaveformPreset.BuiltIn,
+            var runtime = new PipelineRuntime(new PipelineCompiler(BuiltInNodes.CreateRegistry()).Compile(graph, WaveformAsset.BuiltIn,
                 new Dictionary<string, DeviceDescriptor> { [device.Id] = device }), new HashSet<string>());
             foreach (var node in graph.Nodes.Where(n => n.Type == BuiltInNodes.Constant))
                 runtime.SetConstant(node.Id, .4);
-            var frame = runtime.Evaluate(TimeSpan.FromSeconds(waveform.PeriodSeconds / 2), Now).Outputs[device.Id];
+            var frame = runtime.Evaluate(TimeSpan.FromSeconds(waveform.PeriodSeconds / 2), _now).Outputs[device.Id];
             Assert.Equal(4, frame.WindowA!.Count);
             await controller.SendAsync(device.Id, frame, TestContext.Current.CancellationToken);
             Assert.Equal(saved, JsonSerializer.Serialize(waveform));
@@ -56,17 +46,17 @@ public sealed class GraphFeatureTests
     [MemberData(nameof(Templates))]
     public void EveryPresetIsAnOrdinaryGraphWithFreshIndependentState(string key)
     {
-        var graph = PipelineTemplates.Create(key, new("template", "out", "sensor", WaveformPreset.BuiltIn[0]));
+        var graph = PipelineTemplates.Create(key, new("template", "out", "sensor", WaveformAsset.BuiltIn[0]));
         Assert.NotEmpty(graph.Nodes);
-        var plan = new PipelineCompiler(BuiltInNodes.CreateRegistry()).Compile(graph, WaveformPreset.BuiltIn);
+        var plan = new PipelineCompiler(BuiltInNodes.CreateRegistry()).Compile(graph, WaveformAsset.BuiltIn);
         var first = new PipelineRuntime(plan, new HashSet<string> { "out", "sensor" });
         var next = new PipelineRuntime(plan, new HashSet<string> { "out", "sensor" });
-        var initial = JsonSerializer.Serialize(first.Evaluate(TimeSpan.Zero, Now));
+        string initial = JsonSerializer.Serialize(first.Evaluate(TimeSpan.Zero, _now));
         foreach (var node in graph.Nodes.Where(n => n.Type == BuiltInNodes.Constant))
             first.SetConstant(node.Id, .8);
-        first.Evaluate(TimeSpan.FromSeconds(1), Now.AddSeconds(1));
-        Assert.Equal(initial, JsonSerializer.Serialize(next.Evaluate(TimeSpan.Zero, Now)));
-        Assert.All(first.Evaluate(TimeSpan.Zero, Now).Outputs.Values, f => Assert.InRange(f.ChannelA, 0, 60));
+        first.Evaluate(TimeSpan.FromSeconds(1), _now.AddSeconds(1));
+        Assert.Equal(initial, JsonSerializer.Serialize(next.Evaluate(TimeSpan.Zero, _now)));
+        Assert.All(first.Evaluate(TimeSpan.Zero, _now).Outputs.Values, f => Assert.InRange(f.ChannelA, 0, 60));
     }
 
     [Theory]
@@ -85,16 +75,19 @@ public sealed class GraphFeatureTests
         Sink(b, other, "levelA", 1);
         var runtime = Runtime(b, a, bWave);
         Assert.Equal(60, Level(runtime));
-        var frame = runtime.Evaluate(TimeSpan.FromSeconds(1), Now.AddSeconds(1));
+        var frame = runtime.Evaluate(TimeSpan.FromSeconds(1), _now.AddSeconds(1));
         if (order == PlaybackOrder.Once)
         {
             Assert.Equal(0, frame.Outputs["out"].ChannelA);
             Assert.Equal("Reason.WaveComplete", runtime.CompletionReason);
         }
         else if (order != PlaybackOrder.Repeat)
+        {
             Assert.Equal(bWave.Id, runtime.NodeStatus[playlist.Id].Waveform);
+        }
+
         runtime.Update(NodeControl.Create(playlist.Id, "waveform", bWave));
-        runtime.Evaluate(TimeSpan.FromSeconds(1.1), Now.AddSeconds(1.1));
+        runtime.Evaluate(TimeSpan.FromSeconds(1.1), _now.AddSeconds(1.1));
         Assert.Equal(bWave.Id, runtime.NodeStatus[playlist.Id].Waveform);
         Assert.Equal(a.Id, runtime.NodeStatus[other.Id].Waveform);
     }
@@ -118,7 +111,7 @@ public sealed class GraphFeatureTests
         runtime.Update(NodeControl.Create(touch.Id, "touch", new TouchPoint(75, .6, false)));
         Assert.Equal(remainsActive ? 60 : 0, Level(runtime, .3));
         Assert.Equal(2, runtime.NodeStatus[touch.Id].Recording!.Count);
-        for (var i = 0; i < 300; i++)
+        for (int i = 0; i < 300; i++)
         {
             runtime.Update(NodeControl.Create(touch.Id, "touch", new TouchPoint(75, .6, true)));
             Level(runtime, 1 + i / 10d);
@@ -142,15 +135,15 @@ public sealed class GraphFeatureTests
         Sink(b, audio, "right", 1);
         var runtime = Runtime(b);
         Assert.Equal(0, Level(runtime));
-        runtime.Inputs.Audio[audio.Id] = new(1, Now, -6, -120, 1, 0);
-        var active = runtime.Evaluate(TimeSpan.Zero, Now).Outputs["out"];
+        runtime.Inputs.Audio[audio.Id] = new(1, _now, -6, -120, 1, 0);
+        var active = runtime.Evaluate(TimeSpan.Zero, _now).Outputs["out"];
         Assert.True(active.ChannelA > 0);
         Assert.Equal(0, active.ChannelB);
         Assert.Equal(0, Level(runtime, 3));
         Assert.Equal("Waiting", runtime.NodeStatus[audio.Id].Phase);
-        runtime.Inputs.Audio[audio.Id] = new(2, Now.AddSeconds(3), -6, -120, 1, 0);
+        runtime.Inputs.Audio[audio.Id] = new(2, _now.AddSeconds(3), -6, -120, 1, 0);
         Assert.True(Level(runtime, 3) > 0);
-        runtime.Inputs.Audio[audio.Id] = new(3, Now.AddSeconds(3), double.NaN, -6, 1, 1);
+        runtime.Inputs.Audio[audio.Id] = new(3, _now.AddSeconds(3), double.NaN, -6, 1, 1);
         Assert.Equal(0, Level(runtime, 3));
     }
 
@@ -166,7 +159,7 @@ public sealed class GraphFeatureTests
         Sink(b, map);
         var runtime = Runtime(b);
         void Motion(double angle, double time) => runtime.Inputs.Sensors[input.Id] = new(new("sensor", "sensor", DeviceKind.Sensor, 80, -40),
-            new(angle, (long)(time * 10), Now.AddSeconds(time)), null, null, null, true);
+            new(angle, (long)(time * 10), _now.AddSeconds(time)), null, null, null, true);
         Motion(10, 0);
         Assert.Equal(0, Level(runtime));
         Motion(45, 1);
@@ -189,13 +182,13 @@ public sealed class GraphFeatureTests
         var runtime = Runtime(b);
         void Motion(double angle, int steps, int second)
         {
-            runtime.Inputs.Sensors[input.Id] = new(new("sensor", "sensor", DeviceKind.Sensor, 80, -40), new(angle, second + 1, Now.AddSeconds(second), steps), steps, null, null, true);
-            runtime.Evaluate(TimeSpan.FromSeconds(second), Now.AddSeconds(second));
+            runtime.Inputs.Sensors[input.Id] = new(new("sensor", "sensor", DeviceKind.Sensor, 80, -40), new(angle, second + 1, _now.AddSeconds(second), steps), steps, null, null, true);
+            runtime.Evaluate(TimeSpan.FromSeconds(second), _now.AddSeconds(second));
         }
         Motion(10, 0, 0);
         Motion(40, 0, 1);
         Assert.Equal(1, runtime.NodeStatus[count.Id].Count);
-        runtime.Evaluate(TimeSpan.FromSeconds(1.8), Now.AddSeconds(1.8));
+        runtime.Evaluate(TimeSpan.FromSeconds(1.8), _now.AddSeconds(1.8));
         Assert.Equal(1, runtime.NodeStatus[count.Id].Count);
         Motion(40, 1, 2);
         Assert.Equal(2, runtime.NodeStatus[count.Id].Count);
@@ -253,10 +246,10 @@ public sealed class GraphFeatureTests
         var b = new PipelineBuilder("pump");
         var timer = b.Add(BuiltInNodes.PumpTimer, new PumpTimerNode(new(PumpDirection.Forward, true, 2, 3)));
         var sink = b.Add(BuiltInNodes.PumpOutput, new PumpOutputNode("out"));
-        foreach (var port in new[] { "direction", "water", "peristalticSeconds", "waterSeconds" })
+        foreach (string? port in new[] { "direction", "water", "peristalticSeconds", "waterSeconds" })
             b.Connect(timer, port, sink, port);
         var runtime = Runtime(b);
-        PumpOutput Output(double time) => runtime.Evaluate(TimeSpan.FromSeconds(time), Now.AddSeconds(time)).Outputs["out"].Pump!;
+        PumpOutput Output(double time) => runtime.Evaluate(TimeSpan.FromSeconds(time), _now.AddSeconds(time)).Outputs["out"].Pump!;
         Assert.Equal(new(PumpDirection.Forward, true, 2, 3), Output(0));
         Assert.Equal(PumpDirection.Off, Output(2).Direction);
         Assert.True(Output(2).Water);
@@ -280,7 +273,7 @@ public sealed class GraphFeatureTests
         var program = new NativeProgramSettings(kind, BufferA: [new()], BufferB: [new()], PulseA: new(4, 500, 7));
         var sink = b.Add(BuiltInNodes.NativeOutput, new NativeOutputNode("out", program, Limit: 1));
         b.Connect(strength, "value", sink, "strengthA");
-        var frame = Runtime(b).Evaluate(TimeSpan.Zero, Now).Outputs["out"];
+        var frame = Runtime(b).Evaluate(TimeSpan.Zero, _now).Outputs["out"];
         Assert.Equal(kind, frame.NativeProgram!.Settings.Kind);
         Assert.Equivalent(program, frame.NativeProgram.Settings);
         Assert.Equal(kind == NativeProgramKind.MotorPreset ? 100 : 40, frame.ChannelA);
@@ -305,7 +298,7 @@ public sealed class GraphFeatureTests
         var expanded = SubgraphExpansion.Expand(b.Build());
         Assert.Equal(4, expanded.Nodes.Select(n => n.Id).Distinct().Count());
         var runtime = Runtime(b);
-        var outputs = runtime.Evaluate(TimeSpan.Zero, Now).Outputs;
+        var outputs = runtime.Evaluate(TimeSpan.Zero, _now).Outputs;
         Assert.Equal(40, outputs["one"].ChannelA);
         Assert.Equal(40, outputs["two"].ChannelA);
         var rebound = SubgraphExpansion.MapDevices(first, new Dictionary<string, string> { ["one"] = "three" });
@@ -321,7 +314,7 @@ public sealed class GraphFeatureTests
     {
         var b = new PipelineBuilder("simulated", 1);
         var input = b.Add(BuiltInNodes.SimulatedInput, new SimulatedInputNode(.5));
-        NodeDefinition processor = type switch
+        var processor = type switch
         {
             BuiltInNodes.Gain => b.Add(type, new GainNode()),
             BuiltInNodes.Limit => b.Add(type, new LimitNode()),
@@ -432,11 +425,11 @@ public sealed class GraphFeatureTests
     {
         var transport = new ConcurrentTransport();
         await using var controller = new DeviceController(transport);
-        foreach (var id in new[] { "one", "two" })
+        foreach (string? id in new[] { "one", "two" })
             await controller.ConnectAsync(new(id, id, DeviceKind.DualChannel, 80, -40), TestContext.Current.CancellationToken);
         var b = new PipelineBuilder("fault");
         var input = b.Add(BuiltInNodes.Constant, new ConstantNode(.3));
-        foreach (var id in new[] { "one", "two" })
+        foreach (string? id in new[] { "one", "two" })
         {
             var output = b.Add(BuiltInNodes.ChannelOutput, new ChannelOutputNode(id));
             b.Connect(input, "value", output, "strength");
@@ -446,7 +439,7 @@ public sealed class GraphFeatureTests
         await session.PauseAsync();
         var original = new IOException("transport fault");
         transport.ReportFault(new("one", true, original));
-        for (var i = 0; i < 100 && session.State != PipelineState.Idle; i++)
+        for (int i = 0; i < 100 && session.State != PipelineState.Idle; i++)
             await Task.Delay(10, TestContext.Current.CancellationToken);
         Assert.Equal(PipelineState.Idle, session.State);
         Assert.Same(original, session.Error);
@@ -457,13 +450,13 @@ public sealed class GraphFeatureTests
     [Fact]
     public void WaveformTemplatePreservesIndependentAssetChannels()
     {
-        var waveform = new WaveformPreset(Guid.NewGuid(), "channels", WaveShape.Sampled, 1, 20,
+        var waveform = new WaveformAsset(Guid.NewGuid(), "channels", WaveShape.Sampled, 1, 20,
             Samples: [new(1, 20, 1, [-1, .5]), new(1, 20, 1, [-1, .5])]);
         var graph = PipelineTemplates.Create("waveform", new("channels", "out", Waveform: waveform, Limit: 1));
         var runtime = new PipelineRuntime(new PipelineCompiler(BuiltInNodes.CreateRegistry()).Compile(graph, [waveform]), new HashSet<string>());
         foreach (var node in graph.Nodes.Where(n => n.Type == BuiltInNodes.Constant))
             runtime.SetConstant(node.Id, .4);
-        var frame = runtime.Evaluate(TimeSpan.Zero, Now).Outputs["out"];
+        var frame = runtime.Evaluate(TimeSpan.Zero, _now).Outputs["out"];
         Assert.Equal(40, frame.ChannelA);
         Assert.Equal(20, frame.ChannelB);
     }
@@ -490,12 +483,22 @@ public sealed class GraphFeatureTests
         var counter = b.Add(BuiltInNodes.Counter, new CounterNode(10, 2));
         b.Connect(steps, "value", counter, "steps");
         var runtime = Runtime(b);
-        runtime.Evaluate(TimeSpan.Zero, Now);
+        runtime.Evaluate(TimeSpan.Zero, _now);
         runtime.SetConstant(steps.Id, 1);
-        runtime.Evaluate(TimeSpan.FromSeconds(1), Now.AddSeconds(1));
+        runtime.Evaluate(TimeSpan.FromSeconds(1), _now.AddSeconds(1));
         Assert.Equal(1, runtime.NodeStatus[counter.Id].Count);
         runtime.SetConstant(steps.Id, 2);
-        runtime.Evaluate(TimeSpan.FromSeconds(2), Now.AddSeconds(2));
+        runtime.Evaluate(TimeSpan.FromSeconds(2), _now.AddSeconds(2));
         Assert.Equal("Reason.MovementGoal", runtime.CompletionReason);
     }
+    private static WaveformAsset Wave(double frequency = 20, double seconds = 1) => new(Guid.NewGuid(), "wave", WaveShape.Custom, seconds, frequency, [1, 1]);
+    private static PipelineRuntime Runtime(PipelineBuilder graph, params WaveformAsset[] waves) => new(
+        new PipelineCompiler(BuiltInNodes.CreateRegistry()).Compile(graph.Build(), waves), new HashSet<string> { "out", "sensor" });
+    private static NodeDefinition Sink(PipelineBuilder b, NodeDefinition source, string port = "value", int channel = 0, double limit = .6)
+    {
+        var output = b.Add(BuiltInNodes.ChannelOutput, new ChannelOutputNode("out", channel, Limit: limit));
+        b.Connect(source, port, output, "strength");
+        return output;
+    }
+    private static double Level(PipelineRuntime runtime, double seconds = 0) => runtime.Evaluate(TimeSpan.FromSeconds(seconds), _now.AddSeconds(seconds)).Outputs["out"].ChannelA;
 }

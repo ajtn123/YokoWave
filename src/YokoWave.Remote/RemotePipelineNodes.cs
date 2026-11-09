@@ -12,10 +12,21 @@ public static class RemotePipelineNodes
 {
     public const string GattServer = "network.gatt.server";
     public const string ControlServer = "network.control.server";
-    private sealed class EndpointProcessor : ISignalProcessor
+    public static PipelineTemplate GattTemplate { get; } = new("gatt.server", "Pipeline.Node.GattServer", p =>
     {
-        public void Evaluate(NodeEvaluationContext context) => context.Status(new("Tracking"));
-    }
+        var builder = new PipelineBuilder(p.Name, p.Limit);
+        builder.Add(GattServer, new GattServerNode([p.DeviceId], new()));
+        return builder.Build();
+    });
+    public static PipelineTemplate ControlTemplate { get; } = new("control.server", "Pipeline.Node.ControlServer", p =>
+    {
+        var builder = new PipelineBuilder(p.Name, p.Limit);
+        var source = builder.Add(ControlServer, new ControlServerNode(p.DeviceId, new(ControlLimit: p.Limit * 100)));
+        var sink = builder.Add(BuiltInNodes.RouterOutput, new RouterOutputNode(p.DeviceId, p.Limit));
+        foreach (var port in BuiltInNodes.FramePorts())
+            builder.Connect(source, port.Id, sink, port.Id);
+        return builder.Build();
+    });
     public static NodeTypeRegistry Register(NodeTypeRegistry registry) => registry
         .Register(new NodeRegistration<GattServerNode>(GattServer, "Pipeline.Node.GattServer", [],
             c => c.DeviceIds is { Length: > 0 and <= 32 } && c.DeviceIds.All(id => !string.IsNullOrWhiteSpace(id)) && Valid(c.Settings),
@@ -32,23 +43,15 @@ public static class RemotePipelineNodes
             settings.Validate();
             return true;
         }
-        catch (ArgumentException) { return false; }
+        catch (ArgumentException)
+        {
+            return false;
+        }
     }
-    public static PipelineTemplate GattTemplate { get; } = new("gatt.server", "Pipeline.Node.GattServer", p =>
+    private sealed class EndpointProcessor : ISignalProcessor
     {
-        var builder = new PipelineBuilder(p.Name, p.Limit);
-        builder.Add(GattServer, new GattServerNode([p.DeviceId], new()));
-        return builder.Build();
-    });
-    public static PipelineTemplate ControlTemplate { get; } = new("control.server", "Pipeline.Node.ControlServer", p =>
-    {
-        var builder = new PipelineBuilder(p.Name, p.Limit);
-        var source = builder.Add(ControlServer, new ControlServerNode(p.DeviceId, new(ControlLimit: p.Limit * 100)));
-        var sink = builder.Add(BuiltInNodes.RouterOutput, new RouterOutputNode(p.DeviceId, p.Limit));
-        foreach (var port in BuiltInNodes.FramePorts())
-            builder.Connect(source, port.Id, sink, port.Id);
-        return builder.Build();
-    });
+        public void Evaluate(NodeEvaluationContext context) => context.Status(new("Tracking"));
+    }
     private sealed class EndpointParticipant(NodeRunContext context, string[] deviceIds, RemoteServerSettings settings,
         RemoteLeaseType type) : IRunParticipant, IOutputResource
     {
@@ -61,15 +64,15 @@ public static class RemotePipelineNodes
             {
                 _buffer = new(context.Devices, context.OwnerId, deviceIds);
                 _proxy = new(_buffer, context.Devices.Clock);
-                foreach (var id in deviceIds)
-                    await _proxy.ConnectAsync(context.Devices.Connections[id].Device, cancellationToken);
-                await _proxy.AcquireTargetsAsync(context.OwnerId, deviceIds, cancellationToken, allowInputs: true);
+                foreach (string id in deviceIds)
+                    await _proxy.ConnectAsync(context.Devices.Connections[id].Device, cancellationToken).ConfigureAwait(false);
+                await _proxy.AcquireTargetsAsync(context.OwnerId, deviceIds, cancellationToken, allowInputs: true).ConfigureAwait(false);
             }
             var credential = context.Services.Credentials.GetOrAdd(context.NodeId, _ => new(Convert.ToHexString(RandomNumberGenerator.GetBytes(32))));
             var session = new RemoteExportSession(context.NodeId, context.Devices, deviceIds, settings,
                 reservationOwner: context.OwnerId, controlDevices: _proxy, allowedLease: type);
             _server = new(session, credential.Token);
-            await _server.StartAsync(credential.CertificatePassword, cancellationToken);
+            await _server.StartAsync(credential.CertificatePassword, cancellationToken).ConfigureAwait(false);
             context.Services.Endpoints[context.NodeId] = new(_server.Url!.ToString(), type.ToString().ToLowerInvariant());
         }
         public ValueTask CaptureAsync(PipelineInputs inputs, CancellationToken cancellationToken)
@@ -85,17 +88,17 @@ public static class RemotePipelineNodes
         {
             if (_server is not null)
             {
-                await _server.Session.StopAsync();
-                await _server.DisposeAsync();
+                await _server.Session.StopAsync().ConfigureAwait(false);
+                await _server.DisposeAsync().ConfigureAwait(false);
                 _server = null;
             }
             context.Services.Endpoints.TryRemove(context.NodeId, out _);
         }
         public async ValueTask DisposeAsync()
         {
-            await StopOutputsAsync();
+            await StopOutputsAsync().ConfigureAwait(false);
             if (_proxy is not null)
-                await _proxy.DisposeAsync();
+                await _proxy.DisposeAsync().ConfigureAwait(false);
         }
     }
 }
@@ -115,7 +118,7 @@ internal sealed class BufferedControlTransport(DeviceController physical, Guid o
         return Task.CompletedTask;
     }
     public Task DisconnectAsync(string deviceId, CancellationToken cancellationToken = default) => SendAsync(deviceId, OutputFrame.Zero, cancellationToken);
-    public Task ExecuteCommandAsync(string deviceId, DeviceCommand command, CancellationToken ct = default) => physical.ExecuteCommandAsync(deviceId, command, owner, ct);
-    public Task SetMotionStreamingAsync(string id, bool enabled, CancellationToken ct = default) => physical.ExecuteCommandAsync(id, new ConfigureMotionStream(enabled), owner, ct);
+    public Task ExecuteCommandAsync(string deviceId, DeviceCommand command, CancellationToken cancellationToken = default) => physical.ExecuteCommandAsync(deviceId, command, owner, cancellationToken);
+    public Task SetMotionStreamingAsync(string id, bool enabled, CancellationToken cancellationToken = default) => physical.ExecuteCommandAsync(id, new ConfigureMotionStream(enabled), owner, cancellationToken);
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }

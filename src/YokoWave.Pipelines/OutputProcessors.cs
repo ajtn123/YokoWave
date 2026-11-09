@@ -43,7 +43,9 @@ internal sealed class NativeOutputProcessor(NativeOutputNode settings) : ISignal
 
 internal sealed class CommandProcessor(CommandNode settings) : ISignalProcessor, IInteractiveProcessor, ISuspendableProcessor
 {
-    private bool _started, _last, _requested;
+    private bool _started;
+    private bool _last;
+    private bool _requested;
     public void Suspend()
     {
         _started = false;
@@ -58,7 +60,7 @@ internal sealed class CommandProcessor(CommandNode settings) : ISignalProcessor,
     public void Evaluate(NodeEvaluationContext context)
     {
         var trigger = context.Input("trigger");
-        var high = trigger.IsValid(context.Now) && trigger.At(0) > 0;
+        bool high = trigger.IsValid(context.Now) && trigger.At(0) > 0;
         if (trigger.IsValid(context.Now) && (!_started && settings.OnStart || high && !_last || _requested) && (!trigger.Simulated || context.IsSimulatedTarget(settings.DeviceId)))
             context.Command(settings.DeviceId, settings.Command);
         _started = true;
@@ -74,11 +76,11 @@ public sealed class FrameSignalProcessor : ISignalProcessor
         if (!context.Inputs.Frames.TryGetValue(context.NodeId, out var frame))
             return;
         context.IntentOutput("intent", frame);
-        for (var channel = 0; channel < 3; channel++)
+        for (int channel = 0; channel < 3; channel++)
         {
-            var suffix = ((char)('A' + channel)).ToString();
+            string suffix = ((char)('A' + channel)).ToString();
             var samples = Enumerable.Range(0, 4).Select(i => WaveformRendering.Sample(frame, channel, i)).ToArray();
-            var strength = channel == 0 ? frame.ChannelA : channel == 1 ? frame.ChannelB : frame.ChannelC;
+            double strength = channel == 0 ? frame.ChannelA : channel == 1 ? frame.ChannelB : frame.ChannelC;
             context.Output("strength" + suffix, new(samples.Select(s => strength / 100 * s.Level).ToArray(), DateTimeOffset.MaxValue));
             context.Output("frequency" + suffix, new(samples.Select(s => s.FrequencyHz).ToArray(), DateTimeOffset.MaxValue));
             context.Output("width" + suffix, new(samples.Select(s => s.PulseWidth * s.ChannelMagnitude(channel)).ToArray(), DateTimeOffset.MaxValue));
@@ -105,9 +107,9 @@ internal sealed class RouterOutputProcessor(RouterOutputNode settings) : ISignal
         var frequency = new NumericSignal[3];
         var width = new NumericSignal[3];
         var limits = new NumericSignal[3];
-        for (var channel = 0; channel < 3; channel++)
+        for (int channel = 0; channel < 3; channel++)
         {
-            var suffix = ((char)('A' + channel)).ToString();
+            string suffix = ((char)('A' + channel)).ToString();
             strength[channel] = context.Input("strength" + suffix);
             frequency[channel] = context.Input("frequency" + suffix);
             width[channel] = context.Input("width" + suffix);
@@ -115,7 +117,7 @@ internal sealed class RouterOutputProcessor(RouterOutputNode settings) : ISignal
         }
         if (intent?.NativeProgram is { } program)
         {
-            var valid = strength.Concat(limits).All(s => s.IsValid(context.Now) && (!s.Simulated || context.IsSimulatedTarget(settings.DeviceId)));
+            bool valid = strength.Concat(limits).All(s => s.IsValid(context.Now) && (!s.Simulated || context.IsSimulatedTarget(settings.DeviceId)));
             if (!valid)
             {
                 context.Zero(settings.DeviceId);
@@ -125,8 +127,10 @@ internal sealed class RouterOutputProcessor(RouterOutputNode settings) : ISignal
             context.RouteNative(new(settings.DeviceId, program.Settings, Limit: settings.Limit), Level(0), Level(1), Level(2), program, intent);
             return;
         }
-        for (var channel = 0; channel < 3; channel++)
+        for (int channel = 0; channel < 3; channel++)
+        {
             context.Channel(new(settings.DeviceId, channel, settings.Limit),
                 strength[channel], frequency[channel], width[channel], limits[channel], intent);
+        }
     }
 }

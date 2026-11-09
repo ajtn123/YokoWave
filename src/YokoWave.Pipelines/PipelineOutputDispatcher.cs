@@ -10,7 +10,6 @@ internal sealed class PipelineOutputDispatcher(DeviceController controller, Guid
     public double PeakA { get; private set; }
     public double PeakB { get; private set; }
     public double PeakC { get; private set; }
-
     public void ResetPumpCommands() => _sentPumps.Clear();
 
     public async Task SubmitAsync(PipelineFrame frame)
@@ -21,7 +20,7 @@ internal sealed class PipelineOutputDispatcher(DeviceController controller, Guid
         var pending = frame.Outputs.Where(pair => ShouldSend(pair.Key, pair.Value)).ToArray();
         var results = await Task.WhenAll(pending.Select(pair => SendAsync(pair.Key, pair.Value))).ConfigureAwait(false);
         List<Exception> errors = [];
-        for (var i = 0; i < pending.Length; i++)
+        for (int i = 0; i < pending.Length; i++)
         {
             if (results[i] is { } error)
             {

@@ -1,32 +1,16 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
-using YokoWave.Core;
-using YokoWave.Core.Localization;
-using YokoWave.Core.Bluetooth;
-using YokoWave.Pipelines;
 using Xunit;
+using YokoWave.Core;
+using YokoWave.Core.Bluetooth;
+using YokoWave.Core.Localization;
+using YokoWave.Pipelines;
 
 namespace YokoWave.Tests;
 
 public sealed class PipelineTests
 {
-    private static readonly DeviceDescriptor Device = new("one", "one", DeviceKind.DualChannel, 80, -40);
-    private static PipelineDocument Graph(NodeDefinition[] nodes, params PipelineConnection[] edges) =>
-        new(Guid.NewGuid(), "test", nodes, edges, []);
-    private static NodeDefinition Number(double value) => NodeDefinition.Create(BuiltInNodes.Constant, new ConstantNode(value));
-    private static NodeDefinition Output(int channel = 0) => NodeDefinition.Create(BuiltInNodes.ChannelOutput, new ChannelOutputNode("one", channel, Limit: 1));
-    private static PipelineConnection Edge(NodeDefinition from, NodeDefinition to, string target = "strength", string source = "value") => new(new(from.Id, source), new(to.Id, target));
-    private static PipelineCompiler Compiler() => new(BuiltInNodes.CreateRegistry());
-    private static PipelinePlan Plan(double strength = .5, double? duration = null)
-    {
-        var value = Number(strength);
-        var output = Output();
-        return Compiler().Compile(Graph([value, output], Edge(value, output)) with
-        {
-            DurationSeconds = duration ?? 90,
-            TimerEnabled = duration.HasValue
-        }, []);
-    }
+    private static readonly DeviceDescriptor _device = new("one", "one", DeviceKind.DualChannel, 80, -40);
 
     [Fact]
     public void CompilerRejectsCyclesMultipleSourcesUnknownTypesAndWrongPorts()
@@ -54,7 +38,7 @@ public sealed class PipelineTests
         var a = Output();
         var b = Output();
         Assert.Contains(Compiler().Validate(Graph([a, b]), []), d => d.Key == "Pipeline.Error.DuplicateOutput");
-        var devices = new Dictionary<string, DeviceDescriptor> { ["one"] = Device with { ChannelMask = 2 } };
+        var devices = new Dictionary<string, DeviceDescriptor> { ["one"] = _device with { ChannelMask = 2 } };
         Assert.Contains(Compiler().Validate(Graph([a]), [], devices), d => d.Key == "Pipeline.Error.Device");
         Assert.Empty(Compiler().Validate(Graph([Output(1)]), [], devices));
     }
@@ -127,7 +111,7 @@ public sealed class PipelineTests
         var frame = new PipelineRuntime(plan, new HashSet<string>()).Evaluate(TimeSpan.Zero, DateTimeOffset.UtcNow).Outputs["one"];
         Assert.Equal(0, WaveformRendering.Strength(frame, 0));
         Assert.Equal(50, WaveformRendering.Strength(frame, 2));
-        var packet = YokonexToyProtocol.MotorOutput(frame, 7);
+        byte[] packet = YokonexToyProtocol.MotorOutput(frame, 7);
         Assert.Equal(0, packet[2]);
         Assert.True(packet[4] > 0);
     }
@@ -135,14 +119,14 @@ public sealed class PipelineTests
     [Fact]
     public void WaveformSamplesRetainFrequencyWidthAnd25MillisecondResolution()
     {
-        var preset = new WaveformPreset(Guid.NewGuid(), "sampled", WaveShape.Sampled, .2, 20,
+        var waveform = new WaveformAsset(Guid.NewGuid(), "sampled", WaveShape.Sampled, .2, 20,
             Samples: [new(.1, 10, .2), new(.9, 80, .7)]);
-        var wave = NodeDefinition.Create(BuiltInNodes.Waveform, new WaveformNode(preset.Id));
+        var wave = NodeDefinition.Create(BuiltInNodes.Waveform, new WaveformNode(waveform.Id));
         var cap = Number(1);
         var output = Output();
         var plan = Compiler().Compile(Graph([wave, cap, output], Edge(wave, output, source: "levelA"),
-            Edge(wave, output, "frequency", "frequency"), Edge(wave, output, "pulseWidth", "pulseWidth"), Edge(cap, output, "limit")), [preset]);
-        preset.Samples![0] = new(1, 100); // Editing the asset after compilation cannot change a running snapshot.
+            Edge(wave, output, "frequency", "frequency"), Edge(wave, output, "pulseWidth", "pulseWidth"), Edge(cap, output, "limit")), [waveform]);
+        waveform.Samples![0] = new(1, 100); // Editing the asset after compilation cannot change a running snapshot.
         var frame = new PipelineRuntime(plan, new HashSet<string>()).Evaluate(TimeSpan.FromSeconds(.075), DateTimeOffset.UtcNow).Outputs["one"];
         Assert.Equal(90, frame.ChannelA);
         Assert.Equal(10, frame.WindowA![0].FrequencyHz);
@@ -150,17 +134,6 @@ public sealed class PipelineTests
         Assert.Equal(80, frame.WindowA[1].FrequencyHz);
         Assert.Equal(.7, frame.WindowA[1].PulseWidth);
         Assert.Equal(.1 / .9, frame.WindowA[0].Level, 8);
-    }
-
-    private sealed record TestInputNode;
-    private sealed class TestInputProcessor(Func<NumericSignal> read) : ISignalProcessor
-    {
-        public int Evaluations { get; private set; }
-        public void Evaluate(NodeEvaluationContext context)
-        {
-            Evaluations++;
-            context.Output("value", read());
-        }
     }
 
     [Fact]
@@ -178,9 +151,9 @@ public sealed class PipelineTests
             Edge(level, automation, "value"), Edge(input, automation, "boost"), Edge(automation, output)), []);
         var runtime = new PipelineRuntime(plan, new HashSet<string>());
         var frame = runtime.Evaluate(TimeSpan.Zero, now).Outputs["one"];
-        var expected = new[] { .4, .6, .4, .6 };
+        double[] expected = new[] { .4, .6, .4, .6 };
         Assert.Equal(expected.Length, frame.WindowA!.Count);
-        for (var i = 0; i < expected.Length; i++)
+        for (int i = 0; i < expected.Length; i++)
             Assert.Equal(expected[i], frame.WindowA[i].Level * frame.ChannelA / 100, 8);
         Assert.Equal(0, runtime.Evaluate(TimeSpan.Zero, now.AddSeconds(2)).Outputs["one"].ChannelA);
         boost = NumericSignal.Missing;
@@ -261,7 +234,7 @@ public sealed class PipelineTests
     {
         var transport = new PipelineTransport();
         await using var controller = new DeviceController(transport);
-        await controller.ConnectAsync(Device, TestContext.Current.CancellationToken);
+        await controller.ConnectAsync(_device, TestContext.Current.CancellationToken);
         await using var session = new PipelineSession(controller);
         await session.StartAsync(Plan());
         await Wait(() => transport.Last.ChannelA == 50);
@@ -289,7 +262,7 @@ public sealed class PipelineTests
     {
         var transport = new PipelineTransport();
         await using var controller = new DeviceController(transport);
-        await controller.ConnectAsync(Device, TestContext.Current.CancellationToken);
+        await controller.ConnectAsync(_device, TestContext.Current.CancellationToken);
         await using var session = new PipelineSession(controller);
         await session.StartAsync(Plan(0, 1));
         Assert.Equal(PipelineState.Running, session.State);
@@ -303,7 +276,7 @@ public sealed class PipelineTests
     {
         var transport = new PipelineTransport();
         await using var controller = new DeviceController(transport);
-        await controller.ConnectAsync(Device, TestContext.Current.CancellationToken);
+        await controller.ConnectAsync(_device, TestContext.Current.CancellationToken);
         await using var session = new PipelineSession(controller);
         session.Changed += (_, _) => throw new InvalidOperationException("observer");
         session.Completed += (_, _) => throw new InvalidOperationException("observer");
@@ -319,8 +292,8 @@ public sealed class PipelineTests
     {
         var transport = new PipelineTransport();
         await using var controller = new DeviceController(transport);
-        await controller.ConnectAsync(Device, TestContext.Current.CancellationToken);
-        await controller.ConnectAsync(Device with
+        await controller.ConnectAsync(_device, TestContext.Current.CancellationToken);
+        await controller.ConnectAsync(_device with
         {
             Id = "fast"
         }, TestContext.Current.CancellationToken);
@@ -355,7 +328,7 @@ public sealed class PipelineTests
     {
         var transport = new PipelineTransport();
         await using var controller = new DeviceController(transport);
-        await controller.ConnectAsync(Device, TestContext.Current.CancellationToken);
+        await controller.ConnectAsync(_device, TestContext.Current.CancellationToken);
         await using var session = new PipelineSession(controller);
         await session.StartAsync(Plan());
         await Wait(() => transport.Last.ChannelA > 0);
@@ -374,7 +347,7 @@ public sealed class PipelineTests
     {
         var transport = new PipelineTransport();
         await using var controller = new DeviceController(transport);
-        await controller.ConnectAsync(Device, TestContext.Current.CancellationToken);
+        await controller.ConnectAsync(_device, TestContext.Current.CancellationToken);
         await using var session = new PipelineSession(controller);
         await session.StartAsync(Plan());
         transport.FailNonzero = true;
@@ -412,7 +385,7 @@ public sealed class PipelineTests
         session.SetConstant(seconds.Id, 0);
         await session.FlushAsync();
         var continuous = new PumpOutput(PumpDirection.Forward);
-        var before = Count(continuous);
+        int before = Count(continuous);
         Assert.True(before > 0);
         await session.FlushAsync();
         Assert.True(Count(continuous) > before);
@@ -438,7 +411,7 @@ public sealed class PipelineTests
             DurationSeconds = 5
         };
         await store.SaveAsync([graph]);
-        var json = await File.ReadAllTextAsync(store.FilePath, TestContext.Current.CancellationToken);
+        string json = await File.ReadAllTextAsync(store.FilePath, TestContext.Current.CancellationToken);
         Assert.DoesNotContain('\n', json);
         Assert.DoesNotContain("PipelineSession", json);
         Assert.DoesNotContain("Nodify", json);
@@ -448,10 +421,26 @@ public sealed class PipelineTests
         await Assert.ThrowsAsync<LocalizedOperationException>(() => store.SaveAsync([]));
         Assert.Equal("corrupt", await File.ReadAllTextAsync(store.FilePath, TestContext.Current.CancellationToken));
     }
+    private static PipelineDocument Graph(NodeDefinition[] nodes, params PipelineConnection[] edges) =>
+        new(Guid.NewGuid(), "test", nodes, edges, []);
+    private static NodeDefinition Number(double value) => NodeDefinition.Create(BuiltInNodes.Constant, new ConstantNode(value));
+    private static NodeDefinition Output(int channel = 0) => NodeDefinition.Create(BuiltInNodes.ChannelOutput, new ChannelOutputNode("one", channel, Limit: 1));
+    private static PipelineConnection Edge(NodeDefinition from, NodeDefinition to, string target = "strength", string source = "value") => new(new(from.Id, source), new(to.Id, target));
+    private static PipelineCompiler Compiler() => new(BuiltInNodes.CreateRegistry());
+    private static PipelinePlan Plan(double strength = .5, double? duration = null)
+    {
+        var value = Number(strength);
+        var output = Output();
+        return Compiler().Compile(Graph([value, output], Edge(value, output)) with
+        {
+            DurationSeconds = duration ?? 90,
+            TimerEnabled = duration.HasValue
+        }, []);
+    }
 
     private static async Task Wait(Func<bool> predicate)
     {
-        for (var i = 0; i < 300; i++)
+        for (int i = 0; i < 300; i++)
         {
             if (predicate())
                 return;
@@ -461,8 +450,9 @@ public sealed class PipelineTests
     }
     private sealed class PipelineTransport : IDeviceTransport
     {
-        public ConcurrentQueue<OutputFrame> Frames { get; } = new();
         private OutputFrame _last = OutputFrame.Zero;
+
+        public ConcurrentQueue<OutputFrame> Frames { get; } = new();
         public OutputFrame Last => _last;
         public bool FailZero { get; set; }
         public bool FailNonzero { get; set; }
@@ -471,7 +461,7 @@ public sealed class PipelineTests
         public TaskCompletionSource ReleaseWrite { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource FastWrite { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public string DisplayName => "test";
-        public Task<IReadOnlyList<DeviceDescriptor>> ScanAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<DeviceDescriptor>>([Device]);
+        public Task<IReadOnlyList<DeviceDescriptor>> ScanAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<DeviceDescriptor>>([_device]);
         public Task ConnectAsync(DeviceDescriptor device, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task DisconnectAsync(string deviceId, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public async Task SendAsync(string deviceId, OutputFrame frame, CancellationToken cancellationToken = default)
@@ -491,5 +481,17 @@ public sealed class PipelineTests
                 FastWrite.TrySetResult();
         }
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
+    private sealed record TestInputNode;
+
+    private sealed class TestInputProcessor(Func<NumericSignal> read) : ISignalProcessor
+    {
+        public int Evaluations { get; private set; }
+        public void Evaluate(NodeEvaluationContext context)
+        {
+            Evaluations++;
+            context.Output("value", read());
+        }
     }
 }

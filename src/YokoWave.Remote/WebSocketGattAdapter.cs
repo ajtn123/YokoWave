@@ -16,24 +16,17 @@ public sealed class WebSocketGattAdapter : IBluetoothAdapter, IAsyncDisposable
     {
         _connection = new(settings, token);
         _connection.Notification += OnNotification;
-        _connection.Disconnected += () => { foreach (var link in _links.Values) link.Lost(); };
-    }
-    public Task ConnectAsync(CancellationToken ct = default) => _connection.ConnectAsync(ct);
-    private void OnNotification(string method, JsonElement parameters)
-    {
-        if (method == "gatt.notification")
+        _connection.Disconnected += () =>
         {
-            var value = RemoteProtocol.Read<RemoteGattNotification>(parameters);
-            if (_links.TryGetValue(value.Lease, out var link))
-                link.Notify(value);
-        }
-        if (method == "lease.revoked" && _links.TryGetValue(RemoteProtocol.Parameter<Guid>(parameters, "lease"), out var revoked))
-            revoked.Lost();
+            foreach (var link in _links.Values)
+                link.Lost();
+        };
     }
-    public async Task<IReadOnlyList<BluetoothPeripheral>> ScanAsync(CancellationToken ct)
+    public Task ConnectAsync(CancellationToken cancellationToken = default) => _connection.ConnectAsync(cancellationToken);
+    public async Task<IReadOnlyList<BluetoothPeripheral>> ScanAsync(CancellationToken cancellationToken)
     {
-        await ConnectAsync(ct);
-        var devices = await _connection.Peer.CallAsync<RemoteDevice[]>("devices.list", ct: ct);
+        await ConnectAsync(cancellationToken).ConfigureAwait(false);
+        var devices = await _connection.Peer.CallAsync<RemoteDevice[]>("devices.list", cancellationToken: cancellationToken).ConfigureAwait(false);
         _devices.Clear();
         foreach (var device in devices)
             _devices[_connection.Key(device.Id)] = device;
@@ -41,7 +34,7 @@ public sealed class WebSocketGattAdapter : IBluetoothAdapter, IAsyncDisposable
             BluetoothDeviceProfiles.FromId(pair.Value.ProtocolId)?.Endpoints.Select(endpoint => endpoint.Address.Service).Distinct().ToArray(),
             DeviceOrigin.Remote, pair.Value.Simulated)).ToArray();
     }
-    public async Task<IBluetoothConnection> ConnectAsync(BluetoothPeripheral peripheral, CancellationToken ct)
+    public async Task<IBluetoothConnection> ConnectAsync(BluetoothPeripheral peripheral, CancellationToken cancellationToken)
     {
         if (!_devices.TryGetValue(peripheral.Id, out var device) || _connection.Peer is null)
             throw new LocalizedOperationException("Error.BluetoothRescan");
@@ -49,21 +42,24 @@ public sealed class WebSocketGattAdapter : IBluetoothAdapter, IAsyncDisposable
         {
             deviceIds = new[] { device.Id },
             type = RemoteLeaseType.Gatt
-        }, ct);
+        }, cancellationToken).ConfigureAwait(false);
         var connection = new WebSocketGattConnection(_connection.Peer, device, lease, _connection.Hello.ClockMilliseconds, _connection.HelloAt, () => _links.TryRemove(lease.Id, out _));
         _links[lease.Id] = connection;
         try
         {
-            await connection.Initialize(ct);
+            await connection.InitializeAsync(cancellationToken).ConfigureAwait(false);
             return connection;
         }
         catch (Exception error)
         {
             try
             {
-                await connection.DisposeAsync();
+                await connection.DisposeAsync().ConfigureAwait(false);
             }
-            catch (Exception cleanup) { throw new LocalizedAggregateException("Error.Cleanup", [error, cleanup]); }
+            catch (Exception cleanup)
+            {
+                throw new LocalizedAggregateException("Error.Cleanup", [error, cleanup]);
+            }
             throw;
         }
     }
@@ -74,19 +70,36 @@ public sealed class WebSocketGattAdapter : IBluetoothAdapter, IAsyncDisposable
         {
             try
             {
-                await connection.DisposeAsync();
+                await connection.DisposeAsync().ConfigureAwait(false);
             }
-            catch (Exception error) { errors.Add(error); }
+            catch (Exception error)
+            {
+                errors.Add(error);
+            }
         }
         if (_connection.Peer is not null)
         {
             try
             {
-                await _connection.DisposeAsync();
+                await _connection.DisposeAsync().ConfigureAwait(false);
             }
-            catch (Exception error) { errors.Add(error); }
+            catch (Exception error)
+            {
+                errors.Add(error);
+            }
         }
         if (errors.Count > 0)
             throw new LocalizedAggregateException("Error.Cleanup", errors);
+    }
+    private void OnNotification(string method, JsonElement parameters)
+    {
+        if (method == "gatt.notification")
+        {
+            var value = RemoteProtocol.Read<RemoteGattNotification>(parameters);
+            if (_links.TryGetValue(value.Lease, out var link))
+                link.Notify(value);
+        }
+        if (method == "lease.revoked" && _links.TryGetValue(RemoteProtocol.Parameter<Guid>(parameters, "lease"), out var revoked))
+            revoked.Lost();
     }
 }

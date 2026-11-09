@@ -5,15 +5,20 @@ internal sealed class ProgramPacketWriter(Func<byte[], CancellationToken, Task> 
 {
     private byte[][]? _previous;
     public void Reset() => _previous = null;
-    public async Task Send(IReadOnlyList<byte[]> packets, CancellationToken ct)
+    public async Task SendAsync(IReadOnlyList<byte[]> packets, CancellationToken cancellationToken)
     {
         if (_previous is { } previous && previous.Length == packets.Count &&
-            previous.Select((packet, index) => packet.AsSpan().SequenceEqual(packets[index])).All(equal => equal)) return;
-        Reset();
-        for (var index = 0; index < packets.Count; index++)
+            previous.Select((packet, index) => packet.AsSpan().SequenceEqual(packets[index])).All(equal => equal))
         {
-            if (index > 0) await Task.Delay(10, ct);
-            await write(packets[index], ct);
+            return;
+        }
+
+        Reset();
+        for (int index = 0; index < packets.Count; index++)
+        {
+            if (index > 0)
+                await Task.Delay(10, cancellationToken).ConfigureAwait(false);
+            await write(packets[index], cancellationToken).ConfigureAwait(false);
         }
         _previous = packets.Select(packet => packet.ToArray()).ToArray();
     }

@@ -4,32 +4,32 @@ internal abstract class DgSensorDriver(string id, BluetoothDeviceProfile profile
     Action<DeviceStatusUpdate> publish, Action<Exception> fault) : BluetoothProtocolDriver(id, profile, link, publish, fault)
 {
     private readonly TaskCompletionSource _ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    protected bool StreamEnabled
-    { get; set; } = true;
-    protected int IndicatorColor
-    { get; set; } = 1;
+    protected bool StreamEnabled { get; set; } = true;
+    protected int IndicatorColor { get; set; } = 1;
     protected abstract DeviceTelemetry? ParseTelemetry(byte[] data);
     protected abstract byte[] Stream(bool enabled);
-    protected virtual Task ReadBattery(CancellationToken ct) => Task.CompletedTask;
-    public override async Task Initialize(CancellationToken ct)
+    protected virtual Task ReadBatteryAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    public override async Task InitializeAsync(CancellationToken cancellationToken)
     {
-        await Write(Stream(true), ct);
-        await ReadBattery(ct);
-        await Confirm(_ready.Task, ct);
+        await WriteAsync(Stream(true), cancellationToken).ConfigureAwait(false);
+        await ReadBatteryAsync(cancellationToken).ConfigureAwait(false);
+        await ConfirmAsync(_ready.Task, cancellationToken).ConfigureAwait(false);
     }
-    public override Task Stop(CancellationToken ct) => Task.CompletedTask;
-    public override Task Send(OutputFrame frame, CancellationToken ct) => Task.CompletedTask;
-    public override Task Shutdown(CancellationToken ct) => Write(Stream(false), ct);
+    public override Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    public override Task SendAsync(OutputFrame frame, CancellationToken cancellationToken) => Task.CompletedTask;
+    public override Task ShutdownAsync(CancellationToken cancellationToken) => WriteAsync(Stream(false), cancellationToken);
     protected void Ready() => _ready.TrySetResult();
     public override void OnNotification(GattNotification notification)
     {
-        var bytes = notification.Data;
+        byte[] bytes = notification.Data;
         if (notification.Address == BluetoothDeviceProfiles.DgBattery)
         {
-            if (bytes.Length == 1 && bytes[0] <= 100) Publish(new(Id, battery: bytes[0]));
+            if (bytes.Length == 1 && bytes[0] <= 100)
+                Publish(new(Id, battery: bytes[0]));
             return;
         }
-        if (notification.Address != Profile.Notify) return;
+        if (notification.Address != Profile.Notify)
+            return;
         if (ParseTelemetry(bytes) is { } telemetry)
         {
             Ready();

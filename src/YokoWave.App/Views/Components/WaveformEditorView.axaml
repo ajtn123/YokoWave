@@ -39,7 +39,7 @@
         </StackPanel>
       </Grid>
       <TextBlock Text="{l:Loc Wave.EditorPreview}" Classes="muted caption" />
-      <controls:WaveformPlot x:Name="EditorPreviewPlot" Preset="{Binding WaveformEditor.Preview}" Classes="preview" />
+      <controls:WaveformPlot x:Name="EditorPreviewPlot" Waveform="{Binding WaveformEditor.Preview}" Classes="preview" />
       <Button x:Name="SaveWaveButton" Classes="primary" Command="{Binding SaveWaveCommand}" Content="{l:Loc Wave.Save}" />
     </StackPanel>
   </Border>

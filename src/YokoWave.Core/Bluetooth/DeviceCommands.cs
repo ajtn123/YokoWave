@@ -16,12 +16,12 @@ namespace YokoWave.Core.Bluetooth;
 [System.Text.Json.Serialization.JsonDerivedType(typeof(ConfigureLight), "light")]
 public abstract record DeviceCommand
 {
-    protected DeviceCommand(DeviceCapability capability) => Capability = capability;
     [System.Text.Json.Serialization.JsonIgnore]
     public DeviceCapability Capability
     { get; }
     [System.Text.Json.Serialization.JsonIgnore]
     public virtual bool ReadOnly => false;
+    protected DeviceCommand(DeviceCapability capability) => Capability = capability;
     public abstract void Validate();
 }
 
@@ -97,11 +97,11 @@ internal sealed class DeviceCommandHandlers
     private readonly Dictionary<Type, Func<DeviceCommand, CancellationToken, Task>> _handlers = [];
     public DeviceCommandHandlers Add<T>(Func<T, CancellationToken, Task> handler) where T : DeviceCommand
     {
-        _handlers.Add(typeof(T), (command, ct) => handler((T)command, ct));
+        _handlers.Add(typeof(T), (command, cancellationToken) => handler((T)command, cancellationToken));
         return this;
     }
-    public Task ExecuteAsync(DeviceCommand command, CancellationToken ct) => _handlers.TryGetValue(command.GetType(), out var handler)
-        ? handler(command, ct) : throw new Localization.LocalizedOperationException("Error.DeviceFeatures");
+    public Task ExecuteAsync(DeviceCommand command, CancellationToken cancellationToken) => _handlers.TryGetValue(command.GetType(), out var handler)
+        ? handler(command, cancellationToken) : throw new Localization.LocalizedOperationException("Error.DeviceFeatures");
 }
 
 public sealed record ConfigureLight(bool Enabled) : DeviceCommand(DeviceCapability.Light)

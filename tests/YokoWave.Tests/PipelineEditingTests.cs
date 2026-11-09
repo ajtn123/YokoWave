@@ -2,11 +2,11 @@ using System.Collections.ObjectModel;
 using System.Text.Json;
 using Avalonia;
 using Avalonia.Headless.XUnit;
+using Xunit;
 using YokoWave.App.ViewModels;
 using YokoWave.App.ViewModels.Pipelines;
 using YokoWave.Core;
 using YokoWave.Pipelines;
-using Xunit;
 
 namespace YokoWave.Tests;
 
@@ -22,7 +22,7 @@ public sealed class PipelineEditingTests
         var excluded = b.Add(BuiltInNodes.Constant, new ConstantNode(.9));
         b.Connect(source, "value", smooth, "value");
         var graph = b.Build() with { Layout = [new(source.Id, 10, 20), new(smooth.Id, 300, 20), new(excluded.Id, 600, 20)] };
-        await using var editor = new PipelineEditorViewModel(graph, controller, new ObservableCollection<PresetItem>(), error => throw error, _ => { });
+        await using var editor = new PipelineEditorViewModel(graph, controller, new ObservableCollection<WaveformItem>(), error => throw error, _ => { });
         var node = editor.Nodes.Single(n => n.Id == smooth.Id);
         var field = Assert.Single(node.Parameters);
         field.Number = .4;

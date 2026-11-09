@@ -4,7 +4,7 @@ namespace YokoWave.Pipelines;
 
 public sealed record PipelineTemplate(string Key, string NameKey, Func<TemplateParameters, PipelineDocument> Create);
 public sealed record TemplateParameters(string Name, string DeviceId = "$device", string SensorId = "$sensor",
-    WaveformPreset? Waveform = null, double Limit = .6, int Channels = 2);
+    WaveformAsset? Waveform = null, double Limit = .6, int Channels = 2);
 
 /// <summary>Templates produce ordinary graphs. No template identifier participates in runtime dispatch.</summary>
 public static class PipelineTemplates
@@ -24,12 +24,12 @@ public static class PipelineTemplates
     ];
 
     public static PipelineDocument Create(string key, TemplateParameters parameters) => All.Single(t => t.Key == key).Create(parameters);
-    private static WaveformPreset Asset(TemplateParameters parameters) => parameters.Waveform ?? WaveformPreset.BuiltIn[0];
+    private static WaveformAsset Asset(TemplateParameters parameters) => parameters.Waveform ?? WaveformAsset.BuiltIn[0];
 
     private static PipelineDocument Waveform(TemplateParameters p)
     {
         var b = new PipelineBuilder(p.Name, p.Limit);
-        for (var channel = 0; channel < p.Channels; channel++)
+        for (int channel = 0; channel < p.Channels; channel++)
         {
             var wave = b.Add(BuiltInNodes.Playlist, new PlaylistNode(Asset(p).Id, [Asset(p).Id], Phase: channel == 1 ? .5 : 0));
             b.Channel(p.DeviceId, channel, wave, WaveformPorts.Level(channel < Asset(p).ChannelCount ? channel : 0), wave, "frequency", wave, "pulseWidth");
@@ -40,7 +40,7 @@ public static class PipelineTemplates
     {
         var b = new PipelineBuilder(p.Name, p.Limit);
         var input = b.Add(BuiltInNodes.Touch, new TouchNode());
-        for (var channel = 0; channel < p.Channels; channel++)
+        for (int channel = 0; channel < p.Channels; channel++)
             b.Channel(p.DeviceId, channel, input, "level", input, "frequency", input, "pulseWidth");
         return b.Build();
     }
@@ -48,7 +48,7 @@ public static class PipelineTemplates
     {
         var b = new PipelineBuilder(p.Name, p.Limit);
         var input = b.Add(BuiltInNodes.Audio, new AudioNode(new()));
-        for (var channel = 0; channel < p.Channels; channel++)
+        for (int channel = 0; channel < p.Channels; channel++)
         {
             var map = b.Add(BuiltInNodes.ParameterMap, new ParameterMapNode());
             b.Connect(input, channel == 1 ? "right" : "left", map, "value");
@@ -66,7 +66,7 @@ public static class PipelineTemplates
         b.Connect(sensor, "angle", deviation, "value");
         b.Connect(deviation, "value", range, "value");
         b.Connect(range, "value", map, "value");
-        for (var channel = 0; channel < p.Channels; channel++)
+        for (int channel = 0; channel < p.Channels; channel++)
             b.Channel(p.DeviceId, channel, map, "level", map, "frequency", map, "pulseWidth");
         return b.Build();
     }
@@ -79,7 +79,7 @@ public static class PipelineTemplates
         b.Connect(sensor, "angle", count, "angle");
         b.Connect(sensor, "steps", count, "steps");
         b.Connect(count, "activity", cycle, "activity");
-        for (var channel = 0; channel < p.Channels; channel++)
+        for (int channel = 0; channel < p.Channels; channel++)
         {
             var wave = b.Add(BuiltInNodes.Playlist, new PlaylistNode(Asset(p).Id, [Asset(p).Id], Phase: channel == 1 ? .5 : 0));
             var gate = b.Add(BuiltInNodes.Gain, new GainNode());
@@ -102,9 +102,9 @@ public static class PipelineTemplates
             b.Connect(sensor, "steps", count, "steps");
             b.Connect(count, "activity", cycle, "activity");
         }
-        for (var channel = 0; channel < p.Channels; channel++)
+        for (int channel = 0; channel < p.Channels; channel++)
         {
-            var wave = b.Add(BuiltInNodes.Playlist, new PlaylistNode(Asset(p).Id, random ? WaveformPreset.BuiltIn.Select(w => w.Id).ToArray() : [Asset(p).Id],
+            var wave = b.Add(BuiltInNodes.Playlist, new PlaylistNode(Asset(p).Id, random ? WaveformAsset.BuiltIn.Select(w => w.Id).ToArray() : [Asset(p).Id],
                 random ? PlaybackOrder.Random : PlaybackOrder.Repeat, Phase: channel == 1 && !random ? .5 : 0, RestartOnTrigger: random));
             var gate = b.Add(BuiltInNodes.Gain, new GainNode());
             b.Connect(wave, WaveformPorts.Level(channel < Asset(p).ChannelCount ? channel : 0), gate, "value");
@@ -119,7 +119,7 @@ public static class PipelineTemplates
         var b = new PipelineBuilder(p.Name, p.Limit);
         var timer = b.Add(BuiltInNodes.PumpTimer, new PumpTimerNode(new()));
         var output = b.Add(BuiltInNodes.PumpOutput, new PumpOutputNode(p.DeviceId, p.Limit));
-        foreach (var port in new[] { "direction", "water", "peristalticSeconds", "waterSeconds" })
+        foreach (string? port in new[] { "direction", "water", "peristalticSeconds", "waterSeconds" })
             b.Connect(timer, port, output, port);
         return b.Build();
     }
@@ -127,7 +127,7 @@ public static class PipelineTemplates
     {
         var b = new PipelineBuilder(p.Name, p.Limit);
         var output = b.Add(BuiltInNodes.NativeOutput, new NativeOutputNode(p.DeviceId, Limit: p.Limit));
-        for (var channel = 0; channel < p.Channels; channel++)
+        for (int channel = 0; channel < p.Channels; channel++)
         {
             var strength = b.Add(BuiltInNodes.Constant, new ConstantNode());
             b.Connect(strength, "value", output, "strength" + (char)('A' + channel));

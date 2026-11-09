@@ -26,32 +26,56 @@ public sealed class ElectricalPad : Control
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
-        if (!IsEffectivelyEnabled || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
-        e.Pointer.Capture(this); UpdatePoint(e.GetPosition(this)); SetCurrentValue(IsHeldProperty, true); e.Handled = true;
+        if (!IsEffectivelyEnabled || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            return;
+        e.Pointer.Capture(this);
+        UpdatePoint(e.GetPosition(this));
+        SetCurrentValue(IsHeldProperty, true);
+        e.Handled = true;
     }
-    protected override void OnPointerMoved(PointerEventArgs e) { base.OnPointerMoved(e); if (IsHeld) UpdatePoint(e.GetPosition(this)); }
-    protected override void OnPointerReleased(PointerReleasedEventArgs e)
-    { SetCurrentValue(IsHeldProperty, false); e.Pointer.Capture(null); e.Handled = true; base.OnPointerReleased(e); }
-    protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e) { SetCurrentValue(IsHeldProperty, false); base.OnPointerCaptureLost(e); }
-    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e) { SetCurrentValue(IsHeldProperty, false); base.OnDetachedFromVisualTree(e); }
-    private void UpdatePoint(Point point)
+    protected override void OnPointerMoved(PointerEventArgs e)
     {
-        if (Bounds.Width <= 0 || Bounds.Height <= 0) return;
-        SetCurrentValue(FrequencyProperty, Math.Round(1 + 99 * Math.Clamp(point.X / Bounds.Width, 0, 1)));
-        SetCurrentValue(PulseWidthProperty, Math.Round(100 * (1 - Math.Clamp(point.Y / Bounds.Height, 0, 1))));
+        base.OnPointerMoved(e);
+        if (IsHeld)
+            UpdatePoint(e.GetPosition(this));
+    }
+    protected override void OnPointerReleased(PointerReleasedEventArgs e)
+    {
+        SetCurrentValue(IsHeldProperty, false);
+        e.Pointer.Capture(null);
+        e.Handled = true;
+        base.OnPointerReleased(e);
+    }
+    protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
+    {
+        SetCurrentValue(IsHeldProperty, false);
+        base.OnPointerCaptureLost(e);
+    }
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        SetCurrentValue(IsHeldProperty, false);
+        base.OnDetachedFromVisualTree(e);
     }
     public override void Render(DrawingContext context)
     {
         base.Render(context);
         var bounds = new Rect(Bounds.Size);
-        if (PadBrush is { } background) context.FillRectangle(background, bounds);
+        if (PadBrush is { } background)
+            context.FillRectangle(background, bounds);
         var grid = new Pen(GridBrush, 1);
-        for (var part = 0; part <= 4; part++)
+        for (int part = 0; part <= 4; part++)
         {
             context.DrawLine(grid, new(Bounds.Width * part / 4, 0), new(Bounds.Width * part / 4, Bounds.Height));
             context.DrawLine(grid, new(0, Bounds.Height * part / 4), new(Bounds.Width, Bounds.Height * part / 4));
         }
         var position = new Point((Frequency - 1) / 99 * Bounds.Width, (1 - PulseWidth / 100) * Bounds.Height);
         context.DrawEllipse(CursorBrush, null, position, CursorRadius, CursorRadius);
+    }
+    private void UpdatePoint(Point point)
+    {
+        if (Bounds.Width <= 0 || Bounds.Height <= 0)
+            return;
+        SetCurrentValue(FrequencyProperty, Math.Round(1 + 99 * Math.Clamp(point.X / Bounds.Width, 0, 1)));
+        SetCurrentValue(PulseWidthProperty, Math.Round(100 * (1 - Math.Clamp(point.Y / Bounds.Height, 0, 1))));
     }
 }

@@ -22,19 +22,14 @@ public static class V1Protocol
     public static IReadOnlyList<byte[]> Fixed(OutputFrame frame, NativeProgramSettings settings)
     {
         settings.Validate();
-        var a = Parameters(frame, 0).Strength;
-        var b = Parameters(frame, 1).Strength;
-        if (settings.PresetA == 0) a = 0;
-        if (settings.PresetB == 0) b = 0;
+        int a = Parameters(frame, 0).Strength;
+        int b = Parameters(frame, 1).Strength;
+        if (settings.PresetA == 0)
+            a = 0;
+        if (settings.PresetB == 0)
+            b = 0;
         return a == b && settings.PresetA == settings.PresetB ? [FixedChannel(3, a, settings.PresetA)]
             : [FixedChannel(1, a, settings.PresetA), FixedChannel(2, b, settings.PresetB)];
-    }
-    private static byte[] FixedChannel(int channel, int strength, int preset)
-    {
-        ProtocolGuard.Byte(preset, 0, 16);
-        byte[] packet = [0x35, 0x11, (byte)channel, strength > 0 ? (byte)1 : (byte)0, (byte)(strength >> 8), (byte)strength,
-            strength > 0 ? (byte)preset : (byte)0, 0, 0];
-        return WithChecksum(packet);
     }
 
     public static IReadOnlyList<byte[]> Encode(OutputFrame frame)
@@ -47,29 +42,24 @@ public static class V1Protocol
 
     internal static (int Strength, int Frequency, int PulseWidth) Parameters(OutputFrame frame, int channel)
     {
-        var level = WaveformRendering.Strength(frame, channel);
-        if (level == 0) return (0, 0, 0);
+        double level = WaveformRendering.Strength(frame, channel);
+        if (level == 0)
+            return (0, 0, 0);
         var sample = WaveformRendering.Sample(frame, channel);
-        var encodedStrength = frame.Gentle ? (int)Math.Floor(level * 180 / 100)
+        int encodedStrength = frame.Gentle ? (int)Math.Floor(level * 180 / 100)
             : (int)Math.Round(level * MaxStrength / 100, MidpointRounding.AwayFromZero);
-        if (encodedStrength == 0) return (0, 0, 0);
+        if (encodedStrength == 0)
+            return (0, 0, 0);
         return (encodedStrength,
             (int)Math.Clamp(Math.Round(sample.FrequencyHz), 1, 100), (int)Math.Round(WaveformRendering.Width(frame, channel) * 100));
     }
 
-    private static byte[] Channel(byte channel, int strength, int frequency, int pulseWidth)
-    {
-        byte[] data = [0x35, 0x11, channel, (byte)(strength > 0 ? 1 : 0), 0, 0,
-            (byte)(strength > 0 ? 0x11 : 0), (byte)frequency, (byte)pulseWidth];
-        BinaryPrimitives.WriteUInt16BigEndian(data.AsSpan(4, 2), (ushort)strength);
-        return WithChecksum(data);
-    }
-
     public static byte[] WithChecksum(ReadOnlySpan<byte> data)
     {
-        var packet = new byte[data.Length + 1];
+        byte[] packet = new byte[data.Length + 1];
         data.CopyTo(packet);
-        foreach (var value in data) packet[^1] = unchecked((byte)(packet[^1] + value));
+        foreach (byte value in data)
+            packet[^1] = unchecked((byte)(packet[^1] + value));
         return packet;
     }
 
@@ -77,10 +67,15 @@ public static class V1Protocol
     {
         if (packet.Length == 5 && packet[0] == 0x36 && packet[1] == 0x13 &&
             packet[2] > 0 && packet[3] > 0 && WithChecksum(packet[..^1])[^1] == packet[^1])
+        {
             return new(HardwareVersion: packet[2], SoftwareVersion: packet[3]);
-        if (packet.Length < 5 || packet[0] != 0x35 || packet[1] != 0x71) return null;
-        var expectedLength = packet[2] switch { 1 or 2 => 9, 3 or 4 or 7 or 0x55 => 5, 5 => 6, 6 => 16, _ => 0 };
-        if (packet.Length != expectedLength || WithChecksum(packet[..^1])[^1] != packet[^1]) return null;
+        }
+
+        if (packet.Length < 5 || packet[0] != 0x35 || packet[1] != 0x71)
+            return null;
+        int expectedLength = packet[2] switch { 1 or 2 => 9, 3 or 4 or 7 or 0x55 => 5, 5 => 6, 6 => 16, _ => 0 };
+        if (packet.Length != expectedLength || WithChecksum(packet[..^1])[^1] != packet[^1])
+            return null;
         return packet[2] switch
         {
             4 when packet[3] <= 100 => new(Battery: packet[3]),
@@ -93,12 +88,28 @@ public static class V1Protocol
             _ => null
         };
     }
+    private static byte[] FixedChannel(int channel, int strength, int programId)
+    {
+        ProtocolGuard.Byte(programId, 0, 16);
+        byte[] packet = [0x35, 0x11, (byte)channel, strength > 0 ? (byte)1 : (byte)0, (byte)(strength >> 8), (byte)strength,
+            strength > 0 ? (byte)programId : (byte)0, 0, 0];
+        return WithChecksum(packet);
+    }
+
+    private static byte[] Channel(byte channel, int strength, int frequency, int pulseWidth)
+    {
+        byte[] data = [0x35, 0x11, channel, (byte)(strength > 0 ? 1 : 0), 0, 0,
+            (byte)(strength > 0 ? 0x11 : 0), (byte)frequency, (byte)pulseWidth];
+        BinaryPrimitives.WriteUInt16BigEndian(data.AsSpan(4, 2), (ushort)strength);
+        return WithChecksum(data);
+    }
     private static V1Status? ReadChannel(ReadOnlySpan<byte> packet)
     {
-        var enabled = packet[4] == 1;
-        var strength = enabled ? BinaryPrimitives.ReadUInt16BigEndian(packet[5..7]) : 0;
-        var mode = enabled ? packet[7] : 0;
-        if (enabled && (strength > MaxStrength || mode is < 1 or > 17)) return null;
+        bool enabled = packet[4] == 1;
+        int strength = enabled ? BinaryPrimitives.ReadUInt16BigEndian(packet[5..7]) : 0;
+        int mode = enabled ? packet[7] : 0;
+        if (enabled && (strength > MaxStrength || mode is < 1 or > 17))
+            return null;
         return packet[2] == 1
             ? new(ContactA: (ElectrodeContact)packet[3], OutputAEnabled: enabled, IntensityA: strength, ModeA: mode)
             : new(ContactB: (ElectrodeContact)packet[3], OutputBEnabled: enabled, IntensityB: strength, ModeB: mode);
@@ -111,8 +122,9 @@ public static class V1Protocol
         var acceleration = new SensorAxes((int)x, (int)y, (int)z);
         var gyroscope = new SensorAxes(BinaryPrimitives.ReadInt16BigEndian(packet[9..11]),
             BinaryPrimitives.ReadInt16BigEndian(packet[11..13]), BinaryPrimitives.ReadInt16BigEndian(packet[13..15]));
-        if (x == 0 && y == 0 && z == 0) return new(AccelerationAxes: acceleration, GyroscopeAxes: gyroscope);
-        var angle = (Math.Abs(Math.Atan2(x, Math.Sqrt(y * y + z * z))) +
+        if (x == 0 && y == 0 && z == 0)
+            return new(AccelerationAxes: acceleration, GyroscopeAxes: gyroscope);
+        double angle = (Math.Abs(Math.Atan2(x, Math.Sqrt(y * y + z * z))) +
             Math.Abs(Math.Atan2(y, Math.Sqrt(x * x + z * z)))) * 180 / Math.PI;
         return new(MotionAngle: Math.Clamp(angle, 0, 180), AccelerationAxes: acceleration, GyroscopeAxes: gyroscope);
     }

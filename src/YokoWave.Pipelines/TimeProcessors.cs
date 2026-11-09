@@ -6,12 +6,13 @@ namespace YokoWave.Pipelines;
 internal sealed class PlaylistProcessor : ISignalProcessor, IInteractiveProcessor
 {
     private readonly PlaylistNode _settings;
-    private readonly IReadOnlyDictionary<Guid, WaveformPreset> _assets;
+    private readonly IReadOnlyDictionary<Guid, WaveformAsset> _assets;
     private readonly Random _random = new();
-    private WaveformPreset _current;
+    private WaveformAsset _current;
     private double _epoch;
-    private bool _restart, _trigger;
-    public PlaylistProcessor(PlaylistNode settings, IReadOnlyDictionary<Guid, WaveformPreset> assets)
+    private bool _restart;
+    private bool _trigger;
+    public PlaylistProcessor(PlaylistNode settings, IReadOnlyDictionary<Guid, WaveformAsset> assets)
     {
         _settings = settings;
         _assets = assets;
@@ -21,12 +22,40 @@ internal sealed class PlaylistProcessor : ISignalProcessor, IInteractiveProcesso
     {
         if (control.Action != "waveform")
             return;
-        var waveform = control.Read<WaveformPreset>();
+        var waveform = control.Read<WaveformAsset>();
         waveform.Validate();
         if (!_settings.AcceptsWaveform(waveform.Id))
             throw new LocalizedOperationException("Error.PlaylistWave");
         _current = waveform;
         _restart = true;
+    }
+    public void Evaluate(NodeEvaluationContext context)
+    {
+        double now = context.Elapsed.TotalSeconds;
+        var trigger = context.Input("trigger");
+        bool high = trigger.IsValid(context.Now) && trigger.At(0) > 0;
+        if (_restart || _settings.RestartOnTrigger && high && !_trigger)
+        {
+            if (!_restart)
+                Next();
+            _epoch = now;
+            _restart = false;
+        }
+        _trigger = high;
+        double elapsed = now - _epoch;
+        if (elapsed >= _current.PeriodSeconds && _settings.Order is PlaybackOrder.Sequential or PlaybackOrder.Random && !_settings.RestartOnTrigger)
+        {
+            Next();
+            _epoch = now;
+            elapsed = 0;
+        }
+        bool completed = _settings.Order == PlaybackOrder.Once && elapsed >= _current.PeriodSeconds;
+        if (_settings.StopWhenComplete && _settings.Order == PlaybackOrder.Once)
+            context.Completion(completed, "Reason.WaveComplete");
+        var samples = WaveformGenerator.Window(_current, elapsed, _settings.Phase, repeat: _settings.Order != PlaybackOrder.Once);
+        WaveformPorts.Write(context, _current, samples, completed);
+        double position = _settings.Order == PlaybackOrder.Once ? elapsed : elapsed % _current.PeriodSeconds;
+        context.Status(new(completed ? "Safe" : "Tracking", Waveform: _current.Id, RemainingSeconds: Math.Max(0, _current.PeriodSeconds - position)));
     }
     private void Next()
     {
@@ -37,35 +66,9 @@ internal sealed class PlaylistProcessor : ISignalProcessor, IInteractiveProcesso
             _current = choices[_random.Next(choices.Length)];
         }
         else if (_settings.Order == PlaybackOrder.Sequential)
+        {
             _current = playlist[(Array.FindIndex(playlist, w => w.Id == _current.Id) + 1) % playlist.Length];
-    }
-    public void Evaluate(NodeEvaluationContext context)
-    {
-        var now = context.Elapsed.TotalSeconds;
-        var trigger = context.Input("trigger");
-        var high = trigger.IsValid(context.Now) && trigger.At(0) > 0;
-        if (_restart || _settings.RestartOnTrigger && high && !_trigger)
-        {
-            if (!_restart)
-                Next();
-            _epoch = now;
-            _restart = false;
         }
-        _trigger = high;
-        var elapsed = now - _epoch;
-        if (elapsed >= _current.PeriodSeconds && _settings.Order is PlaybackOrder.Sequential or PlaybackOrder.Random && !_settings.RestartOnTrigger)
-        {
-            Next();
-            _epoch = now;
-            elapsed = 0;
-        }
-        var completed = _settings.Order == PlaybackOrder.Once && elapsed >= _current.PeriodSeconds;
-        if (_settings.StopWhenComplete && _settings.Order == PlaybackOrder.Once)
-            context.Completion(completed, "Reason.WaveComplete");
-        var samples = WaveformGenerator.Window(_current, elapsed, _settings.Phase, repeat: _settings.Order != PlaybackOrder.Once);
-        WaveformPorts.Write(context, _current, samples, completed);
-        var position = _settings.Order == PlaybackOrder.Once ? elapsed : elapsed % _current.PeriodSeconds;
-        context.Status(new(completed ? "Safe" : "Tracking", Waveform: _current.Id, RemainingSeconds: Math.Max(0, _current.PeriodSeconds - position)));
     }
 }
 
@@ -97,8 +100,8 @@ internal sealed class CounterProcessor(CounterNode settings) : ISignalProcessor,
             context.Completion(_movements >= settings.Goal, "Reason.MovementGoal");
         var angle = context.IsConnected("angle") ? context.Input("angle") : NumericSignal.Missing;
         var steps = context.IsConnected("steps") ? context.Input("steps") : null;
-        var hasAngle = angle.IsValid(context.Now);
-        var hasSteps = steps?.IsValid(context.Now) == true;
+        bool hasAngle = angle.IsValid(context.Now);
+        bool hasSteps = steps?.IsValid(context.Now) == true;
         if (!hasAngle && !hasSteps)
         {
             Suspend();
@@ -107,11 +110,11 @@ internal sealed class CounterProcessor(CounterNode settings) : ISignalProcessor,
             context.Status(new("Waiting", Count: _movements));
             return;
         }
-        var elapsed = context.Elapsed.TotalSeconds;
-        var value = hasAngle ? angle.At(0) : (double?)null;
-        var currentSteps = hasSteps ? steps!.At(0) : (double?)null;
+        double elapsed = context.Elapsed.TotalSeconds;
+        double? value = hasAngle ? angle.At(0) : (double?)null;
+        double? currentSteps = hasSteps ? steps!.At(0) : (double?)null;
         var source = hasAngle ? angle : steps!;
-        var movement = false;
+        bool movement = false;
         if (!_sampled)
         {
             _sampled = true;
@@ -146,24 +149,20 @@ internal sealed class CounterProcessor(CounterNode settings) : ISignalProcessor,
 internal sealed class CycleProcessor(CycleNode settings) : ISignalProcessor, ISuspendableProcessor
 {
     private readonly Random _random = new();
-    private double _started, _burstStarted, _wait, _duration, _strength, _last;
-    private bool _burst, _initialized, _suspended;
+    private double _started;
+    private double _burstStarted;
+    private double _wait;
+    private double _duration;
+    private double _strength;
+    private double _last;
+    private bool _burst;
+    private bool _initialized;
+    private bool _suspended;
     public void Suspend() => _suspended = true;
-    private double Between(double min, double max) => min + _random.NextDouble() * (max - min);
-    private void Reset(double elapsed)
-    {
-        _wait = settings.Random ? Between(settings.MinimumWait, settings.MaximumWait) : settings.WaitSeconds;
-        _duration = settings.Random ? Between(settings.MinimumBurst, settings.MaximumBurst) : settings.BurstSeconds;
-        _strength = settings.Random ? Between(settings.MinimumStrength, settings.MaximumStrength) : 1;
-        _started = elapsed;
-        _burst = false;
-        _initialized = true;
-        _suspended = false;
-    }
     public void Evaluate(NodeEvaluationContext context)
     {
-        var elapsed = context.Elapsed.TotalSeconds;
-        var interrupted = _initialized && elapsed - _last > 2 || !_initialized && elapsed > 2;
+        double elapsed = context.Elapsed.TotalSeconds;
+        bool interrupted = _initialized && elapsed - _last > 2 || !_initialized && elapsed > 2;
         if (!_initialized)
             Reset(0);
         if (interrupted || _suspended)
@@ -188,7 +187,7 @@ internal sealed class CycleProcessor(CycleNode settings) : ISignalProcessor, ISu
             _burst = true;
             _burstStarted = elapsed;
         }
-        var remaining = Math.Max(0, _burst ? _burstStarted + _duration - elapsed : _wait - (elapsed - _started));
+        double remaining = Math.Max(0, _burst ? _burstStarted + _duration - elapsed : _wait - (elapsed - _started));
         var gate = new NumericSignal(Enumerable.Range(0, 4).Select(i => _burst && !interrupted && i * .025 < remaining ? _strength : 0).ToArray(), DateTimeOffset.MaxValue);
         if (settings.RequireActivity)
             gate = NumericSignal.Combine(gate, activity, (value, _) => value);
@@ -196,6 +195,17 @@ internal sealed class CycleProcessor(CycleNode settings) : ISignalProcessor, ISu
         context.Output("trigger", NumericSignal.Constant(_burst ? 1 : 0));
         context.Output("remaining", NumericSignal.Constant(remaining));
         context.Status(new(_burst ? "Burst" : "Resting", _burst ? _strength : 0, RemainingSeconds: remaining));
+    }
+    private double Between(double min, double max) => min + _random.NextDouble() * (max - min);
+    private void Reset(double elapsed)
+    {
+        _wait = settings.Random ? Between(settings.MinimumWait, settings.MaximumWait) : settings.WaitSeconds;
+        _duration = settings.Random ? Between(settings.MinimumBurst, settings.MaximumBurst) : settings.BurstSeconds;
+        _strength = settings.Random ? Between(settings.MinimumStrength, settings.MaximumStrength) : 1;
+        _started = elapsed;
+        _burst = false;
+        _initialized = true;
+        _suspended = false;
     }
 }
 
@@ -227,7 +237,7 @@ internal sealed class AutomationProcessor(StrengthSettings settings) : ISignalPr
             _boost = false;
             _reset = false;
         }
-        var bucket = (long)Math.Floor((context.Elapsed.TotalSeconds - _epoch) / settings.IntervalSeconds);
+        long bucket = (long)Math.Floor((context.Elapsed.TotalSeconds - _epoch) / settings.IntervalSeconds);
         if (bucket > _bucket)
         {
             _bucket = bucket;
@@ -245,8 +255,10 @@ internal sealed class AutomationProcessor(StrengthSettings settings) : ISignalPr
 internal sealed class PumpTimerProcessor(PumpTimerNode settings) : ISignalProcessor, IInteractiveProcessor
 {
     private PumpOutput _settings = settings.Settings;
-    private double _aEpoch, _bEpoch;
-    private bool _restartA, _restartB;
+    private double _aEpoch;
+    private double _bEpoch;
+    private bool _restartA;
+    private bool _restartB;
     public void Update(NodeControl control)
     {
         if (control.Action != "pump")
@@ -259,7 +271,7 @@ internal sealed class PumpTimerProcessor(PumpTimerNode settings) : ISignalProces
     }
     public void Evaluate(NodeEvaluationContext context)
     {
-        var elapsed = context.Elapsed.TotalSeconds;
+        double elapsed = context.Elapsed.TotalSeconds;
         if (_restartA)
         {
             _aEpoch = elapsed;
@@ -270,15 +282,15 @@ internal sealed class PumpTimerProcessor(PumpTimerNode settings) : ISignalProces
             _bEpoch = elapsed;
             _restartB = false;
         }
-        var a = _settings.PeristalticSeconds == 0 ? 0 : Math.Max(0, Math.Ceiling(_settings.PeristalticSeconds - (elapsed - _aEpoch)));
-        var b = _settings.WaterSeconds == 0 ? 0 : Math.Max(0, Math.Ceiling(_settings.WaterSeconds - (elapsed - _bEpoch)));
+        double a = _settings.PeristalticSeconds == 0 ? 0 : Math.Max(0, Math.Ceiling(_settings.PeristalticSeconds - (elapsed - _aEpoch)));
+        double b = _settings.WaterSeconds == 0 ? 0 : Math.Max(0, Math.Ceiling(_settings.WaterSeconds - (elapsed - _bEpoch)));
         var direction = a == 0 && _settings.PeristalticSeconds > 0 ? PumpDirection.Off : _settings.Direction;
-        var water = _settings.Water && (_settings.WaterSeconds == 0 || b > 0);
+        bool water = _settings.Water && (_settings.WaterSeconds == 0 || b > 0);
         context.Output("direction", NumericSignal.Constant((int)direction));
         context.Output("water", NumericSignal.Constant(water ? 1 : 0));
         context.Output("peristalticSeconds", NumericSignal.Constant(a));
         context.Output("waterSeconds", NumericSignal.Constant(b));
-        var complete = (_settings.Direction != PumpDirection.Off || _settings.Water) && direction == PumpDirection.Off && !water;
+        bool complete = (_settings.Direction != PumpDirection.Off || _settings.Water) && direction == PumpDirection.Off && !water;
         if (settings.StopWhenComplete)
             context.Completion(complete, "Reason.PumpComplete");
         context.Status(new(complete ? "Safe" : "Tracking", RemainingSeconds: Math.Max(a, b)));

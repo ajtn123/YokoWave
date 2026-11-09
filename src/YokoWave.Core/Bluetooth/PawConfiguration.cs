@@ -66,10 +66,10 @@ public sealed record PawProbability(IReadOnlyList<PawProbabilityEvent> Events, i
     public IReadOnlyList<PawProbabilityEvent> EffectiveEvents()
     {
         Validate();
-        var remaining = 200;
+        int remaining = 200;
         return Events.Select(entry =>
         {
-            var probability = Math.Min(entry.Probability, remaining);
+            int probability = Math.Min(entry.Probability, remaining);
             remaining -= probability;
             return entry with { Probability = probability };
         }).ToArray();
@@ -131,8 +131,8 @@ public sealed record ConfigurePaw(PawTrigger Trigger, int IndicatorColor = 1) : 
 
 public sealed record PawCalibration(short XMinimum, short XMaximum, short YMinimum, short YMaximum, short ZMinimum, short ZMaximum)
 {
-    private static int Convert(short raw) => Math.Clamp(raw / 2, -128, 127);
     public PawAxisRange X => new(Convert(XMinimum), Convert(XMaximum));
     public PawAxisRange Y => new(Convert(YMinimum), Convert(YMaximum));
     public PawAxisRange Z => new(Convert(ZMinimum), Convert(ZMaximum));
+    private static int Convert(short raw) => Math.Clamp(raw / 2, -128, 127);
 }

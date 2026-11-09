@@ -8,7 +8,15 @@ public sealed record SimulatedInputNode(double Value = 0);
 
 public static partial class BuiltInNodes
 {
-    public const string Mix = "numeric.mix", Threshold = "numeric.threshold", Smooth = "numeric.smooth", Select = "numeric.select", SimulatedInput = "input.simulated";
+    public const string Mix = "numeric.mix";
+
+    public const string Threshold = "numeric.threshold";
+
+    public const string Smooth = "numeric.smooth";
+
+    public const string Select = "numeric.select";
+
+    public const string SimulatedInput = "input.simulated";
     private static NodeTypeRegistry RegisterNumeric(NodeTypeRegistry registry) => registry
         .Register(new NodeRegistration<MixNode>(Mix, "Pipeline.Node.Mix", [In("a"), In("b"), In("amount", 0, 1, .5), Out("value")],
             c => double.IsFinite(c.Amount) && c.Amount is >= 0 and <= 1, (c, _) => new MixProcessor(c)))
@@ -70,7 +78,7 @@ internal sealed class SmoothProcessor(SmoothNode settings) : ISignalProcessor, I
             context.Output("value", input);
             return;
         }
-        var factor = settings.Seconds == 0 || _at is null ? 1 : 1 - Math.Exp(-(context.Elapsed - _at.Value).TotalSeconds / settings.Seconds);
+        double factor = settings.Seconds == 0 || _at is null ? 1 : 1 - Math.Exp(-(context.Elapsed - _at.Value).TotalSeconds / settings.Seconds);
         _value += (input.At(0) - _value) * factor;
         _at = context.Elapsed;
         context.Output("value", new([_value], input.ValidUntil, input.Simulated, input.Sequence));

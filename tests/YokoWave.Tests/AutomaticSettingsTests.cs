@@ -1,12 +1,12 @@
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
+using Xunit;
 using YokoWave.App.ViewModels;
 using YokoWave.App.ViewModels.Pipelines;
 using YokoWave.Core;
 using YokoWave.Core.Bluetooth;
 using YokoWave.Core.Localization;
 using YokoWave.Pipelines;
-using Xunit;
 
 namespace YokoWave.Tests;
 
@@ -53,7 +53,7 @@ public sealed class AutomaticSettingsTests
         Assert.Equal(4, Assert.IsType<ConfigureIndicator>(Read<CommandNode>(editor, command).Command).Color);
         Assert.True(Read<CommandNode>(editor, command).OnStart);
         Assert.Same(color, Assert.Single(command.CommandParameters));
-        var language = L10n.Current.Language;
+        string language = L10n.Current.Language;
         try
         {
             L10n.Current.SetLanguage(language == "en" ? "zh-CN" : "en");
@@ -61,7 +61,10 @@ public sealed class AutomaticSettingsTests
             Assert.Same(color, Assert.Single(command.CommandParameters));
             Assert.Equal(4, color.Number);
         }
-        finally { L10n.Current.SetLanguage(language); }
+        finally
+        {
+            L10n.Current.SetLanguage(language);
+        }
         await vm.Pipelines.SaveAsync();
 
         await using var restored = new MainViewModel(new DeviceController(new SimulationTransport()), new(folder.Path));
@@ -81,7 +84,7 @@ public sealed class AutomaticSettingsTests
         TaskCompletionSource barrier = new(TaskCreationOptions.RunContinuationsAsynchronously);
         List<DeviceOutputSettings> saved = [];
         List<Exception> errors = [];
-        var failNextSave = false;
+        bool failNextSave = false;
         await using var devices = new DevicesPaneViewModel(controller, () => new BluetoothDeviceTransport(adapter), async () =>
         {
             await barrier.Task;

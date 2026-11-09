@@ -22,6 +22,8 @@ public sealed record StrengthSettings(StrengthMode Mode = StrengthMode.Fixed, do
     {
         if (!Enum.IsDefined(Mode) || !double.IsFinite(IntervalSeconds) || IntervalSeconds is < 1 or > 600 ||
             new[] { RandomAddition, Step, Ceiling, Boost }.Any(value => !double.IsFinite(value) || value is < 0 or > 100))
+        {
             throw new LocalizedArgumentException("Error.StrengthSettings");
+        }
     }
 }

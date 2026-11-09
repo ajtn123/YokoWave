@@ -7,17 +7,10 @@ namespace YokoWave.App.Controls;
 
 public sealed class WaveformPlot : Control
 {
-    private readonly record struct CurveKey(Size Size, WaveformPreset Preset, WaveformPreset? PresetB,
-        double AmplitudeA, double AmplitudeB, bool Offset, bool ShowGrid);
-    private readonly record struct PenKey(IBrush? Grid, IBrush? A, IBrush? B, IBrush? Playhead, bool ShowGrid);
-    private CurveKey? _curveKey;
-    private PenKey? _penKey;
-    private StreamGeometry? _curveA, _curveB, _area;
-    private Pen? _gridPen, _penA, _penB, _playheadPen;
-    public static readonly StyledProperty<WaveformPreset?> PresetProperty =
-        AvaloniaProperty.Register<WaveformPlot, WaveformPreset?>(nameof(Preset));
-    public static readonly StyledProperty<WaveformPreset?> PresetBProperty =
-        AvaloniaProperty.Register<WaveformPlot, WaveformPreset?>(nameof(PresetB));
+    public static readonly StyledProperty<WaveformAsset?> WaveformProperty =
+        AvaloniaProperty.Register<WaveformPlot, WaveformAsset?>(nameof(Waveform));
+    public static readonly StyledProperty<WaveformAsset?> WaveformBProperty =
+        AvaloniaProperty.Register<WaveformPlot, WaveformAsset?>(nameof(WaveformB));
     public static readonly StyledProperty<double> AmplitudeAProperty =
         AvaloniaProperty.Register<WaveformPlot, double>(nameof(AmplitudeA), 70);
     public static readonly StyledProperty<double> AmplitudeBProperty =
@@ -38,12 +31,17 @@ public sealed class WaveformPlot : Control
         AvaloniaProperty.Register<WaveformPlot, IBrush?>(nameof(AreaBrush));
     public static readonly StyledProperty<IBrush?> PlayheadBrushProperty =
         AvaloniaProperty.Register<WaveformPlot, IBrush?>(nameof(PlayheadBrush));
-
-    static WaveformPlot() => AffectsRender<WaveformPlot>(PresetProperty, PresetBProperty, AmplitudeAProperty, AmplitudeBProperty,
-        OffsetProperty, PlayheadProperty, ShowGridProperty, GridBrushProperty, ChannelABrushProperty,
-        ChannelBBrushProperty, AreaBrushProperty, PlayheadBrushProperty);
-    public WaveformPreset? Preset { get => GetValue(PresetProperty); set => SetValue(PresetProperty, value); }
-    public WaveformPreset? PresetB { get => GetValue(PresetBProperty); set => SetValue(PresetBProperty, value); }
+    private CurveKey? _curveKey;
+    private PenKey? _penKey;
+    private StreamGeometry? _curveA;
+    private StreamGeometry? _curveB;
+    private StreamGeometry? _area;
+    private Pen? _gridPen;
+    private Pen? _penA;
+    private Pen? _penB;
+    private Pen? _playheadPen;
+    public WaveformAsset? Waveform { get => GetValue(WaveformProperty); set => SetValue(WaveformProperty, value); }
+    public WaveformAsset? WaveformB { get => GetValue(WaveformBProperty); set => SetValue(WaveformBProperty, value); }
     public double AmplitudeA { get => GetValue(AmplitudeAProperty); set => SetValue(AmplitudeAProperty, value); }
     public double AmplitudeB { get => GetValue(AmplitudeBProperty); set => SetValue(AmplitudeBProperty, value); }
     public bool Offset { get => GetValue(OffsetProperty); set => SetValue(OffsetProperty, value); }
@@ -54,31 +52,34 @@ public sealed class WaveformPlot : Control
     public IBrush? ChannelBBrush { get => GetValue(ChannelBBrushProperty); set => SetValue(ChannelBBrushProperty, value); }
     public IBrush? AreaBrush { get => GetValue(AreaBrushProperty); set => SetValue(AreaBrushProperty, value); }
     public IBrush? PlayheadBrush { get => GetValue(PlayheadBrushProperty); set => SetValue(PlayheadBrushProperty, value); }
+    static WaveformPlot() => AffectsRender<WaveformPlot>(WaveformProperty, WaveformBProperty, AmplitudeAProperty, AmplitudeBProperty,
+        OffsetProperty, PlayheadProperty, ShowGridProperty, GridBrushProperty, ChannelABrushProperty,
+        ChannelBBrushProperty, AreaBrushProperty, PlayheadBrushProperty);
 
     public override void Render(DrawingContext context)
     {
         base.Render(context);
-        var width = Bounds.Width;
-        var height = Bounds.Height;
+        double width = Bounds.Width;
+        double height = Bounds.Height;
         if (width < 1 || height < 1)
             return;
         UpdatePens();
         using var clip = context.PushClip(new Rect(Bounds.Size));
         if (ShowGrid)
         {
-            for (var i = 0; i <= 4; i++)
+            for (int i = 0; i <= 4; i++)
                 context.DrawLine(_gridPen!, new(0, i * height / 4), new(width, i * height / 4));
-            for (var i = 0; i <= 12; i++)
+            for (int i = 0; i <= 12; i++)
                 context.DrawLine(_gridPen!, new(i * width / 12, 0), new(i * width / 12, height));
         }
-        var preset = Preset;
-        if (preset is null)
+        var waveform = Waveform;
+        if (waveform is null)
             return;
-        var key = new CurveKey(Bounds.Size, preset, PresetB, AmplitudeA, AmplitudeB, Offset, ShowGrid);
+        var key = new CurveKey(Bounds.Size, waveform, WaveformB, AmplitudeA, AmplitudeB, Offset, ShowGrid);
         if (_curveKey != key)
         {
-            (_curveB, _) = BuildCurve(PresetB ?? preset, width, height, AmplitudeB, PresetB is null && Offset ? .5 : 0, false);
-            (_curveA, _area) = BuildCurve(preset, width, height, AmplitudeA, 0, true);
+            (_curveB, _) = BuildCurve(WaveformB ?? waveform, width, height, AmplitudeB, WaveformB is null && Offset ? .5 : 0, false);
+            (_curveA, _area) = BuildCurve(waveform, width, height, AmplitudeA, 0, true);
             _curveKey = key;
         }
         context.DrawGeometry(null, _penB, _curveB!);
@@ -86,7 +87,7 @@ public sealed class WaveformPlot : Control
         context.DrawGeometry(null, _penA, _curveA!);
         if (Playhead > 0)
         {
-            var x = Playhead * width;
+            double x = Playhead * width;
             context.DrawLine(_playheadPen!, new(x, 0), new(x, height));
             context.DrawEllipse(PlayheadBrush, null, new(x, 4), 3, 3);
         }
@@ -104,20 +105,20 @@ public sealed class WaveformPlot : Control
         _penKey = key;
     }
 
-    private (StreamGeometry Curve, StreamGeometry? Area) BuildCurve(WaveformPreset preset, double width, double height,
+    private (StreamGeometry Curve, StreamGeometry? Area) BuildCurve(WaveformAsset waveform, double width, double height,
         double amplitude, double phase, bool fill)
     {
         var geometry = new StreamGeometry();
         var area = fill ? new StreamGeometry() : null;
-        var baseline = height - 4;
-        var count = Math.Max(100, (int)width);
+        double baseline = height - 4;
+        int count = Math.Max(100, (int)width);
         using (var path = geometry.Open())
         using (var areaPath = area?.Open())
         {
             areaPath?.BeginFigure(new(0, baseline), true);
-            for (var i = 0; i <= count; i++)
+            for (int i = 0; i <= count; i++)
             {
-                var value = WaveformGenerator.Sample(preset, i * (ShowGrid ? 12d : preset.PeriodSeconds * 2) / count, phase);
+                double value = WaveformGenerator.Sample(waveform, i * (ShowGrid ? 12d : waveform.PeriodSeconds * 2) / count, phase);
                 var point = new Point(i * width / count, baseline - value * Math.Clamp(amplitude, 0, 100) / 100 * (height - 10));
                 if (i == 0)
                     path.BeginFigure(point, false);
@@ -131,4 +132,7 @@ public sealed class WaveformPlot : Control
         }
         return (geometry, area);
     }
+    private readonly record struct CurveKey(Size Size, WaveformAsset Waveform, WaveformAsset? WaveformB,
+        double AmplitudeA, double AmplitudeB, bool Offset, bool ShowGrid);
+    private readonly record struct PenKey(IBrush? Grid, IBrush? A, IBrush? B, IBrush? Playhead, bool ShowGrid);
 }

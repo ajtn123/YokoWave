@@ -119,10 +119,14 @@ internal sealed class SensorParticipant(NodeRunContext context, SensorNode setti
             await context.Devices.ExecuteCommandAsync(settings.DeviceId, new QueryDevice(), context.OwnerId, cancellationToken).ConfigureAwait(false);
         }
         if (context.Devices.Connections.TryGetValue(settings.DeviceId, out var connection))
+        {
             inputs.Sensors[context.NodeId] = new(connection.Device, connection.Motion, connection.Steps, connection.Telemetry,
                 connection.TelemetryCapturedAt, context.Devices.AreSimulated([settings.DeviceId]));
+        }
         else
+        {
             inputs.Sensors.Remove(context.NodeId);
+        }
     }
     public Task SetPausedAsync(bool paused) => paused ? Task.CompletedTask : StartAsync(CancellationToken.None);
     public ValueTask DisposeAsync() => ValueTask.CompletedTask; // DeviceController stops streams before releasing the reservation.

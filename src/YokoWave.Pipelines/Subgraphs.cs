@@ -7,38 +7,18 @@ namespace YokoWave.Pipelines;
 public sealed record ExposedPort(string Id, string NameKey, PortAddress Address, NumericParameterSpec? Parameter = null, PortValueKind Kind = PortValueKind.Numeric);
 public sealed record SubgraphNode(PipelineDocument Graph, ExposedPort[] Inputs, ExposedPort[] Outputs,
     Dictionary<string, string>? Devices = null);
-public sealed record PipelinePreset(Guid Id, string Name, PipelineDocument Graph, ExposedPort[] Inputs, ExposedPort[] Outputs);
+public sealed record SavedPipelineTemplate(Guid Id, string Name, PipelineDocument Graph, ExposedPort[] Inputs, ExposedPort[] Outputs);
 
 /// <summary>Expands copied graph definitions into one DAG and one resource reservation.</summary>
 public static class SubgraphExpansion
 {
     public const string Type = "graph.subgraph";
-    private sealed class NoopProcessor : ISignalProcessor
-    {
-        public void Evaluate(NodeEvaluationContext context)
-        {
-        }
-    }
 
     public static NodeRegistration Registration() => new NodeRegistration<SubgraphNode>(Type, "Pipeline.Node.Subgraph", [],
         ValidConfiguration,
         (_, _) => new NoopProcessor(), dynamicPorts: c =>
             c.Inputs.Select(p => new NodePort(p.Id, p.NameKey, PortDirection.Input, p.Parameter ?? new("", double.MinValue, double.MaxValue, 0), p.Kind))
                 .Concat(c.Outputs.Select(p => new NodePort(p.Id, p.NameKey, PortDirection.Output, Kind: p.Kind))).ToArray());
-
-    private static bool ValidConfiguration(SubgraphNode configuration)
-    {
-        if (configuration.Graph is null || configuration.Inputs is null || configuration.Outputs is null)
-            return false;
-        try
-        {
-            PipelineDocumentValidation.EnsureValid(configuration.Graph);
-            PipelineDocumentValidation.EnsurePorts(configuration.Graph, configuration.Inputs, PortDirection.Input);
-            PipelineDocumentValidation.EnsurePorts(configuration.Graph, configuration.Outputs, PortDirection.Output);
-            return true;
-        }
-        catch (PipelineValidationException) { return false; }
-    }
 
     public static NodeDefinition MapDevices(NodeDefinition node, IReadOnlyDictionary<string, string> devices)
     {
@@ -49,27 +29,37 @@ public static class SubgraphExpansion
             {
                 foreach (var (key, item) in obj.ToArray())
                 {
-                    if (key == "DeviceId" && item is JsonValue scalar && scalar.TryGetValue<string>(out var id) && devices.TryGetValue(id, out var mapped))
+                    if (key == "DeviceId" && item is JsonValue scalar && scalar.TryGetValue<string>(out string? id) && devices.TryGetValue(id, out string? mapped))
+                    {
                         obj[key] = mapped;
+                    }
                     else if (key == "DeviceIds" && item is JsonArray array)
                     {
-                        for (var i = 0; i < array.Count; i++)
-                            if (array[i] is JsonValue element && element.TryGetValue<string>(out var original) && devices.TryGetValue(original, out var replacement))
+                        for (int i = 0; i < array.Count; i++)
+                        {
+                            if (array[i] is JsonValue element && element.TryGetValue<string>(out string? original) && devices.TryGetValue(original, out string? replacement))
                                 array[i] = replacement;
+                        }
                     }
                     else if (key == "Devices" && item is JsonObject map)
                     {
                         foreach (var entry in map.ToArray())
-                            if (entry.Value is JsonValue original && original.TryGetValue<string>(out var target) && devices.TryGetValue(target, out var replacement))
+                        {
+                            if (entry.Value is JsonValue original && original.TryGetValue<string>(out string? target) && devices.TryGetValue(target, out string? replacement))
                                 map[entry.Key] = replacement;
+                        }
                     }
                     else
+                    {
                         Visit(item);
+                    }
                 }
             }
             else if (value is JsonArray array)
+            {
                 foreach (var item in array)
                     Visit(item);
+            }
         }
         Visit(json);
         return node with
@@ -90,9 +80,23 @@ public static class SubgraphExpansion
         PipelineDocumentValidation.EnsureValid(result);
         return result;
     }
-    private sealed record InputDefault(Guid Id, double Value);
-    private sealed record Expansion(PipelineDocument Document, Dictionary<PortAddress, PortAddress> Inputs,
-        Dictionary<PortAddress, PortAddress> Outputs, Dictionary<PortAddress, InputDefault> Defaults);
+
+    private static bool ValidConfiguration(SubgraphNode configuration)
+    {
+        if (configuration.Graph is null || configuration.Inputs is null || configuration.Outputs is null)
+            return false;
+        try
+        {
+            PipelineDocumentValidation.EnsureValid(configuration.Graph);
+            PipelineDocumentValidation.EnsurePorts(configuration.Graph, configuration.Inputs, PortDirection.Input);
+            PipelineDocumentValidation.EnsurePorts(configuration.Graph, configuration.Outputs, PortDirection.Output);
+            return true;
+        }
+        catch (PipelineValidationException)
+        {
+            return false;
+        }
+    }
     private static Expansion ExpandCore(PipelineDocument document, int depth)
     {
         if (depth > 16)
@@ -176,4 +180,13 @@ public static class SubgraphExpansion
         child.TryWriteBytes(source[16..]);
         return new Guid(SHA256.HashData(source)[..16]);
     }
+    private sealed class NoopProcessor : ISignalProcessor
+    {
+        public void Evaluate(NodeEvaluationContext context)
+        {
+        }
+    }
+    private sealed record InputDefault(Guid Id, double Value);
+    private sealed record Expansion(PipelineDocument Document, Dictionary<PortAddress, PortAddress> Inputs,
+        Dictionary<PortAddress, PortAddress> Outputs, Dictionary<PortAddress, InputDefault> Defaults);
 }

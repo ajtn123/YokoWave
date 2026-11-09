@@ -1,6 +1,6 @@
-using YokoWave.Pipelines;
 using YokoWave.Core.Bluetooth;
 using YokoWave.Core.Localization;
+using YokoWave.Pipelines;
 using YokoWave.Remote;
 
 namespace YokoWave.App.ViewModels.Pipelines;
@@ -27,12 +27,12 @@ public sealed class PipelineNodeCatalog
     private readonly Dictionary<string, Func<PipelineEditorViewModel, NodeDefinition>> _defaults = new(StringComparer.Ordinal)
     {
         [BuiltInNodes.Constant] = _ => NodeDefinition.Create(BuiltInNodes.Constant, new ConstantNode()),
-        [BuiltInNodes.Waveform] = e => NodeDefinition.Create(BuiltInNodes.Waveform, new WaveformNode(e.Presets.First().Preset.Id)),
+        [BuiltInNodes.Waveform] = e => NodeDefinition.Create(BuiltInNodes.Waveform, new WaveformNode(e.Waveforms.First().Asset.Id)),
         [BuiltInNodes.Gain] = _ => NodeDefinition.Create(BuiltInNodes.Gain, new GainNode()),
         [BuiltInNodes.Limit] = _ => NodeDefinition.Create(BuiltInNodes.Limit, new LimitNode()),
         [BuiltInNodes.ChannelOutput] = e => NodeDefinition.Create(BuiltInNodes.ChannelOutput, new ChannelOutputNode(Limit: e.GetDefaultOutputLimit())),
         [BuiltInNodes.PumpOutput] = e => NodeDefinition.Create(BuiltInNodes.PumpOutput, new PumpOutputNode(Limit: e.GetDefaultOutputLimit())),
-        [BuiltInNodes.Playlist] = e => NodeDefinition.Create(BuiltInNodes.Playlist, new PlaylistNode(e.Presets.First().Preset.Id, e.Presets.Select(p => p.Preset.Id).ToArray())),
+        [BuiltInNodes.Playlist] = e => NodeDefinition.Create(BuiltInNodes.Playlist, new PlaylistNode(e.Waveforms.First().Asset.Id, e.Waveforms.Select(p => p.Asset.Id).ToArray())),
         [BuiltInNodes.Touch] = _ => NodeDefinition.Create(BuiltInNodes.Touch, new TouchNode()),
         [BuiltInNodes.Audio] = _ => NodeDefinition.Create(BuiltInNodes.Audio, new AudioNode(new())),
         [BuiltInNodes.Sensor] = _ => NodeDefinition.Create(BuiltInNodes.Sensor, new SensorNode()),

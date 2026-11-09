@@ -31,7 +31,12 @@ public sealed class CommandNodeEditorViewModel : DeviceOutputEditorViewModel
     }
     public bool OnStart
     {
-        get => _settings.OnStart; set => Change(() => { _settings = _settings with { OnStart = value }; Raise(); });
+        get => _settings.OnStart;
+        set => Change(() =>
+                        {
+                            _settings = _settings with { OnStart = value };
+                            Raise();
+                        });
     }
     public CommandNodeEditorViewModel(PipelineEditorViewModel editor, NodeDefinition definition) : base(editor, definition,
         ((CommandNode)editor.Registry.Get(definition.Type).Read(definition.Configuration)).DeviceId)
@@ -48,21 +53,6 @@ public sealed class CommandNodeEditorViewModel : DeviceOutputEditorViewModel
             RefreshParameters();
         };
     }
-    private static bool SameKind(DeviceCommand a, DeviceCommand b) => a.GetType() == b.GetType() &&
-        (a is not ConfigurePaw pa || b is ConfigurePaw pb && pa.Trigger.GetType() == pb.Trigger.GetType());
-    private void RefreshParameters()
-    {
-        CommandParameters = ProtocolParameterForm.Create(_commandJson, _selected?.Key ?? "", Editor.FindDevice(DeviceId)?.Profile, json =>
-        {
-            if (_selected is { } command)
-                Change(() =>
-                {
-                    _commandJson = json;
-                    _settings = _settings with { Command = command.Parse(json) };
-                });
-        });
-        Raise(nameof(CommandParameters));
-    }
     protected override NodeDefinition BuildDefinition() => NodeDefinition.Create(Type, _settings with { DeviceId = DeviceId }, Id);
     public override void RefreshLocalization()
     {
@@ -71,5 +61,22 @@ public sealed class CommandNodeEditorViewModel : DeviceOutputEditorViewModel
             command.Refresh();
         foreach (var field in CommandParameters)
             field.Refresh();
+    }
+    private static bool SameKind(DeviceCommand a, DeviceCommand b) => a.GetType() == b.GetType() &&
+        (a is not ConfigurePaw pa || b is ConfigurePaw pb && pa.Trigger.GetType() == pb.Trigger.GetType());
+    private void RefreshParameters()
+    {
+        CommandParameters = ProtocolParameterForm.Create(_commandJson, _selected?.Key ?? "", Editor.FindDevice(DeviceId)?.Profile, json =>
+        {
+            if (_selected is { } command)
+            {
+                Change(() =>
+                {
+                    _commandJson = json;
+                    _settings = _settings with { Command = command.Parse(json) };
+                });
+            }
+        });
+        Raise(nameof(CommandParameters));
     }
 }

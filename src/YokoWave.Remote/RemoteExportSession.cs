@@ -27,6 +27,7 @@ public sealed class RemoteExportSession : IAsyncDisposable
     private readonly DeviceController? _controlDevices;
     private readonly RemoteLeaseType? _allowedLease;
     private bool _paused;
+    private RemoteDeviceLease[] _notificationLeases = [];
     public Guid Id { get; }
     public RemoteServerSettings Settings { get; }
     public bool IsRunning => _running;
@@ -35,7 +36,6 @@ public sealed class RemoteExportSession : IAsyncDisposable
     public TimeSpan? Duration => _duration;
     public TimeSpan? Remaining => _duration is { } duration ? TimeSpan.FromSeconds(Math.Max(0, (duration - Elapsed).TotalSeconds)) : null;
     public event Action<Exception>? Faulted;
-    internal void ReportFault(Exception error) => Faulted?.Invoke(error);
     public RemoteExportSession(Guid id, DeviceController devices, IReadOnlyList<string> targets, RemoteServerSettings settings, TimeSpan? duration = null,
         Guid? reservationOwner = null, DeviceController? controlDevices = null, RemoteLeaseType? allowedLease = null)
     {
@@ -52,40 +52,38 @@ public sealed class RemoteExportSession : IAsyncDisposable
         _duration = duration;
         _exports = targets.Distinct().ToDictionary(LocalExportId, value => value);
     }
-    private string LocalExportId(string id) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{Id:N}/{id}")))[..24].ToLowerInvariant();
-    public async Task StartAsync(CancellationToken ct = default)
+    internal void ReportFault(Exception error) => Faulted?.Invoke(error);
+    public async Task StartAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
         if (Interlocked.Exchange(ref _started, 1) != 0)
             throw new LocalizedOperationException("Error.AlreadyRunning");
         if (_exports.Count == 0 || _exports.Values.Any(id => !_devices.Connections.TryGetValue(id, out var connection) ||
             connection.Device.Origin != DeviceOrigin.Local || connection.Device.Profile is not { Supported: true } || connection.Device.Simulated == true))
+        {
             throw new LocalizedOperationException("Error.RemoteLocalDevices");
+        }
+
         if (_retainOwnership)
         {
             if (_exports.Values.Any(id => _devices.DeviceOwner(id) != _owner))
                 throw new LocalizedOperationException("Error.DeviceInUse");
         }
         else
-            await _devices.AcquireTargetsAsync(_owner, _exports.Values.ToArray(), ct, allowInputs: true);
+        {
+            await _devices.AcquireTargetsAsync(_owner, _exports.Values.ToArray(), cancellationToken, allowInputs: true).ConfigureAwait(false);
+        }
+
         _devices.RawGatt.GattNotificationReceived += OnGattNotification;
         _clock.Restart();
         _running = true;
-        _loop = Run();
+        _loop = RunAsync();
     }
-    private RemoteDevice Describe(string exported)
+    internal async Task<object?> DispatchAsync(RemotePeerSession peer, string method, JsonElement parameters, CancellationToken cancellationToken)
     {
-        if (!_exports.TryGetValue(exported, out var local) || !_devices.Connections.TryGetValue(local, out var connection))
-            throw new RemoteRpcException(-32004, "Error.NotConnected");
-        var device = connection.Device;
-        return new(exported, device.Name, device.Kind, device.ProtocolId!, device.ChannelMask ?? (1 << device.ChannelCount) - 1,
-            device.Profile!.Capabilities, device.Battery, device.Signal, device.Simulated == true);
-    }
-    internal async Task<object?> Dispatch(RemotePeerSession peer, string method, JsonElement parameters, CancellationToken ct)
-    {
-        using var operation = CancellationTokenSource.CreateLinkedTokenSource(ct, _lifetime.Token);
+        using var operation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetime.Token);
         operation.CancelAfter(TimeSpan.FromSeconds(5));
-        await _gate.WaitAsync(operation.Token);
+        await _gate.WaitAsync(operation.Token).ConfigureAwait(false);
         try
         {
             if (!_running)
@@ -100,7 +98,7 @@ public sealed class RemoteExportSession : IAsyncDisposable
             {
                 if (_paused)
                     throw new RemoteRpcException(-32000, "Error.RemoteStopped");
-                return await Acquire(peer, parameters, operation.Token);
+                return await AcquireAsync(peer, parameters, operation.Token).ConfigureAwait(false);
             }
             var leaseId = RemoteProtocol.Parameter<Guid>(parameters, "lease");
             if (!_leases.TryGetValue(leaseId, out var lease) || lease.Peer != peer || lease.Faulted || lease.AgeMilliseconds > Settings.LeaseMilliseconds)
@@ -112,13 +110,13 @@ public sealed class RemoteExportSession : IAsyncDisposable
             }
             if (method == "lease.release")
             {
-                await CloseLease(lease, operation.Token);
+                await CloseLeaseAsync(lease, operation.Token).ConfigureAwait(false);
                 return true;
             }
-            var sequence = RemoteProtocol.Parameter<long>(parameters, "sequence");
+            long sequence = RemoteProtocol.Parameter<long>(parameters, "sequence");
             if (sequence <= lease.Sequence)
                 throw new RemoteRpcException(-32003, "Error.RemoteSequence");
-            var deadline = RemoteProtocol.Parameter<long>(parameters, "deadline");
+            long deadline = RemoteProtocol.Parameter<long>(parameters, "deadline");
             if (deadline < _clock.ElapsedMilliseconds || deadline > _clock.ElapsedMilliseconds + 1000)
                 throw new RemoteRpcException(-32003, "Error.RemoteExpired");
             lease.Sequence = sequence;
@@ -129,27 +127,136 @@ public sealed class RemoteExportSession : IAsyncDisposable
                 {
                     if (lease.Type != RemoteLeaseType.Gatt)
                         throw new RemoteRpcException(-32003, "Error.RemoteLeaseType");
-                    return await lease.Gatt!.ExecuteAsync(method, parameters, operation.Token);
+                    return await lease.Gatt!.ExecuteAsync(method, parameters, operation.Token).ConfigureAwait(false);
                 }
                 if (!method.StartsWith("control.", StringComparison.Ordinal) || lease.Type != RemoteLeaseType.Control)
                     throw new RemoteRpcException(-32601, "Error.RemoteMethod");
-                return await lease.Control.Execute(method, parameters, operation.Token);
+                return await lease.Control.ExecuteAsync(method, parameters, operation.Token).ConfigureAwait(false);
             }
             catch (Exception error) when (error is IOException or AggregateException or OperationCanceledException)
             {
                 try
                 {
-                    await CloseLease(lease, CancellationToken.None);
+                    await CloseLeaseAsync(lease, CancellationToken.None).ConfigureAwait(false);
                 }
-                catch (Exception cleanup) { throw new LocalizedAggregateException("Error.StopUnconfirmed", [error, cleanup]); }
+                catch (Exception cleanup)
+                {
+                    throw new LocalizedAggregateException("Error.StopUnconfirmed", [error, cleanup]);
+                }
                 throw;
             }
         }
-        finally { _gate.Release(); }
+        finally
+        {
+            _gate.Release();
+        }
     }
-    private async Task<RemoteLease> Acquire(RemotePeerSession peer, JsonElement parameters, CancellationToken ct)
+    internal async Task DisconnectAsync(RemotePeerSession peer)
     {
-        var ids = RemoteProtocol.Parameter<string[]>(parameters, "deviceIds");
+        await _gate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            foreach (var lease in _leases.Values.Where(lease => lease.Peer == peer).ToArray())
+            {
+                try
+                {
+                    await CloseLeaseAsync(lease, CancellationToken.None).ConfigureAwait(false);
+                }
+                catch (Exception error)
+                {
+                    Faulted?.Invoke(error);
+                }
+            }
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+    public async Task StopAsync()
+    {
+        try
+        {
+            _lifetime.Cancel();
+        }
+        catch (ObjectDisposedException) { } // A failed physical stop can be retried after the listener has closed.
+        await _gate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            _running = false;
+            _clock.Stop();
+            List<Exception> errors = [];
+            foreach (var lease in _leases.Values.ToArray())
+            {
+                try
+                {
+                    await CloseLeaseAsync(lease, CancellationToken.None).ConfigureAwait(false);
+                }
+                catch (Exception error)
+                {
+                    errors.Add(error);
+                }
+            }
+            try
+            {
+                await _devices.StopOwnedAsync(_owner, scope: _exports.Values.ToArray(), release: !_retainOwnership).ConfigureAwait(false);
+            }
+            catch (Exception error)
+            {
+                errors.Add(error);
+            }
+            if (errors.Count > 0)
+                throw new LocalizedAggregateException("Error.StopUnconfirmed", errors);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+    public async ValueTask DisposeAsync()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+            return;
+        try
+        {
+            await StopAsync().ConfigureAwait(false);
+        }
+        finally
+        {
+            _devices.RawGatt.GattNotificationReceived -= OnGattNotification;
+            await _loop.ConfigureAwait(false);
+            _lifetime.Dispose();
+        }
+    }
+    public async Task SetPausedAsync(bool paused)
+    {
+        await _gate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            _paused = paused;
+            if (paused)
+            {
+                foreach (var lease in _leases.Values.ToArray())
+                    await CloseLeaseAsync(lease, CancellationToken.None).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+    private string LocalExportId(string id) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{Id:N}/{id}")))[..24].ToLowerInvariant();
+    private RemoteDevice Describe(string exported)
+    {
+        if (!_exports.TryGetValue(exported, out string? local) || !_devices.Connections.TryGetValue(local, out var connection))
+            throw new RemoteRpcException(-32004, "Error.NotConnected");
+        var device = connection.Device;
+        return new(exported, device.Name, device.Kind, device.ProtocolId!, device.ChannelMask ?? (1 << device.ChannelCount) - 1,
+            device.Profile!.Capabilities, device.Battery, device.Signal, device.Simulated == true);
+    }
+    private async Task<RemoteLease> AcquireAsync(RemotePeerSession peer, JsonElement parameters, CancellationToken cancellationToken)
+    {
+        string[] ids = RemoteProtocol.Parameter<string[]>(parameters, "deviceIds");
         var type = RemoteProtocol.Parameter<RemoteLeaseType>(parameters, "type");
         if (_allowedLease is { } allowed && type != allowed)
             throw new RemoteRpcException(-32003, "Error.RemoteLeaseType");
@@ -163,7 +270,7 @@ public sealed class RemoteExportSession : IAsyncDisposable
         try
         {
             if (lease.Gatt is { } gatt)
-                await gatt.OpenAsync(ct);
+                await gatt.OpenAsync(cancellationToken).ConfigureAwait(false);
             Volatile.Write(ref _notificationLeases, _leases.Values.ToArray());
             return new(lease.Id, type, ids, Settings.LeaseMilliseconds);
         }
@@ -171,9 +278,12 @@ public sealed class RemoteExportSession : IAsyncDisposable
         {
             try
             {
-                await CloseLease(lease, CancellationToken.None);
+                await CloseLeaseAsync(lease, CancellationToken.None).ConfigureAwait(false);
             }
-            catch (Exception cleanup) { throw new LocalizedAggregateException("Error.Cleanup", [error, cleanup]); }
+            catch (Exception cleanup)
+            {
+                throw new LocalizedAggregateException("Error.Cleanup", [error, cleanup]);
+            }
             throw;
         }
     }
@@ -183,8 +293,7 @@ public sealed class RemoteExportSession : IAsyncDisposable
         foreach (var lease in Volatile.Read(ref _notificationLeases))
             lease.Gatt?.OnNotification(notification);
     }
-    private RemoteDeviceLease[] _notificationLeases = [];
-    private async Task CloseLease(RemoteDeviceLease lease, CancellationToken ct)
+    private async Task CloseLeaseAsync(RemoteDeviceLease lease, CancellationToken cancellationToken)
     {
         lease.Faulted = true;
         List<Exception> errors = [];
@@ -192,15 +301,21 @@ public sealed class RemoteExportSession : IAsyncDisposable
         {
             try
             {
-                await gatt.CloseAsync(ct);
+                await gatt.CloseAsync(cancellationToken).ConfigureAwait(false);
             }
-            catch (Exception error) { errors.Add(error); }
+            catch (Exception error)
+            {
+                errors.Add(error);
+            }
         }
         try
         {
-            await lease.Control.Stop(ct);
+            await lease.Control.StopAsync(cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception error) { errors.Add(error); }
+        catch (Exception error)
+        {
+            errors.Add(error);
+        }
         if (errors.Count > 0)
             throw new LocalizedAggregateException("Error.StopUnconfirmed", errors);
         _leases.Remove(lease.Id);
@@ -210,35 +325,19 @@ public sealed class RemoteExportSession : IAsyncDisposable
             lease = lease.Id
         });
     }
-    internal async Task Disconnect(RemotePeerSession peer)
-    {
-        await _gate.WaitAsync();
-        try
-        {
-            foreach (var lease in _leases.Values.Where(lease => lease.Peer == peer).ToArray())
-            {
-                try
-                {
-                    await CloseLease(lease, CancellationToken.None);
-                }
-                catch (Exception error) { Faulted?.Invoke(error); }
-            }
-        }
-        finally { _gate.Release(); }
-    }
-    private async Task Run()
+    private async Task RunAsync()
     {
         try
         {
             using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(100));
-            while (await timer.WaitForNextTickAsync(_lifetime.Token))
+            while (await timer.WaitForNextTickAsync(_lifetime.Token).ConfigureAwait(false))
             {
                 if (Remaining == TimeSpan.Zero)
                 {
-                    await StopAsync();
+                    await StopAsync().ConfigureAwait(false);
                     return;
                 }
-                await _gate.WaitAsync(_lifetime.Token);
+                await _gate.WaitAsync(_lifetime.Token).ConfigureAwait(false);
                 try
                 {
                     foreach (var lease in _leases.Values.ToArray())
@@ -248,84 +347,35 @@ public sealed class RemoteExportSession : IAsyncDisposable
                         try
                         {
                             if (lease.AgeMilliseconds > Settings.LeaseMilliseconds)
-                                await CloseLease(lease, _lifetime.Token);
+                                await CloseLeaseAsync(lease, _lifetime.Token).ConfigureAwait(false);
                             else
-                                await lease.Control.Tick();
+                                await lease.Control.TickAsync().ConfigureAwait(false);
                         }
                         catch (Exception error)
                         {
                             lease.Faulted = true;
                             try
                             {
-                                await CloseLease(lease, CancellationToken.None);
+                                await CloseLeaseAsync(lease, CancellationToken.None).ConfigureAwait(false);
                             }
-                            catch (Exception cleanup) { error = new LocalizedAggregateException("Error.Cleanup", [error, cleanup]); }
+                            catch (Exception cleanup)
+                            {
+                                error = new LocalizedAggregateException("Error.Cleanup", [error, cleanup]);
+                            }
                             Faulted?.Invoke(error);
                         }
                     }
                 }
-                finally { _gate.Release(); }
+                finally
+                {
+                    _gate.Release();
+                }
             }
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
-        catch (Exception error) { Faulted?.Invoke(error); }
-    }
-    public async Task StopAsync()
-    {
-        try
+        catch (Exception error)
         {
-            _lifetime.Cancel();
+            Faulted?.Invoke(error);
         }
-        catch (ObjectDisposedException) { } // A failed physical stop can be retried after the listener has closed.
-        await _gate.WaitAsync();
-        try
-        {
-            _running = false;
-            _clock.Stop();
-            List<Exception> errors = [];
-            foreach (var lease in _leases.Values.ToArray())
-            {
-                try
-                {
-                    await CloseLease(lease, CancellationToken.None);
-                }
-                catch (Exception error) { errors.Add(error); }
-            }
-            try
-            {
-                await _devices.StopOwnedAsync(_owner, scope: _exports.Values.ToArray(), release: !_retainOwnership);
-            }
-            catch (Exception error) { errors.Add(error); }
-            if (errors.Count > 0)
-                throw new LocalizedAggregateException("Error.StopUnconfirmed", errors);
-        }
-        finally { _gate.Release(); }
-    }
-    public async ValueTask DisposeAsync()
-    {
-        if (Interlocked.Exchange(ref _disposed, 1) != 0)
-            return;
-        try
-        {
-            await StopAsync();
-        }
-        finally
-        {
-            _devices.RawGatt.GattNotificationReceived -= OnGattNotification;
-            await _loop;
-            _lifetime.Dispose();
-        }
-    }
-    public async Task SetPausedAsync(bool paused)
-    {
-        await _gate.WaitAsync();
-        try
-        {
-            _paused = paused;
-            if (paused)
-                foreach (var lease in _leases.Values.ToArray())
-                    await CloseLease(lease, CancellationToken.None);
-        }
-        finally { _gate.Release(); }
     }
 }

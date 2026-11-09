@@ -1,13 +1,11 @@
 using System.Text.Json;
-using YokoWave.Core;
 using Xunit;
+using YokoWave.Core;
 
 namespace YokoWave.Tests;
 
 public sealed class CoreTests
 {
-    private static DeviceDescriptor Device(string id = "one", DeviceKind kind = DeviceKind.DualChannel) => new(id, id, kind, 90, -40);
-    private static WaveformPreset Sine() => new(Guid.NewGuid(), "test", WaveShape.Sine, 4, 20);
 
     [Theory]
     [InlineData(WaveShape.Sine)]
@@ -17,13 +15,13 @@ public sealed class CoreTests
     [InlineData(WaveShape.Custom)]
     public void WaveformsStayNormalizedAndRepeat(WaveShape shape)
     {
-        var preset = new WaveformPreset(Guid.NewGuid(), "test", shape, 4, 20, [0, 0.3, 1, 0]);
-        for (var i = -100; i < 100; i++)
+        var waveform = new WaveformAsset(Guid.NewGuid(), "test", shape, 4, 20, [0, 0.3, 1, 0]);
+        for (int i = -100; i < 100; i++)
         {
-            var time = i / 10d;
-            var value = WaveformGenerator.Sample(preset, time);
+            double time = i / 10d;
+            double value = WaveformGenerator.Sample(waveform, time);
             Assert.InRange(value, 0, 1);
-            Assert.Equal(value, WaveformGenerator.Sample(preset, time + 4), 8);
+            Assert.Equal(value, WaveformGenerator.Sample(waveform, time + 4), 8);
         }
     }
 
@@ -32,7 +30,7 @@ public sealed class CoreTests
     {
         var transport = new RecordingTransport();
         await using var controller = new DeviceController(transport);
-        await controller.ConnectAsync(Device(kind: DeviceKind.Pump), ct: TestContext.Current.CancellationToken);
+        await controller.ConnectAsync(Device(kind: DeviceKind.Pump), cancellationToken: TestContext.Current.CancellationToken);
         await controller.SendAsync("one", new(20, 40, 30), TestContext.Current.CancellationToken);
         Assert.Equal(0, transport.Latest["one"].ChannelB);
     }
@@ -42,8 +40,8 @@ public sealed class CoreTests
     {
         var transport = new RecordingTransport();
         var controller = new DeviceController(transport);
-        await controller.ConnectAsync(Device("one"), ct: TestContext.Current.CancellationToken);
-        await controller.ConnectAsync(Device("two"), ct: TestContext.Current.CancellationToken);
+        await controller.ConnectAsync(Device("one"), cancellationToken: TestContext.Current.CancellationToken);
+        await controller.ConnectAsync(Device("two"), cancellationToken: TestContext.Current.CancellationToken);
         await controller.SendAsync("two", new(25, 15, 20), TestContext.Current.CancellationToken);
         transport.FailId = "one";
         await Assert.ThrowsAnyAsync<AggregateException>(() => controller.StopAllAsync(TestContext.Current.CancellationToken));
@@ -57,17 +55,17 @@ public sealed class CoreTests
     {
         using var folder = new TestFolder();
         var store = new WorkspaceStore(folder.Path);
-        var custom = WaveformPreset.BuiltIn[0] with
+        var custom = WaveformAsset.BuiltIn[0] with
         {
             Id = Guid.NewGuid(),
             Name = "自定义"
         };
         await store.SaveAsync(new(WorkspaceData.CurrentSchema, [custom], [], new(35)));
         var loaded = await store.LoadAsync();
-        Assert.Equivalent(custom, Assert.Single(loaded.Presets));
+        Assert.Equivalent(custom, Assert.Single(loaded.Waveforms));
         Assert.Equal(35, loaded.Settings.DefaultLimit);
         await File.WriteAllTextAsync(store.FilePath, "broken", TestContext.Current.CancellationToken);
-        Assert.Empty((await store.LoadAsync()).Presets);
+        Assert.Empty((await store.LoadAsync()).Waveforms);
         Assert.NotNull(store.LoadWarning);
         await Assert.ThrowsAnyAsync<IOException>(() => store.SaveAsync(WorkspaceData.Empty));
         Assert.Equal("broken", await File.ReadAllTextAsync(store.FilePath, TestContext.Current.CancellationToken));
@@ -76,49 +74,13 @@ public sealed class CoreTests
     [Fact]
     public void WaveImportRejectsInvalidRangesAndDuplicateIdentifiers()
     {
-        var preset = WaveformPreset.BuiltIn[0];
-        Assert.ThrowsAny<ArgumentException>(() => WorkspaceStore.ImportPresets(WorkspaceStore.ExportPresets([preset, preset])));
-        Assert.ThrowsAny<ArgumentException>(() => WorkspaceStore.ImportPresets(WorkspaceStore.ExportPresets([preset with { PeriodSeconds = 0 }])));
-        Assert.ThrowsAny<ArgumentException>(() => WorkspaceStore.ImportPresets(WorkspaceStore.ExportPresets([preset with { Shape = WaveShape.Custom, Points = [0, 2] }])));
-        Assert.Throws<JsonException>(() => WorkspaceStore.ImportPresets("not json"));
-        Assert.Single(WorkspaceStore.ImportPresets(WorkspaceStore.ExportPresets([preset])));
+        var waveform = WaveformAsset.BuiltIn[0];
+        Assert.ThrowsAny<ArgumentException>(() => WaveformExchange.Import(WaveformExchange.Export([waveform, waveform])));
+        Assert.ThrowsAny<ArgumentException>(() => WaveformExchange.Import(WaveformExchange.Export([waveform with { PeriodSeconds = 0 }])));
+        Assert.ThrowsAny<ArgumentException>(() => WaveformExchange.Import(WaveformExchange.Export([waveform with { Shape = WaveShape.Custom, Points = [0, 2] }])));
+        Assert.Throws<JsonException>(() => WaveformExchange.Import("not json"));
+        Assert.Single(WaveformExchange.Import(WaveformExchange.Export([waveform])));
     }
-}
-
-internal sealed class RecordingTransport : IDeviceTransport
-{
-    public string DisplayName => "test";
-    public Dictionary<string, OutputFrame> Latest { get; } = [];
-    public List<string> Events { get; } = [];
-    public string? FailId { get; set; }
-    public Task<IReadOnlyList<DeviceDescriptor>> ScanAsync(CancellationToken cancellationToken = default) =>
-        Task.FromResult<IReadOnlyList<DeviceDescriptor>>([]);
-    public Task ConnectAsync(DeviceDescriptor device, CancellationToken cancellationToken = default)
-    {
-        Latest.Add(device.Id, OutputFrame.Zero);
-        return Task.CompletedTask;
-    }
-    public Task SendAsync(string deviceId, OutputFrame frame, CancellationToken cancellationToken = default)
-    {
-        if (deviceId == FailId)
-            throw new IOException("Test connection lost");
-        Latest[deviceId] = frame;
-        Events.Add($"send:{deviceId}:{frame.ChannelA}:{frame.ChannelB}");
-        return Task.CompletedTask;
-    }
-    public Task DisconnectAsync(string deviceId, CancellationToken cancellationToken = default)
-    {
-        Events.Add($"disconnect:{deviceId}");
-        Latest.Remove(deviceId);
-        return Task.CompletedTask;
-    }
-    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
-}
-
-internal sealed class TestFolder : IDisposable
-{
-    public string Path { get; } = System.IO.Path.GetFullPath(System.IO.Path.Combine(AppContext.BaseDirectory,
-        "../../../../../artifacts/test-data", Guid.NewGuid().ToString("N")));
-    public TestFolder() => Directory.CreateDirectory(Path);
-    public void Dispose() => Directory.Delete(Path, true);
+    private static DeviceDescriptor Device(string id = "one", DeviceKind kind = DeviceKind.DualChannel) => new(id, id, kind, 90, -40);
+    private static WaveformAsset Sine() => new(Guid.NewGuid(), "test", WaveShape.Sine, 4, 20);
 }

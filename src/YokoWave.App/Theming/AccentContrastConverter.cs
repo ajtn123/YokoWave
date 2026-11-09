@@ -9,13 +9,13 @@ public sealed class AccentContrastConverter : IValueConverter
 {
     public Color LightColor { get; set; }
     public Color DarkColor { get; set; }
-
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is not Color accent) return DarkColor;
-        var luminance = Luminance(accent);
-        var lightContrast = Contrast(luminance, Luminance(LightColor));
-        var darkContrast = Contrast(luminance, Luminance(DarkColor));
+        if (value is not Color accent)
+            return DarkColor;
+        double luminance = Luminance(accent);
+        double lightContrast = Contrast(luminance, Luminance(LightColor));
+        double darkContrast = Contrast(luminance, Luminance(DarkColor));
         return lightContrast >= darkContrast ? LightColor : DarkColor;
     }
 
@@ -26,7 +26,7 @@ public sealed class AccentContrastConverter : IValueConverter
     {
         static double Linear(byte channel)
         {
-            var value = channel / 255d;
+            double value = channel / 255d;
             return value <= 0.04045 ? value / 12.92 : Math.Pow((value + 0.055) / 1.055, 2.4);
         }
         return 0.2126 * Linear(color.R) + 0.7152 * Linear(color.G) + 0.0722 * Linear(color.B);

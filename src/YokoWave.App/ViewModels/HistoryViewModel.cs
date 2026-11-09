@@ -10,17 +10,17 @@ public sealed class HistoryViewModel : ObservableObject, IDisposable
     private readonly List<SessionRecord> _records = [];
     public ObservableCollection<SessionItem> Sessions { get; } = [];
     public ObservableCollection<ActivityItem> Activities { get; } = [];
+    public SessionStatistics Statistics { get; private set; } = new();
+    public long SessionCount => Statistics.SessionCount;
+    public string TotalTime => L10n.Format("History.TotalFormat", Statistics.TotalDurationSeconds / 60);
+    public IReadOnlyList<SessionRecord> Records => _records;
+    public HistoryViewModel() => L10n.Current.PropertyChanged += OnLanguage;
     public void Log(LocalizedMessage message)
     {
         Activities.Insert(0, new(DateTime.Now.ToString("HH:mm:ss"), message));
         while (Activities.Count > 20)
             Activities.RemoveAt(Activities.Count - 1);
     }
-    public SessionStatistics Statistics { get; private set; } = new();
-    public long SessionCount => Statistics.SessionCount;
-    public string TotalTime => L10n.Format("History.TotalFormat", Statistics.TotalDurationSeconds / 60);
-    public IReadOnlyList<SessionRecord> Records => _records;
-    public HistoryViewModel() => L10n.Current.PropertyChanged += OnLanguage;
     public void Load(IReadOnlyList<SessionRecord> records, SessionStatistics statistics)
     {
         _records.Clear();
@@ -46,6 +46,7 @@ public sealed class HistoryViewModel : ObservableObject, IDisposable
             Sessions.Remove(item);
         Refresh();
     }
+    public void Dispose() => L10n.Current.PropertyChanged -= OnLanguage;
     private void Refresh()
     {
         Raise(nameof(SessionCount));
@@ -61,5 +62,4 @@ public sealed class HistoryViewModel : ObservableObject, IDisposable
             activity.RefreshLocalization();
         Refresh();
     }
-    public void Dispose() => L10n.Current.PropertyChanged -= OnLanguage;
 }

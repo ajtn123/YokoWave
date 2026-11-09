@@ -37,7 +37,7 @@ public sealed record NativeProgramSettings(NativeProgramKind Kind = NativeProgra
         ProtocolGuard.Require(Enum.IsDefined(Kind));
         if (Kind is NativeProgramKind.MotorPreset or NativeProgramKind.ElectricalPreset)
         {
-            var maximum = Kind == NativeProgramKind.MotorPreset ? 255 : 16;
+            int maximum = Kind == NativeProgramKind.MotorPreset ? 255 : 16;
             ProtocolGuard.Byte(PresetA, 0, maximum);
             ProtocolGuard.Byte(PresetB, 0, maximum);
             ProtocolGuard.Byte(PresetC, 0, maximum);
@@ -76,7 +76,9 @@ public sealed record NativeProgramOutput(NativeProgramSettings Settings, double 
         if (Settings.Kind == NativeProgramKind.MotorPreset && (frame.OutputLimit != 100 ||
             frame.Hardware is { ChannelALimit: not 100 } or { ChannelBLimit: not 100 } ||
             new[] { frame.ChannelA, frame.ChannelB, frame.ChannelC }.Any(value => value is > 0 and < 100)))
+        {
             throw new Localization.LocalizedArgumentException("Error.NativeMotorLimit");
+        }
     }
 }
 

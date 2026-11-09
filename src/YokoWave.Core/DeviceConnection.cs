@@ -16,7 +16,6 @@ public sealed class DeviceConnection(DeviceDescriptor device)
     public DeviceTelemetry? Telemetry { get; private set; }
     public DateTimeOffset? TelemetryCapturedAt { get; private set; }
     internal bool MotionStreaming { get; set; }
-
     internal void ApplyStatus(DeviceStatusUpdate update, DateTimeOffset receivedAt)
     {
         if (update.Battery is >= 0 and <= 100)

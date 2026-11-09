@@ -19,7 +19,10 @@ public sealed partial class MainWindow : Window
                 {
                     await vm.StopAllAsync("Reason.Shortcut");
                 }
-                catch (Exception error) { vm.ShowError(error); }
+                catch (Exception error)
+                {
+                    vm.ShowError(error);
+                }
             }
         };
         Closing += async (_, e) =>
@@ -31,8 +34,15 @@ public sealed partial class MainWindow : Window
             {
                 await vm.DisposeAsync();
             }
-            catch (Exception error) { vm.ShowError(error); }
-            finally { _closing = true; Close(); }
+            catch (Exception error)
+            {
+                vm.ShowError(error);
+            }
+            finally
+            {
+                _closing = true;
+                Close();
+            }
         };
     }
 }

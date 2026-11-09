@@ -9,24 +9,26 @@ namespace YokoWave.Desktop.Bluetooth;
 /// <summary>The connection builder retains ownership of resolved services, including on discovery failure.</summary>
 internal sealed class WindowsGattResolver(BluetoothLEDevice device, List<GattDeviceService> ownedServices)
 {
-    public async Task<Dictionary<GattAddress, GattCharacteristic>> ResolveAsync(BluetoothDeviceProfile profile, CancellationToken ct)
+    public async Task<Dictionary<GattAddress, GattCharacteristic>> ResolveAsync(BluetoothDeviceProfile profile, CancellationToken cancellationToken)
     {
         Dictionary<GattAddress, GattCharacteristic> attributes = [];
         foreach (var group in profile.Endpoints.GroupBy(endpoint => endpoint.Address.Service))
         {
-            var service = await ResolveServiceAsync(group.Key, group.Any(endpoint => endpoint.Required), ct);
+            var service = await ResolveServiceAsync(group.Key, group.Any(endpoint => endpoint.Required), cancellationToken);
             if (service is null)
                 continue;
             foreach (var endpoint in group)
-                if (await ResolveCharacteristicAsync(service, endpoint, ct) is { } characteristic)
+            {
+                if (await ResolveCharacteristicAsync(service, endpoint, cancellationToken) is { } characteristic)
                     attributes[endpoint.Address] = characteristic;
+            }
         }
         return attributes;
     }
 
-    private async Task<GattDeviceService?> ResolveServiceAsync(Guid uuid, bool required, CancellationToken ct)
+    private async Task<GattDeviceService?> ResolveServiceAsync(Guid uuid, bool required, CancellationToken cancellationToken)
     {
-        var result = await device.GetGattServicesForUuidAsync(uuid, BluetoothCacheMode.Uncached).AsTask(ct);
+        var result = await device.GetGattServicesForUuidAsync(uuid, BluetoothCacheMode.Uncached).AsTask(cancellationToken);
         if (result.Status != GattCommunicationStatus.Success || result.Services.Count == 0)
         {
             foreach (var service in result.Services)
@@ -42,12 +44,12 @@ internal sealed class WindowsGattResolver(BluetoothLEDevice device, List<GattDev
         return selected;
     }
 
-    private static async Task<GattCharacteristic?> ResolveCharacteristicAsync(GattDeviceService service, GattEndpoint endpoint, CancellationToken ct)
+    private static async Task<GattCharacteristic?> ResolveCharacteristicAsync(GattDeviceService service, GattEndpoint endpoint, CancellationToken cancellationToken)
     {
-        var result = await service.GetCharacteristicsForUuidAsync(endpoint.Address.Characteristic, BluetoothCacheMode.Uncached).AsTask(ct);
+        var result = await service.GetCharacteristicsForUuidAsync(endpoint.Address.Characteristic, BluetoothCacheMode.Uncached).AsTask(cancellationToken);
         var characteristic = result.Characteristics.FirstOrDefault();
         var properties = characteristic?.CharacteristicProperties ?? GattCharacteristicProperties.None;
-        var valid = result.Status == GattCommunicationStatus.Success && characteristic is not null &&
+        bool valid = result.Status == GattCommunicationStatus.Success && characteristic is not null &&
             (!endpoint.Write || (properties & (GattCharacteristicProperties.Write | GattCharacteristicProperties.WriteWithoutResponse)) != 0) &&
             (!endpoint.Read || properties.HasFlag(GattCharacteristicProperties.Read)) &&
             (!endpoint.Notify || properties.HasFlag(GattCharacteristicProperties.Notify) || !endpoint.Required);

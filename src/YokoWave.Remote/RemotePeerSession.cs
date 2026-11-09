@@ -15,31 +15,39 @@ internal sealed class RemotePeerSession : IAsyncDisposable
     {
         _exports = exports;
         _tokenHash = SHA256.HashData(Encoding.UTF8.GetBytes(token));
-        Peer = new(socket, Handle);
+        Peer = new(socket, HandleAsync);
     }
-    private Task<object?> Handle(string method, JsonElement parameters, CancellationToken ct)
+    public async Task RunAsync()
+    {
+        Peer.Start();
+        await Task.WhenAny(Peer.Completion, Task.Delay(TimeSpan.FromSeconds(10))).ConfigureAwait(false);
+        if (!_authenticated)
+            Peer.Abort();
+        await Peer.Completion.ConfigureAwait(false);
+    }
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await _exports.DisconnectAsync(this).ConfigureAwait(false);
+        }
+        finally
+        {
+            await Peer.DisposeAsync().ConfigureAwait(false);
+        }
+    }
+    private Task<object?> HandleAsync(string method, JsonElement parameters, CancellationToken cancellationToken)
     {
         if (method == "system.authenticate")
         {
-            var token = RemoteProtocol.Parameter<string>(parameters, "token");
+            string token = RemoteProtocol.Parameter<string>(parameters, "token");
             if (token.Length > 256 || !CryptographicOperations.FixedTimeEquals(SHA256.HashData(Encoding.UTF8.GetBytes(token)), _tokenHash))
                 throw new RemoteRpcException(-32001, "Error.RemoteAuthentication");
             _authenticated = true;
             return Task.FromResult<object?>(true);
         }
-        if (!_authenticated) throw new RemoteRpcException(-32001, "Error.RemoteAuthentication");
-        return _exports.Dispatch(this, method, parameters, ct);
-    }
-    public async Task Run()
-    {
-        Peer.Start();
-        await Task.WhenAny(Peer.Completion, Task.Delay(TimeSpan.FromSeconds(10)));
-        if (!_authenticated) Peer.Abort();
-        await Peer.Completion;
-    }
-    public async ValueTask DisposeAsync()
-    {
-        try { await _exports.Disconnect(this); }
-        finally { await Peer.DisposeAsync(); }
+        if (!_authenticated)
+            throw new RemoteRpcException(-32001, "Error.RemoteAuthentication");
+        return _exports.DispatchAsync(this, method, parameters, cancellationToken);
     }
 }

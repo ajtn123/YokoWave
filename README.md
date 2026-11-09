@@ -62,6 +62,8 @@ Windows、macOS 和 Linux 共用同一个桌面入口。真实 BLE 后端目前�
 
 代码放置、命名、字段与属性、语言特性和排版遵循 [代码风格](docs/code-style.md)，模块职责见 [架构说明](docs/architecture.md)。
 
+还原依赖后运行 `./scripts/check-style.ps1` 检查格式与已配置风格规则；`-Fix` 可自动修复支持的规则，命名等未自动修复的问题需按诊断修改。构建期代码风格分析启用，风格 warning 按错误处理。
+
 开发阶段只构建和测试，无需每次执行 `publish`。
 
 ```sh

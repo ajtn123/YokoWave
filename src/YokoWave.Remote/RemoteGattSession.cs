@@ -14,16 +14,16 @@ internal sealed class RemoteGattSession(DeviceController devices, Guid lease, IR
     private readonly ConcurrentDictionary<(string Device, GattAddress Address), byte> _subscriptions = new();
     private readonly IReadOnlyDictionary<string, string> _publicIds = exports.ToDictionary(pair => pair.Value, pair => pair.Key);
 
-    public async Task OpenAsync(CancellationToken ct)
+    public async Task OpenAsync(CancellationToken cancellationToken)
     {
-        foreach (var id in exports.Values)
-            _descriptions[id] = await devices.RawGatt.OpenGattAsync(id, lease, ct);
+        foreach (string id in exports.Values)
+            _descriptions[id] = await devices.RawGatt.OpenGattAsync(id, lease, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<object?> ExecuteAsync(string method, JsonElement parameters, CancellationToken ct)
+    public async Task<object?> ExecuteAsync(string method, JsonElement parameters, CancellationToken cancellationToken)
     {
-        var publicId = RemoteProtocol.Parameter<string>(parameters, "deviceId");
-        if (!exports.TryGetValue(publicId, out var local))
+        string publicId = RemoteProtocol.Parameter<string>(parameters, "deviceId");
+        if (!exports.TryGetValue(publicId, out string? local))
             throw new RemoteRpcException(-32003, "Error.RemoteLease");
         switch (method)
         {
@@ -31,12 +31,12 @@ internal sealed class RemoteGattSession(DeviceController devices, Guid lease, IR
                 var description = _descriptions[local];
                 return new RemoteGattDescription(describe(publicId), description.Attributes.ToArray(), description.MaximumWriteLength);
             case "gatt.read":
-                return await devices.RawGatt.ReadGattAsync(local, lease, RemoteProtocol.Parameter<GattAddress>(parameters, "address"), ct);
+                return await devices.RawGatt.ReadGattAsync(local, lease, RemoteProtocol.Parameter<GattAddress>(parameters, "address"), cancellationToken).ConfigureAwait(false);
             case "gatt.write":
-                await devices.RawGatt.WriteGattAsync(local, lease, [RemoteProtocol.Parameter<GattWrite>(parameters, "write")], ct);
+                await devices.RawGatt.WriteGattAsync(local, lease, [RemoteProtocol.Parameter<GattWrite>(parameters, "write")], cancellationToken).ConfigureAwait(false);
                 return true;
             case "gatt.batch":
-                await devices.RawGatt.WriteGattAsync(local, lease, RemoteProtocol.Parameter<GattWrite[]>(parameters, "writes"), ct);
+                await devices.RawGatt.WriteGattAsync(local, lease, RemoteProtocol.Parameter<GattWrite[]>(parameters, "writes"), cancellationToken).ConfigureAwait(false);
                 return true;
             case "gatt.subscribe":
             case "gatt.unsubscribe":
@@ -47,32 +47,22 @@ internal sealed class RemoteGattSession(DeviceController devices, Guid lease, IR
         }
     }
 
-    private void SetSubscription(string local, GattAddress address, bool subscribe)
-    {
-        if (!_descriptions[local].Attributes.Any(attribute => attribute.Notify && attribute.Address == address))
-            throw new RemoteRpcException(-32602, "Error.DeviceFeatures");
-        if (subscribe)
-            _subscriptions.TryAdd((local, address), 0);
-        else
-            _subscriptions.TryRemove((local, address), out _);
-    }
-
     public void OnNotification(GattDeviceNotification notification)
     {
         if (_subscriptions.ContainsKey((notification.DeviceId, notification.Notification.Address)))
             notify(new(lease, _publicIds[notification.DeviceId], notification.Notification, clock()));
     }
 
-    public async Task CloseAsync(CancellationToken ct)
+    public async Task CloseAsync(CancellationToken cancellationToken)
     {
         List<Exception> errors = [];
-        foreach (var local in _descriptions.Keys)
+        foreach (string local in _descriptions.Keys)
         {
             if (!devices.Connections.ContainsKey(local))
                 continue;
             try
             {
-                await devices.RawGatt.CloseGattAsync(local, lease, ct);
+                await devices.RawGatt.CloseGattAsync(local, lease, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception error)
             {
@@ -81,5 +71,15 @@ internal sealed class RemoteGattSession(DeviceController devices, Guid lease, IR
         }
         if (errors.Count > 0)
             throw new LocalizedAggregateException("Error.StopUnconfirmed", errors);
+    }
+
+    private void SetSubscription(string local, GattAddress address, bool subscribe)
+    {
+        if (!_descriptions[local].Attributes.Any(attribute => attribute.Notify && attribute.Address == address))
+            throw new RemoteRpcException(-32602, "Error.DeviceFeatures");
+        if (subscribe)
+            _subscriptions.TryAdd((local, address), 0);
+        else
+            _subscriptions.TryRemove((local, address), out _);
     }
 }

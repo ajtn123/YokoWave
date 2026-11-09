@@ -3,8 +3,8 @@ namespace YokoWave.Pipelines;
 /// <summary>One scalar or four samples at 25 ms intervals. Expiry and simulated provenance survive processing.</summary>
 public sealed record NumericSignal(IReadOnlyList<double> Samples, DateTimeOffset ValidUntil, bool Simulated = false, long Sequence = 0)
 {
-    public static NumericSignal Constant(double value) => new([value], DateTimeOffset.MaxValue);
     public static NumericSignal Missing { get; } = new([], DateTimeOffset.MinValue);
+    public static NumericSignal Constant(double value) => new([value], DateTimeOffset.MaxValue);
     public bool IsValid(DateTimeOffset now) => ValidUntil >= now && Samples.Count is 1 or 4 && Samples.All(double.IsFinite);
     public double At(int index) => Samples.Count == 1 ? Samples[0] : Samples[index];
 

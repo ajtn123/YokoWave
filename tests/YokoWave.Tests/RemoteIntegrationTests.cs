@@ -2,12 +2,12 @@ using System.Diagnostics;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
+using Xunit;
 using YokoWave.Core;
 using YokoWave.Core.Bluetooth;
 using YokoWave.Core.Localization;
-using YokoWave.Remote;
 using YokoWave.Pipelines;
-using Xunit;
+using YokoWave.Remote;
 
 namespace YokoWave.Tests;
 
@@ -22,7 +22,7 @@ public sealed class RemoteIntegrationTests
         host.Adapter.Peripherals.Clear();
         Assert.Empty(await host.Controller.ScanAsync(Ct));
         await using var client = await Client.Create(host.Server.Url!);
-        var device = Assert.Single(await client.Peer.CallAsync<RemoteDevice[]>("devices.list", ct: Ct));
+        var device = Assert.Single(await client.Peer.CallAsync<RemoteDevice[]>("devices.list", cancellationToken: Ct));
         var lease = await client.Acquire(device.Id, RemoteLeaseType.Gatt);
         var description = await client.Execute<RemoteGattDescription>(lease, "gatt.describe", new { deviceId = device.Id });
         Assert.Equal(host.Devices[0].Name, description.Device.Name);
@@ -38,7 +38,7 @@ public sealed class RemoteIntegrationTests
     {
         await using var host = await Host.Create(BluetoothProtocol.CoyoteV3);
         await using var client = await Client.Create(host.Server.Url!);
-        var device = Assert.Single(await client.Peer.CallAsync<RemoteDevice[]>("devices.list", ct: Ct));
+        var device = Assert.Single(await client.Peer.CallAsync<RemoteDevice[]>("devices.list", cancellationToken: Ct));
         var lease = await client.Acquire(device.Id, RemoteLeaseType.Control);
         await client.Execute<bool>(lease, "control.output", new { frame = new OutputFrame(20, 15, 20) });
         var oldSettings = host.Controller.GetOutputSettings(host.Devices[0].Id);
@@ -48,7 +48,7 @@ public sealed class RemoteIntegrationTests
             "duration" => new { playback = new RemoteControlProgram(new(Gentle: true), ChannelA: 20, DurationSeconds: 0) },
             _ => new { frame = new OutputFrame(20, 15, 20, WindowA: [new(1, 0)], Gentle: true) }
         };
-        var method = operation == "output" ? "control.output" : "control.play";
+        string method = operation == "output" ? "control.output" : "control.play";
         var failure = await Assert.ThrowsAsync<RemoteRpcException>(() => client.Execute<bool>(lease, method, parameters));
         Assert.Equal(-32602, failure.Code);
         Assert.Equal(oldSettings, host.Controller.GetOutputSettings(host.Devices[0].Id));
@@ -62,7 +62,7 @@ public sealed class RemoteIntegrationTests
     {
         await using var host = await Host.Create(BluetoothProtocol.YokonexMotor);
         await using var client = await Client.Create(host.Server.Url!);
-        var device = Assert.Single(await client.Peer.CallAsync<RemoteDevice[]>("devices.list", ct: Ct));
+        var device = Assert.Single(await client.Peer.CallAsync<RemoteDevice[]>("devices.list", cancellationToken: Ct));
         var lease = await client.Acquire(device.Id, RemoteLeaseType.Control);
         await client.Execute<bool>(lease, "control.output", new { frame = new OutputFrame(20, 15, 20) });
         var motor = new NativeProgramSettings(NativeProgramKind.MotorPreset);
@@ -88,9 +88,9 @@ public sealed class RemoteIntegrationTests
     {
         await using var host = await Host.Create(BluetoothProtocol.CoyoteV3);
         await using var client = await Client.Create(host.Server.Url!);
-        var device = Assert.Single(await client.Peer.CallAsync<RemoteDevice[]>("devices.list", ct: Ct));
+        var device = Assert.Single(await client.Peer.CallAsync<RemoteDevice[]>("devices.list", cancellationToken: Ct));
         var lease = await client.Acquire(device.Id, RemoteLeaseType.Control);
-        var wave = new WaveformPreset(Guid.NewGuid(), "wave", WaveShape.Custom, 1, 20, [1, 1]);
+        var wave = new WaveformAsset(Guid.NewGuid(), "wave", WaveShape.Custom, 1, 20, [1, 1]);
         await client.Execute<bool>(lease, "control.playlist", new
         {
             playback = new RemoteControlProgram(new(Order: PlaybackOrder.Sequential, Playlist: [wave]), wave, 20, 15)
@@ -238,7 +238,7 @@ public sealed class RemoteIntegrationTests
         var plan = new PipelineCompiler(BuiltInNodes.CreateRegistry()).Compile(graph, [], new Dictionary<string, DeviceDescriptor> { [device.Id] = device });
         await using var session = new PipelineSession(client);
         await session.StartAsync(plan);
-        for (var i = 0; i < 100 && client.Connections[device.Id].Output.ChannelA == 0; i++)
+        for (int i = 0; i < 100 && client.Connections[device.Id].Output.ChannelA == 0; i++)
             await Task.Delay(10, Ct);
         Assert.Equal(35, client.Connections[device.Id].Output.ChannelA);
         Assert.Equal(session.OwnerId, client.DeviceOwner(device.Id));
@@ -270,7 +270,7 @@ public sealed class RemoteIntegrationTests
         await client.ConnectAsync(remote, Ct);
         Assert.True(client.Connections.ContainsKey(remote.Id));
         Assert.Equal(host.Server.Session.Id, host.Controller.DeviceOwner(host.Devices[0].Id));
-        var writes = host.Adapter.Links[host.Devices[0].Id].Writes.Count;
+        int writes = host.Adapter.Links[host.Devices[0].Id].Writes.Count;
         await client.SendAsync(remote.Id, OutputFrame.Zero, Ct);
         await client.DisconnectAsync(remote.Id, Ct);
         Assert.True(host.Adapter.Links[host.Devices[0].Id].Writes.Count >= writes);
@@ -283,11 +283,11 @@ public sealed class RemoteIntegrationTests
     {
         await using var host = await Host.Create(BluetoothProtocol.CoyoteV3);
         await using var client = await Client.Create(host.Server.Url!, authenticate: false);
-        var denied = await Assert.ThrowsAsync<RemoteRpcException>(() => client.Peer.CallAsync<RemoteDevice[]>("devices.list", ct: Ct));
+        var denied = await Assert.ThrowsAsync<RemoteRpcException>(() => client.Peer.CallAsync<RemoteDevice[]>("devices.list", cancellationToken: Ct));
         Assert.Equal("Error.RemoteAuthentication", denied.Key);
         await Assert.ThrowsAsync<RemoteRpcException>(() => client.Peer.CallAsync<bool>("system.authenticate", new { token = "wrong" }, Ct));
         await client.Authenticate();
-        var device = Assert.Single(await client.Peer.CallAsync<RemoteDevice[]>("devices.list", ct: Ct));
+        var device = Assert.Single(await client.Peer.CallAsync<RemoteDevice[]>("devices.list", cancellationToken: Ct));
         var lease = await client.Acquire(device.Id, RemoteLeaseType.Gatt);
         Assert.Equal("\"gatt\"", JsonSerializer.Serialize(lease.Type, RemoteProtocol.Json));
         await Assert.ThrowsAsync<RemoteRpcException>(() => client.Acquire(device.Id, RemoteLeaseType.Control));
@@ -306,7 +306,7 @@ public sealed class RemoteIntegrationTests
     {
         await using var host = await Host.Create(BluetoothProtocol.CoyoteV3);
         await using var client = await Client.Create(host.Server.Url!);
-        var device = Assert.Single(await client.Peer.CallAsync<RemoteDevice[]>("devices.list", ct: Ct));
+        var device = Assert.Single(await client.Peer.CallAsync<RemoteDevice[]>("devices.list", cancellationToken: Ct));
         var lease = await client.Acquire(device.Id, RemoteLeaseType.Gatt);
         var profile = BluetoothDeviceProfiles.FromId(device.ProtocolId)!;
         var description = await client.Execute<RemoteGattDescription>(lease, "gatt.describe", new
@@ -316,7 +316,11 @@ public sealed class RemoteIntegrationTests
         Assert.Equal(20, description.MaximumWriteLength);
         Assert.Contains(description.Attributes, attribute => attribute.Address == profile.Write && attribute.Write);
         var received = new TaskCompletionSource<RemoteGattNotification>(TaskCreationOptions.RunContinuationsAsynchronously);
-        client.Peer.Notification += (method, data) => { if (method == "gatt.notification") received.TrySetResult(RemoteProtocol.Read<RemoteGattNotification>(data)); };
+        client.Peer.Notification += (method, data) =>
+        {
+            if (method == "gatt.notification")
+                received.TrySetResult(RemoteProtocol.Read<RemoteGattNotification>(data));
+        };
         await client.Execute<bool>(lease, "gatt.subscribe", new
         {
             deviceId = device.Id,
@@ -324,7 +328,7 @@ public sealed class RemoteIntegrationTests
         });
         host.Adapter.Links[host.Devices[0].Id].Notify([0xb1, 0, 2, 3]);
         Assert.Equal(new byte[] { 0xb1, 0, 2, 3 }, (await received.Task.WaitAsync(TimeSpan.FromSeconds(3), Ct)).Notification.Data);
-        var count = host.Adapter.Links[host.Devices[0].Id].Writes.Count;
+        int count = host.Adapter.Links[host.Devices[0].Id].Writes.Count;
         await Assert.ThrowsAsync<RemoteRpcException>(() => client.Execute<bool>(lease, "gatt.write", new { deviceId = device.Id, write = new GattWrite(new(Guid.NewGuid(), Guid.NewGuid()), [1]) }));
         await Assert.ThrowsAsync<RemoteRpcException>(() => client.Execute<bool>(lease, "gatt.write", new { deviceId = device.Id, write = new GattWrite(profile.Write, new byte[21]) }));
         var invalidBatch = await Assert.ThrowsAsync<RemoteRpcException>(() => client.Execute<bool>(lease, "gatt.batch", new
@@ -343,11 +347,15 @@ public sealed class RemoteIntegrationTests
     {
         await using var host = await Host.Create(BluetoothProtocol.YokonexV1, BluetoothProtocol.CoyoteV3);
         await using var client = await Client.Create(host.Server.Url!);
-        var devices = await client.Peer.CallAsync<RemoteDevice[]>("devices.list", ct: Ct);
+        var devices = await client.Peer.CallAsync<RemoteDevice[]>("devices.list", cancellationToken: Ct);
         var first = await client.Acquire(devices[0].Id, RemoteLeaseType.Control);
         var second = await client.Acquire(devices[1].Id, RemoteLeaseType.Control);
         var changed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        client.Peer.Notification += (method, _) => { if (method == "control.status") changed.TrySetResult(); };
+        client.Peer.Notification += (method, _) =>
+        {
+            if (method == "control.status")
+                changed.TrySetResult();
+        };
         await client.Execute<bool>(first, "control.subscribe", new
         {
             deviceId = devices[0].Id
@@ -383,9 +391,9 @@ public sealed class RemoteIntegrationTests
     {
         await using var host = await Host.Create(BluetoothProtocol.CoyoteV3);
         await using var client = await Client.Create(host.Server.Url!);
-        var device = Assert.Single(await client.Peer.CallAsync<RemoteDevice[]>("devices.list", ct: Ct));
+        var device = Assert.Single(await client.Peer.CallAsync<RemoteDevice[]>("devices.list", cancellationToken: Ct));
         var lease = await client.Acquire(device.Id, RemoteLeaseType.Control);
-        var wave = new WaveformPreset(Guid.NewGuid(), "Constant", WaveShape.Custom, 1, 20, [1, 1]);
+        var wave = new WaveformAsset(Guid.NewGuid(), "Constant", WaveShape.Custom, 1, 20, [1, 1]);
         var next = wave with
         {
             Id = Guid.NewGuid(),
@@ -421,15 +429,22 @@ public sealed class RemoteIntegrationTests
     {
         await using var host = await Host.Create(BluetoothProtocol.CoyoteV3);
         await using var client = await Client.Create(host.Server.Url!);
-        var device = Assert.Single(await client.Peer.CallAsync<RemoteDevice[]>("devices.list", ct: Ct));
+        var device = Assert.Single(await client.Peer.CallAsync<RemoteDevice[]>("devices.list", cancellationToken: Ct));
         var lease = await client.Acquire(device.Id, type);
         if (type == RemoteLeaseType.Control)
+        {
             await client.Execute<bool>(lease, "control.output", new
             {
                 frame = new OutputFrame(20, 30, 20)
             });
+        }
+
         var revoked = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        client.Peer.Notification += (method, _) => { if (method == "lease.revoked") revoked.TrySetResult(); };
+        client.Peer.Notification += (method, _) =>
+        {
+            if (method == "lease.revoked")
+                revoked.TrySetResult();
+        };
         await revoked.Task.WaitAsync(TimeSpan.FromSeconds(4), Ct);
         Assert.Equal(0, host.Controller.Connections[host.Devices[0].Id].Output.ChannelA);
         Assert.Equal(host.Server.Session.Id, host.Controller.DeviceOwner(host.Devices[0].Id));
@@ -461,7 +476,7 @@ public sealed class RemoteIntegrationTests
         using var socket = new ClientWebSocket();
         socket.Options.AddSubProtocol(RemoteProtocol.SubProtocol);
         await socket.ConnectAsync(host.Server.Url!, Ct);
-        var packet = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new
+        byte[] packet = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new
         {
             jsonrpc = "2.0",
             id = "1",
@@ -478,12 +493,6 @@ public sealed class RemoteIntegrationTests
         Assert.Contains("Error.RemoteSequence", await Receive(socket));
     }
 
-    private static async Task<string> Receive(ClientWebSocket socket)
-    {
-        var bytes = new byte[4096];
-        var result = await socket.ReceiveAsync(bytes.AsMemory(), Ct);
-        return Encoding.UTF8.GetString(bytes, 0, result.Count);
-    }
     [Fact]
     public async Task LocalSimulationAndRemoteBluetoothCoexistWithPerDeviceInputGuards()
     {
@@ -516,15 +525,15 @@ public sealed class RemoteIntegrationTests
     {
         await using var host = await Host.Create(BluetoothProtocol.YokonexV1, BluetoothProtocol.CoyoteV3);
         await host.Server.DisposeAsync();
-        var port = host.Server.Url!.Port;
+        int port = host.Server.Url!.Port;
         await using var first = new RemoteServer(new(Guid.NewGuid(), host.Controller, [host.Devices[0].Id], new(Port: port), TimeSpan.FromSeconds(1)), Host.Token);
         await using var second = new RemoteServer(new(Guid.NewGuid(), host.Controller, [host.Devices[1].Id], new(Port: port)), Host.Token);
-        await first.StartAsync(ct: Ct);
-        await second.StartAsync(ct: Ct);
+        await first.StartAsync(cancellationToken: Ct);
+        await second.StartAsync(cancellationToken: Ct);
         await using var firstClient = await Client.Create(first.Url!);
         await using var secondClient = await Client.Create(second.Url!);
-        var firstDevice = Assert.Single(await firstClient.Peer.CallAsync<RemoteDevice[]>("devices.list", ct: Ct));
-        var secondDevice = Assert.Single(await secondClient.Peer.CallAsync<RemoteDevice[]>("devices.list", ct: Ct));
+        var firstDevice = Assert.Single(await firstClient.Peer.CallAsync<RemoteDevice[]>("devices.list", cancellationToken: Ct));
+        var secondDevice = Assert.Single(await secondClient.Peer.CallAsync<RemoteDevice[]>("devices.list", cancellationToken: Ct));
         await firstClient.Acquire(firstDevice.Id, RemoteLeaseType.Gatt);
         var lease = await secondClient.Acquire(secondDevice.Id, RemoteLeaseType.Control);
         await firstClient.Peer.Completion.WaitAsync(TimeSpan.FromSeconds(4), Ct);
@@ -542,7 +551,7 @@ public sealed class RemoteIntegrationTests
     {
         await using var host = await Host.Create(BluetoothProtocol.CoyoteV2, BluetoothProtocol.YokonexPump, BluetoothProtocol.Civet);
         await using var client = await Client.Create(host.Server.Url!);
-        var devices = await client.Peer.CallAsync<RemoteDevice[]>("devices.list", ct: Ct);
+        var devices = await client.Peer.CallAsync<RemoteDevice[]>("devices.list", cancellationToken: Ct);
         var electrical = devices.Single(device => device.ProtocolId == BluetoothProtocol.CoyoteV2.ToString());
         var pump = devices.Single(device => device.Kind == DeviceKind.Pump);
         var sensor = devices.Single(device => device.Kind == DeviceKind.Sensor);
@@ -606,7 +615,7 @@ public sealed class RemoteIntegrationTests
     {
         await using var host = await Host.Create(BluetoothProtocol.CoyoteV3);
         await using var client = await Client.Create(host.Server.Url!);
-        var device = Assert.Single(await client.Peer.CallAsync<RemoteDevice[]>("devices.list", ct: Ct));
+        var device = Assert.Single(await client.Peer.CallAsync<RemoteDevice[]>("devices.list", cancellationToken: Ct));
         var lease = await client.Acquire(device.Id, RemoteLeaseType.Control);
         host.Adapter.Links[host.Devices[0].Id].FailWrites = true;
         await Assert.ThrowsAsync<RemoteRpcException>(() => client.Execute<bool>(lease, "control.output", new { frame = new OutputFrame(20, 30, 20) }));
@@ -629,7 +638,7 @@ public sealed class RemoteIntegrationTests
     {
         await using var host = await Host.Create(BluetoothProtocol.Paw);
         await using var client = await Client.Create(host.Server.Url!);
-        var device = Assert.Single(await client.Peer.CallAsync<RemoteDevice[]>("devices.list", ct: Ct));
+        var device = Assert.Single(await client.Peer.CallAsync<RemoteDevice[]>("devices.list", cancellationToken: Ct));
         var lease = await client.Acquire(device.Id, RemoteLeaseType.Control);
         await client.Execute<bool>(lease, "control.command", new
         {
@@ -637,9 +646,13 @@ public sealed class RemoteIntegrationTests
             command = (DeviceCommand)new ConfigurePaw(new PawRandomReaction())
         });
         var revoked = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        client.Peer.Notification += (method, _) => { if (method == "lease.revoked") revoked.TrySetResult(); };
+        client.Peer.Notification += (method, _) =>
+        {
+            if (method == "lease.revoked")
+                revoked.TrySetResult();
+        };
         await revoked.Task.WaitAsync(TimeSpan.FromSeconds(4), Ct);
-        var last = host.Adapter.Links[host.Devices[0].Id].Writes[^1].Data;
+        byte[] last = host.Adapter.Links[host.Devices[0].Id].Writes[^1].Data;
         Assert.Equal((byte)0x50, last[0]);
         Assert.Equal((byte)0, last[2]);
     }
@@ -649,6 +662,13 @@ public sealed class RemoteIntegrationTests
         timeout.CancelAfter(TimeSpan.FromSeconds(4));
         while (!condition())
             await Task.Delay(20, timeout.Token);
+    }
+
+    private static async Task<string> Receive(ClientWebSocket socket)
+    {
+        byte[] bytes = new byte[4096];
+        var result = await socket.ReceiveAsync(bytes.AsMemory(), Ct);
+        return Encoding.UTF8.GetString(bytes, 0, result.Count);
     }
 
     private sealed class Host : IAsyncDisposable
@@ -669,9 +689,13 @@ public sealed class RemoteIntegrationTests
             var server = new RemoteServer(new(Guid.NewGuid(), controller, devices.Select(device => device.Id).ToArray(), new(Port: 0, LeaseMilliseconds: 1000, ControlLimit: 40)), Token);
             try
             {
-                await server.StartAsync(ct: Ct);
+                await server.StartAsync(cancellationToken: Ct);
             }
-            catch { await controller.DisposeAsync(); throw; }
+            catch
+            {
+                await controller.DisposeAsync();
+                throw;
+            }
             return new()
             {
                 Adapter = adapter,
@@ -686,15 +710,19 @@ public sealed class RemoteIntegrationTests
             {
                 await Server.DisposeAsync();
             }
-            finally { await Controller.DisposeAsync(); }
+            finally
+            {
+                await Controller.DisposeAsync();
+            }
         }
     }
     private sealed class Client : IAsyncDisposable
     {
-        public required WebSocketRpcPeer Peer { get; init; }
         private RemoteHello? _hello;
         private long _helloAt;
         private readonly Dictionary<Guid, long> _sequences = [];
+
+        public required WebSocketRpcPeer Peer { get; init; }
         public static async Task<Client> Create(Uri uri, bool authenticate = true)
         {
             var socket = new ClientWebSocket();
@@ -712,7 +740,7 @@ public sealed class RemoteIntegrationTests
             {
                 token = Host.Token
             }, Ct);
-            _hello = await Peer.CallAsync<RemoteHello>("system.hello", ct: Ct);
+            _hello = await Peer.CallAsync<RemoteHello>("system.hello", cancellationToken: Ct);
             _helloAt = Stopwatch.GetTimestamp();
         }
         public Task<RemoteLease> Acquire(string deviceId, RemoteLeaseType type) => Peer.CallAsync<RemoteLease>("lease.acquire", new { deviceIds = new[] { deviceId }, type }, Ct);

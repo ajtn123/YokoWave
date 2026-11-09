@@ -13,17 +13,17 @@
       </StackPanel>
       <Button Grid.Column="1" Classes="primary" Command="{Binding NewWaveCommand}" Content="{l:Loc Wave.New}" VerticalAlignment="Center" />
     </Grid>
-    <ListBox x:Name="WaveList" ItemsSource="{Binding Presets}" SelectedItem="{Binding LibrarySelectedPreset}" Classes="wave-library">
+    <ListBox x:Name="WaveList" ItemsSource="{Binding Waveforms}" SelectedItem="{Binding SelectedWaveform}" Classes="wave-library">
       <ListBox.ItemsPanel><ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate></ListBox.ItemsPanel>
       <ListBox.ItemTemplate>
-        <DataTemplate x:DataType="vm:PresetItem">
+        <DataTemplate x:DataType="vm:WaveformItem">
           <Border Classes="card compact wave-tile">
             <StackPanel Classes="items">
               <Grid ColumnDefinitions="*,Auto">
                 <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" Classes="card-title" />
                 <TextBlock Grid.Column="1" Text="{Binding ShapeLabel}" Classes="muted caption" />
               </Grid>
-              <controls:WaveformPlot Preset="{Binding Preset}" Classes="thumbnail" />
+              <controls:WaveformPlot Waveform="{Binding Asset}" Classes="thumbnail" />
               <TextBlock Text="{Binding Detail}" Classes="caption channel-b" />
               <TextBlock Text="{Binding Origin}" Classes="fine-print muted" />
             </StackPanel>

@@ -9,33 +9,35 @@ internal sealed class WebSocketGattConnection(WebSocketRpcPeer peer, RemoteDevic
     private RemoteGattDescription? _description;
     public int MaximumWriteLength => _description?.MaximumWriteLength ?? 20;
     public IReadOnlyList<GattAttribute> Attributes => _description?.Attributes ?? [];
+    private GattAddress Primary => BluetoothDeviceProfiles.FromId(device.ProtocolId)!.Notify;
     public event Action<byte[]>? NotificationReceived;
     public event Action<GattNotification>? AdditionalNotificationReceived;
     public event Action? Disconnected { add => _link.Disconnected += value; remove => _link.Disconnected -= value; }
-    private GattAddress Primary => BluetoothDeviceProfiles.FromId(device.ProtocolId)!.Notify;
-    public async Task Initialize(CancellationToken ct)
+    public async Task InitializeAsync(CancellationToken cancellationToken)
     {
-        _description = await Operation<RemoteGattDescription>("gatt.describe", new
+        _description = await OperationAsync<RemoteGattDescription>("gatt.describe", new
         {
-        }, ct);
+        }, cancellationToken).ConfigureAwait(false);
         foreach (var attribute in Attributes.Where(attribute => attribute.Notify))
-            await Operation<bool>("gatt.subscribe", new
+        {
+            await OperationAsync<bool>("gatt.subscribe", new
             {
                 address = attribute.Address
-            }, ct);
+            }, cancellationToken).ConfigureAwait(false);
+        }
+
         _link.Start();
     }
-    private Task<T> Operation<T>(string method, object args, CancellationToken ct) => _link.Call<T>(method, args, ct);
-    public Task WriteAsync(byte[] packet, CancellationToken ct) => WriteAsync(BluetoothDeviceProfiles.FromId(device.ProtocolId)!.Write, packet, ct);
-    public async Task WriteAsync(GattAddress address, byte[] packet, CancellationToken ct) => await WriteAsync(new GattWrite(address, packet), ct);
-    public async Task WriteAsync(GattWrite write, CancellationToken ct) => await Operation<bool>("gatt.write", new { write }, ct);
-    public async Task WriteBatchAsync(IReadOnlyList<GattWrite> writes, CancellationToken ct) => await Operation<bool>("gatt.batch", new { writes }, ct);
-    public async Task<byte[]?> ReadAsync(GattAddress address, CancellationToken ct)
+    public Task WriteAsync(byte[] packet, CancellationToken cancellationToken) => WriteAsync(BluetoothDeviceProfiles.FromId(device.ProtocolId)!.Write, packet, cancellationToken);
+    public Task WriteAsync(GattAddress address, byte[] packet, CancellationToken cancellationToken) => WriteAsync(new GattWrite(address, packet), cancellationToken);
+    public Task WriteAsync(GattWrite write, CancellationToken cancellationToken) => OperationAsync<bool>("gatt.write", new { write }, cancellationToken);
+    public Task WriteBatchAsync(IReadOnlyList<GattWrite> writes, CancellationToken cancellationToken) => OperationAsync<bool>("gatt.batch", new { writes }, cancellationToken);
+    public async Task<byte[]?> ReadAsync(GattAddress address, CancellationToken cancellationToken)
     {
-        var value = await Operation<JsonElement>("gatt.read", new
+        var value = await OperationAsync<JsonElement>("gatt.read", new
         {
             address
-        }, ct);
+        }, cancellationToken).ConfigureAwait(false);
         return value.ValueKind == JsonValueKind.Null ? null : RemoteProtocol.Read<byte[]>(value);
     }
     public void Notify(RemoteGattNotification notification)
@@ -52,8 +54,12 @@ internal sealed class WebSocketGattConnection(WebSocketRpcPeer peer, RemoteDevic
     {
         try
         {
-            await _link.DisposeAsync();
+            await _link.DisposeAsync().ConfigureAwait(false);
         }
-        finally { removed(); }
+        finally
+        {
+            removed();
+        }
     }
+    private Task<T> OperationAsync<T>(string method, object args, CancellationToken cancellationToken) => _link.CallAsync<T>(method, args, cancellationToken);
 }

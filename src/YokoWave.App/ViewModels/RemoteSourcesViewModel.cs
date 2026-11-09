@@ -9,10 +9,13 @@ namespace YokoWave.App.ViewModels;
 public sealed class RemoteSourcesViewModel : ObservableObject
 {
     private readonly DeviceController _controller;
-    private readonly Func<Task> _scan, _save;
+    private readonly Func<Task> _scan;
+    private readonly Func<Task> _save;
     private readonly Func<string, Task> _stopModes;
     private readonly Action<Exception> _report;
-    private string _name = "", _url = "", _token = "";
+    private string _name = "";
+    private string _url = "";
+    private string _token = "";
     public string Name { get => _name; set => Set(ref _name, value); }
     public string Url { get => _url; set => Set(ref _url, value); }
     public string Token { get => _token; set => Set(ref _token, value); }
@@ -45,18 +48,26 @@ public sealed class RemoteSourcesViewModel : ObservableObject
         foreach (var endpoint in settings)
             Add(endpoint);
     }
+    public List<RemoteEndpointSettings> ToSettings() => Sources.Select(item => item.Settings).ToList();
+    public void RefreshLocalization()
+    {
+        foreach (var item in Sources)
+            item.RefreshLocalization();
+        foreach (var kind in Kinds)
+            kind.RefreshLocalization();
+    }
     private RemoteSourceItem Add(RemoteEndpointSettings settings)
     {
-        var item = new RemoteSourceItem(settings, Connect, Remove, _report);
+        var item = new RemoteSourceItem(settings, ConnectAsync, RemoveAsync, _report);
         Sources.Add(item);
         return item;
     }
-    private async Task Connect(RemoteSourceItem item)
+    private async Task ConnectAsync(RemoteSourceItem item)
     {
-        var key = $"remote:{item.Settings.Id:N}";
+        string key = $"remote:{item.Settings.Id:N}";
         if (item.IsConnected)
         {
-            foreach (var id in _controller.SourceDeviceIds(key))
+            foreach (string id in _controller.SourceDeviceIds(key))
                 await _stopModes(id);
             await _controller.RemoveSourceAsync(key);
             item.IsConnected = false;
@@ -70,7 +81,10 @@ public sealed class RemoteSourcesViewModel : ObservableObject
                 source = new BluetoothDeviceTransport(adapter);
             }
             else
+            {
                 source = new WebSocketControlTransport(item.Settings, item.Token);
+            }
+
             try
             {
                 await source.ScanAsync();
@@ -83,26 +97,21 @@ public sealed class RemoteSourcesViewModel : ObservableObject
                 {
                     await source.DisposeAsync();
                 }
-                catch (Exception cleanup) { throw new LocalizedAggregateException("Error.Cleanup", [error, cleanup]); }
+                catch (Exception cleanup)
+                {
+                    throw new LocalizedAggregateException("Error.Cleanup", [error, cleanup]);
+                }
                 throw;
             }
         }
         await _scan();
     }
-    private async Task Remove(RemoteSourceItem item)
+    private async Task RemoveAsync(RemoteSourceItem item)
     {
         if (item.IsConnected)
-            await Connect(item);
+            await ConnectAsync(item);
         Sources.Remove(item);
         await _save();
-    }
-    public List<RemoteEndpointSettings> ToSettings() => Sources.Select(item => item.Settings).ToList();
-    public void RefreshLocalization()
-    {
-        foreach (var item in Sources)
-            item.RefreshLocalization();
-        foreach (var kind in Kinds)
-            kind.RefreshLocalization();
     }
 }
 
@@ -115,7 +124,8 @@ public sealed class RemoteSourceItem : ObservableObject
     public string Token { get; set; } = "";
     public bool IsConnected
     {
-        get => _connected; set
+        get => _connected;
+        set
         {
             if (Set(ref _connected, value))
                 RefreshLocalization();

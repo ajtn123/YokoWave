@@ -3,38 +3,39 @@ namespace YokoWave.Core.Bluetooth;
 internal sealed class PawDriver(string id, BluetoothDeviceProfile profile, IBluetoothConnection link,
     Action<DeviceStatusUpdate> publish, Action<Exception> fault) : DgSensorDriver(id, profile, link, publish, fault)
 {
-    protected override byte[] Stream(bool enabled) => PawProtocol.Configure(new(enabled ? new PawLiveData() : new PawNoTrigger(), IndicatorColor));
     private readonly PawTelemetryTracker _telemetry = new();
     private ConfigurePaw _configuration = new(new PawLiveData());
+
+    protected override byte[] Stream(bool enabled) => PawProtocol.Configure(new(enabled ? new PawLiveData() : new PawNoTrigger(), IndicatorColor));
     protected override DeviceTelemetry? ParseTelemetry(byte[] data) => _telemetry.Parse(data);
     protected override DeviceCommandHandlers CreateCommandHandlers() => new DeviceCommandHandlers()
-        .Add<ConfigurePaw>(async (command, ct) =>
+        .Add<ConfigurePaw>(async (command, cancellationToken) =>
         {
-            await Write(PawProtocol.Configure(command), ct);
+            await WriteAsync(PawProtocol.Configure(command), cancellationToken).ConfigureAwait(false);
             _configuration = command;
             IndicatorColor = command.IndicatorColor;
             StreamEnabled = command.Trigger is PawLiveData;
         })
-        .Add<ConfigureSensorStream>(async (command, ct) =>
+        .Add<ConfigureSensorStream>(async (command, cancellationToken) =>
         {
             var configuration = new ConfigurePaw(command.Enabled ? new PawLiveData() : new PawNoTrigger(), command.IndicatorColor);
-            await Write(PawProtocol.Configure(configuration), ct);
+            await WriteAsync(PawProtocol.Configure(configuration), cancellationToken).ConfigureAwait(false);
             _configuration = configuration;
             IndicatorColor = command.IndicatorColor;
             StreamEnabled = command.Enabled;
         })
-        .Add<ConfigureIndicator>(async (command, ct) =>
+        .Add<ConfigureIndicator>(async (command, cancellationToken) =>
         {
             var configuration = _configuration with { IndicatorColor = command.Color };
-            await Write(PawProtocol.Configure(configuration), ct);
+            await WriteAsync(PawProtocol.Configure(configuration), cancellationToken).ConfigureAwait(false);
             _configuration = configuration;
             IndicatorColor = command.Color;
         })
-        .Add<ConfigureShoulderLight>((command, ct) => Write(PawProtocol.ShoulderLight(command), ct))
-        .Add<ResetPawParameters>((_, ct) => Write([0x5f], ct))
-        .Add<CalibratePawAngles>(async (_, ct) =>
+        .Add<ConfigureShoulderLight>((command, cancellationToken) => WriteAsync(PawProtocol.ShoulderLight(command), cancellationToken))
+        .Add<ResetPawParameters>((_, cancellationToken) => WriteAsync([0x5f], cancellationToken))
+        .Add<CalibratePawAngles>(async (_, cancellationToken) =>
         {
-            await Write([0x60], ct);
+            await WriteAsync([0x60], cancellationToken).ConfigureAwait(false);
             StreamEnabled = false;
             _configuration = new(new PawNoTrigger(), IndicatorColor);
         });

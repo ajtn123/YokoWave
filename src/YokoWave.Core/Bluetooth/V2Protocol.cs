@@ -12,8 +12,8 @@ public static class V2Protocol
     public static byte[] Fixed(OutputFrame frame, NativeProgramSettings settings)
     {
         settings.Validate();
-        var a = settings.PresetA == 0 ? 0 : V1Protocol.Parameters(frame, 0).Strength;
-        var b = settings.PresetB == 0 ? 0 : V1Protocol.Parameters(frame, 1).Strength;
+        int a = settings.PresetA == 0 ? 0 : V1Protocol.Parameters(frame, 0).Strength;
+        int b = settings.PresetB == 0 ? 0 : V1Protocol.Parameters(frame, 1).Strength;
         return V1Protocol.WithChecksum([0x35, 0x11, 1, (byte)(a >> 8), (byte)a, (byte)Math.Max(1, settings.PresetA),
             (byte)(b >> 8), (byte)b, (byte)Math.Max(1, settings.PresetB)]);
     }
@@ -28,7 +28,7 @@ public static class V2Protocol
         packet[2] = 3;
         packet[3] = (byte)channel;
         BinaryPrimitives.WriteUInt16BigEndian(packet.AsSpan(4, 2), (ushort)strength);
-        for (var index = 0; index < samples.Count; index++)
+        for (int index = 0; index < samples.Count; index++)
         {
             samples[index].Validate();
             packet[6 + index * 2] = (byte)samples[index].FrequencyHz;

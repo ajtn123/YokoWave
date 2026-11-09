@@ -1,21 +1,21 @@
+using System.Collections.Concurrent;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.Logging;
+using Avalonia.LogicalTree;
 using Avalonia.Media.Imaging;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using Avalonia.LogicalTree;
-using Avalonia.Logging;
-using System.Collections.Concurrent;
-using YokoWave.App.Views.Pages;
-using YokoWave.App.Views.Components;
+using Xunit;
 using YokoWave.App.ViewModels;
 using YokoWave.App.Views;
+using YokoWave.App.Views.Components;
+using YokoWave.App.Views.Pages;
 using YokoWave.Core;
-using Xunit;
 
 [assembly: AvaloniaTestApplication(typeof(YokoWave.Tests.TestAppBuilder))]
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
@@ -32,7 +32,6 @@ public static class TestAppBuilder
 
 public sealed class UiTests
 {
-
     [AvaloniaFact]
     public async Task SplitViewsProtectDefaultsAndPreserveSamplesWhenDuplicating()
     {
@@ -41,7 +40,7 @@ public sealed class UiTests
         var view = new MainView { DataContext = vm };
         var window = new Window { Content = view, Width = 1000, Height = 600 };
         window.Show();
-        await WaitForAsync(() => vm.Waveforms.Presets.Count == DefaultWaveformCatalog.Presets.Count && !vm.Devices.IsScanning);
+        await WaitForAsync(() => vm.Waveforms.Waveforms.Count == DefaultWaveformCatalog.Waveforms.Count && !vm.Devices.IsScanning);
         Assert.NotNull(Find<DeviceWorkspaceView>(view, "WorkspacePage"));
         Assert.NotNull(Find<WaveformLibraryView>(view, "WavesPage"));
         Assert.NotNull(Find<SessionHistoryView>(view, "HistoryPage"));
@@ -49,35 +48,22 @@ public sealed class UiTests
         Assert.Single(view.GetLogicalDescendants().OfType<WaveformEditorView>());
         Assert.Single(view.GetLogicalDescendants().OfType<WaveformTransferView>());
         await vm.NavigateAsync("waves");
-        var original = vm.Waveforms.LibrarySelectedPreset!.Preset;
+        var original = vm.Waveforms.SelectedWaveform!.Asset;
         Assert.False(vm.Waveforms.DeleteWaveCommand.CanExecute(null));
         Assert.False(Find<Button>(view, "DeleteWaveButton").IsEffectivelyEnabled);
         await Assert.ThrowsAnyAsync<InvalidOperationException>(vm.Waveforms.DeleteWaveAsync);
         vm.Waveforms.EditWaveCommand.Execute(null);
         await vm.Waveforms.SaveWaveAsync();
-        Assert.Equal(DefaultWaveformCatalog.Presets.Count + 1, vm.Waveforms.Presets.Count);
-        Assert.False(vm.Waveforms.LibrarySelectedPreset!.IsBuiltIn);
-        Assert.Equivalent(original.Samples, vm.Waveforms.LibrarySelectedPreset.Preset.Samples);
+        Assert.Equal(DefaultWaveformCatalog.Waveforms.Count + 1, vm.Waveforms.Waveforms.Count);
+        Assert.False(vm.Waveforms.SelectedWaveform!.IsBuiltIn);
+        Assert.Equivalent(original.Samples, vm.Waveforms.SelectedWaveform.Asset.Samples);
         Assert.True(vm.Waveforms.DeleteWaveCommand.CanExecute(null));
         Assert.True(Find<Button>(view, "DeleteWaveButton").IsEffectivelyEnabled);
         Click(window, Find<Button>(view, "DeleteWaveButton"));
-        await WaitForAsync(() => vm.Waveforms.Presets.Count == DefaultWaveformCatalog.Presets.Count);
+        await WaitForAsync(() => vm.Waveforms.Waveforms.Count == DefaultWaveformCatalog.Waveforms.Count);
         Assert.False(vm.Waveforms.DeleteWaveCommand.CanExecute(null));
         Capture(window, "default-waveforms.png");
         window.Close();
-    }
-
-    private sealed class BindingErrorSink : ILogSink
-    {
-        public ConcurrentQueue<string> Errors { get; } = new();
-        public bool IsEnabled(LogEventLevel level, string area) => area == LogArea.Binding && level >= LogEventLevel.Warning;
-        public void Log(LogEventLevel level, string area, object? source, string messageTemplate)
-        {
-            if (IsEnabled(level, area))
-                Errors.Enqueue(messageTemplate);
-        }
-        public void Log(LogEventLevel level, string area, object? source, string messageTemplate, params object?[] propertyValues) =>
-            Log(level, area, source, $"{messageTemplate} [{string.Join(", ", propertyValues)}]");
     }
 
     private static T Find<T>(Control root, string name) where T : Control
@@ -104,7 +90,7 @@ public sealed class UiTests
 
     private static async Task WaitForAsync(Func<bool> condition)
     {
-        for (var i = 0; i < 500; i++)
+        for (int i = 0; i < 500; i++)
         {
             Dispatcher.UIThread.RunJobs();
             if (condition())
@@ -117,10 +103,23 @@ public sealed class UiTests
     private static void Capture(Window window, string name)
     {
         Dispatcher.UIThread.RunJobs();
-        var directory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../artifacts/screenshots"));
+        string directory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../artifacts/screenshots"));
         Directory.CreateDirectory(directory);
         using var frame = window.CaptureRenderedFrame();
         Assert.NotNull(frame);
         frame.Save(Path.Combine(directory, name), PngBitmapEncoderOptions.Default);
+    }
+
+    private sealed class BindingErrorSink : ILogSink
+    {
+        public ConcurrentQueue<string> Errors { get; } = new();
+        public bool IsEnabled(LogEventLevel level, string area) => area == LogArea.Binding && level >= LogEventLevel.Warning;
+        public void Log(LogEventLevel level, string area, object? source, string messageTemplate)
+        {
+            if (IsEnabled(level, area))
+                Errors.Enqueue(messageTemplate);
+        }
+        public void Log(LogEventLevel level, string area, object? source, string messageTemplate, params object?[] propertyValues) =>
+            Log(level, area, source, $"{messageTemplate} [{string.Join(", ", propertyValues)}]");
     }
 }

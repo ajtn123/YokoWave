@@ -1,5 +1,5 @@
-using YokoWave.Desktop.Bluetooth;
 using YokoWave.Core.Bluetooth;
+using YokoWave.Desktop.Bluetooth;
 
 namespace YokoWave.Desktop.Diagnostics;
 
@@ -12,7 +12,7 @@ internal static class DiagnosticProbes
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             await using var input = await new Audio.MiniAudioInputFactory().StartAsync(
                 new(Core.AudioSourceKind.MediaFile, path, PlaybackVolume: 0), timeout.Token);
-            for (var attempt = 0; attempt < 100 && input.Latest is null; attempt++)
+            for (int attempt = 0; attempt < 100 && input.Latest is null; attempt++)
                 await Task.Delay(50, timeout.Token);
             if (input.Latest is not { } frame || Math.Max(frame.LeftDb, frame.RightDb) <= -90)
                 throw new InvalidOperationException("The audio probe received no non-silent PCM features.");
@@ -21,16 +21,19 @@ internal static class DiagnosticProbes
             if (input.Latest is not null)
                 throw new InvalidOperationException("Pause retained an old audio frame.");
             input.SetPaused(false);
-            for (var attempt = 0; attempt < 100 && input.Latest is null; attempt++)
+            for (int attempt = 0; attempt < 100 && input.Latest is null; attempt++)
                 await Task.Delay(50, timeout.Token);
             if (input.Latest is not { } resumed || resumed.Sequence <= frame.Sequence || Math.Max(resumed.LeftDb, resumed.RightDb) <= -90)
                 throw new InvalidOperationException("Resume did not supply a fresh non-silent audio frame.");
             Console.WriteLine("Audio pause/resume completed; no Bluetooth connection was opened.");
             return 0;
         }
-        catch (Exception error) { Console.Error.WriteLine(error); return 1; }
+        catch (Exception error)
+        {
+            Console.Error.WriteLine(error);
+            return 1;
+        }
     }
-
     public static async Task<int> RunBluetoothAsync(bool connect, string? audioPath, string? profile)
     {
         try
@@ -59,7 +62,7 @@ internal static class DiagnosticProbes
                 Console.WriteLine("Connected; protocol initialization completed. No nonzero output requested.");
                 if (audioPath is not null)
                 {
-                    for (var cycle = 0; cycle < 5; cycle++)
+                    for (int cycle = 0; cycle < 5; cycle++)
                     {
                         var graph = Pipelines.PipelineTemplates.Create("audio", new("Audio probe", devices[0].Id, Limit: 0));
                         graph = graph with
@@ -88,5 +91,4 @@ internal static class DiagnosticProbes
             return 1;
         }
     }
-
 }

@@ -11,6 +11,7 @@ public enum PipelineState
 /// <summary>Serial background clock and device lifecycle for a compiled graph.</summary>
 public sealed class PipelineSession : IAsyncDisposable
 {
+    private static readonly IReadOnlyDictionary<Guid, PipelineNodeStatus> _emptyStatus = new Dictionary<Guid, PipelineNodeStatus>();
     private readonly DeviceController _controller;
     private readonly bool _retainOwnership;
     private readonly PipelineServices _services;
@@ -20,14 +21,15 @@ public sealed class PipelineSession : IAsyncDisposable
     private Task _loop = Task.CompletedTask;
     private PipelineRuntime? _runtime;
     private PipelinePlan? _plan;
+    private IReadOnlyDictionary<Guid, PipelineNodeStatus> _lastNodeStatus = _emptyStatus;
     private long _lastTimestamp;
     private TimeSpan _elapsed;
     private PipelineOutputDispatcher _outputs;
     private bool _disposed;
+    private DateTimeOffset _startedAt;
+    private bool _recorded;
     public Guid OwnerId { get; }
-    private IReadOnlyDictionary<Guid, PipelineNodeStatus> _lastNodeStatus = EmptyStatus;
     public IReadOnlyDictionary<Guid, PipelineNodeStatus> NodeStatus => _runtime?.NodeStatus ?? _lastNodeStatus;
-    private static readonly IReadOnlyDictionary<Guid, PipelineNodeStatus> EmptyStatus = new Dictionary<Guid, PipelineNodeStatus>();
     public PipelineInputs? Inputs => _runtime?.Inputs;
     public PipelineState State { get; private set; }
     public bool HoldsResources => State != PipelineState.Idle;
@@ -37,8 +39,6 @@ public sealed class PipelineSession : IAsyncDisposable
     public PipelineFrame? LastFrame { get; private set; }
     public event EventHandler? Changed;
     public event EventHandler<SessionRecord>? Completed;
-    private DateTimeOffset _startedAt;
-    private bool _recorded;
 
     public PipelineSession(DeviceController controller, PipelineServices? services = null, Guid? ownerId = null, bool retainOwnership = false)
     {
@@ -49,35 +49,11 @@ public sealed class PipelineSession : IAsyncDisposable
         _outputs = new(controller, OwnerId);
         _controller.Faulted += OnDeviceFault;
     }
-    private void OnDeviceFault(object? sender, DeviceTransportFault fault)
-    {
-        if (!_disposed && HoldsResources && _plan?.DeviceIds.Contains(fault.DeviceId) == true)
-        {
-            CancelPendingInput();
-            _ = StopFaultedAsync(fault);
-        }
-    }
-    private async Task StopFaultedAsync(DeviceTransportFault fault)
-    {
-        await _gate.WaitAsync();
-        try
-        {
-            if (!HoldsResources || _plan?.DeviceIds.Contains(fault.DeviceId) != true)
-                return;
-            Error = fault.Error;
-            try
-            {
-                await StopCoreAsync("Reason.ConnectionError");
-            }
-            catch (Exception cleanup) { Error = new LocalizedAggregateException("Error.Cleanup", [fault.Error, cleanup]); }
-        }
-        finally { _gate.Release(); Notify(); }
-    }
 
     public async Task StartAsync(PipelinePlan plan)
     {
-        await _gate.WaitAsync();
-        var starting = false;
+        await _gate.WaitAsync().ConfigureAwait(false);
+        bool starting = false;
         try
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
@@ -92,7 +68,7 @@ public sealed class PipelineSession : IAsyncDisposable
             _elapsed = TimeSpan.Zero;
             _outputs = new(_controller, OwnerId);
             _recorded = false;
-            _lastNodeStatus = EmptyStatus;
+            _lastNodeStatus = _emptyStatus;
             _startedAt = default;
             LastFrame = null;
             List<PipelineDiagnostic> resourceErrors = [];
@@ -106,10 +82,12 @@ public sealed class PipelineSession : IAsyncDisposable
                 {
                     if (plan.DeviceIds.Any(id => _controller.DeviceOwner(id) != OwnerId))
                         throw new LocalizedOperationException("Error.DeviceInUse");
-                    await _controller.StopOwnedAsync(OwnerId, scope: plan.DeviceIds, release: false);
+                    await _controller.StopOwnedAsync(OwnerId, scope: plan.DeviceIds, release: false).ConfigureAwait(false);
                 }
                 else
-                    await _controller.AcquireTargetsAsync(OwnerId, plan.DeviceIds, allowInputs: true);
+                {
+                    await _controller.AcquireTargetsAsync(OwnerId, plan.DeviceIds, allowInputs: true).ConfigureAwait(false);
+                }
             }
             foreach (var node in plan.Nodes)
             {
@@ -118,12 +96,12 @@ public sealed class PipelineSession : IAsyncDisposable
                 if (participant is null)
                     continue;
                 _participants.Add(participant);
-                await participant.StartAsync(_cancellation.Token);
+                await participant.StartAsync(_cancellation.Token).ConfigureAwait(false);
             }
             _startedAt = _controller.Clock.GetUtcNow();
             _lastTimestamp = _controller.Clock.GetTimestamp();
             State = PipelineState.Running;
-            await EvaluateAsync();
+            await EvaluateAsync().ConfigureAwait(false);
             _cancellation.Token.ThrowIfCancellationRequested();
             var cancellation = _cancellation;
             var token = cancellation.Token;
@@ -136,11 +114,11 @@ public sealed class PipelineSession : IAsyncDisposable
             Error = error;
             try
             {
-                await CleanupAsync();
+                await CleanupAsync().ConfigureAwait(false);
                 _runtime = null;
                 _plan = null;
                 _startedAt = default;
-                _lastNodeStatus = EmptyStatus;
+                _lastNodeStatus = _emptyStatus;
                 LastFrame = null;
                 State = PipelineState.Idle;
             }
@@ -153,6 +131,142 @@ public sealed class PipelineSession : IAsyncDisposable
             _cancellation?.Dispose();
             _cancellation = null;
             throw;
+        }
+        finally
+        {
+            _gate.Release();
+            Notify();
+        }
+    }
+
+    public bool SetConstant(Guid node, double value) => _runtime?.SetConstant(node, value) == true;
+    public bool Update(NodeControl control) => _runtime?.Update(control) == true;
+    public void SetLimit(Guid node, double value) => _runtime?.SetLimit(node, value);
+    public async Task FlushAsync()
+    {
+        await _gate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (State == PipelineState.Running)
+                await EvaluateAsync().ConfigureAwait(false);
+        }
+        catch (Exception error)
+        {
+            Error = error;
+            try
+            {
+                await StopCoreAsync("Reason.PipelineError").ConfigureAwait(false);
+            }
+            catch (Exception cleanup)
+            {
+                throw new LocalizedAggregateException("Error.Cleanup", [error, cleanup]);
+            }
+            throw;
+        }
+        finally
+        {
+            _gate.Release();
+            Notify();
+        }
+    }
+
+    public async Task PauseAsync()
+    {
+        await _gate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (State == PipelineState.Running)
+            {
+                AccumulateElapsed();
+                State = PipelineState.Paused;
+                _runtime?.Suspend();
+                foreach (var participant in _participants)
+                    await participant.SetPausedAsync(true).ConfigureAwait(false);
+                await _controller.StopOwnedAsync(OwnerId, scope: _plan?.DeviceIds, release: false).ConfigureAwait(false);
+                _outputs.ResetPumpCommands();
+            }
+            else if (State == PipelineState.Paused)
+            {
+                _lastTimestamp = _controller.Clock.GetTimestamp();
+                foreach (var participant in _participants)
+                    await participant.SetPausedAsync(false).ConfigureAwait(false);
+                State = PipelineState.Running;
+            }
+        }
+        catch (Exception error)
+        {
+            Error = error;
+            try
+            {
+                await StopCoreAsync("Reason.PipelineError").ConfigureAwait(false);
+            }
+            catch (Exception cleanup)
+            {
+                Error = new LocalizedAggregateException("Error.Cleanup", [error, cleanup]);
+                throw Error;
+            }
+            throw;
+        }
+        finally
+        {
+            _gate.Release();
+            Notify();
+        }
+    }
+
+    public async Task StopAsync(string reason = "Reason.Manual")
+    {
+        CancelPendingInput();
+        await _gate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            await StopCoreAsync(reason).ConfigureAwait(false);
+        }
+        finally
+        {
+            _gate.Release();
+            Notify();
+        }
+    }
+    public async ValueTask DisposeAsync()
+    {
+        if (_disposed)
+            return;
+        _disposed = true;
+        try
+        {
+            await StopAsync("Reason.Close").ConfigureAwait(false);
+            await _loop.ConfigureAwait(false);
+        }
+        finally
+        {
+            _controller.Faulted -= OnDeviceFault;
+        }
+    }
+    private void OnDeviceFault(object? sender, DeviceTransportFault fault)
+    {
+        if (!_disposed && HoldsResources && _plan?.DeviceIds.Contains(fault.DeviceId) == true)
+        {
+            CancelPendingInput();
+            _ = StopFaultedAsync(fault);
+        }
+    }
+    private async Task StopFaultedAsync(DeviceTransportFault fault)
+    {
+        await _gate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (!HoldsResources || _plan?.DeviceIds.Contains(fault.DeviceId) != true)
+                return;
+            Error = fault.Error;
+            try
+            {
+                await StopCoreAsync("Reason.ConnectionError").ConfigureAwait(false);
+            }
+            catch (Exception cleanup)
+            {
+                Error = new LocalizedAggregateException("Error.Cleanup", [fault.Error, cleanup]);
+            }
         }
         finally
         {
@@ -213,30 +327,6 @@ public sealed class PipelineSession : IAsyncDisposable
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { }
     }
-
-    public bool SetConstant(Guid node, double value) => _runtime?.SetConstant(node, value) == true;
-    public bool Update(NodeControl control) => _runtime?.Update(control) == true;
-    public void SetLimit(Guid node, double value) => _runtime?.SetLimit(node, value);
-    public async Task FlushAsync()
-    {
-        await _gate.WaitAsync();
-        try
-        {
-            if (State == PipelineState.Running)
-                await EvaluateAsync();
-        }
-        catch (Exception error)
-        {
-            Error = error;
-            try
-            {
-                await StopCoreAsync("Reason.PipelineError");
-            }
-            catch (Exception cleanup) { throw new LocalizedAggregateException("Error.Cleanup", [error, cleanup]); }
-            throw;
-        }
-        finally { _gate.Release(); Notify(); }
-    }
     private async Task EvaluateAsync()
     {
         foreach (var participant in _participants)
@@ -244,65 +334,6 @@ public sealed class PipelineSession : IAsyncDisposable
         LastFrame = _runtime!.Evaluate(_elapsed, _controller.Clock.GetUtcNow());
         if (_runtime.CompletionReason is null)
             await _outputs.SubmitAsync(LastFrame).ConfigureAwait(false);
-    }
-
-    public async Task PauseAsync()
-    {
-        await _gate.WaitAsync();
-        try
-        {
-            if (State == PipelineState.Running)
-            {
-                AccumulateElapsed();
-                State = PipelineState.Paused;
-                _runtime?.Suspend();
-                foreach (var participant in _participants)
-                    await participant.SetPausedAsync(true);
-                await _controller.StopOwnedAsync(OwnerId, scope: _plan?.DeviceIds, release: false);
-                _outputs.ResetPumpCommands();
-            }
-            else if (State == PipelineState.Paused)
-            {
-                _lastTimestamp = _controller.Clock.GetTimestamp();
-                foreach (var participant in _participants)
-                    await participant.SetPausedAsync(false);
-                State = PipelineState.Running;
-            }
-        }
-        catch (Exception error)
-        {
-            Error = error;
-            try
-            {
-                await StopCoreAsync("Reason.PipelineError");
-            }
-            catch (Exception cleanup)
-            {
-                Error = new LocalizedAggregateException("Error.Cleanup", [error, cleanup]);
-                throw Error;
-            }
-            throw;
-        }
-        finally
-        {
-            _gate.Release();
-            Notify();
-        }
-    }
-
-    public async Task StopAsync(string reason = "Reason.Manual")
-    {
-        CancelPendingInput();
-        await _gate.WaitAsync();
-        try
-        {
-            await StopCoreAsync(reason);
-        }
-        finally
-        {
-            _gate.Release();
-            Notify();
-        }
     }
 
     private void CancelPendingInput()
@@ -328,30 +359,35 @@ public sealed class PipelineSession : IAsyncDisposable
         {
             await CleanupAsync().ConfigureAwait(false);
             State = PipelineState.Idle;
-            _lastNodeStatus = _runtime?.NodeStatus.ToDictionary(p => p.Key, p => p.Value) ?? EmptyStatus;
+            _lastNodeStatus = _runtime?.NodeStatus.ToDictionary(p => p.Key, p => p.Value) ?? _emptyStatus;
             _runtime = null;
             if (!_recorded && _plan is not null && _startedAt != default)
             {
                 _recorded = true;
-                var unknown = _plan.Bindings.Any(b => b.Kind == OutputBindingKind.Export);
+                bool unknown = _plan.Bindings.Any(b => b.Kind == OutputBindingKind.Export);
                 var contents = _plan.Nodes.Select(node =>
                 {
                     var waveformId = _lastNodeStatus.GetValueOrDefault(node.Id)?.Waveform ?? (node.Configuration is WaveformNode wave ? wave.WaveformId : (Guid?)null);
-                    var waveformName = waveformId is { } id && _plan.Waveforms.TryGetValue(id, out var preset) ? preset.Name : null;
+                    string? waveformName = waveformId is { } id && _plan.Waveforms.TryGetValue(id, out var waveform) ? waveform.Name : null;
                     return new PipelineContentRecord(node.Id, node.Registration.Type, waveformId, waveformName);
                 }).ToArray();
                 var record = new SessionRecord(Guid.NewGuid(), _startedAt, _elapsed.TotalSeconds, _plan.Name,
                     _plan.DeviceIds.Count, unknown ? null : _outputs.PeakA, unknown ? null : _outputs.PeakB, reason, PipelineId: _plan.Id,
                     PeakC: unknown ? null : _outputs.PeakC, Contents: contents);
                 if (Completed is { } handlers)
+                {
                     foreach (EventHandler<SessionRecord> handler in handlers.GetInvocationList())
                     {
                         try
                         {
                             handler(this, record);
                         }
-                        catch (Exception error) { System.Diagnostics.Trace.TraceError("Pipeline completion observer failed: {0}", error); }
+                        catch (Exception error)
+                        {
+                            System.Diagnostics.Trace.TraceError("Pipeline completion observer failed: {0}", error);
+                        }
                     }
+                }
             }
         }
         catch (Exception error)
@@ -364,7 +400,7 @@ public sealed class PipelineSession : IAsyncDisposable
 
     private void AccumulateElapsed()
     {
-        var now = _controller.Clock.GetTimestamp();
+        long now = _controller.Clock.GetTimestamp();
         if (State == PipelineState.Running && _startedAt != default)
         {
             _elapsed += _controller.Clock.GetElapsedTime(_lastTimestamp, now);
@@ -384,7 +420,10 @@ public sealed class PipelineSession : IAsyncDisposable
             {
                 handler(this, EventArgs.Empty);
             }
-            catch (Exception error) { System.Diagnostics.Trace.TraceError("Pipeline observer failed: {0}", error); }
+            catch (Exception error)
+            {
+                System.Diagnostics.Trace.TraceError("Pipeline observer failed: {0}", error);
+            }
         }
     }
     private async Task CleanupAsync()
@@ -396,13 +435,19 @@ public sealed class PipelineSession : IAsyncDisposable
             {
                 await resource.StopOutputsAsync().ConfigureAwait(false);
             }
-            catch (Exception error) { errors.Add(error); }
+            catch (Exception error)
+            {
+                errors.Add(error);
+            }
         }
         try
         {
             await _controller.StopOwnedAsync(OwnerId, scope: _plan?.DeviceIds, release: false).ConfigureAwait(false);
         }
-        catch (Exception error) { errors.Add(error); }
+        catch (Exception error)
+        {
+            errors.Add(error);
+        }
         foreach (var participant in _participants.ToArray())
         {
             try
@@ -410,28 +455,22 @@ public sealed class PipelineSession : IAsyncDisposable
                 await participant.DisposeAsync().ConfigureAwait(false);
                 _participants.Remove(participant);
             }
-            catch (Exception error) { errors.Add(error); }
+            catch (Exception error)
+            {
+                errors.Add(error);
+            }
         }
         try
         {
             await _controller.StopOwnedAsync(OwnerId, scope: _plan?.DeviceIds, release: !_retainOwnership).ConfigureAwait(false);
         }
-        catch (Exception error) { errors.Add(error); }
+        catch (Exception error)
+        {
+            errors.Add(error);
+        }
         if (errors.Count == 1)
             System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(errors[0]).Throw();
         if (errors.Count > 1)
             throw new LocalizedAggregateException("Error.Cleanup", errors);
-    }
-    public async ValueTask DisposeAsync()
-    {
-        if (_disposed)
-            return;
-        _disposed = true;
-        try
-        {
-            await StopAsync("Reason.Close");
-            await _loop.ConfigureAwait(false);
-        }
-        finally { _controller.Faulted -= OnDeviceFault; }
     }
 }

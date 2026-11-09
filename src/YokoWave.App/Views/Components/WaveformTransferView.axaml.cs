@@ -27,14 +27,17 @@ public sealed partial class WaveformTransferView : UserControl
             await using var stream = await files[0].OpenReadAsync();
             using var reader = new StreamReader(stream);
             // Bound memory even when a file picker supplies an unusually large stream.
-            var buffer = new char[1_000_001];
-            var length = await reader.ReadBlockAsync(buffer, 0, buffer.Length);
+            char[] buffer = new char[1_000_001];
+            int length = await reader.ReadBlockAsync(buffer, 0, buffer.Length);
             if (length > 1_000_000)
                 throw new LocalizedArgumentException("Error.FileSize");
             vm.TransferJson = new string(buffer, 0, length);
             await vm.ImportAsync(vm.TransferJson);
         }
-        catch (Exception error) { vm.ShowError(error); }
+        catch (Exception error)
+        {
+            vm.ShowError(error);
+        }
     }
 
     private async void ExportFileClick(object? sender, RoutedEventArgs e)
@@ -55,9 +58,12 @@ public sealed partial class WaveformTransferView : UserControl
             await using var stream = await file.OpenWriteAsync();
             stream.SetLength(0);
             await using var writer = new StreamWriter(stream);
-            await writer.WriteAsync(WorkspaceStore.ExportPresets(vm.Presets.Select(p => p.Preset)));
+            await writer.WriteAsync(WaveformExchange.Export(vm.Waveforms.Select(p => p.Asset)));
             vm.Notify("Status.Exported");
         }
-        catch (Exception error) { vm.ShowError(error); }
+        catch (Exception error)
+        {
+            vm.ShowError(error);
+        }
     }
 }

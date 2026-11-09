@@ -12,7 +12,7 @@
     <DataTemplate DataType="vm:WaveformEditorNodeViewModel">
       <StackPanel Classes="field">
         <TextBlock Text="{l:Loc Pipeline.Node.Waveform}" Classes="field-label" />
-        <ComboBox ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" ItemTemplate="{DynamicResource Template.WaveformOption}" />
+        <ComboBox ItemsSource="{Binding Waveforms}" SelectedItem="{Binding SelectedWaveform}" ItemTemplate="{DynamicResource Template.WaveformOption}" />
       </StackPanel>
     </DataTemplate>
     <DataTemplate DataType="vm:GainEditorViewModel">
@@ -72,7 +72,7 @@
     </DataTemplate>
     <DataTemplate DataType="vm:PlaylistEditorViewModel">
       <StackPanel Classes="field">
-        <ComboBox ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" ItemTemplate="{DynamicResource Template.WaveformOption}" />
+        <ComboBox ItemsSource="{Binding Waveforms}" SelectedItem="{Binding SelectedWaveform}" ItemTemplate="{DynamicResource Template.WaveformOption}" />
         <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
           <TextBlock Text="{l:Loc Pipeline.Phase}" Classes="field-label" /><NumericUpDown Value="{Binding Phase}" Increment="0.01" />
           <CheckBox Content="{l:Loc Pipeline.RestartOnTrigger}" IsChecked="{Binding RestartOnTrigger}" />
@@ -141,8 +141,8 @@
     </StackPanel>
     <ContentControl Content="{Binding}" />
     <ContentControl Content="{Binding Preview}">
-      <ContentControl.ContentTemplate><DataTemplate x:DataType="items:PresetItem">
-        <StackPanel Classes="field"><TextBlock Text="{Binding Name}" Classes="caption muted" /><controls:WaveformPlot Preset="{Binding Preset}" Classes="thumbnail" /></StackPanel>
+      <ContentControl.ContentTemplate><DataTemplate x:DataType="items:WaveformItem">
+        <StackPanel Classes="field"><TextBlock Text="{Binding Name}" Classes="caption muted" /><controls:WaveformPlot Waveform="{Binding Asset}" Classes="thumbnail" /></StackPanel>
       </DataTemplate></ContentControl.ContentTemplate>
     </ContentControl>
     <TextBlock Text="{Binding StatusText}" Classes="caption muted" TextWrapping="Wrap" />

@@ -15,7 +15,10 @@ internal static class PipelineDocumentValidation
             document.AssignedDevices is { } assigned && (assigned.Length > 256 || assigned.Any(id => string.IsNullOrWhiteSpace(id) || id.Length > 512 || id.StartsWith('$')) ||
                 assigned.Distinct(StringComparer.Ordinal).Count() != assigned.Length) ||
             document.Layout.Any(l => l is null || !double.IsFinite(l.X) || !double.IsFinite(l.Y) || !document.Nodes.Any(n => n.Id == l.Node)))
+        {
             throw new PipelineValidationException([new("Pipeline.Error.Document")]);
+        }
+
         EnsurePorts(document, document.Inputs ?? [], PortDirection.Input);
         EnsurePorts(document, document.Outputs ?? [], PortDirection.Output);
     }
@@ -27,7 +30,9 @@ internal static class PipelineDocumentValidation
             p.Parameter is { } spec && (!double.IsFinite(spec.Minimum) || !double.IsFinite(spec.Maximum) || spec.Minimum > spec.Maximum || !spec.Accepts(spec.DefaultValue))) ||
             ports.Select(p => p.Id).Distinct(StringComparer.Ordinal).Count() != ports.Count ||
             direction == PortDirection.Input && ports.Select(p => p.Address).Distinct().Count() != ports.Count)
+        {
             throw new PipelineValidationException([new("Pipeline.Error.Connection")]);
+        }
     }
 
     public static void ValidateInterfaces(PipelineDocument document, NodeTypeRegistry registry, List<PipelineDiagnostic> errors)

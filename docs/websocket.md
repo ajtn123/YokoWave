@@ -58,7 +58,7 @@
 | `control.native` | 同上，要求 nativeProgram 类型；原生程序参数和目标必须兼容，固定程序的幅度／上限约束同本地玩法 |
 | `control.pump` | 同上，要求 pump 类型；方向、开关、两路时长放在 `program.pump` |
 | `control.strength` | `channelA`、`channelB`、可选 `channelC`；调整当前会话或直接输出帧，保留较低的请求上限 |
-| `control.waveform` | `waveform` 为统一 `WaveformPreset`；运行中切换，播放列表模式仅允许列表内波形 |
+| `control.waveform` | `waveform` 为统一 `WaveformAsset`；运行中切换，播放列表模式仅允许列表内波形 |
 | `control.pause` / `control.resume` | 归零暂停／继续，暂停保留租约及播放位置，仍需续期 |
 | `control.stop` | 归零并结束播放，保留租约；释放设备请调用 lease.release |
 | `control.command` | `deviceId`、`command`；按设备能力执行下表的强类型命令 |

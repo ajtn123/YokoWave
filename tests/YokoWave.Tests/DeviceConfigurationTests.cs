@@ -5,6 +5,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Xunit;
 using YokoWave.App.ViewModels;
 using YokoWave.App.ViewModels.Pipelines;
 using YokoWave.App.Views;
@@ -12,7 +13,6 @@ using YokoWave.App.Views.Components;
 using YokoWave.Core;
 using YokoWave.Core.Bluetooth;
 using YokoWave.Pipelines;
-using Xunit;
 
 namespace YokoWave.Tests;
 
@@ -132,11 +132,14 @@ public sealed class DeviceConfigurationTests
             Assert.DoesNotContain(view.GetVisualAncestors(), c => c is DeviceCardView);
             using var frame = window.CaptureRenderedFrame();
             Assert.NotNull(frame);
-            var screenshots = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../artifacts/screenshots"));
+            string screenshots = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../artifacts/screenshots"));
             Directory.CreateDirectory(screenshots);
             frame.Save(Path.Combine(screenshots, "device-hardware-options.png"), PngBitmapEncoderOptions.Default);
         }
-        finally { window.Close(); }
+        finally
+        {
+            window.Close();
+        }
         var saved = await new WorkspaceStore(folder.Path).LoadAsync();
         var setting = Assert.Single(saved.Settings.DeviceOutputs!);
         Assert.Equal(dg.Id, setting.DeviceId);
@@ -147,7 +150,7 @@ public sealed class DeviceConfigurationTests
     [Fact]
     public void SequenceEditorsPreserveSignedSamplesAndNativeBufferOrderingWithoutJsonInput()
     {
-        var changed = 0;
+        int changed = 0;
         var sequence = new WaveformSamplesEditorViewModel([new(.4, 30, .5, [-.8, .3]), new(.6, 50, .7, [.2])], () => changed++);
         var first = sequence.Rows[0];
         first.ChannelA = -.5;
@@ -181,7 +184,7 @@ public sealed class DeviceConfigurationTests
         await running.StartAsync();
         await original.Waveforms.AddAsync(new(Guid.NewGuid(), "custom", WaveShape.Sine, 2, 20));
         await original.Pipelines.SaveAsync();
-        var keep = Path.Combine(folder.Path, "keep.txt");
+        string keep = Path.Combine(folder.Path, "keep.txt");
         await File.WriteAllTextAsync(keep, "keep", TestContext.Current.CancellationToken);
         await original.Settings.ClearLocalDataCommand.ExecuteAsync();
         Assert.NotNull(replacement);
@@ -192,14 +195,14 @@ public sealed class DeviceConfigurationTests
         Assert.False(reset.Devices.AutoConnect);
         Assert.Empty(reset.Devices.AutoConnectDevices);
         Assert.All(reset.Devices.Devices, d => Assert.False(d.IsConnected));
-        Assert.Equal(DefaultWaveformCatalog.Presets.Count, reset.Waveforms.Presets.Count);
-        Assert.All(reset.Waveforms.Presets, p => Assert.True(p.IsBuiltIn));
+        Assert.Equal(DefaultWaveformCatalog.Waveforms.Count, reset.Waveforms.Waveforms.Count);
+        Assert.All(reset.Waveforms.Waveforms, p => Assert.True(p.IsBuiltIn));
         Assert.Empty(reset.History.Records);
         Assert.Single(reset.Pipelines.Pipelines);
         await original.SaveAsync();
         var saved = await new WorkspaceStore(folder.Path).LoadAsync();
         Assert.False(saved.Settings.AutoConnect);
-        Assert.Empty(saved.Presets);
+        Assert.Empty(saved.Waveforms);
         Assert.Equal("keep", await File.ReadAllTextAsync(keep, TestContext.Current.CancellationToken));
     }
 }

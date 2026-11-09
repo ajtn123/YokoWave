@@ -1,8 +1,8 @@
 using System.Security.Cryptography;
+using Xunit;
 using YokoWave.Core;
 using YokoWave.Core.Bluetooth;
 using YokoWave.Core.Localization;
-using Xunit;
 
 namespace YokoWave.Tests;
 
@@ -45,12 +45,12 @@ public sealed class HardwareProtocolTests
     [Fact]
     public void PumpMatchesManufacturersAesVectorAndBigEndianDuration()
     {
-        var padding = Convert.FromHexString("BF0FA00101003C5A15D81EC2D3724A63");
+        byte[] padding = Convert.FromHexString("BF0FA00101003C5A15D81EC2D3724A63");
         Assert.Equal("1A464D2FC299C556140ACE015084751D", Convert.ToHexString(
             YokonexToyProtocol.PumpCommand(1, PumpDirection.Forward, padding: padding, seconds: 60)));
-        var runtime = HardwareGattLink.Decrypt(YokonexToyProtocol.PumpCommand(1, PumpDirection.Reverse));
+        byte[] runtime = HardwareGattLink.Decrypt(YokonexToyProtocol.PumpCommand(1, PumpDirection.Reverse));
         Assert.Equal(new byte[] { 0xbf, 0x0f, 0xa0, 1, 2, 0, 1 }, runtime[..7]);
-        var reply = Convert.FromHexString("BF0FB0021234ABCD0000000000000000");
+        byte[] reply = Convert.FromHexString("BF0FB0021234ABCD0000000000000000");
         Assert.Equal(reply, YokonexToyProtocol.DecryptPump(HardwareGattLink.Encrypt(reply)));
         Assert.Null(YokonexToyProtocol.DecryptPump(new byte[15]));
         Assert.Null(YokonexToyProtocol.DecryptPump(HardwareGattLink.Encrypt(padding)));
@@ -64,7 +64,7 @@ public sealed class HardwareProtocolTests
         Assert.Equal("351214050565", Convert.ToHexString(YokonexToyProtocol.MotorOutput(frame, 7)));
         Assert.Equal("351214000560", Convert.ToHexString(YokonexToyProtocol.MotorOutput(frame, 5)));
         Assert.Throws<LocalizedArgumentException>(() => YokonexToyProtocol.MotorOutput(frame with { ReferenceSample = new(1, 20, 1, [double.NaN, .5, .25]) }, 7));
-        var opossum = DgLabProtocol.OpossumWave(frame);
+        byte[] opossum = DgLabProtocol.OpossumWave(frame);
         Assert.Equal(20, opossum.Length);
         Assert.Equal((byte)0xb0, opossum[0]);
         Assert.Equal(new byte[] { 100, 100, 100, 100 }, opossum[8..12]);
@@ -147,7 +147,7 @@ public sealed class HardwareProtocolTests
         link.Reply = false;
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
         var stop = transport.SendAsync(device.Id, OutputFrame.Zero, timeout.Token);
-        var sequence = link.Writes[^1].Data[1] >> 4;
+        int sequence = link.Writes[^1].Data[1] >> 4;
         link.Notify([0xb1, (byte)(sequence % 15 + 1), 0, 0]);
         Assert.False(stop.IsCompleted);
         link.Notify([0xb1, (byte)sequence, 1, 0]);
@@ -155,13 +155,6 @@ public sealed class HardwareProtocolTests
         link.Notify([0xb1, (byte)sequence, 0, 0]);
         await stop;
         link.Reply = true;
-    }
-
-    private static async Task Wait(Func<bool> condition)
-    {
-        for (var i = 0; i < 100 && !condition(); i++)
-            await Task.Delay(10, TestContext.Current.CancellationToken);
-        Assert.True(condition());
     }
 
     [Fact]
@@ -177,6 +170,12 @@ public sealed class HardwareProtocolTests
         Assert.True(adapter.Links[device.Id].Closed);
     }
 
+    private static async Task Wait(Func<bool> condition)
+    {
+        for (int i = 0; i < 100 && !condition(); i++)
+            await Task.Delay(10, TestContext.Current.CancellationToken);
+        Assert.True(condition());
+    }
 }
 
 internal sealed class HardwareGattAdapter : IBluetoothAdapter
@@ -189,7 +188,7 @@ internal sealed class HardwareGattAdapter : IBluetoothAdapter
     {
         foreach (var protocol in protocols)
         {
-            var name = protocol switch
+            string name = protocol switch
             {
                 BluetoothProtocol.YokonexV1 => "YYC-DJ",
                 BluetoothProtocol.YokonexV2 => "YCY-DJ",
@@ -206,8 +205,8 @@ internal sealed class HardwareGattAdapter : IBluetoothAdapter
             Peripherals.Add(new(protocol.ToString(), name, -40, services));
         }
     }
-    public Task<IReadOnlyList<BluetoothPeripheral>> ScanAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<BluetoothPeripheral>>(Peripherals.ToArray());
-    public Task<IBluetoothConnection> ConnectAsync(BluetoothPeripheral peripheral, CancellationToken ct)
+    public Task<IReadOnlyList<BluetoothPeripheral>> ScanAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<BluetoothPeripheral>>(Peripherals.ToArray());
+    public Task<IBluetoothConnection> ConnectAsync(BluetoothPeripheral peripheral, CancellationToken cancellationToken)
     {
         var link = new HardwareGattLink(BluetoothDeviceProfiles.Identify(peripheral.Name, peripheral.Services)!) { FailWrites = FailWrites, MaximumWriteLength = MaximumWriteLength };
         Links[peripheral.Id] = link;
@@ -217,10 +216,12 @@ internal sealed class HardwareGattAdapter : IBluetoothAdapter
 
 internal sealed class HardwareGattLink(BluetoothDeviceProfile profile) : IBluetoothConnection
 {
+    private int _levelA;
+    private int _levelB;
+
     public List<(GattAddress Address, byte[] Data)> Writes { get; } = [];
     public List<GattAddress> Reads { get; } = [];
     public int MaximumWriteLength { get; set; } = 20;
-    private int _levelA, _levelB;
     public bool Closed { get; private set; }
     public bool Reply { get; set; } = true;
     public bool FailWrites { get; set; }
@@ -229,10 +230,10 @@ internal sealed class HardwareGattLink(BluetoothDeviceProfile profile) : IBlueto
     public event Action? Disconnected;
     public void Notify(byte[] data) => NotificationReceived?.Invoke(data);
     public void LoseConnection() => Disconnected?.Invoke();
-    public Task WriteAsync(byte[] packet, CancellationToken ct) => WriteAsync(profile.Write, packet, ct);
-    public Task WriteAsync(GattAddress address, byte[] packet, CancellationToken ct)
+    public Task WriteAsync(byte[] packet, CancellationToken cancellationToken) => WriteAsync(profile.Write, packet, cancellationToken);
+    public Task WriteAsync(GattAddress address, byte[] packet, CancellationToken cancellationToken)
     {
-        ct.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         if (Closed || FailWrites)
             throw new IOException("Closed link");
         Writes.Add((address, packet.ToArray()));
@@ -277,7 +278,7 @@ internal sealed class HardwareGattLink(BluetoothDeviceProfile profile) : IBlueto
             Notify(V1Protocol.WithChecksum([0x35, 0x10, 1, 1, 5, 5, 5, 0, 0]));
         if (profile.Protocol == BluetoothProtocol.YokonexPump)
         {
-            var plain = Decrypt(packet);
+            byte[] plain = Decrypt(packet);
             byte[] response = new byte[16];
             response[0] = 0xbf;
             response[1] = 0x0f;
@@ -299,7 +300,7 @@ internal sealed class HardwareGattLink(BluetoothDeviceProfile profile) : IBlueto
         }
         return Task.CompletedTask;
     }
-    public Task<byte[]?> ReadAsync(GattAddress address, CancellationToken ct)
+    public Task<byte[]?> ReadAsync(GattAddress address, CancellationToken cancellationToken)
     {
         Reads.Add(address);
         if (address == BluetoothDeviceProfiles.V2WaveA || address == BluetoothDeviceProfiles.V2WaveB)

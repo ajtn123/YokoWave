@@ -9,6 +9,8 @@ try {
     & dotnet @restoreArgs
     if ($LASTEXITCODE -ne 0) { throw 'Dependency restore failed.' }
 
+    & (Join-Path $PSScriptRoot 'check-style.ps1')
+
     & dotnet build YokoWave.slnx -c Release --no-restore --nologo -m:1 -p:UseSharedCompilation=false
     if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
 

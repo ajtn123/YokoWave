@@ -7,6 +7,25 @@ namespace YokoWave.App.ViewModels;
 /// <summary>Transient command drafts; device configuration is never persisted here.</summary>
 public sealed class ProtocolFeaturesViewModel : ObservableObject
 {
+    internal static readonly ProtocolCommandOption[] AllCommands =
+    [
+        ProtocolCommandOption.For("Query", new QueryDevice()),
+        ProtocolCommandOption.For("Steps", new ControlStepCounter(StepCounterAction.Start)),
+        ProtocolCommandOption.For("Motion", new ConfigureMotionStream(true)),
+        ProtocolCommandOption.For("Stream", new ConfigureSensorStream(true)),
+        ProtocolCommandOption.For("Indicator", new ConfigureIndicator(1)),
+        ProtocolCommandOption.For("Shoulder", new ConfigureShoulderLight()),
+        ProtocolCommandOption.For("Calibrate", new CalibratePawAngles()),
+        ProtocolCommandOption.For("ResetPaw", new ResetPawParameters()),
+        ProtocolCommandOption.For("Pressure", new ConfigurePressureSensor(true)),
+        ProtocolCommandOption.For("Display", new SynchronizeDisplay()),
+        ProtocolCommandOption.Paw("PawNone", new PawNoTrigger()),
+        ProtocolCommandOption.Paw("PawLive", new PawLiveData()),
+        ProtocolCommandOption.Paw("PawRandom", new PawRandomReaction(Dynamics: new())),
+        ProtocolCommandOption.Paw("PawProbability", new PawProbability([new(1, 100), new(2, 100), new(3, 0), new(4, 0), new(5, 0), new(6, 0)])),
+        ProtocolCommandOption.Paw("PawVoltage", new PawVoltage()),
+        ProtocolCommandOption.Paw("PawButtonMotion", new PawButtonMotion(Dynamics: new(), Motion: new(EventId: 2, X: new(), Y: new(), Z: new())))
+    ];
     private readonly DeviceController _controller;
     private string? _deviceId;
     private BluetoothDeviceProfile? _profile;
@@ -76,15 +95,6 @@ public sealed class ProtocolFeaturesViewModel : ObservableObject
         await _controller.ExecuteCommandAsync(id, command);
         Refresh();
     }
-    private void UseCalibration()
-    {
-        if (_deviceId is not { } id || !_controller.Connections.TryGetValue(id, out var connection) || connection.Telemetry?.Calibration is not { } calibration)
-            return;
-        SelectedCommand = Commands.FirstOrDefault(command => command.Key == "PawButtonMotion");
-        if (_selected is null)
-            return;
-        Json = SettingsJson.Write(new PawTriggerDraft<PawButtonMotion>(new(Dynamics: new(), Motion: new(EventId: 2, UseAngles: true, X: calibration.X, Y: calibration.Y, Z: calibration.Z))));
-    }
     public void SelectDevice(DeviceDescriptor? device)
     {
         if (_deviceId != device?.Id)
@@ -101,7 +111,9 @@ public sealed class ProtocolFeaturesViewModel : ObservableObject
                 Raise(nameof(Help));
             }
             else
+            {
                 SelectedCommand = command;
+            }
         }
         Refresh();
     }
@@ -115,40 +127,30 @@ public sealed class ProtocolFeaturesViewModel : ObservableObject
     }
     public void Refresh()
     {
-        foreach (var name in new[] { nameof(IsVisible), nameof(CanConfigure), nameof(Help), nameof(HasCalibration), nameof(Readings) })
+        foreach (string? name in new[] { nameof(IsVisible), nameof(CanConfigure), nameof(Help), nameof(HasCalibration), nameof(Readings) })
             Raise(name);
         ApplyCommand.NotifyCanExecuteChanged();
     }
-    internal static readonly ProtocolCommandOption[] AllCommands =
-    [
-        ProtocolCommandOption.For("Query", new QueryDevice()),
-        ProtocolCommandOption.For("Steps", new ControlStepCounter(StepCounterAction.Start)),
-        ProtocolCommandOption.For("Motion", new ConfigureMotionStream(true)),
-        ProtocolCommandOption.For("Stream", new ConfigureSensorStream(true)),
-        ProtocolCommandOption.For("Indicator", new ConfigureIndicator(1)),
-        ProtocolCommandOption.For("Shoulder", new ConfigureShoulderLight()),
-        ProtocolCommandOption.For("Calibrate", new CalibratePawAngles()),
-        ProtocolCommandOption.For("ResetPaw", new ResetPawParameters()),
-        ProtocolCommandOption.For("Pressure", new ConfigurePressureSensor(true)),
-        ProtocolCommandOption.For("Display", new SynchronizeDisplay()),
-        ProtocolCommandOption.Paw("PawNone", new PawNoTrigger()),
-        ProtocolCommandOption.Paw("PawLive", new PawLiveData()),
-        ProtocolCommandOption.Paw("PawRandom", new PawRandomReaction(Dynamics: new())),
-        ProtocolCommandOption.Paw("PawProbability", new PawProbability([new(1, 100), new(2, 100), new(3, 0), new(4, 0), new(5, 0), new(6, 0)])),
-        ProtocolCommandOption.Paw("PawVoltage", new PawVoltage()),
-        ProtocolCommandOption.Paw("PawButtonMotion", new PawButtonMotion(Dynamics: new(), Motion: new(EventId: 2, X: new(), Y: new(), Z: new())))
-    ];
+    private void UseCalibration()
+    {
+        if (_deviceId is not { } id || !_controller.Connections.TryGetValue(id, out var connection) || connection.Telemetry?.Calibration is not { } calibration)
+            return;
+        SelectedCommand = Commands.FirstOrDefault(command => command.Key == "PawButtonMotion");
+        if (_selected is null)
+            return;
+        Json = SettingsJson.Write(new PawTriggerDraft<PawButtonMotion>(new(Dynamics: new(), Motion: new(EventId: 2, UseAngles: true, X: calibration.X, Y: calibration.Y, Z: calibration.Z))));
+    }
 }
 
 public sealed record PawTriggerDraft<T>(T Trigger, int IndicatorColor = 1) where T : PawTrigger;
 
 public sealed class ProtocolCommandOption : ObservableObject
 {
+    private readonly Func<string, DeviceCommand> _parse;
     public string Key { get; }
     public string Label => L10n.Get($"ProtocolCommand.{Key}");
     public DeviceCapability Capability { get; }
     public string Template { get; }
-    private readonly Func<string, DeviceCommand> _parse;
     private ProtocolCommandOption(string key, DeviceCapability capability, string template, Func<string, DeviceCommand> parse)
     {
         Key = key;

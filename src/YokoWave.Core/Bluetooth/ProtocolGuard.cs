@@ -6,7 +6,8 @@ internal static class ProtocolGuard
 {
     public static void Require(bool valid)
     {
-        if (!valid) throw new LocalizedArgumentException("Error.ProtocolSettings");
+        if (!valid)
+            throw new LocalizedArgumentException("Error.ProtocolSettings");
     }
     public static byte Byte(int value, int minimum = 0, int maximum = 255)
     {

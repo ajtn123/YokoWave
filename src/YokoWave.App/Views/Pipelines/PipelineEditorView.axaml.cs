@@ -1,7 +1,7 @@
-using Avalonia.Controls;
-using Avalonia.Interactivity;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Nodify.Avalonia;
 using YokoWave.App.ViewModels.Pipelines;
 using YokoWave.Core.Localization;
@@ -35,8 +35,13 @@ public sealed partial class PipelineEditorView : UserControl
                 item.Click += (_, _) =>
                 {
                     try
-                    { editor.AddNode(type.Type, _menuLocation); }
-                    catch (Exception error) { editor.ReportError(error); }
+                    {
+                        editor.AddNode(type.Type, _menuLocation);
+                    }
+                    catch (Exception error)
+                    {
+                        editor.ReportError(error);
+                    }
                 };
                 return item;
             }).ToArray();

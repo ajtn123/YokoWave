@@ -11,7 +11,9 @@ public sealed class SettingsViewModel : ObservableObject, IDisposable
     private readonly Action _timerChanged;
     private readonly Func<Task> _save;
     private readonly Action<Exception> _error;
-    private double _defaultLimit = 60, _timerLimit = 120;
+    private double _defaultLimit = 60;
+
+    private double _timerLimit = 120;
     private LanguageOption? _language;
     private TransportOption? _transport;
     public IReadOnlyList<LanguageOption> Languages { get; } = [new("en", L10n.Current.English["Language.en"]), new("zh-CN", L10n.Current.English["Language.zh-CN"])];
@@ -30,7 +32,8 @@ public sealed class SettingsViewModel : ObservableObject, IDisposable
     public TransportOption? SelectedTransport { get => _transport; set => Set(ref _transport, value); }
     public double DefaultLimit
     {
-        get => _defaultLimit; set
+        get => _defaultLimit;
+        set
         {
             if (double.IsFinite(value))
                 Set(ref _defaultLimit, Math.Clamp(value, 0, 100));
@@ -48,7 +51,8 @@ public sealed class SettingsViewModel : ObservableObject, IDisposable
     }
     public bool ShowContacts
     {
-        get => _devices.ShowContacts; set
+        get => _devices.ShowContacts;
+        set
         {
             _devices.ShowContacts = value;
             Raise();
@@ -92,7 +96,7 @@ public sealed class SettingsViewModel : ObservableObject, IDisposable
         _transport = TransportOptions.Single(t => t.UseBluetooth == settings.UseBluetooth);
         L10n.Current.SetLanguage(_language.Code);
         RemoteSources.Load(settings.RemoteEndpoints ?? []);
-        foreach (var property in new[] { nameof(DefaultLimit), nameof(TimerLimitMinutes), nameof(SelectedLanguage), nameof(SelectedTransport) })
+        foreach (string? property in new[] { nameof(DefaultLimit), nameof(TimerLimitMinutes), nameof(SelectedLanguage), nameof(SelectedTransport) })
             Raise(property);
     }
     public AppSettings Snapshot() => new(DefaultLimit, SelectedLanguage?.Code, _devices.UsesLocalBluetooth, (int)TimerLimitMinutes, RemoteSources.ToSettings(), ShowContacts,
@@ -103,6 +107,11 @@ public sealed class SettingsViewModel : ObservableObject, IDisposable
         Raise(nameof(DriverLabel));
         Raise(nameof(TransportHelp));
         SaveSettingsCommand.NotifyCanExecuteChanged();
+    }
+    public void Dispose()
+    {
+        L10n.Current.PropertyChanged -= OnLanguage;
+        _devices.PropertyChanged -= OnDevicesChanged;
     }
     private void OnDevicesChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -125,11 +134,9 @@ public sealed class SettingsViewModel : ObservableObject, IDisposable
         {
             await _save();
         }
-        catch (Exception error) { _error(error); }
-    }
-    public void Dispose()
-    {
-        L10n.Current.PropertyChanged -= OnLanguage;
-        _devices.PropertyChanged -= OnDevicesChanged;
+        catch (Exception error)
+        {
+            _error(error);
+        }
     }
 }

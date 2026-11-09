@@ -15,7 +15,6 @@ internal sealed class RemoteDeviceLease
     public RemoteGattSession? Gatt { get; }
     public RemoteControlSession Control { get; }
     public double AgeMilliseconds => Stopwatch.GetElapsedTime(Volatile.Read(ref _renewed)).TotalMilliseconds;
-    public void Renew() => Volatile.Write(ref _renewed, Stopwatch.GetTimestamp());
     public RemoteDeviceLease(RemotePeerSession peer, RemoteLeaseType type, string[] publicIds, string[] localIds, DeviceController controller, Guid owner, double limit, Func<long> clock, Func<string, RemoteDevice> describe,
         DeviceController? controlDevices = null)
     {
@@ -28,4 +27,5 @@ internal sealed class RemoteDeviceLease
         Control = new(controlDevices ?? controller, owner, exports, limit,
             status => Peer.Peer.Notify("control.status", new { lease = Id, status }), clock, controller);
     }
+    public void Renew() => Volatile.Write(ref _renewed, Stopwatch.GetTimestamp());
 }

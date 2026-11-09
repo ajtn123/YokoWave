@@ -7,15 +7,15 @@ internal sealed class DeviceOperationLocks
 {
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _gates = new(StringComparer.Ordinal);
 
-    public async Task<IDisposable> AcquireAsync(IEnumerable<string> ids, CancellationToken ct = default)
+    public async Task<IDisposable> AcquireAsync(IEnumerable<string> ids, CancellationToken cancellationToken = default)
     {
         List<SemaphoreSlim> acquired = [];
         try
         {
-            foreach (var id in ids.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))
+            foreach (string? id in ids.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))
             {
                 var gate = _gates.GetOrAdd(id, static _ => new(1, 1));
-                await gate.WaitAsync(ct);
+                await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
                 acquired.Add(gate);
             }
             return new Lease(acquired);
@@ -29,7 +29,7 @@ internal sealed class DeviceOperationLocks
 
     private static void Release(List<SemaphoreSlim> gates)
     {
-        for (var index = gates.Count - 1; index >= 0; index--)
+        for (int index = gates.Count - 1; index >= 0; index--)
             gates[index].Release();
     }
 

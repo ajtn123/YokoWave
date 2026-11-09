@@ -5,21 +5,18 @@ using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Nodify.Avalonia;
+using Xunit;
 using YokoWave.App.ViewModels;
 using YokoWave.App.ViewModels.Pipelines;
 using YokoWave.App.Views.Pipelines;
 using YokoWave.Core;
 using YokoWave.Core.Bluetooth;
 using YokoWave.Pipelines;
-using Xunit;
 
 namespace YokoWave.Tests;
 
 public sealed class WaveformChannelTests
 {
-    private static WaveformPreset Multi() => new(Guid.NewGuid(), "Three channels", WaveShape.Sampled, .2, 20,
-        Samples: [new(1, 20, .8, [-.8, .5, .25]), new(1, 20, .8, [-.8, .5, .25])]);
-    private static WaveformPreset Mono() => new(Guid.NewGuid(), "One channel", WaveShape.Custom, .2, 20, [1, 1]);
 
     [Theory]
     [InlineData(false)]
@@ -30,7 +27,7 @@ public sealed class WaveformChannelTests
         var mono = Mono();
         var builder = new PipelineBuilder("channels");
         var wave = playlist ? builder.Add(BuiltInNodes.Playlist, new PlaylistNode(multi.Id)) : builder.Add(BuiltInNodes.Waveform, new WaveformNode(multi.Id));
-        for (var channel = 0; channel < 3; channel++)
+        for (int channel = 0; channel < 3; channel++)
         {
             var sink = builder.Add(BuiltInNodes.ChannelOutput, new ChannelOutputNode("out", channel, Limit: 1));
             builder.Connect(wave, WaveformPorts.Level(channel), sink, "strength");
@@ -59,10 +56,10 @@ public sealed class WaveformChannelTests
     {
         Assert.Equal(3, Multi().ChannelCount);
         Assert.Equal(1, Mono().ChannelCount);
-        Assert.Equal(1, new WaveformPreset(Guid.NewGuid(), "Sine", WaveShape.Sine, 1, 20).ChannelCount);
+        Assert.Equal(1, new WaveformAsset(Guid.NewGuid(), "Sine", WaveShape.Sine, 1, 20).ChannelCount);
         var variable = Multi() with { Samples = [new(1, 20), new(1, 20, Channels: [1, .5])] };
         Assert.Equal(2, variable.ChannelCount);
-        Assert.Equal(10, DefaultWaveformCatalog.Presets.Count(wave => wave.ChannelCount == 3));
+        Assert.Equal(10, DefaultWaveformCatalog.Waveforms.Count(wave => wave.ChannelCount == 3));
     }
 
     [AvaloniaFact]
@@ -82,7 +79,7 @@ public sealed class WaveformChannelTests
         await controller.ConnectAsync(device, TestContext.Current.CancellationToken);
         var builder = new PipelineBuilder("Live output");
         var wave = builder.Add(BuiltInNodes.Waveform, new WaveformNode(multi.Id));
-        for (var channel = 0; channel < 2; channel++)
+        for (int channel = 0; channel < 2; channel++)
         {
             var sink = builder.Add(BuiltInNodes.ChannelOutput, new ChannelOutputNode(device.Id, channel, Limit: .6));
             builder.Connect(wave, WaveformPorts.Level(channel), sink, "strength");
@@ -117,7 +114,7 @@ public sealed class WaveformChannelTests
                 });
             });
             var savedRoutes = editor.Connections.ToArray();
-            picker.SelectedItem = editor.Presets.Single(p => p.Preset.Id == mono.Id);
+            picker.SelectedItem = editor.Waveforms.Single(p => p.Asset.Id == mono.Id);
             await editor.Session.FlushAsync();
             Dispatcher.UIThread.RunJobs();
             Assert.Equal(3, source.Outputs.Count(p => p.IsAvailable));
@@ -126,7 +123,7 @@ public sealed class WaveformChannelTests
             Assert.Equal(savedRoutes, editor.Connections.ToArray());
             var hiddenRoute = editor.Connections.Single(c => c.Source.Port.Id == "levelB");
             Assert.False(hiddenRoute.Source.IsAvailable);
-            picker.SelectedItem = editor.Presets.Single(p => p.Preset.Id == multi.Id);
+            picker.SelectedItem = editor.Waveforms.Single(p => p.Asset.Id == multi.Id);
             await editor.Session.FlushAsync();
             Dispatcher.UIThread.RunJobs();
             Assert.True(hiddenRoute.Source.IsAvailable);
@@ -135,7 +132,7 @@ public sealed class WaveformChannelTests
             Dispatcher.UIThread.RunJobs();
             using var image = window.CaptureRenderedFrame();
             Assert.NotNull(image);
-            var screenshots = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../artifacts/screenshots"));
+            string screenshots = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../artifacts/screenshots"));
             Directory.CreateDirectory(screenshots);
             image.Save(Path.Combine(screenshots, "waveform-channels-and-sent-strength.png"), PngBitmapEncoderOptions.Default);
             await editor.StopAsync();
@@ -154,4 +151,7 @@ public sealed class WaveformChannelTests
             window.Close();
         }
     }
+    private static WaveformAsset Multi() => new(Guid.NewGuid(), "Three channels", WaveShape.Sampled, .2, 20,
+        Samples: [new(1, 20, .8, [-.8, .5, .25]), new(1, 20, .8, [-.8, .5, .25])]);
+    private static WaveformAsset Mono() => new(Guid.NewGuid(), "One channel", WaveShape.Custom, .2, 20, [1, 1]);
 }

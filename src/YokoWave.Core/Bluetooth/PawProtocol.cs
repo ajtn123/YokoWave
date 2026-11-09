@@ -13,7 +13,8 @@ public static class PawProtocol
         packet[1] = (byte)command.IndicatorColor;
         switch (command.Trigger)
         {
-            case PawNoTrigger: break;
+            case PawNoTrigger:
+                break;
             case PawLiveData:
                 packet[2] = 0xd0;
                 packet[3] = 1;
@@ -28,7 +29,7 @@ public static class PawProtocol
                 break;
             case PawProbability probability:
                 packet[2] = 4;
-                for (var index = 0; index < probability.Events.Count; index++)
+                for (int index = 0; index < probability.Events.Count; index++)
                 {
                     packet[3 + index * 2] = (byte)probability.Events[index].EventId;
                     packet[4 + index * 2] = (byte)probability.Events[index].Probability;
@@ -63,9 +64,32 @@ public static class PawProtocol
                 }
                 packet[16] = (byte)motion.MappingRange;
                 break;
-            default: throw new Localization.LocalizedArgumentException("Error.ProtocolSettings");
+            default:
+                throw new Localization.LocalizedArgumentException("Error.ProtocolSettings");
         }
         return packet;
+    }
+    public static byte[] ShoulderLight(ConfigureShoulderLight command)
+    {
+        command.Validate();
+        return command.Blink == ShoulderBlink.Solid ? [0x70, (byte)command.Color]
+            : [0x70, (byte)command.Color, (byte)command.AlternateColor, (byte)command.Blink];
+    }
+    public static PawCalibration? ParseCalibration(ReadOnlySpan<byte> data)
+    {
+        if (data.Length != 14 || data[0] != 0xf1 || data[1] != 0x61)
+            return null;
+        short[] values = new short[6];
+        for (int index = 0; index < 6; index++)
+            values[index] = BinaryPrimitives.ReadInt16BigEndian(data.Slice(2 + index * 2, 2));
+        if (values[0] > values[1] || values[2] > values[3] || values[4] > values[5])
+            return null;
+        return new(values[0], values[1], values[2], values[3], values[4], values[5]);
+    }
+    public static double Voltage(int raw)
+    {
+        ProtocolGuard.Byte(raw);
+        return raw <= 232 ? Math.Round(raw / 8d, MidpointRounding.AwayFromZero) * .07 : 2.1;
     }
     private static void Dynamics(Span<byte> data, PawParameterDynamics dynamics)
     {
@@ -79,24 +103,5 @@ public static class PawProtocol
     {
         data[offset] = unchecked((byte)(sbyte)range.Minimum);
         data[offset + 1] = unchecked((byte)(sbyte)range.Maximum);
-    }
-    public static byte[] ShoulderLight(ConfigureShoulderLight command)
-    {
-        command.Validate();
-        return command.Blink == ShoulderBlink.Solid ? [0x70, (byte)command.Color]
-            : [0x70, (byte)command.Color, (byte)command.AlternateColor, (byte)command.Blink];
-    }
-    public static PawCalibration? ParseCalibration(ReadOnlySpan<byte> data)
-    {
-        if (data.Length != 14 || data[0] != 0xf1 || data[1] != 0x61) return null;
-        var values = new short[6];
-        for (var index = 0; index < 6; index++) values[index] = BinaryPrimitives.ReadInt16BigEndian(data.Slice(2 + index * 2, 2));
-        if (values[0] > values[1] || values[2] > values[3] || values[4] > values[5]) return null;
-        return new(values[0], values[1], values[2], values[3], values[4], values[5]);
-    }
-    public static double Voltage(int raw)
-    {
-        ProtocolGuard.Byte(raw);
-        return raw <= 232 ? Math.Round(raw / 8d, MidpointRounding.AwayFromZero) * .07 : 2.1;
     }
 }

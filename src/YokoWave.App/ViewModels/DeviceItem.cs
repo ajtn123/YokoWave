@@ -30,7 +30,8 @@ public sealed class DeviceItem : ObservableObject
     };
     public bool IsConnected
     {
-        get => _connected; set
+        get => _connected;
+        set
         {
             if (Set(ref _connected, value))
             {
@@ -43,7 +44,8 @@ public sealed class DeviceItem : ObservableObject
     public bool IsSelected { get => _selected; set => Set(ref _selected, value); }
     public string? ActivePipelineName
     {
-        get => _activePipelineName; set
+        get => _activePipelineName;
+        set
         {
             if (Set(ref _activePipelineName, value))
                 Raise(nameof(Status));
@@ -53,7 +55,8 @@ public sealed class DeviceItem : ObservableObject
     public string ConnectionAction => L10n.Get(IsConnected ? "Device.Disconnect" : "Device.Connect");
     public double OutputA
     {
-        get => _outputA; set
+        get => _outputA;
+        set
         {
             Set(ref _outputA, value);
             Raise(nameof(OutputALabel));
@@ -62,7 +65,8 @@ public sealed class DeviceItem : ObservableObject
     }
     public double OutputB
     {
-        get => _outputB; set
+        get => _outputB;
+        set
         {
             Set(ref _outputB, value);
             Raise(nameof(OutputBLabel));
@@ -92,7 +96,7 @@ public sealed class DeviceItem : ObservableObject
 
     public void RefreshLocalization()
     {
-        foreach (var property in new[] { nameof(Kind), nameof(Status), nameof(ConnectionAction), nameof(OutputALabel), nameof(OutputBLabel), nameof(OutputSummary) })
+        foreach (string? property in new[] { nameof(Kind), nameof(Status), nameof(ConnectionAction), nameof(OutputALabel), nameof(OutputBLabel), nameof(OutputSummary) })
             Raise(property);
     }
 
@@ -104,75 +108,4 @@ public sealed class DeviceItem : ObservableObject
         Raise(nameof(Battery));
         Raise(nameof(Signal));
     }
-}
-
-public sealed class PresetItem(WaveformPreset preset) : ObservableObject
-{
-    public WaveformPreset Preset => IsBuiltIn ? preset with { Name = Name } : preset;
-    public string Name => IsBuiltIn ? DefaultWaveformCatalog.Name(preset.Id) : preset.Name;
-    public string Detail => preset.Shape == WaveShape.Sampled
-        ? L10n.Format("Wave.SampledDetail", preset.Samples?.Length ?? 0, preset.PeriodSeconds)
-        : L10n.Format("Wave.Detail", preset.PeriodSeconds, preset.Frequency);
-    public string ShapeLabel => L10n.Get($"Shape.{preset.Shape}");
-    public bool IsBuiltIn => DefaultWaveformCatalog.Contains(preset.Id);
-    public string Origin => L10n.Get(IsBuiltIn ? "Wave.BuiltIn" : "Wave.CustomOrigin");
-    public override string ToString() => Name;
-    public void RefreshLocalization()
-    {
-        foreach (var property in new[] { nameof(Preset), nameof(Name), nameof(Detail), nameof(ShapeLabel), nameof(Origin) })
-            Raise(property);
-    }
-}
-
-public sealed class SessionItem(SessionRecord record) : ObservableObject
-{
-    public SessionRecord Record { get; } = record;
-    public string Name => Record.PipelineName;
-    public string Date => Record.StartedAt.ToLocalTime().ToString(L10n.Get("History.DateFormat"), L10n.Current.Culture);
-    public string Duration => TimeSpan.FromSeconds(Record.DurationSeconds).ToString(Record.DurationSeconds >= 3600 ? @"h\:mm\:ss" : @"mm\:ss");
-    public string Detail
-    {
-        get
-        {
-            string Peak(double? value) => value is { } number ? number.ToString("0.#", L10n.Current.Culture) + "%" : L10n.Get("History.UnknownOutput");
-            var detail = L10n.Format("History.PipelineDetail", Record.DeviceCount, Peak(Record.PeakA), Peak(Record.PeakB), Peak(Record.PeakC), new StoredReason(Record.Reason));
-            var waves = (Record.Contents ?? []).Where(c => c.WaveformName is not null).Select(c => c.WaveformId is { } id && DefaultWaveformCatalog.Contains(id)
-                ? DefaultWaveformCatalog.Name(id) : c.WaveformName!).Distinct().ToArray();
-            return waves.Length > 0 ? L10n.Format("History.PipelineWaves", detail, string.Join(", ", waves)) : detail;
-        }
-    }
-    public void RefreshLocalization()
-    {
-        Raise(nameof(Name));
-        Raise(nameof(Date));
-        Raise(nameof(Detail));
-    }
-}
-
-public sealed class ActivityItem(string time, LocalizedMessage message) : ObservableObject
-{
-    public string Time => time;
-    public string Text => message.Value;
-    public void RefreshLocalization() => Raise(nameof(Text));
-}
-
-public sealed record StoredReason(string Code)
-{
-    public override string ToString() => L10n.Current.TranslateStored(Code, "Reason.");
-}
-
-public sealed class ShapeItem(WaveShape shape) : ObservableObject
-{
-    public WaveShape Shape { get; } = shape;
-    public string Label => L10n.Get($"Shape.{Shape}");
-    public void RefreshLocalization() => Raise(nameof(Label));
-}
-
-public sealed record LanguageOption(string Code, string DisplayName);
-
-public sealed class TransportOption(bool useBluetooth) : ObservableObject
-{
-    public bool UseBluetooth { get; } = useBluetooth;
-    public string Label => L10n.Get(UseBluetooth ? "Mode.Bluetooth" : "Mode.Simulation");
-    public void RefreshLocalization() => Raise(nameof(Label));
 }

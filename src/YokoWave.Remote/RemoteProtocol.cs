@@ -25,7 +25,7 @@ public enum RemotePlaybackKind
     Waveform, NativeProgram, Pump
 }
 public sealed record RemotePlaybackSettings(RemotePlaybackKind Kind = RemotePlaybackKind.Waveform,
-    PlaybackOrder Order = PlaybackOrder.Repeat, IReadOnlyList<WaveformPreset>? Playlist = null, WaveformPreset? ChannelBWaveform = null,
+    PlaybackOrder Order = PlaybackOrder.Repeat, IReadOnlyList<WaveformAsset>? Playlist = null, WaveformAsset? ChannelBWaveform = null,
     double OutputLimit = 60, StrengthSettings? Strength = null, bool OffsetChannelB = true, bool Gentle = false,
     PumpOutput? Pump = null, NativeProgramSettings? NativeProgram = null, HardwareOutputSettings? Hardware = null, DgBalanceSettings? Balances = null)
 {
@@ -42,7 +42,7 @@ public sealed record RemotePlaybackSettings(RemotePlaybackKind Kind = RemotePlay
             waveform.Validate();
     }
 }
-public sealed record RemoteControlProgram(RemotePlaybackSettings Program, WaveformPreset? Waveform = null,
+public sealed record RemoteControlProgram(RemotePlaybackSettings Program, WaveformAsset? Waveform = null,
     double ChannelA = 0, double ChannelB = 0, double ChannelC = 0, double? DurationSeconds = null);
 
 public sealed class RemoteRpcException(int code, string key) : Exception(L10n.Get(key)), ILocalizedError

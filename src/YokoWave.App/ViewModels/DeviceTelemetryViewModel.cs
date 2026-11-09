@@ -14,27 +14,22 @@ public sealed class DeviceTelemetryViewModel : ObservableObject
     public string Timestamp => Connection?.TelemetryCapturedAt is { } at
         ? L10n.Format("Telemetry.Updated", at.ToLocalTime().ToString("HH:mm:ss")) : L10n.Get("Input.Waiting");
     public AsyncCommand ResetPressureCommand { get; }
-    public DeviceTelemetryViewModel(DeviceController controller, Action<Exception> report)
-    {
-        _controller = controller;
-        ResetPressureCommand = new(async () =>
-        {
-            if (CanResetPressure && _deviceId is { } id) await _controller.ExecuteCommandAsync(id, new ConfigurePressureSensor(true));
-        }, report, () => CanResetPressure);
-    }
     public IReadOnlyList<TelemetryRow> Readings
     {
         get
         {
-            if (Connection is not { Telemetry: { } data } connection) return [];
+            if (Connection is not { Telemetry: { } data } connection)
+                return [];
             List<TelemetryRow> rows = [];
             void Add(string key, object? value)
             {
-                if (value is not null) rows.Add(new(L10n.Get(key), value.ToString()!));
+                if (value is not null)
+                    rows.Add(new(L10n.Get(key), value.ToString()!));
             }
             void Axes(string key, SensorAxes? axes)
             {
-                if (axes is { } value) Add(key, L10n.Format("Telemetry.XYZ", value.X, value.Y, value.Z));
+                if (axes is { } value)
+                    Add(key, L10n.Format("Telemetry.XYZ", value.X, value.Y, value.Z));
             }
             Add("Telemetry.Pressure", data.PressureKpa is { } pressure ? L10n.Format("Telemetry.Kpa", pressure) : null);
             Add("Telemetry.RawPressureA", data.PressureA);
@@ -68,8 +63,10 @@ public sealed class DeviceTelemetryViewModel : ObservableObject
             if (data.PawEvents is { } events)
             {
                 foreach (var state in events)
+                {
                     rows.Add(new(L10n.Format("Telemetry.PawEvent", state.EventId), L10n.Format("Telemetry.EventState",
                         L10n.Get(state.Active switch { true => "Telemetry.Triggered", false => "Telemetry.Cancelled", _ => "Input.Waiting" }), state.Parameter?.ToString() ?? "—")));
+                }
             }
             Add("Telemetry.Peristaltic", data.Peristaltic is { } direction ? L10n.Get($"PumpDirection.{direction}") : null);
             Add("Pump.Water", data.WaterPump is { } water ? L10n.Get(water ? "State.On" : "State.Off") : null);
@@ -80,13 +77,23 @@ public sealed class DeviceTelemetryViewModel : ObservableObject
             return rows;
         }
     }
-    private static string? FormatPulse(CoyotePulse? pulse) => pulse is null ? null : L10n.Format("Telemetry.NativePulse", pulse.X, pulse.Y, pulse.Z);
+    public DeviceTelemetryViewModel(DeviceController controller, Action<Exception> report)
+    {
+        _controller = controller;
+        ResetPressureCommand = new(async () =>
+        {
+            if (CanResetPressure && _deviceId is { } id)
+                await _controller.ExecuteCommandAsync(id, new ConfigurePressureSensor(true));
+        }, report, () => CanResetPressure);
+    }
     public void SelectDevice(DeviceDescriptor? device)
     {
         _deviceId = device?.Id;
-        foreach (var name in new[] { nameof(IsVisible), nameof(CanResetPressure), nameof(Readings), nameof(Timestamp) }) Raise(name);
+        foreach (string? name in new[] { nameof(IsVisible), nameof(CanResetPressure), nameof(Readings), nameof(Timestamp) })
+            Raise(name);
         ResetPressureCommand.NotifyCanExecuteChanged();
     }
+    private static string? FormatPulse(CoyotePulse? pulse) => pulse is null ? null : L10n.Format("Telemetry.NativePulse", pulse.X, pulse.Y, pulse.Z);
 }
 
 public sealed record TelemetryRow(string Label, string Value);

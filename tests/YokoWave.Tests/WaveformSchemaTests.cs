@@ -1,27 +1,19 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Json.Schema;
-using YokoWave.Core;
 using Xunit;
+using YokoWave.Core;
 
 namespace YokoWave.Tests;
 
 public sealed class WaveformSchemaTests
 {
-    private static (JsonSchema Single, JsonSchema Collection) Schemas()
-    {
-        var folder = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../schemas"));
-        var options = new BuildOptions { SchemaRegistry = new() };
-        using var single = JsonDocument.Parse(File.ReadAllText(Path.Combine(folder, "waveform.schema.json")));
-        using var collection = JsonDocument.Parse(File.ReadAllText(Path.Combine(folder, "waveforms.schema.json")));
-        return (JsonSchema.Build(single.RootElement.Clone(), options), JsonSchema.Build(collection.RootElement.Clone(), options));
-    }
 
     [Fact]
     public void SchemasAcceptAllBuiltInsExportedShapesAndEmptyStorageWithoutNetworkResolution()
     {
         var (single, collection) = Schemas();
-        foreach (var resource in new[] { "default-waveforms", "dglab-waveforms" })
+        foreach (string? resource in new[] { "default-waveforms", "dglab-waveforms" })
         {
             using var stream = typeof(DefaultWaveformCatalog).Assembly.GetManifestResourceStream($"YokoWave.Core.Data.{resource}.json");
             using var document = JsonDocument.Parse(stream!);
@@ -29,8 +21,8 @@ public sealed class WaveformSchemaTests
             Assert.All(document.RootElement.EnumerateArray(), wave => Assert.True(single.Evaluate(wave).IsValid));
         }
         var generated = Enum.GetValues<WaveShape>().Where(shape => shape != WaveShape.Sampled).Select(shape =>
-            new WaveformPreset(Guid.NewGuid(), shape.ToString(), shape, 1, 20, shape == WaveShape.Custom ? [0, 1] : null));
-        using var exported = JsonDocument.Parse(WorkspaceStore.ExportPresets(DefaultWaveformCatalog.Presets.Concat(generated)));
+            new WaveformAsset(Guid.NewGuid(), shape.ToString(), shape, 1, 20, shape == WaveShape.Custom ? [0, 1] : null));
+        using var exported = JsonDocument.Parse(WaveformExchange.Export(DefaultWaveformCatalog.Waveforms.Concat(generated)));
         Assert.True(collection.Evaluate(exported.RootElement).IsValid);
         Assert.All(exported.RootElement.EnumerateArray(), wave => Assert.False(wave.TryGetProperty("ChannelCount", out _)));
         using var empty = JsonDocument.Parse("[]");
@@ -56,12 +48,20 @@ public sealed class WaveformSchemaTests
     public void SchemaRejectsUnsupportedVersionsRangesMissingDataAndProtocolFields(string path, string json)
     {
         var (single, _) = Schemas();
-        var root = JsonNode.Parse(WorkspaceStore.ExportPresets([DefaultWaveformCatalog.Presets[0]]))!.AsArray()[0]!;
-        var pieces = path.Split('.');
+        var root = JsonNode.Parse(WaveformExchange.Export([DefaultWaveformCatalog.Waveforms[0]]))!.AsArray()[0]!;
+        string[] pieces = path.Split('.');
         var target = root;
-        foreach (var piece in pieces[..^1])
-            target = int.TryParse(piece, out var index) ? target[index]! : target[piece]!;
+        foreach (string piece in pieces[..^1])
+            target = int.TryParse(piece, out int index) ? target[index]! : target[piece]!;
         target[pieces[^1]] = JsonNode.Parse(json);
         Assert.False(single.Evaluate(JsonSerializer.SerializeToElement(root)).IsValid);
+    }
+    private static (JsonSchema Single, JsonSchema Collection) Schemas()
+    {
+        string folder = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../schemas"));
+        var options = new BuildOptions { SchemaRegistry = new() };
+        using var single = JsonDocument.Parse(File.ReadAllText(Path.Combine(folder, "waveform.schema.json")));
+        using var collection = JsonDocument.Parse(File.ReadAllText(Path.Combine(folder, "waveforms.schema.json")));
+        return (JsonSchema.Build(single.RootElement.Clone(), options), JsonSchema.Build(collection.RootElement.Clone(), options));
     }
 }

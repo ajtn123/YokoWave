@@ -21,7 +21,7 @@ public sealed partial class App : Application
             base.OnFrameworkInitializationCompleted();
             return;
         }
-        var dataDirectory = Environment.GetEnvironmentVariable("YOKOWAVE_DATA_DIR")
+        string dataDirectory = Environment.GetEnvironmentVariable("YOKOWAVE_DATA_DIR")
             ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "YokoWave");
         void ReplaceViewModel(MainViewModel replacement)
         {
@@ -42,7 +42,7 @@ public sealed partial class App : Application
                 {
                     try
                     {
-                        for (var attempt = 0; attempt < 600 && (viewModel.Devices.Devices.Count == 0 || viewModel.Devices.IsScanning) && !viewModel.IsError; attempt++)
+                        for (int attempt = 0; attempt < 600 && (viewModel.Devices.Devices.Count == 0 || viewModel.Devices.IsScanning) && !viewModel.IsError; attempt++)
                             await Task.Delay(50);
                         if (viewModel.Devices.Devices.Count == 0 || viewModel.IsError)
                             throw new InvalidOperationException(viewModel.Status);

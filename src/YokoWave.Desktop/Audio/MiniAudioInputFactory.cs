@@ -14,7 +14,7 @@ public sealed class MiniAudioInputFactory : IAudioInputFactory
             if (settings.Source == AudioSourceKind.SystemAudio && !SupportsSystemAudio)
                 throw new LocalizedOperationException("Error.SystemAudioPlatform");
             var session = new MiniAudioInputSession();
-            var errorKey = settings.Source == AudioSourceKind.MediaFile ? "Error.AudioMediaFailed" : "Error.AudioInputFailed";
+            string errorKey = settings.Source == AudioSourceKind.MediaFile ? "Error.AudioMediaFailed" : "Error.AudioInputFailed";
             try
             {
                 session.Start(settings, cancellationToken);
@@ -24,7 +24,7 @@ public sealed class MiniAudioInputFactory : IAudioInputFactory
             {
                 try
                 {
-                    await session.DisposeAsync();
+                    await session.DisposeAsync().ConfigureAwait(false);
                 }
                 catch (Exception cleanupError)
                 {

@@ -5,7 +5,6 @@ namespace YokoWave.Remote;
 /// <summary>Uses the server's monotonic clock; a slow response only shortens a command's validity.</summary>
 internal sealed class RemoteClock(long milliseconds, long receivedAt)
 {
-    private sealed record Sample(long Milliseconds, long ReceivedAt);
     private Sample _sample = new(milliseconds, receivedAt);
     public long Now
     {
@@ -16,4 +15,5 @@ internal sealed class RemoteClock(long milliseconds, long receivedAt)
         }
     }
     public void Update(long value) => Volatile.Write(ref _sample, new(value, Stopwatch.GetTimestamp()));
+    private sealed record Sample(long Milliseconds, long ReceivedAt);
 }

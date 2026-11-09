@@ -15,41 +15,38 @@ namespace YokoWave.Remote;
 /// <summary>Mode endpoints share a listener when their binding and certificate match.</summary>
 public sealed class RemoteServer : IAsyncDisposable
 {
-    private sealed class Listener(WebApplication app, string certificate)
-    {
-        public WebApplication App { get; } = app;
-        public string Certificate { get; } = certificate;
-        public ConcurrentDictionary<Guid, RemoteServer> Routes { get; } = new();
-    }
-    private static readonly SemaphoreSlim HostingGate = new(1, 1);
-    private static readonly Dictionary<string, Listener> Listeners = [];
+    private static readonly SemaphoreSlim _hostingGate = new(1, 1);
+    private static readonly Dictionary<string, Listener> _listeners = [];
     private readonly ConcurrentDictionary<RemotePeerSession, byte> _peers = new();
     private readonly string _token;
     private string? _listenerKey;
     private int _disposed;
     private int _started;
+
     public RemoteExportSession Session { get; }
     public Uri? Url { get; private set; }
     public RemoteServer(RemoteExportSession session, string token)
     {
-        if (token.Length is < 24 or > 256) throw new LocalizedArgumentException("Error.RemoteAuthentication");
+        if (token.Length is < 24 or > 256)
+            throw new LocalizedArgumentException("Error.RemoteAuthentication");
         Session = session;
         _token = token;
     }
-    public async Task StartAsync(string? certificatePassword = null, CancellationToken ct = default)
+    public async Task StartAsync(string? certificatePassword = null, CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
-        if (Interlocked.Exchange(ref _started, 1) != 0) throw new LocalizedOperationException("Error.AlreadyRunning");
+        if (Interlocked.Exchange(ref _started, 1) != 0)
+            throw new LocalizedOperationException("Error.AlreadyRunning");
         try
         {
-            await Session.StartAsync(ct);
-            await HostingGate.WaitAsync(ct);
+            await Session.StartAsync(cancellationToken).ConfigureAwait(false);
+            await _hostingGate.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
                 var settings = Session.Settings;
-                var certificatePath = settings.CertificatePath ?? "";
-                var key = settings.Port == 0 ? $"ephemeral:{Guid.NewGuid():N}" : $"{settings.Address}:{settings.Port}";
-                if (!Listeners.TryGetValue(key, out var listener))
+                string certificatePath = settings.CertificatePath ?? "";
+                string key = settings.Port == 0 ? $"ephemeral:{Guid.NewGuid():N}" : $"{settings.Address}:{settings.Port}";
+                if (!_listeners.TryGetValue(key, out var listener))
                 {
                     var builder = WebApplication.CreateSlimBuilder();
                     builder.Logging.ClearProviders();
@@ -59,50 +56,128 @@ public sealed class RemoteServer : IAsyncDisposable
                         options.Limits.MaxConcurrentUpgradedConnections = 32;
                         options.Listen(IPAddress.Parse(settings.Address), settings.Port, listen =>
                         {
-                            if (certificatePath.Length > 0) listen.UseHttps(X509CertificateLoader.LoadPkcs12FromFile(certificatePath, certificatePassword));
+                            if (certificatePath.Length > 0)
+                                listen.UseHttps(X509CertificateLoader.LoadPkcs12FromFile(certificatePath, certificatePassword));
                         });
                     });
                     var app = builder.Build();
                     listener = new(app, certificatePath);
                     app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = TimeSpan.FromSeconds(10) });
                     var captured = listener;
-                    app.Run(context => Accept(captured, context));
-                    try { await app.StartAsync(ct); }
+                    app.Run(context => AcceptAsync(captured, context));
+                    try
+                    {
+                        await app.StartAsync(cancellationToken).ConfigureAwait(false);
+                    }
                     catch (Exception error)
                     {
-                        try { await app.DisposeAsync(); }
-                        catch (Exception cleanup) { throw new LocalizedAggregateException("Error.Cleanup", [error, cleanup]); }
+                        try
+                        {
+                            await app.DisposeAsync().ConfigureAwait(false);
+                        }
+                        catch (Exception cleanup)
+                        {
+                            throw new LocalizedAggregateException("Error.Cleanup", [error, cleanup]);
+                        }
                         throw;
                     }
-                    Listeners.Add(key, listener);
+                    _listeners.Add(key, listener);
                 }
-                else if (listener.Certificate != certificatePath) throw new LocalizedOperationException("Error.RemoteBinding");
-                if (!listener.Routes.TryAdd(Session.Id, this)) throw new LocalizedOperationException("Error.RemoteExists");
+                else if (listener.Certificate != certificatePath)
+                {
+                    throw new LocalizedOperationException("Error.RemoteBinding");
+                }
+
+                if (!listener.Routes.TryAdd(Session.Id, this))
+                    throw new LocalizedOperationException("Error.RemoteExists");
                 _listenerKey = key;
                 var addresses = listener.App.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!;
                 var baseUri = new Uri(addresses.Addresses.First());
                 Url = new UriBuilder(baseUri) { Scheme = certificatePath.Length == 0 ? "ws" : "wss", Path = $"/ws/{Session.Id:N}" }.Uri;
-                _ = ObserveSession();
+                _ = ObserveSessionAsync();
             }
-            finally { HostingGate.Release(); }
+            finally
+            {
+                _hostingGate.Release();
+            }
         }
         catch (Exception error)
         {
-            try { await DisposeAsync(); }
-            catch (Exception cleanup) { throw new LocalizedAggregateException("Error.Cleanup", [error, cleanup]); }
+            try
+            {
+                await DisposeAsync().ConfigureAwait(false);
+            }
+            catch (Exception cleanup)
+            {
+                throw new LocalizedAggregateException("Error.Cleanup", [error, cleanup]);
+            }
             throw;
         }
     }
-    private async Task ObserveSession()
+    public async ValueTask DisposeAsync()
     {
-        await Session.Completion;
-        if (Volatile.Read(ref _disposed) != 0) return;
-        try { await DisposeAsync(); }
-        catch (Exception error) { Session.ReportFault(error); }
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+            return;
+        Exception? failure = null;
+        try
+        {
+            await Session.DisposeAsync().ConfigureAwait(false);
+        }
+        catch (Exception error)
+        {
+            failure = error;
+        }
+        foreach (var peer in _peers.Keys)
+            peer.Peer.Abort();
+        await _hostingGate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (_listenerKey is { } key && _listeners.TryGetValue(key, out var listener))
+            {
+                listener.Routes.TryRemove(Session.Id, out _);
+                if (listener.Routes.IsEmpty)
+                {
+                    _listeners.Remove(key);
+                    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        await listener.App.StopAsync(timeout.Token).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        await listener.App.DisposeAsync().ConfigureAwait(false);
+                    }
+                }
+            }
+        }
+        catch (Exception error)
+        {
+            failure = failure is null ? error : new LocalizedAggregateException("Error.Cleanup", [failure, error]);
+        }
+        finally
+        {
+            _hostingGate.Release();
+        }
+        if (failure is not null)
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
     }
-    private static async Task Accept(Listener listener, HttpContext context)
+    private async Task ObserveSessionAsync()
     {
-        var segments = context.Request.Path.Value?.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        await Session.Completion.ConfigureAwait(false);
+        if (Volatile.Read(ref _disposed) != 0)
+            return;
+        try
+        {
+            await DisposeAsync().ConfigureAwait(false);
+        }
+        catch (Exception error)
+        {
+            Session.ReportFault(error);
+        }
+    }
+    private static async Task AcceptAsync(Listener listener, HttpContext context)
+    {
+        string[]? segments = context.Request.Path.Value?.Split('/', StringSplitOptions.RemoveEmptyEntries);
         if (segments is not ["ws", var id] || !Guid.TryParseExact(id, "N", out var modeId) || !listener.Routes.TryGetValue(modeId, out var server) || !server.Session.IsRunning)
         {
             context.Response.StatusCode = StatusCodes.Status404NotFound;
@@ -113,39 +188,23 @@ public sealed class RemoteServer : IAsyncDisposable
             context.Response.StatusCode = StatusCodes.Status400BadRequest;
             return;
         }
-        var socket = await context.WebSockets.AcceptWebSocketAsync(RemoteProtocol.SubProtocol);
+        var socket = await context.WebSockets.AcceptWebSocketAsync(RemoteProtocol.SubProtocol).ConfigureAwait(false);
         await using var peer = new RemotePeerSession(socket, server.Session, server._token);
         server._peers.TryAdd(peer, 0);
-        try { await peer.Run(); }
-        finally { server._peers.TryRemove(peer, out _); }
-    }
-    public async ValueTask DisposeAsync()
-    {
-        if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
-        Exception? failure = null;
-        try { await Session.DisposeAsync(); }
-        catch (Exception error) { failure = error; }
-        foreach (var peer in _peers.Keys) peer.Peer.Abort();
-        await HostingGate.WaitAsync();
         try
         {
-            if (_listenerKey is { } key && Listeners.TryGetValue(key, out var listener))
-            {
-                listener.Routes.TryRemove(Session.Id, out _);
-                if (listener.Routes.IsEmpty)
-                {
-                    Listeners.Remove(key);
-                    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                    try { await listener.App.StopAsync(timeout.Token); }
-                    finally { await listener.App.DisposeAsync(); }
-                }
-            }
+            await peer.RunAsync().ConfigureAwait(false);
         }
-        catch (Exception error)
+        finally
         {
-            failure = failure is null ? error : new LocalizedAggregateException("Error.Cleanup", [failure, error]);
+            server._peers.TryRemove(peer, out _);
         }
-        finally { HostingGate.Release(); }
-        if (failure is not null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
+    }
+
+    private sealed class Listener(WebApplication app, string certificate)
+    {
+        public WebApplication App { get; } = app;
+        public string Certificate { get; } = certificate;
+        public ConcurrentDictionary<Guid, RemoteServer> Routes { get; } = new();
     }
 }

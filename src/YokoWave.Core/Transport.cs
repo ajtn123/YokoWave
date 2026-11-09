@@ -80,7 +80,7 @@ public sealed class SimulationTransport : IDeviceTransport
 
     public async Task<IReadOnlyList<DeviceDescriptor>> ScanAsync(CancellationToken cancellationToken = default)
     {
-        await Task.Delay(650, cancellationToken);
+        await Task.Delay(650, cancellationToken).ConfigureAwait(false);
         return
         [
             new("sim-dual-01", "Pulse Duo · 01", DeviceKind.DualChannel, 86, -42),
@@ -93,14 +93,15 @@ public sealed class SimulationTransport : IDeviceTransport
 
     public async Task ConnectAsync(DeviceDescriptor device, CancellationToken cancellationToken = default)
     {
-        await Task.Delay(120, cancellationToken);
+        await Task.Delay(120, cancellationToken).ConfigureAwait(false);
         _connected.TryAdd(device.Id, OutputFrame.Zero);
     }
 
     public Task SendAsync(string deviceId, OutputFrame frame, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!_connected.ContainsKey(deviceId)) throw new LocalizedOperationException("Error.NotConnected");
+        if (!_connected.ContainsKey(deviceId))
+            throw new LocalizedOperationException("Error.NotConnected");
         _connected[deviceId] = frame;
         return Task.CompletedTask;
     }
@@ -111,5 +112,9 @@ public sealed class SimulationTransport : IDeviceTransport
         return Task.CompletedTask;
     }
 
-    public ValueTask DisposeAsync() { _connected.Clear(); return ValueTask.CompletedTask; }
+    public ValueTask DisposeAsync()
+    {
+        _connected.Clear();
+        return ValueTask.CompletedTask;
+    }
 }

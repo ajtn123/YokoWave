@@ -1,17 +1,14 @@
 using System.Collections.Concurrent;
+using Xunit;
 using YokoWave.Core;
 using YokoWave.Core.Bluetooth;
 using YokoWave.Core.Localization;
-using Xunit;
 
 namespace YokoWave.Tests;
 
 public sealed class DeviceConcurrencyTests
 {
-    private static readonly TimeSpan Deadline = TimeSpan.FromSeconds(3);
-    private static WaveformPreset Wave() => new(Guid.NewGuid(), "constant", WaveShape.Custom, 4, 20, [1, 1]);
-    private static Task Connect(DeviceController controller, string id) =>
-        controller.ConnectAsync(new(id, id, DeviceKind.DualChannel, 80, -40), TestContext.Current.CancellationToken);
+    private static readonly TimeSpan _deadline = TimeSpan.FromSeconds(3);
 
     [Theory]
     [InlineData(0, 0)]
@@ -26,7 +23,7 @@ public sealed class DeviceConcurrencyTests
     {
         var device = new DeviceDescriptor("one", "motor", DeviceKind.Vibration, 80, -40, ChannelMask: mask);
         Assert.Equal(count, device.ChannelCount);
-        for (var index = 0; index < 3; index++)
+        for (int index = 0; index < 3; index++)
             Assert.Equal((mask & (1 << index)) != 0, device.HasChannel(index));
         Assert.False(device.HasChannel(-1));
         Assert.False(device.HasChannel(3));
@@ -54,23 +51,27 @@ public sealed class DeviceConcurrencyTests
         await Connect(controller, "fast");
         var slowOwner = Guid.NewGuid();
         var fastOwner = Guid.NewGuid();
-        await controller.AcquireTargetsAsync(slowOwner, ["slow"], ct: TestContext.Current.CancellationToken);
-        await controller.AcquireTargetsAsync(fastOwner, ["fast"], ct: TestContext.Current.CancellationToken);
+        await controller.AcquireTargetsAsync(slowOwner, ["slow"], cancellationToken: TestContext.Current.CancellationToken);
+        await controller.AcquireTargetsAsync(fastOwner, ["fast"], cancellationToken: TestContext.Current.CancellationToken);
         transport.BlockedId = "slow";
-        var blocked = controller.SendOwnedAsync(slowOwner, "slow", new(20, 0, 20), ct: TestContext.Current.CancellationToken);
+        var blocked = controller.SendOwnedAsync(slowOwner, "slow", new(20, 0, 20), cancellationToken: TestContext.Current.CancellationToken);
         try
         {
-            await transport.Blocked.Task.WaitAsync(Deadline, TestContext.Current.CancellationToken);
-            await controller.SendOwnedAsync(fastOwner, "fast", new(30, 0, 20), ct: TestContext.Current.CancellationToken).WaitAsync(Deadline, TestContext.Current.CancellationToken);
+            await transport.Blocked.Task.WaitAsync(_deadline, TestContext.Current.CancellationToken);
+            await controller.SendOwnedAsync(fastOwner, "fast", new(30, 0, 20), cancellationToken: TestContext.Current.CancellationToken).WaitAsync(_deadline, TestContext.Current.CancellationToken);
             transport.Report(new("fast", battery: 42));
             Assert.Equal(42, controller.Connections["fast"].Device.Battery);
-            await controller.StopOwnedAsync(fastOwner, ct: TestContext.Current.CancellationToken).WaitAsync(Deadline, TestContext.Current.CancellationToken);
+            await controller.StopOwnedAsync(fastOwner, cancellationToken: TestContext.Current.CancellationToken).WaitAsync(_deadline, TestContext.Current.CancellationToken);
             Assert.Equal(OutputFrame.Zero, transport.Outputs["fast"]);
             Assert.Null(controller.DeviceOwner("fast"));
             Assert.False(blocked.IsCompleted);
         }
-        finally { transport.Release.TrySetResult(); await blocked; }
-        await controller.StopOwnedAsync(slowOwner, ct: TestContext.Current.CancellationToken);
+        finally
+        {
+            transport.Release.TrySetResult();
+            await blocked;
+        }
+        await controller.StopOwnedAsync(slowOwner, cancellationToken: TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -83,15 +84,15 @@ public sealed class DeviceConcurrencyTests
         var first = Guid.NewGuid();
         var second = Guid.NewGuid();
         transport.BlockAllWrites = true;
-        var acquireFirst = controller.AcquireTargetsAsync(first, ["slow", "fast"], ct: TestContext.Current.CancellationToken);
-        await transport.Blocked.Task.WaitAsync(Deadline, TestContext.Current.CancellationToken);
-        var acquireSecond = controller.AcquireTargetsAsync(second, ["fast", "slow"], ct: TestContext.Current.CancellationToken);
+        var acquireFirst = controller.AcquireTargetsAsync(first, ["slow", "fast"], cancellationToken: TestContext.Current.CancellationToken);
+        await transport.Blocked.Task.WaitAsync(_deadline, TestContext.Current.CancellationToken);
+        var acquireSecond = controller.AcquireTargetsAsync(second, ["fast", "slow"], cancellationToken: TestContext.Current.CancellationToken);
         transport.Release.TrySetResult();
-        await acquireFirst.WaitAsync(Deadline, TestContext.Current.CancellationToken);
-        await Assert.ThrowsAsync<LocalizedOperationException>(() => acquireSecond.WaitAsync(Deadline, TestContext.Current.CancellationToken));
+        await acquireFirst.WaitAsync(_deadline, TestContext.Current.CancellationToken);
+        await Assert.ThrowsAsync<LocalizedOperationException>(() => acquireSecond.WaitAsync(_deadline, TestContext.Current.CancellationToken));
         Assert.Equal(first, controller.DeviceOwner("slow"));
         Assert.Equal(first, controller.DeviceOwner("fast"));
-        await controller.StopOwnedAsync(first, ct: TestContext.Current.CancellationToken);
+        await controller.StopOwnedAsync(first, cancellationToken: TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -103,18 +104,22 @@ public sealed class DeviceConcurrencyTests
         await Connect(controller, "slow");
         transport.BlockedId = "slow";
         var write = controller.SendAsync("slow", new(20, 0, 20), TestContext.Current.CancellationToken);
-        await transport.Blocked.Task.WaitAsync(Deadline, TestContext.Current.CancellationToken);
+        await transport.Blocked.Task.WaitAsync(_deadline, TestContext.Current.CancellationToken);
         try
         {
             using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
             var acquire = controller.AcquireTargetsAsync(Guid.NewGuid(), ["fast", "slow"], cancellation.Token);
             cancellation.Cancel();
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() => acquire);
-            await controller.SendAsync("fast", new(25, 0, 20), TestContext.Current.CancellationToken).WaitAsync(Deadline, TestContext.Current.CancellationToken);
+            await controller.SendAsync("fast", new(25, 0, 20), TestContext.Current.CancellationToken).WaitAsync(_deadline, TestContext.Current.CancellationToken);
             Assert.Null(controller.DeviceOwner("fast"));
             Assert.Equal(25, transport.Outputs["fast"].ChannelA);
         }
-        finally { transport.Release.TrySetResult(); await write; }
+        finally
+        {
+            transport.Release.TrySetResult();
+            await write;
+        }
     }
 
     [Fact]
@@ -125,18 +130,18 @@ public sealed class DeviceConcurrencyTests
         var controller = new DeviceController(transport, clock);
         await Connect(controller, "slow");
         transport.BlockedId = "slow";
-        var write = controller.SendAsync("slow", new(20, 0, 20), ct: TestContext.Current.CancellationToken);
-        await transport.Blocked.Task.WaitAsync(Deadline, TestContext.Current.CancellationToken);
+        var write = controller.SendAsync("slow", new(20, 0, 20), cancellationToken: TestContext.Current.CancellationToken);
+        await transport.Blocked.Task.WaitAsync(_deadline, TestContext.Current.CancellationToken);
         transport.Report(new("slow", motionAngle: 45));
         var disposal = controller.DisposeAsync().AsTask();
         Assert.False(disposal.IsCompleted);
         transport.Release.TrySetResult();
         await write;
-        await disposal.WaitAsync(Deadline, TestContext.Current.CancellationToken);
+        await disposal.WaitAsync(_deadline, TestContext.Current.CancellationToken);
         await controller.DisposeAsync();
         Assert.Empty(controller.Connections);
         Assert.Equal(OutputFrame.Zero, transport.Outputs["slow"]);
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => controller.SendAsync("slow", new(20, 0, 20), ct: TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => controller.SendAsync("slow", new(20, 0, 20), cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -145,8 +150,8 @@ public sealed class DeviceConcurrencyTests
         var transport = new ConcurrentTransport();
         await using var controller = new DeviceController(transport);
         await Connect(controller, "fast");
-        var changes = 0;
-        var faults = 0;
+        int changes = 0;
+        int faults = 0;
         controller.Changed += (_, _) => throw new InvalidOperationException("change subscriber");
         controller.Changed += (_, _) => changes++;
         controller.Faulted += (_, _) => throw new InvalidOperationException("fault subscriber");
@@ -164,15 +169,20 @@ public sealed class DeviceConcurrencyTests
         var transport = new ConcurrentTransport();
         await using var controller = new DeviceController(transport);
         await controller.ConnectAsync(new("fast", "coyote", DeviceKind.DualChannel, 80, -40, BluetoothProtocol.CoyoteV3.ToString()), TestContext.Current.CancellationToken);
-        await Assert.ThrowsAsync<LocalizedOperationException>(() => controller.RefreshFeaturesAsync("fast", ct: TestContext.Current.CancellationToken));
-        await Assert.ThrowsAsync<LocalizedOperationException>(() => controller.SetLightAsync("fast", true, ct: TestContext.Current.CancellationToken));
-        await Assert.ThrowsAsync<LocalizedOperationException>(() => controller.ResetInputAsync("fast", ct: TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<LocalizedOperationException>(() => controller.RefreshFeaturesAsync("fast", cancellationToken: TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<LocalizedOperationException>(() => controller.SetLightAsync("fast", true, cancellationToken: TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<LocalizedOperationException>(() => controller.ResetInputAsync("fast", cancellationToken: TestContext.Current.CancellationToken));
         Assert.Equal(0, transport.FeatureCalls);
     }
+    private static WaveformAsset Wave() => new(Guid.NewGuid(), "constant", WaveShape.Custom, 4, 20, [1, 1]);
+    private static Task Connect(DeviceController controller, string id) =>
+        controller.ConnectAsync(new(id, id, DeviceKind.DualChannel, 80, -40), TestContext.Current.CancellationToken);
 }
 
 internal sealed class ConcurrentTransport : IDeviceTransport, IDeviceStatusSource, IElectricalDeviceFeatures, IInputDeviceFeatures, IElectricalMotionSource
 {
+    private readonly IOException _motionError = new("motion startup");
+
     public string DisplayName => "test";
     public ConcurrentDictionary<string, OutputFrame> Outputs { get; } = new();
     public TaskCompletionSource Blocked { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -183,7 +193,6 @@ internal sealed class ConcurrentTransport : IDeviceTransport, IDeviceStatusSourc
     public int FeatureCalls { get; private set; }
     public bool FailMotionStart { get; set; }
     public bool FailZeroAfterMotion { get; set; }
-    public IOException MotionError { get; } = new("motion startup");
     public event EventHandler<DeviceStatusUpdate>? StatusChanged;
     public event EventHandler<DeviceTransportFault>? Faulted;
     public void Report(DeviceStatusUpdate update) => StatusChanged?.Invoke(this, update);
@@ -215,7 +224,7 @@ internal sealed class ConcurrentTransport : IDeviceTransport, IDeviceStatusSourc
         if (enabled && FailMotionStart)
         {
             FailZeroAfterMotion = true;
-            throw MotionError;
+            throw _motionError;
         }
         return Task.CompletedTask;
     }

@@ -9,13 +9,13 @@ internal sealed class JsonStateFile<T>(string path, Func<T, bool> validate)
     private bool _loadFailed;
     public async Task<T> LoadAsync(T empty)
     {
-        await _gate.WaitAsync();
+        await _gate.WaitAsync().ConfigureAwait(false);
         try
         {
             if (!File.Exists(path))
                 return empty;
             await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 4096, true);
-            var state = await JsonSerializer.DeserializeAsync<T>(stream, PipelineJson.Options);
+            var state = await JsonSerializer.DeserializeAsync<T>(stream, PipelineJson.Options).ConfigureAwait(false);
             if (state is null || !validate(state))
                 throw new JsonException();
             return state;
@@ -25,14 +25,17 @@ internal sealed class JsonStateFile<T>(string path, Func<T, bool> validate)
             _loadFailed = true;
             throw new LocalizedIOException("Pipeline.Error.Storage", error);
         }
-        finally { _gate.Release(); }
+        finally
+        {
+            _gate.Release();
+        }
     }
     public async Task SaveAsync(T state)
     {
         if (!validate(state))
             throw new LocalizedArgumentException("Pipeline.Error.Document");
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(state, PipelineJson.Options);
-        await _gate.WaitAsync();
+        byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(state, PipelineJson.Options);
+        await _gate.WaitAsync().ConfigureAwait(false);
         string? temporary = null;
         Exception? primary = null;
         try
@@ -41,11 +44,15 @@ internal sealed class JsonStateFile<T>(string path, Func<T, bool> validate)
                 throw new LocalizedOperationException("Pipeline.Error.Storage");
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
-            await File.WriteAllBytesAsync(temporary, bytes);
+            await File.WriteAllBytesAsync(temporary, bytes).ConfigureAwait(false);
             File.Move(temporary, path, true);
             temporary = null;
         }
-        catch (Exception error) { primary = error; throw; }
+        catch (Exception error)
+        {
+            primary = error;
+            throw;
+        }
         finally
         {
             try
@@ -57,7 +64,10 @@ internal sealed class JsonStateFile<T>(string path, Func<T, bool> validate)
             {
                 throw new LocalizedAggregateException("Error.Cleanup", [primary, cleanup]);
             }
-            finally { _gate.Release(); }
+            finally
+            {
+                _gate.Release();
+            }
         }
     }
 }

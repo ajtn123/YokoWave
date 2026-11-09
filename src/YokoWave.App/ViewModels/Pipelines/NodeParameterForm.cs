@@ -12,7 +12,10 @@ internal static class NodeParameterForm
     {
         if (definition.Type is not (BuiltInNodes.RangeMap or BuiltInNodes.Counter or BuiltInNodes.Cycle or BuiltInNodes.Automation or
             BuiltInNodes.Mix or BuiltInNodes.Smooth or BuiltInNodes.Threshold or BuiltInNodes.Touch))
+        {
             return [];
+        }
+
         var root = JsonNode.Parse(definition.Configuration.GetRawText())!;
         List<ParameterFieldViewModel> fields = [];
         void Visit(JsonNode node)
@@ -35,16 +38,22 @@ internal static class NodeParameterForm
                 }
                 var kind = value.GetValueKind();
                 if (kind is JsonValueKind.True or JsonValueKind.False)
+                {
                     fields.Add(ParameterFieldViewModel.BooleanSetting(name, value.GetValue<bool>(), Write));
+                }
                 else if (kind == JsonValueKind.Number)
                 {
                     var range = Range(name);
                     fields.Add(ParameterFieldViewModel.NumericSetting(name, value.GetValue<double>(), range.Min, range.Max, name == "Goal", Write));
                 }
                 else if (name == "Mode")
+                {
                     fields.Add(ParameterFieldViewModel.ChoiceSetting(name, value.GetValue<string>(), Enum.GetNames<StrengthMode>(), "StrengthMode", Write));
+                }
                 else if (name == "Playback")
+                {
                     fields.Add(ParameterFieldViewModel.ChoiceSetting(name, value.GetValue<string>(), Enum.GetNames<TouchPlayback>(), "TouchMode", Write));
+                }
             }
         }
         Visit(root);

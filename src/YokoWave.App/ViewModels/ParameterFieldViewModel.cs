@@ -14,13 +14,15 @@ public sealed class ParameterFieldViewModel : ObservableObject
     private double _number;
     private bool _enabled;
     private SessionOption? _selected;
-    public string Label => L10n.Get($"{_prefix}.{_name}");
     private readonly string _group;
+    private string[] _enumNames = [];
+    private bool _numericChoices;
+    public string Label => L10n.Get($"{_prefix}.{_name}");
     public bool HasGroup => _group.Length > 0;
     public string Group => string.Join(" / ", _group.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(part =>
     {
-        var pieces = part.Split(' ');
-        var label = L10n.Get($"ProtocolField.{pieces[0]}");
+        string[] pieces = part.Split(' ');
+        string label = L10n.Get($"ProtocolField.{pieces[0]}");
         return pieces.Length > 1 ? L10n.Format("Protocol.FieldIndex", label, pieces[1]) : label;
     }));
     public double Minimum { get; private init; }
@@ -29,8 +31,6 @@ public sealed class ParameterFieldViewModel : ObservableObject
     public bool IsBoolean { get; private init; }
     public bool IsChoice => Choices.Count > 0;
     public IReadOnlyList<SessionOption> Choices { get; private init; } = [];
-    private string[] _enumNames = [];
-    private bool _numericChoices;
     public double Number
     {
         get => _number;
@@ -38,7 +38,7 @@ public sealed class ParameterFieldViewModel : ObservableObject
         {
             if (!double.IsFinite(value))
                 return;
-            var updated = Math.Clamp(_integer ? Math.Round(value) : value, Minimum, Maximum);
+            double updated = Math.Clamp(_integer ? Math.Round(value) : value, Minimum, Maximum);
             if (Set(ref _number, updated))
                 _write(_integer ? JsonValue.Create((int)_number) : JsonValue.Create(_number));
         }
@@ -145,9 +145,12 @@ internal static class ProtocolParameterForm
         {
             if (node is JsonArray array)
             {
-                for (var index = 0; index < array.Count; index++)
+                for (int index = 0; index < array.Count; index++)
+                {
                     if (array[index] is { } child)
                         Visit(child, $"{group} {index + 1}");
+                }
+
                 return;
             }
             if (node is not JsonObject obj)
@@ -168,9 +171,11 @@ internal static class ProtocolParameterForm
                     obj[name] = updated;
                     update(root.ToJsonString());
                 }
-                var displayGroup = group.Replace("Trigger / ", "").Replace("Trigger", "");
+                string displayGroup = group.Replace("Trigger / ", "").Replace("Trigger", "");
                 if (value.GetValueKind() == System.Text.Json.JsonValueKind.True || value.GetValueKind() == System.Text.Json.JsonValueKind.False)
+                {
                     fields.Add(ParameterFieldViewModel.BooleanField(name, displayGroup, value.GetValue<bool>(), Write));
+                }
                 else if (value.GetValueKind() == System.Text.Json.JsonValueKind.Number)
                 {
                     var (min, max) = Range(name, group, commandKey);
@@ -181,8 +186,10 @@ internal static class ProtocolParameterForm
                         : ParameterFieldViewModel.NumericChoiceField(name, displayGroup, value.GetValue<int>(), choices, Write));
                 }
                 else if (Enums(name) is { } names)
+                {
                     fields.Add(ParameterFieldViewModel.ChoiceField(name, displayGroup, value.GetValue<string>(),
                         name == "Query" && profile is not null ? profile.SupportedQueries.Select(query => query.ToString()).ToArray() : names, Write));
+                }
             }
         }
         Visit(root, "");

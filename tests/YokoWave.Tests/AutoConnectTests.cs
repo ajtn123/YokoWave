@@ -1,15 +1,14 @@
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
+using Xunit;
 using YokoWave.App.ViewModels;
 using YokoWave.Core;
-using Xunit;
 
 namespace YokoWave.Tests;
 
 public sealed class AutoConnectTests
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
-    private static DeviceDescriptor Device(string id) => new(id, id, DeviceKind.DualChannel, 80, -40);
 
     [Fact]
     public async Task OnlyRememberedDevicesReconnectAndEveryConnectionStartsAtZero()
@@ -19,7 +18,11 @@ public sealed class AutoConnectTests
         List<string> prepared = [];
         List<string> connected = [];
         List<Exception> errors = [];
-        var auto = new DeviceAutoConnector(controller, id => { prepared.Add(id); return Task.CompletedTask; }, d => connected.Add(d.Id), errors.Add);
+        var auto = new DeviceAutoConnector(controller, id =>
+        {
+            prepared.Add(id);
+            return Task.CompletedTask;
+        }, device => connected.Add(device.Id), errors.Add);
         auto.Load(false, ["known"]);
         await auto.ConnectAvailableAsync([Device("known"), Device("other")], Ct);
         Assert.Empty(controller.Connections);
@@ -148,6 +151,7 @@ public sealed class AutoConnectTests
         Assert.True(saved.Settings.AutoConnect);
         Assert.Empty(saved.Settings.AutoConnectDevices!);
     }
+    private static DeviceDescriptor Device(string id) => new(id, id, DeviceKind.DualChannel, 80, -40);
 
     private sealed class PendingConnectionTransport : IDeviceTransport
     {

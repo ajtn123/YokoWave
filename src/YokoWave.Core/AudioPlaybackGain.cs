@@ -7,7 +7,12 @@ public sealed class AudioPlaybackGain(double volumePercent)
     public float Apply(float sample) => _gain == 0 || !float.IsFinite(sample) ? 0 : sample * _gain;
     public void Apply(Span<float> samples)
     {
-        if (_gain == 0) { samples.Clear(); return; }
-        for (var index = 0; index < samples.Length; index++) samples[index] = Apply(samples[index]);
+        if (_gain == 0)
+        {
+            samples.Clear();
+            return;
+        }
+        for (int index = 0; index < samples.Length; index++)
+            samples[index] = Apply(samples[index]);
     }
 }

@@ -45,7 +45,7 @@ public class OrderedRowsEditorViewModel<TRow> : ObservableObject where TRow : cl
         {
             if (!canEdit() || Selected is not { } row)
                 return;
-            var index = Rows.IndexOf(row);
+            int index = Rows.IndexOf(row);
             if (index < 0 || index + offset < 0 || index + offset >= Rows.Count)
                 return;
             Rows.Move(index, index + offset);

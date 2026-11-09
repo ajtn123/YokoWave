@@ -5,8 +5,8 @@ public sealed record BluetoothPeripheral(string Id, string Name, int? Signal, IR
 
 public interface IBluetoothAdapter
 {
-    Task<IReadOnlyList<BluetoothPeripheral>> ScanAsync(CancellationToken ct);
-    Task<IBluetoothConnection> ConnectAsync(BluetoothPeripheral peripheral, CancellationToken ct);
+    Task<IReadOnlyList<BluetoothPeripheral>> ScanAsync(CancellationToken cancellationToken);
+    Task<IBluetoothConnection> ConnectAsync(BluetoothPeripheral peripheral, CancellationToken cancellationToken);
 }
 
 public interface IBluetoothConnection : IAsyncDisposable
@@ -15,25 +15,26 @@ public interface IBluetoothConnection : IAsyncDisposable
     IReadOnlyList<GattAttribute> Attributes => [];
     event Action<byte[]>? NotificationReceived;
     event Action? Disconnected;
-    Task WriteAsync(byte[] packet, CancellationToken ct);
+    Task WriteAsync(byte[] packet, CancellationToken cancellationToken);
     event Action<GattNotification>? AdditionalNotificationReceived { add { } remove { } }
-    Task WriteAsync(GattAddress address, byte[] packet, CancellationToken ct) => WriteAsync(packet, ct);
-    Task<byte[]?> ReadAsync(GattAddress address, CancellationToken ct) => Task.FromResult<byte[]?>(null);
-    Task WriteAsync(GattWrite write, CancellationToken ct) => WriteAsync(write.Address, write.Data, ct);
-    async Task WriteBatchAsync(IReadOnlyList<GattWrite> writes, CancellationToken ct)
+    Task WriteAsync(GattAddress address, byte[] packet, CancellationToken cancellationToken) => WriteAsync(packet, cancellationToken);
+    Task<byte[]?> ReadAsync(GattAddress address, CancellationToken cancellationToken) => Task.FromResult<byte[]?>(null);
+    Task WriteAsync(GattWrite write, CancellationToken cancellationToken) => WriteAsync(write.Address, write.Data, cancellationToken);
+    async Task WriteBatchAsync(IReadOnlyList<GattWrite> writes, CancellationToken cancellationToken)
     {
         foreach (var write in writes)
         {
-            await WriteAsync(write, ct);
-            if (write.DelayAfterMilliseconds > 0) await Task.Delay(write.DelayAfterMilliseconds, ct);
+            await WriteAsync(write, cancellationToken).ConfigureAwait(false);
+            if (write.DelayAfterMilliseconds > 0)
+                await Task.Delay(write.DelayAfterMilliseconds, cancellationToken).ConfigureAwait(false);
         }
     }
 }
 
 public sealed class UnsupportedBluetoothAdapter : IBluetoothAdapter
 {
-    public Task<IReadOnlyList<BluetoothPeripheral>> ScanAsync(CancellationToken ct) =>
+    public Task<IReadOnlyList<BluetoothPeripheral>> ScanAsync(CancellationToken cancellationToken) =>
         Task.FromException<IReadOnlyList<BluetoothPeripheral>>(new Localization.LocalizedOperationException("Error.BluetoothPlatform"));
-    public Task<IBluetoothConnection> ConnectAsync(BluetoothPeripheral peripheral, CancellationToken ct) =>
+    public Task<IBluetoothConnection> ConnectAsync(BluetoothPeripheral peripheral, CancellationToken cancellationToken) =>
         Task.FromException<IBluetoothConnection>(new Localization.LocalizedOperationException("Error.BluetoothPlatform"));
 }

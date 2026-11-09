@@ -1,7 +1,7 @@
 using System.Buffers.Binary;
+using Xunit;
 using YokoWave.Core;
 using YokoWave.Core.Bluetooth;
-using Xunit;
 
 namespace YokoWave.Tests;
 
@@ -84,7 +84,7 @@ public sealed class BluetoothTests
         var adapter = new FakeBluetoothAdapter { FailFirstWrite = true };
         await using var controller = new DeviceController(new BluetoothDeviceTransport(adapter));
         var device = Assert.Single(await controller.ScanAsync(TestContext.Current.CancellationToken));
-        await Assert.ThrowsAsync<IOException>(() => controller.ConnectAsync(device, ct: TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<IOException>(() => controller.ConnectAsync(device, cancellationToken: TestContext.Current.CancellationToken));
         Assert.Empty(controller.Connections);
         Assert.True(adapter.Links[device.Id].Closed);
     }
@@ -97,12 +97,12 @@ public sealed class BluetoothTests
         var device = Assert.Single(await transport.ScanAsync(TestContext.Current.CancellationToken));
         await transport.ConnectAsync(device, TestContext.Current.CancellationToken);
         var link = adapter.Links[device.Id];
-        var faultCount = 0;
+        int faultCount = 0;
         transport.Faulted += (_, _) => faultCount++;
         link.Notify(V1Protocol.WithChecksum([0x35, 0x71, 0x55, 4]));
         link.Notify(V1Protocol.WithChecksum([0x35, 0x71, 0x55, 4]));
         Assert.Equal(1, faultCount);
-        var writes = link.Writes.Count;
+        int writes = link.Writes.Count;
         await Assert.ThrowsAnyAsync<InvalidOperationException>(() => transport.SendAsync(device.Id, new(20, 20, 20), TestContext.Current.CancellationToken));
         Assert.Equal(writes, link.Writes.Count);
         await transport.SendAsync(device.Id, OutputFrame.Zero, TestContext.Current.CancellationToken);
@@ -115,7 +115,7 @@ public sealed class BluetoothTests
         var adapter = new FakeBluetoothAdapter();
         await using var controller = new DeviceController(new BluetoothDeviceTransport(adapter));
         var device = Assert.Single(await controller.ScanAsync(TestContext.Current.CancellationToken));
-        await controller.ConnectAsync(device, ct: TestContext.Current.CancellationToken);
+        await controller.ConnectAsync(device, cancellationToken: TestContext.Current.CancellationToken);
         var link = adapter.Links[device.Id];
         link.FailWrites = true;
         var error = await Assert.ThrowsAsync<YokoWave.Core.Localization.LocalizedAggregateException>(
@@ -126,9 +126,28 @@ public sealed class BluetoothTests
         Assert.True(link.Closed);
     }
 
+    [Fact]
+    public async Task DisconnectPreservesShutdownAndNativeCleanupFailures()
+    {
+        var adapter = new FakeBluetoothAdapter();
+        await using var transport = new BluetoothDeviceTransport(adapter);
+        var device = Assert.Single(await transport.ScanAsync(TestContext.Current.CancellationToken));
+        await transport.ConnectAsync(device, TestContext.Current.CancellationToken);
+        var link = adapter.Links[device.Id];
+        link.FailWrites = true;
+        link.FailDispose = true;
+
+        var error = await Assert.ThrowsAsync<YokoWave.Core.Localization.LocalizedAggregateException>(
+            () => transport.DisconnectAsync(device.Id, TestContext.Current.CancellationToken));
+        Assert.Contains(error.Flatten().InnerExceptions, inner => inner.Message == "Injected disconnected radio");
+        Assert.Contains(error.Flatten().InnerExceptions, inner => inner.Message == "Injected native cleanup failure");
+        Assert.True(link.Closed);
+        await transport.DisconnectAsync(device.Id, TestContext.Current.CancellationToken);
+    }
+
     private static async Task WaitAsync(Func<bool> condition)
     {
-        for (var index = 0; index < 100 && !condition(); index++)
+        for (int index = 0; index < 100 && !condition(); index++)
             await Task.Delay(10, TestContext.Current.CancellationToken);
         Assert.True(condition());
     }
@@ -140,8 +159,8 @@ internal sealed class FakeBluetoothAdapter : IBluetoothAdapter
     public bool FailFirstWrite { get; init; }
     public List<BluetoothPeripheral> Devices { get; } = [new("ble:000000000001", "YCY-DJ", -50)];
     public Dictionary<string, FakeBluetoothConnection> Links { get; } = [];
-    public Task<IReadOnlyList<BluetoothPeripheral>> ScanAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<BluetoothPeripheral>>(Devices.ToArray());
-    public Task<IBluetoothConnection> ConnectAsync(BluetoothPeripheral peripheral, CancellationToken ct)
+    public Task<IReadOnlyList<BluetoothPeripheral>> ScanAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<BluetoothPeripheral>>(Devices.ToArray());
+    public Task<IBluetoothConnection> ConnectAsync(BluetoothPeripheral peripheral, CancellationToken cancellationToken)
     {
         var link = new FakeBluetoothConnection { ReplyToQueries = ReplyToQueries, FailNextWrite = FailFirstWrite };
         Links[peripheral.Id] = link;
@@ -156,15 +175,16 @@ internal sealed class FakeBluetoothConnection : IBluetoothConnection
     public bool ReplyToQueries { get; init; }
     public bool FailNextWrite { get; set; }
     public bool FailWrites { get; set; }
+    public bool FailDispose { get; set; }
     public bool Closed { get; private set; }
     public List<byte[]> Writes { get; } = [];
     public event Action<byte[]>? NotificationReceived;
     public event Action? Disconnected;
     public void Notify(byte[] packet) => NotificationReceived?.Invoke(packet);
     public void LoseConnection() => Disconnected?.Invoke();
-    public Task WriteAsync(byte[] packet, CancellationToken ct)
+    public Task WriteAsync(byte[] packet, CancellationToken cancellationToken)
     {
-        ct.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         if (FailWrites)
             throw new IOException("Injected disconnected radio");
         if (FailNextWrite)
@@ -191,6 +211,8 @@ internal sealed class FakeBluetoothConnection : IBluetoothConnection
     public ValueTask DisposeAsync()
     {
         Closed = true;
+        if (FailDispose)
+            throw new IOException("Injected native cleanup failure");
         return ValueTask.CompletedTask;
     }
 }

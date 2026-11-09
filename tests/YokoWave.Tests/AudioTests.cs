@@ -1,5 +1,5 @@
-using YokoWave.Core;
 using Xunit;
+using YokoWave.Core;
 
 namespace YokoWave.Tests;
 
@@ -12,12 +12,15 @@ public sealed class AudioTests
     [InlineData(100)]
     public void SpeakerGainDoesNotChangeTheFeaturesUsedForDeviceOutput(double volume)
     {
-        var samples = Enumerable.Repeat(0.5f, 4800).ToArray();
-        var meter = new AudioFeatureAccumulator(); meter.Process(samples, 2);
-        var feature = meter.Latest; Assert.NotNull(feature);
+        float[] samples = Enumerable.Repeat(0.5f, 4800).ToArray();
+        var accumulator = new AudioFeatureAccumulator();
+        accumulator.Process(samples, 2);
+        var feature = accumulator.Latest;
+        Assert.NotNull(feature);
         new AudioPlaybackGain(volume).Apply(samples);
         Assert.All(samples, sample => Assert.Equal(0.5 * volume / 100, sample, 6));
-        Assert.Same(feature, meter.Latest); Assert.True(feature.LeftDb > -7);
+        Assert.Same(feature, accumulator.Latest);
+        Assert.True(feature.LeftDb > -7);
     }
 
     [Fact]

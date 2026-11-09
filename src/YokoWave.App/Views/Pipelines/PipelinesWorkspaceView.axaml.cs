@@ -25,6 +25,9 @@ public sealed partial class PipelinesWorkspaceView : UserControl
             if (await dialog.ShowDialog<bool>(owner))
                 await workspace.SaveTemplateCommand.ExecuteAsync();
         }
-        catch (Exception error) { workspace.ReportError(error); }
+        catch (Exception error)
+        {
+            workspace.ReportError(error);
+        }
     }
 }

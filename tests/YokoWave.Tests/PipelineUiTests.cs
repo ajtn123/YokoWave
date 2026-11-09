@@ -14,13 +14,13 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Nodify.Avalonia;
 using Nodify.Avalonia.Connections;
+using Xunit;
 using YokoWave.App.ViewModels;
 using YokoWave.App.ViewModels.Pipelines;
 using YokoWave.App.Views.Pipelines;
 using YokoWave.Core;
 using YokoWave.Core.Localization;
 using YokoWave.Pipelines;
-using Xunit;
 
 namespace YokoWave.Tests;
 
@@ -34,7 +34,7 @@ public sealed class PipelineUiTests
         await controller.ConnectAsync(new("test", "Test device", DeviceKind.DualChannel, 90, -30), TestContext.Current.CancellationToken);
         var builder = new PipelineBuilder("disconnect");
         var value = builder.Add(BuiltInNodes.Constant, new ConstantNode(.3));
-        for (var channel = 0; channel < 2; channel++)
+        for (int channel = 0; channel < 2; channel++)
         {
             var output = builder.Add(BuiltInNodes.ChannelOutput, new ChannelOutputNode("test", channel));
             builder.Connect(value, "value", output, "strength");
@@ -94,7 +94,7 @@ public sealed class PipelineUiTests
             Drag(Input("strength"), Source());
             Assert.Single(editor.Connections);
             editor.UndoCommand.Execute(null);
-            for (var repetition = 0; repetition < 3; repetition++)
+            for (int repetition = 0; repetition < 3; repetition++)
             {
                 Drag(Source(), Input("limit"));
                 Assert.Equal(3, editor.Connections.Count);
@@ -130,7 +130,10 @@ public sealed class PipelineUiTests
             await editor.StopAsync();
             Assert.Empty(errors);
         }
-        finally { window.Close(); }
+        finally
+        {
+            window.Close();
+        }
     }
 
     [AvaloniaFact]
@@ -138,9 +141,9 @@ public sealed class PipelineUiTests
     {
         using var folder = new TestFolder();
         await using var controller = new DeviceController(new SimulationTransport());
-        ObservableCollection<PresetItem> presets = new(WaveformPreset.BuiltIn.Select(p => new PresetItem(p)));
+        ObservableCollection<WaveformItem> waveforms = new(WaveformAsset.BuiltIn.Select(p => new WaveformItem(p)));
         List<Exception> errors = [];
-        await using var workspace = new PipelinesWorkspaceViewModel(controller, folder.Path, presets, errors.Add, _ => { }, () => 7200, () => .6);
+        await using var workspace = new PipelinesWorkspaceViewModel(controller, folder.Path, waveforms, errors.Add, _ => { }, () => 7200, () => .6);
         await workspace.LoadAsync();
         var valueNode = NodeDefinition.Create(BuiltInNodes.Constant, new ConstantNode(.3));
         var sinkNode = NodeDefinition.Create(BuiltInNodes.ChannelOutput, new ChannelOutputNode("test"));
@@ -186,7 +189,7 @@ public sealed class PipelineUiTests
             constant = editor.Nodes.OfType<ConstantEditorViewModel>().Single();
             editor.SelectedNodes.Add(constant);
             editor.CopyCommand.Execute(null);
-            var count = editor.Nodes.Count;
+            int count = editor.Nodes.Count;
             editor.PasteCommand.Execute(null);
             Assert.Equal(count + 1, editor.Nodes.Count);
             editor.UndoCommand.Execute(null);
@@ -232,7 +235,7 @@ public sealed class PipelineUiTests
             Dispatcher.UIThread.RunJobs();
             Assert.True(window.GetVisualDescendants().OfType<ProgressBar>().Single(c => c.Name == "PipelineTimerProgress").IsVisible);
             Assert.False(window.GetVisualDescendants().OfType<Slider>().Single(c => c.Name == "PipelineDurationSlider").IsVisible);
-            var runningNodes = editor.Nodes.Count;
+            int runningNodes = editor.Nodes.Count;
             editor.AddNode(BuiltInNodes.Constant);
             Assert.Equal(runningNodes, editor.Nodes.Count);
             constant = editor.Nodes.OfType<ConstantEditorViewModel>().First(c => c.Id == constant.Id);
@@ -263,9 +266,9 @@ public sealed class PipelineUiTests
         using var folder = new TestFolder();
         await using var controller = new DeviceController(new SimulationTransport());
         List<NodeDefinition> nodes = [NodeDefinition.Create(BuiltInNodes.Constant, new ConstantNode(.5))];
-        for (var i = 0; i < 139; i++)
+        for (int i = 0; i < 139; i++)
             nodes.Add(NodeDefinition.Create(BuiltInNodes.Gain, new GainNode()));
-        for (var i = 0; i < 60; i++)
+        for (int i = 0; i < 60; i++)
             nodes.Add(NodeDefinition.Create(BuiltInNodes.ChannelOutput, new ChannelOutputNode($"device-{i}")));
         var registry = BuiltInNodes.CreateRegistry();
         var targets = nodes.Skip(1).SelectMany(node => registry.Get(node.Type).Ports.Where(p => p.Direction == PortDirection.Input)
@@ -273,11 +276,11 @@ public sealed class PipelineUiTests
         var graph = new PipelineDocument(Guid.NewGuid(), "200 / 500", nodes.ToArray(),
             targets.Select(target => new PipelineConnection(new(nodes[0].Id, "value"), target)).ToArray(),
             nodes.Select((node, i) => new NodeLayout(node.Id, i % 20 * 240, i / 20 * 180)).ToArray());
-        var allocated = GC.GetTotalAllocatedBytes();
+        long allocated = GC.GetTotalAllocatedBytes();
         var elapsed = Stopwatch.StartNew();
         await using var editor = new PipelineEditorViewModel(graph, controller,
-            new(WaveformPreset.BuiltIn.Select(p => new PresetItem(p))), _ => { }, _ => { });
-        var createdMs = elapsed.Elapsed.TotalMilliseconds;
+            new(WaveformAsset.BuiltIn.Select(p => new WaveformItem(p))), _ => { }, _ => { });
+        double createdMs = elapsed.Elapsed.TotalMilliseconds;
         var window = new Window { Width = 1200, Height = 800, Content = new PipelineEditorView { DataContext = editor } };
         try
         {
@@ -286,7 +289,7 @@ public sealed class PipelineUiTests
             window.GetVisualDescendants().OfType<NodifyEditor>().Single().FitToScreen();
             Dispatcher.UIThread.RunJobs();
             Capture(window, "pipeline-200-nodes.png");
-            var directory = ArtifactDirectory();
+            string directory = ArtifactDirectory();
             await File.WriteAllTextAsync(Path.Combine(directory, "pipeline-editor-measurements.json"), JsonSerializer.Serialize(new
             {
                 Nodes = 200,
@@ -297,12 +300,15 @@ public sealed class PipelineUiTests
                 Environment = "Avalonia headless, Windows, Release; initial render only"
             }), TestContext.Current.CancellationToken);
         }
-        finally { window.Close(); }
+        finally
+        {
+            window.Close();
+        }
     }
 
     private static string ArtifactDirectory()
     {
-        var directory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../artifacts/screenshots"));
+        string directory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../artifacts/screenshots"));
         Directory.CreateDirectory(directory);
         return directory;
     }

@@ -21,7 +21,7 @@
           </ComboBox>
           <Button Grid.Column="1" Content="{l:Loc Mode.Add}" Command="{Binding AddCommand}" Classes="small primary pipeline-create" />
         </Grid>
-        <ItemsControl x:Name="PipelineGroups" ItemsSource="{Binding Groups}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:PipelineDeviceGroupViewModel">
+        <ItemsControl x:Name="PipelineGroups" ItemsSource="{Binding DeviceGroups.Groups}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:PipelineDeviceGroupViewModel">
           <Border Classes="list-item card compact mode-group" Classes.active="{Binding IsSelected}" ContextRequested="SelectContextPipeline">
             <StackPanel Classes="field">
               <Button Command="{Binding SelectCommand}" Classes="mode-select">
@@ -35,8 +35,8 @@
           </Border>
         </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
         <TextBlock Text="{l:Loc Mode.Unassigned}" Classes="small emphasis" />
-        <ItemsControl x:Name="UnassignedDeviceList" ItemsSource="{Binding UnassignedDevices}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:PipelineDeviceCardViewModel"><views:PipelineDeviceCardView /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
-        <TextBlock Text="{l:Loc Mode.NoUnassigned}" IsVisible="{Binding !HasUnassignedDevices}" Classes="caption muted" />
+        <ItemsControl x:Name="UnassignedDeviceList" ItemsSource="{Binding DeviceGroups.UnassignedDevices}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:PipelineDeviceCardViewModel"><views:PipelineDeviceCardView /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+        <TextBlock Text="{l:Loc Mode.NoUnassigned}" IsVisible="{Binding !DeviceGroups.HasUnassignedDevices}" Classes="caption muted" />
       </StackPanel>
     </ScrollViewer>
     <ContentControl Grid.Column="1" Content="{Binding Selected}"><ContentControl.ContentTemplate><DataTemplate x:DataType="vm:PipelineEditorViewModel"><views:PipelineEditorView /></DataTemplate></ContentControl.ContentTemplate></ContentControl>

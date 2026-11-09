@@ -21,6 +21,8 @@ public sealed record AudioSettings(AudioSourceKind Source = AudioSourceKind.Micr
             !double.IsFinite(Sensitivity) || Sensitivity is < 0 or > 100 ||
             !double.IsFinite(NoiseFloorDb) || NoiseFloorDb is < -90 or > -30 ||
             !double.IsFinite(PlaybackVolume) || PlaybackVolume is < 0 or > 100 || MediaPath?.Length > 4096)
+        {
             throw new LocalizedArgumentException("Error.AudioSettings");
+        }
     }
 }

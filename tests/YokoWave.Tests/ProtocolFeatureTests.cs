@@ -1,26 +1,20 @@
+using Xunit;
 using YokoWave.Core;
 using YokoWave.Core.Bluetooth;
 using YokoWave.Core.Localization;
-using Xunit;
 
 namespace YokoWave.Tests;
 
 public sealed class ProtocolFeatureTests
 {
-    private static WaveformPreset Wave => new(Guid.NewGuid(), "Constant", WaveShape.Custom, 10, 20, [1, 1]);
-    private static async Task<DeviceDescriptor> Connect(DeviceController controller)
-    {
-        var device = Assert.Single(await controller.ScanAsync(TestContext.Current.CancellationToken));
-        await controller.ConnectAsync(device, TestContext.Current.CancellationToken);
-        return device;
-    }
+    private static WaveformAsset Wave => new(Guid.NewGuid(), "Constant", WaveShape.Custom, 10, 20, [1, 1]);
 
     [Fact]
     public void PawTriggerVectorsCoverAllLayoutsAndBoundaryFields()
     {
         Assert.Equal("5001000000000000000000000000000000", Convert.ToHexString(PawProtocol.Configure(new(new PawNoTrigger()))));
         Assert.Equal("5001D00100000000000000000000000000", Convert.ToHexString(PawProtocol.Configure(new(new PawLiveData()))));
-        var random = PawProtocol.Configure(new(new PawRandomReaction(24, 1, 65535, 256, new(120, 42, 119, 255)), 6));
+        byte[] random = PawProtocol.Configure(new(new PawRandomReaction(24, 1, 65535, 256, new(120, 42, 119, 255)), 6));
         Assert.Equal("500603180001FFFF0100782A77FF000000", Convert.ToHexString(random));
         var probability = new PawProbability([new(1, 150), new(24, 100)], 65535);
         Assert.Equal(new[] { 150, 50 }, probability.EffectiveEvents().Select(entry => entry.Probability));
@@ -29,7 +23,7 @@ public sealed class ProtocolFeatureTests
         var motion = new PawMotionTrigger(24, true, TriggerDebounce: 7, CancelDebounce: 6, MappingRange: 255,
             X: new(-128, 127), Y: new(-20, 20), Z: new(0, 0));
         Assert.Equal("50010501FE0102030418807FEC140000FF", Convert.ToHexString(PawProtocol.Configure(new(new PawButtonMotion(1, true, new(1, 2, 3, 4), motion)))));
-        var acceleration = PawProtocol.Configure(new(new PawButtonMotion(0, Motion: new(2, AccelerationAbove: false, AccelerationThreshold: 400))));
+        byte[] acceleration = PawProtocol.Configure(new(new PawButtonMotion(0, Motion: new(2, AccelerationAbove: false, AccelerationThreshold: 400))));
         Assert.Equal(new byte[] { 0, 1, 144, 0, 0, 0 }, acceleration[10..16]);
         Assert.Throws<LocalizedArgumentException>(() => PawProtocol.Configure(new(new PawProbability([new(1, 100), new(1, 20)]))));
         Assert.Throws<LocalizedArgumentException>(() => PawProtocol.Configure(new(new PawButtonMotion(0))));
@@ -39,7 +33,7 @@ public sealed class ProtocolFeatureTests
     [Fact]
     public void PawCalibrationAndShoulderLightUseSignedFieldsAndPublicFormats()
     {
-        var data = Convert.FromHexString("F161FF0000FEFFD8002800000000");
+        byte[] data = Convert.FromHexString("F161FF0000FEFFD8002800000000");
         var calibration = Assert.IsType<PawCalibration>(PawProtocol.ParseCalibration(data));
         Assert.Equal(new PawAxisRange(-128, 127), calibration.X);
         Assert.Equal(new PawAxisRange(-20, 20), calibration.Y);
@@ -75,7 +69,7 @@ public sealed class ProtocolFeatureTests
         await transport.SendAsync(device.Id, frame, TestContext.Current.CancellationToken);
         var link = adapter.Links[device.Id];
         Assert.Contains(link.Writes, entry => entry.Data.SequenceEqual(V1Protocol.WithChecksum([0x35, 0x11, 3, 5])));
-        var count = link.Writes.Count;
+        int count = link.Writes.Count;
         await transport.SendAsync(device.Id, frame, TestContext.Current.CancellationToken);
         Assert.Equal(count, link.Writes.Count);
         await Assert.ThrowsAsync<LocalizedArgumentException>(() => transport.SendAsync(device.Id, frame with { OutputLimit = 60 }, cancellationToken: TestContext.Current.CancellationToken));
@@ -93,14 +87,14 @@ public sealed class ProtocolFeatureTests
         var link = adapter.Links[device.Id];
         if (payload < 24)
         {
-            await Assert.ThrowsAsync<LocalizedOperationException>(() => controller.ExecuteCommandAsync(device.Id, new SynchronizeDisplay(), ct: TestContext.Current.CancellationToken));
+            await Assert.ThrowsAsync<LocalizedOperationException>(() => controller.ExecuteCommandAsync(device.Id, new SynchronizeDisplay(), cancellationToken: TestContext.Current.CancellationToken));
             Assert.DoesNotContain(link.Writes, entry => entry.Data[0] == 0xb2);
         }
         else
         {
             link.Notify([0xb3, 80, 120]);
-            await controller.ExecuteCommandAsync(device.Id, new SynchronizeDisplay(), ct: TestContext.Current.CancellationToken);
-            var packet = link.Writes.Last(entry => entry.Data[0] == 0xb2).Data;
+            await controller.ExecuteCommandAsync(device.Id, new SynchronizeDisplay(), cancellationToken: TestContext.Current.CancellationToken);
+            byte[] packet = link.Writes.Last(entry => entry.Data[0] == 0xb2).Data;
             Assert.Equal(24, packet.Length);
             Assert.Equal(new byte[] { 80, 120 }, packet[^2..]);
         }
@@ -119,17 +113,17 @@ public sealed class ProtocolFeatureTests
         link.Notify([0x5b, 1, 1]);
         link.Notify([0x5c, 1, 3, 22]);
         link.Notify(Convert.FromHexString("F161FF0000FEFFD8002800000000"));
-        for (var i = 0; i < 100 && controller.Connections[device.Id].Telemetry?.Calibration is null; i++)
+        for (int i = 0; i < 100 && controller.Connections[device.Id].Telemetry?.Calibration is null; i++)
             await Task.Delay(10, TestContext.Current.CancellationToken);
         var data = controller.Connections[device.Id].Telemetry!;
         Assert.Contains(data.PawEvents!, entry => entry is { EventId: 1, Active: false, Parameter: 80 });
         Assert.Contains(data.PawEvents!, entry => entry is { EventId: 2, Active: true, Parameter: 40 });
         Assert.Contains(data.PawEvents!, entry => entry is { EventId: 3, Active: null, Parameter: 22 });
         Assert.NotNull(data.Calibration);
-        await controller.ExecuteCommandAsync(device.Id, new ConfigurePaw(new PawVoltage()), ct: TestContext.Current.CancellationToken);
-        await controller.ExecuteCommandAsync(device.Id, new ConfigureShoulderLight(2, 3, ShoulderBlink.Slow), ct: TestContext.Current.CancellationToken);
-        await controller.ExecuteCommandAsync(device.Id, new ResetPawParameters(), ct: TestContext.Current.CancellationToken);
-        await controller.ExecuteCommandAsync(device.Id, new CalibratePawAngles(), ct: TestContext.Current.CancellationToken);
+        await controller.ExecuteCommandAsync(device.Id, new ConfigurePaw(new PawVoltage()), cancellationToken: TestContext.Current.CancellationToken);
+        await controller.ExecuteCommandAsync(device.Id, new ConfigureShoulderLight(2, 3, ShoulderBlink.Slow), cancellationToken: TestContext.Current.CancellationToken);
+        await controller.ExecuteCommandAsync(device.Id, new ResetPawParameters(), cancellationToken: TestContext.Current.CancellationToken);
+        await controller.ExecuteCommandAsync(device.Id, new CalibratePawAngles(), cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(new byte[] { 0x60 }, link.Writes[^1].Data);
     }
 
@@ -140,16 +134,16 @@ public sealed class ProtocolFeatureTests
         var adapter = new HardwareGattAdapter(BluetoothProtocol.Civet);
         await using var controller = new DeviceController(new BluetoothDeviceTransport(adapter));
         var device = await Connect(controller);
-        await controller.ExecuteCommandAsync(device.Id, new ConfigurePressureSensor(true, SensorOrientation.Flipped), ct: TestContext.Current.CancellationToken);
+        await controller.ExecuteCommandAsync(device.Id, new ConfigurePressureSensor(true, SensorOrientation.Flipped), cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(13, adapter.Links[device.Id].Writes[^1].Data.Length);
-        await Assert.ThrowsAsync<LocalizedOperationException>(() => controller.ExecuteCommandAsync(device.Id, new ControlStepCounter(StepCounterAction.Reset), ct: TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<LocalizedOperationException>(() => controller.ExecuteCommandAsync(device.Id, new ControlStepCounter(StepCounterAction.Reset), cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public void PumpWireTimerRetainsTheFullUnsignedRange()
     {
-        var packet = YokonexToyProtocol.PumpCommand(1, PumpDirection.Reverse, seconds: 65535);
-        var plain = HardwareGattLink.Decrypt(packet);
+        byte[] packet = YokonexToyProtocol.PumpCommand(1, PumpDirection.Reverse, seconds: 65535);
+        byte[] plain = HardwareGattLink.Decrypt(packet);
         Assert.Equal(new byte[] { 0xbf, 0x0f, 0xa0, 1, 2, 255, 255 }, plain[..7]);
         Assert.Throws<LocalizedArgumentException>(() => new PumpOutput(PeristalticSeconds: -1).Validate());
     }
@@ -174,7 +168,7 @@ public sealed class ProtocolFeatureTests
         await Assert.ThrowsAsync<LocalizedOperationException>(() => transport.SendAsync(device.Id, auxiliary, TestContext.Current.CancellationToken));
         await transport.ExecuteCommandAsync(device.Id, new ConfigureMotionStream(false), TestContext.Current.CancellationToken);
         link.Notify(V1Protocol.WithChecksum([0x35, 0x71, 0x55, 4]));
-        var count = link.Writes.Count;
+        int count = link.Writes.Count;
         await Assert.ThrowsAsync<LocalizedOperationException>(() => transport.SendAsync(device.Id, auxiliary, TestContext.Current.CancellationToken));
         Assert.Equal(count, link.Writes.Count);
     }
@@ -190,8 +184,8 @@ public sealed class ProtocolFeatureTests
         link.Reply = false;
         var frame = new OutputFrame(20, 20, 20, Hardware: new(RelativeStrength: true));
         var first = transport.SendAsync(device.Id, frame, TestContext.Current.CancellationToken);
-        var sequence = (byte)(link.Writes[^1].Data[1] >> 4);
-        var count = link.Writes.Count;
+        byte sequence = (byte)(link.Writes[^1].Data[1] >> 4);
+        int count = link.Writes.Count;
         var second = transport.SendAsync(device.Id, frame, TestContext.Current.CancellationToken);
         link.Notify([0xb1, 0, 10, 10]);
         Assert.False(first.IsCompleted);
@@ -202,5 +196,10 @@ public sealed class ProtocolFeatureTests
         Assert.Equal(0, link.Writes[^1].Data[1] & 15);
         link.Reply = true;
     }
-
+    private static async Task<DeviceDescriptor> Connect(DeviceController controller)
+    {
+        var device = Assert.Single(await controller.ScanAsync(TestContext.Current.CancellationToken));
+        await controller.ConnectAsync(device, TestContext.Current.CancellationToken);
+        return device;
+    }
 }

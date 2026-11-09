@@ -15,7 +15,7 @@ public abstract class NodeRegistration(string type, string nameKey, NodePort[] p
     public IReadOnlyList<NodePort> Ports { get; } = Array.AsReadOnly(ports);
     public abstract object Read(JsonElement configuration);
     public abstract bool Validate(object configuration);
-    public abstract ISignalProcessor Create(object configuration, IReadOnlyDictionary<Guid, WaveformPreset> waveforms);
+    public abstract ISignalProcessor Create(object configuration, IReadOnlyDictionary<Guid, WaveformAsset> waveforms);
     public virtual DeviceOutputBinding? Binding(object configuration) => null;
     public virtual IReadOnlyList<DeviceOutputBinding> Resources(object configuration) => Binding(configuration) is { } binding ? [binding] : [];
     public virtual IRunParticipant? Participant(NodeRunContext context, object configuration) => null;
@@ -24,7 +24,7 @@ public abstract class NodeRegistration(string type, string nameKey, NodePort[] p
 }
 
 public sealed class NodeRegistration<T>(string type, string nameKey, NodePort[] ports, Func<T, bool> validate,
-    Func<T, IReadOnlyDictionary<Guid, WaveformPreset>, ISignalProcessor> factory,
+    Func<T, IReadOnlyDictionary<Guid, WaveformAsset>, ISignalProcessor> factory,
     Func<T, DeviceOutputBinding?>? binding = null,
     Func<NodeRunContext, T, IRunParticipant?>? participant = null,
     Func<T, IReadOnlyList<NodePort>>? dynamicPorts = null,
@@ -33,7 +33,7 @@ public sealed class NodeRegistration<T>(string type, string nameKey, NodePort[] 
 {
     public override object Read(JsonElement configuration) => configuration.Deserialize<T>(PipelineJson.Options) ?? throw new JsonException();
     public override bool Validate(object configuration) => validate((T)configuration);
-    public override ISignalProcessor Create(object configuration, IReadOnlyDictionary<Guid, WaveformPreset> waveforms) => factory((T)configuration, waveforms);
+    public override ISignalProcessor Create(object configuration, IReadOnlyDictionary<Guid, WaveformAsset> waveforms) => factory((T)configuration, waveforms);
     public override DeviceOutputBinding? Binding(object configuration) => binding?.Invoke((T)configuration);
     public override IRunParticipant? Participant(NodeRunContext context, object configuration) => participant?.Invoke(context, (T)configuration);
     public override IReadOnlyList<NodePort> PortsFor(object configuration) => dynamicPorts?.Invoke((T)configuration) ?? Ports;

@@ -47,9 +47,11 @@ internal sealed class DeviationProcessor : ISignalProcessor, IInteractiveProcess
 
 internal sealed class AudioProcessor(AudioSettings settings) : ISignalProcessor, ISuspendableProcessor
 {
-    private readonly AudioEnvelope _left = new(), _right = new();
+    private readonly AudioEnvelope _left = new();
+    private readonly AudioEnvelope _right = new();
     private long _sequence = -1;
-    private double _a, _b;
+    private double _a;
+    private double _b;
     public void Suspend()
     {
         _left.Reset();
@@ -64,7 +66,7 @@ internal sealed class AudioProcessor(AudioSettings settings) : ISignalProcessor,
             audio.LeftDb is < -120 or > 0 || audio.RightDb is < -120 or > 0 || audio.LeftOnset is < 0 or > 1 || audio.RightOnset is < 0 or > 1)
         {
             Suspend();
-            foreach (var port in new[] { "left", "right", "leftDb", "rightDb" })
+            foreach (string? port in new[] { "left", "right", "leftDb", "rightDb" })
                 context.Output(port, NumericSignal.Missing);
             context.Status(new("Waiting"));
             return;
@@ -89,7 +91,8 @@ internal sealed class TouchProcessor(TouchNode settings) : ISignalProcessor, IIn
     private TouchPoint _point = new(20, .5, false);
     private readonly List<WaveformSample> _recording = [];
     private long _bucket = -1;
-    private bool _touched, _released;
+    private bool _touched;
+    private bool _released;
     private double _replayEpoch;
     public void Update(NodeControl control)
     {
@@ -110,20 +113,20 @@ internal sealed class TouchProcessor(TouchNode settings) : ISignalProcessor, IIn
     public void Suspend() => _point = _point with { Held = false };
     public void Evaluate(NodeEvaluationContext context)
     {
-        var elapsed = context.Elapsed.TotalSeconds;
+        double elapsed = context.Elapsed.TotalSeconds;
         if (_released)
         {
             _replayEpoch = elapsed;
             _released = false;
         }
         var sample = new WaveformSample(1, _point.Frequency, _point.PulseWidth);
-        var bucket = (long)Math.Floor(elapsed * 10);
+        long bucket = (long)Math.Floor(elapsed * 10);
         if (_point.Held && bucket != _bucket && _recording.Count < 256)
         {
             _recording.Add(sample);
             _bucket = bucket;
         }
-        var active = _point.Held || _touched && settings.Playback == TouchPlayback.HoldLast;
+        bool active = _point.Held || _touched && settings.Playback == TouchPlayback.HoldLast;
         if (!active && settings.Playback == TouchPlayback.RecordedLoop && _recording.Count > 0)
         {
             sample = _recording[(int)Math.Max(0, Math.Floor((elapsed - _replayEpoch) * 10)) % _recording.Count];

@@ -5,15 +5,17 @@ using YokoWave.Pipelines;
 
 namespace YokoWave.Remote;
 
-internal sealed record RemotePipelineProgram(PipelineDocument Graph, WaveformPreset[] Assets,
+internal sealed record RemotePipelineProgram(PipelineDocument Graph, WaveformAsset[] Assets,
     Dictionary<int, List<Guid>> Strengths, List<Guid> Waves, Guid? FrameSource = null)
 {
-    public void ValidateWaveform(WaveformPreset waveform)
+    public void ValidateWaveform(WaveformAsset waveform)
     {
         waveform.Validate();
         foreach (var node in Graph.Nodes.Where(n => n.Type == BuiltInNodes.Playlist))
+        {
             if (!node.Configuration.Deserialize<PlaylistNode>(PipelineJson.Options)!.AcceptsWaveform(waveform.Id))
                 throw new LocalizedArgumentException("Error.PlaylistWave");
+        }
     }
     public static RemotePipelineProgram Manual(IEnumerable<DeviceDescriptor> targets, OutputFrame frame, double maximum)
     {
@@ -32,13 +34,13 @@ internal sealed record RemotePipelineProgram(PipelineDocument Graph, WaveformPre
     {
         var settings = request.Program;
         settings.Validate();
-        var preset = request.Waveform ?? settings.Playlist?.FirstOrDefault() ?? new(Guid.NewGuid(), L10n.Get("Remote.Control"), WaveShape.Pulse, 1, 20);
-        preset.Validate();
-        var assets = new[] { preset, settings.ChannelBWaveform }.OfType<WaveformPreset>().Concat(settings.Playlist ?? []).DistinctBy(w => w.Id).ToArray();
+        var waveform = request.Waveform ?? settings.Playlist?.FirstOrDefault() ?? new(Guid.NewGuid(), L10n.Get("Remote.Control"), WaveShape.Pulse, 1, 20);
+        waveform.Validate();
+        var assets = new[] { waveform, settings.ChannelBWaveform }.OfType<WaveformAsset>().Concat(settings.Playlist ?? []).DistinctBy(w => w.Id).ToArray();
         var builder = new PipelineBuilder(L10n.Get("Remote.Control"), Math.Min(maximum, settings.OutputLimit) / 100);
         Dictionary<int, List<Guid>> strengths = [];
         List<Guid> waves = [];
-        var levels = new[] { request.ChannelA, request.ChannelB, request.ChannelC };
+        double[] levels = new[] { request.ChannelA, request.ChannelB, request.ChannelC };
         NodeDefinition Strength(int channel)
         {
             if (!double.IsFinite(levels[channel]) || levels[channel] < 0)
@@ -55,7 +57,7 @@ internal sealed record RemotePipelineProgram(PipelineDocument Graph, WaveformPre
             {
                 var timer = builder.Add(BuiltInNodes.PumpTimer, new PumpTimerNode(settings.Pump ?? new()));
                 var sink = builder.Add(BuiltInNodes.PumpOutput, new PumpOutputNode(device.Id, Math.Min(maximum, settings.OutputLimit) / 100));
-                foreach (var port in new[] { "direction", "water", "peristalticSeconds", "waterSeconds" })
+                foreach (string? port in new[] { "direction", "water", "peristalticSeconds", "waterSeconds" })
                     builder.Connect(timer, port, sink, port);
                 continue;
             }
@@ -63,22 +65,25 @@ internal sealed record RemotePipelineProgram(PipelineDocument Graph, WaveformPre
             {
                 if (settings.NativeProgram is { Kind: NativeProgramKind.MotorPreset } motor)
                 {
-                    var cap = Math.Min(maximum, settings.OutputLimit);
+                    double cap = Math.Min(maximum, settings.OutputLimit);
                     double Level(int channel, int selected) => device.HasChannel(channel) && selected > 0 ? Math.Min(levels[channel], cap) : 0;
                     new NativeProgramOutput(motor, 0, request.DurationSeconds).ValidateOutput(new(
                         Level(0, motor.PresetA), Level(1, motor.PresetB), 20, ChannelC: Level(2, motor.PresetC), OutputLimit: cap, Hardware: settings.Hardware));
                 }
                 var sink = builder.Add(BuiltInNodes.NativeOutput, new NativeOutputNode(device.Id, settings.NativeProgram, Limit: Math.Min(maximum, settings.OutputLimit) / 100));
-                for (var channel = 0; channel < 3; channel++)
+                for (int channel = 0; channel < 3; channel++)
+                {
                     if (device.HasChannel(channel))
                         builder.Connect(Strength(channel), "value", sink, "strength" + (char)('A' + channel));
+                }
+
                 continue;
             }
-            for (var channel = 0; channel < 3; channel++)
+            for (int channel = 0; channel < 3; channel++)
             {
                 if (!device.HasChannel(channel))
                     continue;
-                var asset = channel == 1 ? settings.ChannelBWaveform ?? preset : preset;
+                var asset = channel == 1 ? settings.ChannelBWaveform ?? waveform : waveform;
                 var wave = builder.Add(BuiltInNodes.Playlist, new PlaylistNode(asset.Id,
                     settings.Playlist?.Select(w => w.Id).ToArray(), settings.Order, Phase: channel == 1 && settings.ChannelBWaveform is null && settings.OffsetChannelB ? .5 : 0));
                 waves.Add(wave.Id);

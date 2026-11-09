@@ -5,33 +5,33 @@ namespace YokoWave.Core.Bluetooth;
 internal abstract class BluetoothProtocolDriver(string id, BluetoothDeviceProfile profile, IBluetoothConnection link,
     Action<DeviceStatusUpdate> publish, Action<Exception> fault)
 {
-    protected string Id
-    { get; } = id;
-    public BluetoothDeviceProfile Profile
-    { get; } = profile;
-    protected IBluetoothConnection Link
-    { get; } = link;
-    protected Action<DeviceStatusUpdate> Publish
-    { get; } = publish;
-    public event Action<DeviceCommand>? CommandRequested;
-    protected void RequestCommand(DeviceCommand command) => CommandRequested?.Invoke(command);
     private Exception? _fault;
     private DeviceCommandHandlers? _commands;
+
+    protected string Id { get; } = id;
+    public BluetoothDeviceProfile Profile { get; } = profile;
+    protected IBluetoothConnection Link { get; } = link;
+    protected Action<DeviceStatusUpdate> Publish { get; } = publish;
+    public bool HasFault => Volatile.Read(ref _fault) is not null;
+    public event Action<DeviceCommand>? CommandRequested;
+    protected void RequestCommand(DeviceCommand command) => CommandRequested?.Invoke(command);
     protected virtual DeviceCommandHandlers CreateCommandHandlers() => new();
-    public Task ExecuteCommand(DeviceCommand command, CancellationToken ct)
+    public Task ExecuteCommandAsync(DeviceCommand command, CancellationToken cancellationToken)
     {
         command.Validate();
-        if (!Profile.Supports(command.Capability)) throw new LocalizedOperationException("Error.DeviceFeatures");
+        if (!Profile.Supports(command.Capability))
+            throw new LocalizedOperationException("Error.DeviceFeatures");
         if (command is ConfigureSensorStream { IndicatorColor: not 1 } && Profile.Protocol != BluetoothProtocol.Paw)
             throw new LocalizedArgumentException("Error.ProtocolSettings");
-        if (command is QueryDevice query && !Profile.SupportedQueries.Contains(query.Query)) throw new LocalizedOperationException("Error.DeviceFeatures");
-        return (_commands ??= CreateCommandHandlers()).ExecuteAsync(command, ct);
+        if (command is QueryDevice query && !Profile.SupportedQueries.Contains(query.Query))
+            throw new LocalizedOperationException("Error.DeviceFeatures");
+        return (_commands ??= CreateCommandHandlers()).ExecuteAsync(command, cancellationToken);
     }
-    public bool HasFault => Volatile.Read(ref _fault) is not null;
     protected void Reject(string key)
     {
         var error = new LocalizedOperationException(key);
-        if (Interlocked.CompareExchange(ref _fault, error, null) is null) fault(error);
+        if (Interlocked.CompareExchange(ref _fault, error, null) is null)
+            fault(error);
     }
     public void Check(OutputFrame frame)
     {
@@ -39,39 +39,49 @@ internal abstract class BluetoothProtocolDriver(string id, BluetoothDeviceProfil
         if (frame.NativeProgram is { } native)
         {
             native.ValidateOutput(frame);
-            if (!Profile.Supports(native.Settings.RequiredCapability)) throw new LocalizedOperationException("Error.ModeDeviceMismatch");
+            if (!Profile.Supports(native.Settings.RequiredCapability))
+                throw new LocalizedOperationException("Error.ModeDeviceMismatch");
         }
         if (frame.Hardware is { } hardware && (hardware.AuxiliaryMotor != AuxiliaryMotorMode.Off && !Profile.Supports(DeviceCapability.AuxiliaryMotor) ||
-            hardware.RelativeStrength && !Profile.Supports(DeviceCapability.RelativeStrength))) throw new LocalizedOperationException("Error.ModeDeviceMismatch");
+            hardware.RelativeStrength && !Profile.Supports(DeviceCapability.RelativeStrength)))
+        {
+            throw new LocalizedOperationException("Error.ModeDeviceMismatch");
+        }
+
         if (Profile.Domain == OutputDomain.Input && (frame.ChannelA > 0 || frame.ChannelB > 0 || frame.ChannelC > 0 || frame.Pump is not null))
             throw new LocalizedOperationException("Error.SensorOnly");
         if (_fault is { } error && (frame.ChannelA > 0 || frame.ChannelB > 0 || frame.ChannelC > 0 ||
-            frame.Hardware is { AuxiliaryMotor: not AuxiliaryMotorMode.Off } || frame.Pump is { Direction: not PumpDirection.Off } or { Water: true })) throw error;
+            frame.Hardware is { AuxiliaryMotor: not AuxiliaryMotorMode.Off } || frame.Pump is { Direction: not PumpDirection.Off } or { Water: true }))
+        {
+            throw error;
+        }
+
         frame.ValidateSamples();
     }
-    protected Task Write(byte[] packet, CancellationToken ct) => Link.WriteAsync(Profile.Write, packet, ct);
-    protected async Task Battery(GattAddress address, CancellationToken ct)
+    protected Task WriteAsync(byte[] packet, CancellationToken cancellationToken) => Link.WriteAsync(Profile.Write, packet, cancellationToken);
+    protected async Task QueryBatteryAsync(GattAddress address, CancellationToken cancellationToken)
     {
-        if (await Link.ReadAsync(address, ct) is { } data) OnNotification(new(address, data));
+        if (await Link.ReadAsync(address, cancellationToken).ConfigureAwait(false) is { } data)
+            OnNotification(new(address, data));
     }
-    protected static async Task Confirm(Task ready, CancellationToken ct, string key = "Error.BluetoothState")
+    protected static async Task ConfirmAsync(Task ready, CancellationToken cancellationToken, string key = "Error.BluetoothState")
     {
         try
         {
-            await ready.WaitAsync(TimeSpan.FromSeconds(3), ct);
+            await ready.WaitAsync(TimeSpan.FromSeconds(3), cancellationToken).ConfigureAwait(false);
         }
         catch (TimeoutException error)
         {
             throw new LocalizedIOException(key, error);
         }
     }
-    public abstract Task Initialize(CancellationToken ct);
-    public abstract Task Send(OutputFrame frame, CancellationToken ct);
-    public abstract Task Stop(CancellationToken ct);
-    public virtual Task Shutdown(CancellationToken ct) => Stop(ct);
+    public abstract Task InitializeAsync(CancellationToken cancellationToken);
+    public abstract Task SendAsync(OutputFrame frame, CancellationToken cancellationToken);
+    public abstract Task StopAsync(CancellationToken cancellationToken);
+    public virtual Task ShutdownAsync(CancellationToken cancellationToken) => StopAsync(cancellationToken);
     public abstract void OnNotification(GattNotification notification);
-    public virtual Task SetMotion(bool enabled, CancellationToken ct) => throw new LocalizedOperationException("Error.MotionUnavailable");
-    public virtual Task<ElectricalFeatureState> RefreshFeatures(CancellationToken ct) => throw new LocalizedOperationException("Error.DeviceFeatures");
-    public virtual Task<bool> SetLight(bool enabled, CancellationToken ct) => throw new LocalizedOperationException("Error.DeviceFeatures");
-    public virtual Task ResetInput(CancellationToken ct) => throw new LocalizedOperationException("Error.DeviceFeatures");
+    public virtual Task SetMotionAsync(bool enabled, CancellationToken cancellationToken) => throw new LocalizedOperationException("Error.MotionUnavailable");
+    public virtual Task<ElectricalFeatureState> RefreshFeaturesAsync(CancellationToken cancellationToken) => throw new LocalizedOperationException("Error.DeviceFeatures");
+    public virtual Task<bool> SetLightAsync(bool enabled, CancellationToken cancellationToken) => throw new LocalizedOperationException("Error.DeviceFeatures");
+    public virtual Task ResetInputAsync(CancellationToken cancellationToken) => throw new LocalizedOperationException("Error.DeviceFeatures");
 }

@@ -4,17 +4,29 @@ namespace YokoWave.App.ViewModels;
 
 public sealed class WaveformSampleRow : ObservableObject
 {
-    private WaveformSample _sample;
     private readonly Action _changed;
-    private bool _useChannels;
     private readonly double[] _channels = [1, 1, 1];
+    private WaveformSample _sample;
+    private bool _useChannels;
     private int _channelCount = 3;
     public double Level { get => _sample.Level; set => Update(_sample with { Level = value }); }
     public double FrequencyHz { get => _sample.FrequencyHz; set => Update(_sample with { FrequencyHz = value }); }
     public double PulseWidth { get => _sample.PulseWidth; set => Update(_sample with { PulseWidth = value }); }
-    public bool UseChannels { get => _useChannels; set { if (Set(ref _useChannels, value)) _changed(); } }
+    public bool UseChannels
+    {
+        get => _useChannels;
+        set { if (Set(ref _useChannels, value)) _changed(); }
+    }
     public IReadOnlyList<SessionOption> ChannelCounts { get; } = Enumerable.Range(1, 3).Select(n => new SessionOption(n, "Wave.ChannelCount", n)).ToArray();
-    public SessionOption ChannelCount { get => ChannelCounts.Single(c => c.Value == _channelCount); set { if (value is not null && Set(ref _channelCount, value.Value)) _changed(); } }
+    public SessionOption ChannelCount
+    {
+        get => ChannelCounts.Single(c => c.Value == _channelCount);
+        set
+        {
+            if (value is not null && Set(ref _channelCount, value.Value))
+                _changed();
+        }
+    }
     public double ChannelA { get => _channels[0]; set => Channel(0, value); }
     public double ChannelB { get => _channels[1]; set => Channel(1, value); }
     public double ChannelC { get => _channels[2]; set => Channel(2, value); }
@@ -29,6 +41,9 @@ public sealed class WaveformSampleRow : ObservableObject
             channels.CopyTo(_channels, 0);
         }
     }
+
+    public WaveformSample Snapshot() => _sample with { Channels = UseChannels ? _channels.Take(_channelCount).ToArray() : null };
+
     private void Update(WaveformSample sample)
     {
         if (!sample.IsValid || sample == _sample)
@@ -47,7 +62,6 @@ public sealed class WaveformSampleRow : ObservableObject
         Raise(channel switch { 0 => nameof(ChannelA), 1 => nameof(ChannelB), _ => nameof(ChannelC) });
         _changed();
     }
-    public WaveformSample Snapshot() => _sample with { Channels = UseChannels ? _channels.Take(_channelCount).ToArray() : null };
 }
 
 public sealed class WaveformSamplesEditorViewModel(IEnumerable<WaveformSample> samples, Action changed)

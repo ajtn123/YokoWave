@@ -5,10 +5,11 @@ namespace YokoWave.App.ViewModels.Pipelines;
 
 public sealed class NativeOutputEditorViewModel : DeviceOutputEditorViewModel
 {
-    public bool StopWhenComplete { get => _settings.StopWhenComplete; set => Change(() => _settings = _settings with { StopWhenComplete = value }); }
     private NativeOutputNode _settings;
     private NativeProgramSettings _program;
+    public bool StopWhenComplete { get => _settings.StopWhenComplete; set => Change(() => _settings = _settings with { StopWhenComplete = value }); }
     public NativeProgramEditorViewModel NativeEditor { get; }
+    public string ValidationError => NativeEditor.ValidationError is { } key ? Core.Localization.L10n.Get(key) : "";
     public NativeOutputEditorViewModel(PipelineEditorViewModel editor, NodeDefinition definition) : base(editor, definition,
         ((NativeOutputNode)editor.Registry.Get(definition.Type).Read(definition.Configuration)).DeviceId)
     {
@@ -26,7 +27,6 @@ public sealed class NativeOutputEditorViewModel : DeviceOutputEditorViewModel
         };
         RefreshDevices();
     }
-    public string ValidationError => NativeEditor.ValidationError is { } key ? Core.Localization.L10n.Get(key) : "";
     protected override NodeDefinition BuildDefinition() => NodeDefinition.Create(Type, _settings with
     {
         DeviceId = DeviceId,

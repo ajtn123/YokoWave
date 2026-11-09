@@ -4,16 +4,16 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
+using Xunit;
 using YokoWave.App.Controls;
 using YokoWave.App.ViewModels;
 using YokoWave.Core;
-using Xunit;
 
 namespace YokoWave.Tests;
 
 public sealed class ReviewUiTests
 {
-    private static readonly TimeSpan Deadline = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan _deadline = TimeSpan.FromSeconds(3);
 
     [AvaloniaFact]
     public async Task CommandsDispatchToUiRejectReentryAndRecoverWhenErrorReportingOrSubscribersThrow()
@@ -21,8 +21,8 @@ public sealed class ReviewUiTests
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var reported = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var calls = 0;
-        var notifications = 0;
+        int calls = 0;
+        int notifications = 0;
         var command = new AsyncCommand(async () =>
         {
             Assert.True(Dispatcher.UIThread.CheckAccess());
@@ -30,16 +30,24 @@ public sealed class ReviewUiTests
             entered.TrySetResult();
             await release.Task;
             throw new InvalidOperationException("execution");
-        }, _ => { reported.TrySetResult(); throw new InvalidOperationException("reporting"); });
+        }, _ =>
+                {
+                    reported.TrySetResult();
+                    throw new InvalidOperationException("reporting");
+                });
         command.CanExecuteChanged += (_, _) => throw new InvalidOperationException("subscriber");
-        command.CanExecuteChanged += (_, _) => { Assert.True(Dispatcher.UIThread.CheckAccess()); notifications++; };
+        command.CanExecuteChanged += (_, _) =>
+        {
+            Assert.True(Dispatcher.UIThread.CheckAccess());
+            notifications++;
+        };
         await Task.Run(() => command.Execute(null), TestContext.Current.CancellationToken);
-        await entered.Task.WaitAsync(Deadline, TestContext.Current.CancellationToken);
+        await entered.Task.WaitAsync(_deadline, TestContext.Current.CancellationToken);
         Assert.False(command.CanExecute(null));
         command.Execute(null);
         Assert.Equal(1, calls);
         release.TrySetResult();
-        await reported.Task.WaitAsync(Deadline, TestContext.Current.CancellationToken);
+        await reported.Task.WaitAsync(_deadline, TestContext.Current.CancellationToken);
         Assert.True(command.CanExecute(null));
         Assert.Equal(2, notifications);
     }
@@ -49,7 +57,7 @@ public sealed class ReviewUiTests
     {
         var plot = new WaveformPlot
         {
-            Preset = new(Guid.NewGuid(), "sine", WaveShape.Sine, 4, 20),
+            Waveform = new(Guid.NewGuid(), "sine", WaveShape.Sine, 4, 20),
             ShowGrid = false,
             ChannelABrush = Brushes.Red,
             ChannelBBrush = Brushes.Blue,
@@ -62,26 +70,29 @@ public sealed class ReviewUiTests
         window.Show();
         try
         {
-            var initial = Capture(window);
+            byte[] initial = Capture(window);
             plot.Playhead = .25;
-            var playhead = Capture(window);
+            byte[] playhead = Capture(window);
             Assert.False(initial.AsSpan().SequenceEqual(playhead));
             plot.AmplitudeA = 20;
-            var amplitude = Capture(window);
+            byte[] amplitude = Capture(window);
             Assert.False(playhead.AsSpan().SequenceEqual(amplitude));
-            plot.Preset = plot.Preset with
+            plot.Waveform = plot.Waveform with
             {
                 Shape = WaveShape.Triangle
             };
-            var preset = Capture(window);
-            Assert.False(amplitude.AsSpan().SequenceEqual(preset));
+            byte[] waveform = Capture(window);
+            Assert.False(amplitude.AsSpan().SequenceEqual(waveform));
             plot.ChannelABrush = Brushes.Purple;
-            var color = Capture(window);
-            Assert.False(preset.AsSpan().SequenceEqual(color));
+            byte[] color = Capture(window);
+            Assert.False(waveform.AsSpan().SequenceEqual(color));
             window.Width = 450;
             Assert.False(color.AsSpan().SequenceEqual(Capture(window)));
         }
-        finally { window.Close(); }
+        finally
+        {
+            window.Close();
+        }
     }
 
     private static byte[] Capture(Window window)

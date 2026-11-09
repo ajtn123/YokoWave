@@ -18,7 +18,10 @@ public sealed partial class MainView : UserControl
                 {
                     await vm.InitializeAsync();
                 }
-                catch (Exception e) { vm.ShowError(e); }
+                catch (Exception error)
+                {
+                    vm.ShowError(error);
+                }
             }
         };
         SizeChanged += (_, _) => UpdateLayoutMode();
@@ -26,10 +29,9 @@ public sealed partial class MainView : UserControl
 
     private void UpdateLayoutMode()
     {
-        var compact = Bounds.Width < (double)this.FindResource("Layout.CompactBreakpoint")!;
+        bool compact = Bounds.Width < (double)this.FindResource("Layout.CompactBreakpoint")!;
         Sidebar.IsVisible = !compact;
         Shell.ColumnDefinitions[0].Width = new GridLength(compact ? 0 : (double)this.FindResource("Layout.SidebarWidth")!);
         CompactNav.IsVisible = compact;
     }
-
 }

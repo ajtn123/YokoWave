@@ -9,8 +9,8 @@ public sealed record GattDeviceNotification(string DeviceId, GattNotification No
 public interface IRawGattTransport
 {
     event Action<GattDeviceNotification>? GattNotificationReceived;
-    Task<GattDescription> OpenGattAsync(string id, Guid lease, CancellationToken ct = default);
-    Task<byte[]?> ReadGattAsync(string id, Guid lease, GattAddress address, CancellationToken ct = default);
-    Task WriteGattAsync(string id, Guid lease, IReadOnlyList<GattWrite> writes, CancellationToken ct = default);
-    Task CloseGattAsync(string id, Guid lease, CancellationToken ct = default);
+    Task<GattDescription> OpenGattAsync(string id, Guid lease, CancellationToken cancellationToken = default);
+    Task<byte[]?> ReadGattAsync(string id, Guid lease, GattAddress address, CancellationToken cancellationToken = default);
+    Task WriteGattAsync(string id, Guid lease, IReadOnlyList<GattWrite> writes, CancellationToken cancellationToken = default);
+    Task CloseGattAsync(string id, Guid lease, CancellationToken cancellationToken = default);
 }

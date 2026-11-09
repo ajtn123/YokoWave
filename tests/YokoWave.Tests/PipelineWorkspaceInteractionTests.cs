@@ -9,15 +9,15 @@ using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Nodify.Avalonia;
+using Xunit;
 using YokoWave.App.ViewModels;
+using YokoWave.App.ViewModels.Pipelines;
 using YokoWave.App.Views;
 using YokoWave.App.Views.Components;
 using YokoWave.App.Views.Pipelines;
-using YokoWave.App.ViewModels.Pipelines;
 using YokoWave.Core;
 using YokoWave.Core.Localization;
 using YokoWave.Pipelines;
-using Xunit;
 
 namespace YokoWave.Tests;
 
@@ -64,7 +64,7 @@ public sealed class PipelineWorkspaceInteractionTests
             Assert.True(input.IsFocused);
             dialog.KeyTextInput("custom pipeline template");
             dialog.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, "\r");
-            for (var i = 0; i < 100 && vm.Pipelines.SelectedTemplate?.Name != "custom pipeline template"; i++)
+            for (int i = 0; i < 100 && vm.Pipelines.SelectedTemplate?.Name != "custom pipeline template"; i++)
             {
                 Dispatcher.UIThread.RunJobs();
                 await Task.Delay(10, TestContext.Current.CancellationToken);
@@ -89,11 +89,11 @@ public sealed class PipelineWorkspaceInteractionTests
         await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new(directory.Path));
         await vm.InitializeAsync();
         var editor = vm.Pipelines.Selected!;
-        Assert.Empty(vm.Pipelines.UnassignedDevices);
+        Assert.Empty(vm.Pipelines.DeviceGroups.UnassignedDevices);
         foreach (var device in vm.Devices.Devices.Where(d => d.Device.Kind == DeviceKind.DualChannel))
             await vm.Devices.ToggleConnectionAsync(device);
         Dispatcher.UIThread.RunJobs();
-        var cards = vm.Pipelines.UnassignedDevices.Where(c => c.Device?.Device.Kind == DeviceKind.DualChannel).ToArray();
+        var cards = vm.Pipelines.DeviceGroups.UnassignedDevices.Where(c => c.Device?.Device.Kind == DeviceKind.DualChannel).ToArray();
         Assert.Equal(2, cards.Length);
         var nodeIds = editor.Nodes.Select(n => n.Id).ToArray();
         var connections = editor.Connections.Select(c => c.Definition).ToArray();
@@ -104,8 +104,15 @@ public sealed class PipelineWorkspaceInteractionTests
             card.AssignmentCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
         }
-        var group = Assert.Single(vm.Pipelines.Groups);
+        var group = Assert.Single(vm.Pipelines.DeviceGroups.Groups);
         Assert.Equal(2, group.Devices.Count);
+        var groupedCards = group.Devices.ToArray();
+        vm.Devices.Refresh();
+        vm.Pipelines.Selected = null;
+        vm.Pipelines.Selected = editor;
+        Dispatcher.UIThread.RunJobs();
+        Assert.Same(group, Assert.Single(vm.Pipelines.DeviceGroups.Groups));
+        Assert.Equal(groupedCards, group.Devices);
         Assert.Equal(nodeIds, editor.Nodes.Select(n => n.Id));
         Assert.Equal(connections, editor.Connections.Select(c => c.Definition));
         Assert.Equal(layout, editor.ToDocument().Layout);
@@ -116,7 +123,7 @@ public sealed class PipelineWorkspaceInteractionTests
         await vm.Pipelines.SaveAsync();
         var stored = Assert.Single(await new PipelineStore(directory.Path).LoadAsync());
         Assert.Equal(2, stored.AssignedDevices!.Length);
-        Assert.DoesNotContain(vm.Pipelines.UnassignedDevices, c => cards.Select(d => d.Id).Contains(c.Id));
+        Assert.DoesNotContain(vm.Pipelines.DeviceGroups.UnassignedDevices, c => cards.Select(d => d.Id).Contains(c.Id));
         await editor.StartAsync();
         Dispatcher.UIThread.RunJobs();
         Assert.All(group.Devices, card => Assert.False(card.AssignmentCommand.CanExecute(null)));
@@ -128,7 +135,7 @@ public sealed class PipelineWorkspaceInteractionTests
         Assert.Equal(nodeIds, editor.Nodes.Select(n => n.Id));
         Assert.Equal(connections, editor.Connections.Select(c => c.Definition));
         Assert.Equal(2, editor.Nodes.Count(n => n.Type == BuiltInNodes.ChannelOutput));
-        Assert.Single(vm.Pipelines.UnassignedDevices, c => cards.Select(d => d.Id).Contains(c.Id));
+        Assert.Single(vm.Pipelines.DeviceGroups.UnassignedDevices, c => cards.Select(d => d.Id).Contains(c.Id));
         await editor.StartAsync();
         await editor.StopAsync();
         var remaining = Assert.Single(group.Devices).Device;
@@ -165,13 +172,13 @@ public sealed class PipelineWorkspaceInteractionTests
             editor.SelectedNodes.Add(node);
         editor.DeleteSelectionCommand.Execute(null);
         Assert.Empty(editor.Nodes);
-        var first = vm.Pipelines.UnassignedDevices[0];
+        var first = vm.Pipelines.DeviceGroups.UnassignedDevices[0];
         first.AssignmentCommand.Execute(null);
         Assert.Empty(editor.Nodes);
         Assert.Contains(first.Id, editor.AssignedDeviceIds);
         Assert.False(editor.CanStart);
         var output = Assert.IsType<ChannelOutputEditorViewModel>(editor.AddNode(BuiltInNodes.ChannelOutput));
-        var second = vm.Pipelines.UnassignedDevices.Single();
+        var second = vm.Pipelines.DeviceGroups.UnassignedDevices.Single();
         second.AssignmentCommand.Execute(null);
         Assert.Equal(output.Id, Assert.Single(editor.Nodes).Id);
         Assert.Equal(second.Id, Assert.Single(editor.Nodes.OfType<ChannelOutputEditorViewModel>()).DeviceId);
@@ -206,7 +213,7 @@ public sealed class PipelineWorkspaceInteractionTests
         editor.AddNode(BuiltInNodes.ChannelOutput);
         editor.AddNode(BuiltInNodes.ChannelOutput);
         var nodeIds = editor.Nodes.Select(n => n.Id).ToArray();
-        foreach (var card in vm.Pipelines.UnassignedDevices.ToArray())
+        foreach (var card in vm.Pipelines.DeviceGroups.UnassignedDevices.ToArray())
             card.AssignmentCommand.Execute(null);
         Assert.Equal(nodeIds, editor.Nodes.Select(n => n.Id));
         Assert.Equal(2, editor.Nodes.OfType<ChannelOutputEditorViewModel>().Select(n => n.DeviceId).Distinct().Count());
@@ -235,7 +242,7 @@ public sealed class PipelineWorkspaceInteractionTests
             Assert.Equal(template.Bounds.Height, create.Bounds.Height);
             Assert.Equal(template.Bounds.Height, name.Bounds.Height);
             var label = create.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text == L10n.Get("Mode.Add"));
-            var center = label.TranslatePoint(new Point(0, label.Bounds.Height / 2), create)!.Value.Y;
+            double center = label.TranslatePoint(new Point(0, label.Bounds.Height / 2), create)!.Value.Y;
             Assert.InRange(Math.Abs(center - create.Bounds.Height / 2), 0, 1);
             var workspace = window.GetVisualDescendants().OfType<PipelinesWorkspaceView>().Single();
             var pipelineCards = workspace.GetVisualDescendants().OfType<DeviceCardView>().ToArray();
@@ -266,7 +273,7 @@ public sealed class PipelineWorkspaceInteractionTests
             var position = canvas.MouseLocation;
             var add = Assert.IsType<MenuItem>(menu.Items[0]);
             var constant = add.Items.Cast<MenuItem>().Single(i => Equals(i.Header, L10n.Get("Pipeline.Node.Constant")));
-            var count = editor.Nodes.Count;
+            int count = editor.Nodes.Count;
             constant.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
             Assert.Equal(count + 1, editor.Nodes.Count);
             Assert.Equal(position, editor.Nodes.Last().Location);
@@ -276,7 +283,7 @@ public sealed class PipelineWorkspaceInteractionTests
             window.MouseUp(at + new Vector(60, 20), MouseButton.Right);
             Dispatcher.UIThread.RunJobs();
             Assert.False(menu.IsOpen);
-            var card = vm.Pipelines.UnassignedDevices.First(c => c.Device?.Device.Kind == DeviceKind.DualChannel);
+            var card = vm.Pipelines.DeviceGroups.UnassignedDevices.First(c => c.Device?.Device.Kind == DeviceKind.DualChannel);
             var sharedCard = workspace.GetVisualDescendants().OfType<DeviceCardView>().Single(v => ReferenceEquals(v.DataContext, card.Device));
             Assert.Same(card.AssignmentCommand, sharedCard.AssignmentCommand);
             Assert.Equal(card.AssignmentAction, sharedCard.AssignmentLabel);
@@ -307,19 +314,19 @@ public sealed class PipelineWorkspaceInteractionTests
             foreach (var checkbox in toolbar.GetVisualDescendants().OfType<CheckBox>())
             {
                 var checkboxLabel = checkbox.GetVisualDescendants().OfType<TextBlock>().Single(t => t.IsEffectivelyVisible);
-                var labelCenter = checkboxLabel.TranslatePoint(new Point(0, checkboxLabel.Bounds.Height / 2), checkbox)!.Value.Y;
+                double labelCenter = checkboxLabel.TranslatePoint(new Point(0, checkboxLabel.Bounds.Height / 2), checkbox)!.Value.Y;
                 Assert.InRange(Math.Abs(labelCenter - checkbox.Bounds.Height / 2), 0, 1);
                 var square = checkbox.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "NormalRectangle");
-                var squareCenter = square.TranslatePoint(new Point(0, square.Bounds.Height / 2), checkbox)!.Value.Y;
+                double squareCenter = square.TranslatePoint(new Point(0, square.Bounds.Height / 2), checkbox)!.Value.Y;
                 Assert.InRange(Math.Abs(squareCenter - labelCenter), 0, 1);
             }
             var thumb = slider.GetVisualDescendants().OfType<Avalonia.Controls.Primitives.Thumb>().Single();
-            var thumbCenter = thumb.TranslatePoint(new Point(0, thumb.Bounds.Height / 2), toolbar)!.Value.Y;
+            double thumbCenter = thumb.TranslatePoint(new Point(0, thumb.Bounds.Height / 2), toolbar)!.Value.Y;
             Assert.InRange(Math.Abs(thumbCenter - toolbar.Bounds.Height / 2), 0, 1);
             using (var timerFrame = window.CaptureRenderedFrame())
             {
                 Assert.NotNull(timerFrame);
-                var timerScreenshots = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../artifacts/screenshots"));
+                string timerScreenshots = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../artifacts/screenshots"));
                 Directory.CreateDirectory(timerScreenshots);
                 timerFrame.Save(Path.Combine(timerScreenshots, "pipeline-toolbar-timer.png"), PngBitmapEncoderOptions.Default);
             }
@@ -336,13 +343,13 @@ public sealed class PipelineWorkspaceInteractionTests
             Assert.InRange(progress.Bounds.Left, 0, track.Bounds.Width);
             Assert.InRange(progress.Bounds.Right, 0, track.Bounds.Width);
             var timerReadout = timer.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Classes.Contains("pipeline-timer-readout"));
-            var progressRight = progress.TranslatePoint(new Point(progress.Bounds.Width, 0), timer)!.Value.X;
-            var readoutLeft = timerReadout.TranslatePoint(default, timer)!.Value.X;
+            double progressRight = progress.TranslatePoint(new Point(progress.Bounds.Width, 0), timer)!.Value.X;
+            double readoutLeft = timerReadout.TranslatePoint(default, timer)!.Value.X;
             Assert.True(progressRight <= readoutLeft);
             using (var runningFrame = window.CaptureRenderedFrame())
             {
                 Assert.NotNull(runningFrame);
-                var runningScreenshots = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../artifacts/screenshots"));
+                string runningScreenshots = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../artifacts/screenshots"));
                 Directory.CreateDirectory(runningScreenshots);
                 runningFrame.Save(Path.Combine(runningScreenshots, "pipeline-toolbar-running.png"), PngBitmapEncoderOptions.Default);
             }
@@ -364,19 +371,19 @@ public sealed class PipelineWorkspaceInteractionTests
             Dispatcher.UIThread.RunJobs();
             using var frame = window.CaptureRenderedFrame();
             Assert.NotNull(frame);
-            var screenshots = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../artifacts/screenshots"));
+            string screenshots = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../artifacts/screenshots"));
             Directory.CreateDirectory(screenshots);
             frame.Save(Path.Combine(screenshots, "pipeline-device-groups.png"), PngBitmapEncoderOptions.Default);
             await vm.Pipelines.SaveAsync();
-            var document = await File.ReadAllTextAsync(Path.Combine(directory.Path, "pipelines.json"), TestContext.Current.CancellationToken);
+            string document = await File.ReadAllTextAsync(Path.Combine(directory.Path, "pipelines.json"), TestContext.Current.CancellationToken);
             Assert.DoesNotContain("OutputLimit", document);
             Assert.Contains("Limit", document);
             editor.SelectedNodes.Clear();
             editor.SelectedNodes.Add(editor.Nodes.OfType<PlaylistEditorViewModel>().First());
-            var originalLanguage = L10n.Current.Language;
+            string originalLanguage = L10n.Current.Language;
             try
             {
-                foreach (var language in new[] { "en", "zh-CN" })
+                foreach (string? language in new[] { "en", "zh-CN" })
                 {
                     L10n.Current.SetLanguage(language);
                     Dispatcher.UIThread.RunJobs();
@@ -391,7 +398,10 @@ public sealed class PipelineWorkspaceInteractionTests
                 Assert.NotNull(playlistFrame);
                 playlistFrame.Save(Path.Combine(screenshots, "playlist-actions-inline.png"), PngBitmapEncoderOptions.Default);
             }
-            finally { L10n.Current.SetLanguage(originalLanguage); }
+            finally
+            {
+                L10n.Current.SetLanguage(originalLanguage);
+            }
             await vm.NavigateAsync("devices");
             Dispatcher.UIThread.RunJobs();
             var deviceCards = window.GetVisualDescendants().OfType<DeviceCardView>().Where(v => v.IsEffectivelyVisible).ToArray();
@@ -402,7 +412,7 @@ public sealed class PipelineWorkspaceInteractionTests
                 var cardBorder = Assert.IsType<Border>(deviceCard.Content);
                 var connect = deviceCard.GetVisualDescendants().OfType<Button>().Single(b => b.Classes.Contains("connection-action"));
                 Assert.True(connect.IsEffectivelyVisible);
-                var right = connect.TranslatePoint(new Point(connect.Bounds.Width, 0), cardBorder)!.Value.X;
+                double right = connect.TranslatePoint(new Point(connect.Bounds.Width, 0), cardBorder)!.Value.X;
                 Assert.True(cardBorder.Bounds.Width - right >= cardBorder.Padding.Right);
                 Assert.True(cardBorder.Padding.Right > 0);
             }
@@ -410,6 +420,9 @@ public sealed class PipelineWorkspaceInteractionTests
             Assert.NotNull(devicesFrame);
             devicesFrame.Save(Path.Combine(screenshots, "device-auto-connect.png"), PngBitmapEncoderOptions.Default);
         }
-        finally { window.Close(); }
+        finally
+        {
+            window.Close();
+        }
     }
 }

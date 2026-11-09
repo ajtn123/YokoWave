@@ -11,9 +11,11 @@ public sealed class JsonLocalizer : INotifyPropertyChanged
     public static string SystemLanguage { get; } = NormalizeLanguage(CultureInfo.CurrentUICulture.Name);
     public string Language { get; private set; }
     public CultureInfo Culture => CultureInfo.GetCultureInfo(Language);
-    public event PropertyChangedEventHandler? PropertyChanged;
     public IReadOnlyDictionary<string, string> English => _english;
     public IReadOnlyDictionary<string, string> Chinese => _chinese;
+
+    public string this[string key] => Get(key);
+    public event PropertyChangedEventHandler? PropertyChanged;
 
     public JsonLocalizer(string? language = null)
         : this(ReadCatalog("en"), ReadCatalog("zh-CN"), language ?? SystemLanguage) { }
@@ -25,20 +27,20 @@ public sealed class JsonLocalizer : INotifyPropertyChanged
         _chinese = chinese;
         Language = NormalizeLanguage(language);
     }
-
-    public string this[string key] => Get(key);
     public string Get(string key)
     {
         var catalog = Language == "zh-CN" ? _chinese : _english;
-        if (catalog.TryGetValue(key, out var value)) return value;
+        if (catalog.TryGetValue(key, out string? value))
+            return value;
         return _english.TryGetValue(key, out value) ? value : $"[{key}]";
     }
     public string Format(string key, params object?[] arguments) => string.Format(Culture, Get(key), arguments);
 
     public void SetLanguage(string? language)
     {
-        var normalized = NormalizeLanguage(language);
-        if (normalized == Language) return;
+        string normalized = NormalizeLanguage(language);
+        if (normalized == Language)
+            return;
         Language = normalized;
         PropertyChanged?.Invoke(this, new(nameof(Language)));
         PropertyChanged?.Invoke(this, new(nameof(Culture)));
@@ -48,7 +50,8 @@ public sealed class JsonLocalizer : INotifyPropertyChanged
     // Also displays reason strings written by the original schema in either supported language.
     public string TranslateStored(string value, string prefix)
     {
-        if (value.StartsWith(prefix, StringComparison.Ordinal) && _english.ContainsKey(value)) return Get(value);
+        if (value.StartsWith(prefix, StringComparison.Ordinal) && _english.ContainsKey(value))
+            return Get(value);
         var match = _english.Concat(_chinese).FirstOrDefault(p => p.Key.StartsWith(prefix, StringComparison.Ordinal) && p.Value == value);
         return match.Key is null ? value : Get(match.Key);
     }
