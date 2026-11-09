@@ -9,6 +9,7 @@ internal sealed class FakeAudioInputFactory(TimeProvider? clock = null) : IAudio
     public List<AudioSettings> Requests { get; } = [];
     public List<FakeAudioInputSession> Sessions { get; } = [];
     public bool BlockStart { get; set; }
+    public Exception? StartError { get; set; }
     public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public async Task<IAudioInputSession> StartAsync(AudioSettings settings, CancellationToken cancellationToken)
     {
@@ -17,6 +18,8 @@ internal sealed class FakeAudioInputFactory(TimeProvider? clock = null) : IAudio
         if (BlockStart)
             await Task.Delay(Timeout.Infinite, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
+        if (StartError is { } error)
+            throw error;
         var session = new FakeAudioInputSession(clock ?? TimeProvider.System);
         Sessions.Add(session);
         return session;

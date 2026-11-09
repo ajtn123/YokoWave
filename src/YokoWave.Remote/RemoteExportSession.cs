@@ -129,7 +129,7 @@ public sealed class RemoteExportSession : IAsyncDisposable
                 {
                     if (lease.Type != RemoteLeaseType.Gatt)
                         throw new RemoteRpcException(-32003, "Error.RemoteLeaseType");
-                    return await DispatchGatt(lease, method, parameters, operation.Token);
+                    return await lease.Gatt!.ExecuteAsync(method, parameters, operation.Token);
                 }
                 if (!method.StartsWith("control.", StringComparison.Ordinal) || lease.Type != RemoteLeaseType.Control)
                     throw new RemoteRpcException(-32601, "Error.RemoteMethod");
@@ -158,12 +158,13 @@ public sealed class RemoteExportSession : IAsyncDisposable
         if (_leases.Values.Any(lease => lease.PublicIds.Intersect(ids).Any()))
             throw new RemoteRpcException(-32002, "Error.DeviceInUse");
         var lease = new RemoteDeviceLease(peer, type, ids, ids.Select(id => _exports[id]).ToArray(), _devices, _owner, Settings.ControlLimit,
-            () => _clock.ElapsedMilliseconds, _controlDevices);
+            () => _clock.ElapsedMilliseconds, Describe, _controlDevices);
         _leases.Add(lease.Id, lease);
         try
         {
-            if (type == RemoteLeaseType.Gatt)
-                await RegisterDescriptions(lease, ct);
+            if (lease.Gatt is { } gatt)
+                await gatt.OpenAsync(ct);
+            Volatile.Write(ref _notificationLeases, _leases.Values.ToArray());
             return new(lease.Id, type, ids, Settings.LeaseMilliseconds);
         }
         catch (Exception error)
@@ -176,66 +177,24 @@ public sealed class RemoteExportSession : IAsyncDisposable
             throw;
         }
     }
-    private string Local(RemoteDeviceLease lease, JsonElement parameters)
-    {
-        var id = RemoteProtocol.Parameter<string>(parameters, "deviceId");
-        if (!lease.PublicIds.Contains(id))
-            throw new RemoteRpcException(-32003, "Error.RemoteLease");
-        return _exports[id];
-    }
-    private async Task<object?> DispatchGatt(RemoteDeviceLease lease, string method, JsonElement parameters, CancellationToken ct)
-    {
-        var local = Local(lease, parameters);
-        switch (method)
-        {
-            case "gatt.describe":
-                return new RemoteGattDescription(Describe(LocalExportId(local)), lease.Descriptions[local].Attributes.ToArray(), lease.Descriptions[local].MaximumWriteLength);
-            case "gatt.read":
-                return await _devices.RawGatt.ReadGattAsync(local, lease.Id, RemoteProtocol.Parameter<GattAddress>(parameters, "address"), ct);
-            case "gatt.write":
-                await _devices.RawGatt.WriteGattAsync(local, lease.Id, [RemoteProtocol.Parameter<GattWrite>(parameters, "write")], ct);
-                return true;
-            case "gatt.batch":
-                await _devices.RawGatt.WriteGattAsync(local, lease.Id, RemoteProtocol.Parameter<GattWrite[]>(parameters, "writes"), ct);
-                return true;
-            case "gatt.subscribe":
-            case "gatt.unsubscribe":
-                var address = RemoteProtocol.Parameter<GattAddress>(parameters, "address");
-                if (!lease.Descriptions[local].Attributes.Any(attribute => attribute.Notify && attribute.Address == address))
-                    throw new RemoteRpcException(-32602, "Error.DeviceFeatures");
-                if (method == "gatt.subscribe")
-                    lease.Subscriptions.TryAdd((local, address), 0);
-                else
-                    lease.Subscriptions.TryRemove((local, address), out _);
-                return true;
-            default:
-                throw new RemoteRpcException(-32601, "Error.RemoteMethod");
-        }
-    }
     private void OnGattNotification(GattDeviceNotification notification)
     {
         // Notifications may be synchronous inside a GATT write, so never acquire the operation gate here.
         foreach (var lease in Volatile.Read(ref _notificationLeases))
-            if (lease.Subscriptions.ContainsKey((notification.DeviceId, notification.Notification.Address)))
-                lease.Peer.Peer.Notify("gatt.notification", new RemoteGattNotification(lease.Id, LocalExportId(notification.DeviceId), notification.Notification, _clock.ElapsedMilliseconds));
+            lease.Gatt?.OnNotification(notification);
     }
     private RemoteDeviceLease[] _notificationLeases = [];
     private async Task CloseLease(RemoteDeviceLease lease, CancellationToken ct)
     {
         lease.Faulted = true;
         List<Exception> errors = [];
-        if (lease.Type == RemoteLeaseType.Gatt)
+        if (lease.Gatt is { } gatt)
         {
-            foreach (var local in lease.Descriptions.Keys)
+            try
             {
-                if (!_devices.Connections.ContainsKey(local))
-                    continue;
-                try
-                {
-                    await _devices.RawGatt.CloseGattAsync(local, lease.Id, ct);
-                }
-                catch (Exception error) { errors.Add(error); }
+                await gatt.CloseAsync(ct);
             }
+            catch (Exception error) { errors.Add(error); }
         }
         try
         {
@@ -356,12 +315,6 @@ public sealed class RemoteExportSession : IAsyncDisposable
             await _loop;
             _lifetime.Dispose();
         }
-    }
-    internal async Task RegisterDescriptions(RemoteDeviceLease lease, CancellationToken ct)
-    {
-        foreach (var id in lease.LocalIds)
-            lease.Descriptions[id] = await _devices.RawGatt.OpenGattAsync(id, lease.Id, ct);
-        Volatile.Write(ref _notificationLeases, _leases.Values.ToArray());
     }
     public async Task SetPausedAsync(bool paused)
     {

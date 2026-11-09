@@ -22,7 +22,7 @@ public sealed class PipelineSession : IAsyncDisposable
     private PipelinePlan? _plan;
     private long _lastTimestamp;
     private TimeSpan _elapsed;
-    private readonly Dictionary<string, PumpOutput?> _sentPumps = [];
+    private PipelineOutputDispatcher _outputs;
     private bool _disposed;
     public Guid OwnerId { get; }
     private IReadOnlyDictionary<Guid, PipelineNodeStatus> _lastNodeStatus = EmptyStatus;
@@ -38,7 +38,6 @@ public sealed class PipelineSession : IAsyncDisposable
     public event EventHandler? Changed;
     public event EventHandler<SessionRecord>? Completed;
     private DateTimeOffset _startedAt;
-    private double _peakA, _peakB, _peakC;
     private bool _recorded;
 
     public PipelineSession(DeviceController controller, PipelineServices? services = null, Guid? ownerId = null, bool retainOwnership = false)
@@ -47,6 +46,7 @@ public sealed class PipelineSession : IAsyncDisposable
         _retainOwnership = retainOwnership;
         _services = services ?? new();
         OwnerId = ownerId ?? Guid.NewGuid();
+        _outputs = new(controller, OwnerId);
         _controller.Faulted += OnDeviceFault;
     }
     private void OnDeviceFault(object? sender, DeviceTransportFault fault)
@@ -90,11 +90,11 @@ public sealed class PipelineSession : IAsyncDisposable
             Error = null;
             _plan = plan;
             _elapsed = TimeSpan.Zero;
-            _sentPumps.Clear();
+            _outputs = new(_controller, OwnerId);
             _recorded = false;
             _lastNodeStatus = EmptyStatus;
             _startedAt = default;
-            _peakA = _peakB = _peakC = 0;
+            LastFrame = null;
             List<PipelineDiagnostic> resourceErrors = [];
             PipelineCompiler.ValidateResources(plan.Nodes, _controller.Connections.ToDictionary(c => c.Key, c => c.Value.Device), resourceErrors);
             if (resourceErrors.Count > 0)
@@ -137,6 +137,11 @@ public sealed class PipelineSession : IAsyncDisposable
             try
             {
                 await CleanupAsync();
+                _runtime = null;
+                _plan = null;
+                _startedAt = default;
+                _lastNodeStatus = EmptyStatus;
+                LastFrame = null;
                 State = PipelineState.Idle;
             }
             catch (Exception cleanup)
@@ -238,48 +243,7 @@ public sealed class PipelineSession : IAsyncDisposable
             await participant.CaptureAsync(_runtime!.Inputs, _cancellation?.Token ?? CancellationToken.None).ConfigureAwait(false);
         LastFrame = _runtime!.Evaluate(_elapsed, _controller.Clock.GetUtcNow());
         if (_runtime.CompletionReason is null)
-            await SubmitAsync(LastFrame).ConfigureAwait(false);
-    }
-
-    private async Task SubmitAsync(PipelineFrame frame)
-    {
-        foreach (var command in frame.Commands ?? [])
-            await _controller.ExecuteCommandAsync(command.DeviceId, command.Command, OwnerId).ConfigureAwait(false);
-        var pending = frame.Outputs.Where(pair => pair.Value.Pump is not { } pump ||
-            !_sentPumps.TryGetValue(pair.Key, out var sent) || sent != pump ||
-            pump is { Direction: not PumpDirection.Off, PeristalticSeconds: 0 } or { Water: true, WaterSeconds: 0 }).ToArray();
-        var writes = pending.Select(async pair =>
-        {
-            try
-            {
-                await _controller.SendOwnedAsync(OwnerId, pair.Key, pair.Value).ConfigureAwait(false);
-                return (Exception?)null;
-            }
-            catch (Exception error)
-            {
-                return error;
-            }
-        }).ToArray();
-        var results = await Task.WhenAll(writes).ConfigureAwait(false);
-        List<Exception> errors = [];
-        for (var i = 0; i < pending.Length; i++)
-        {
-            if (results[i] is { } error)
-            {
-                errors.Add(error);
-                continue;
-            }
-            var (id, requested) = pending[i];
-            var output = _controller.Connections.GetValueOrDefault(id)?.Output ?? requested;
-            _sentPumps[id] = output.Pump;
-            _peakA = Math.Max(_peakA, output.ChannelA);
-            _peakB = Math.Max(_peakB, output.ChannelB);
-            _peakC = Math.Max(_peakC, output.ChannelC);
-        }
-        if (errors.Count == 1)
-            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(errors[0]).Throw();
-        if (errors.Count > 1)
-            throw new LocalizedAggregateException("Reason.PipelineError", errors);
+            await _outputs.SubmitAsync(LastFrame).ConfigureAwait(false);
     }
 
     public async Task PauseAsync()
@@ -295,7 +259,7 @@ public sealed class PipelineSession : IAsyncDisposable
                 foreach (var participant in _participants)
                     await participant.SetPausedAsync(true);
                 await _controller.StopOwnedAsync(OwnerId, scope: _plan?.DeviceIds, release: false);
-                _sentPumps.Clear();
+                _outputs.ResetPumpCommands();
             }
             else if (State == PipelineState.Paused)
             {
@@ -377,8 +341,8 @@ public sealed class PipelineSession : IAsyncDisposable
                     return new PipelineContentRecord(node.Id, node.Registration.Type, waveformId, waveformName);
                 }).ToArray();
                 var record = new SessionRecord(Guid.NewGuid(), _startedAt, _elapsed.TotalSeconds, _plan.Name,
-                    _plan.DeviceIds.Count, unknown ? null : _peakA, unknown ? null : _peakB, reason, PipelineId: _plan.Id,
-                    PeakC: unknown ? null : _peakC, Contents: contents);
+                    _plan.DeviceIds.Count, unknown ? null : _outputs.PeakA, unknown ? null : _outputs.PeakB, reason, PipelineId: _plan.Id,
+                    PeakC: unknown ? null : _outputs.PeakC, Contents: contents);
                 if (Completed is { } handlers)
                     foreach (EventHandler<SessionRecord> handler in handlers.GetInvocationList())
                     {

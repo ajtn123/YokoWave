@@ -42,10 +42,9 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
     public ObservableCollection<PipelineEndpointViewModel> Endpoints { get; } = [];
     public ObservableCollection<PipelineBindingViewModel> Bindings { get; } = [];
     public event EventHandler<WaveformPreset>? WaveformCreated;
-    private readonly List<PipelineDocument> _undo = [];
-    private readonly List<PipelineDocument> _redo = [];
+    private readonly PipelineEditHistory _history = new();
+    private readonly PipelineGraphClipboard _clipboard = new();
     private readonly HashSet<string> _assignedDevices = new(StringComparer.Ordinal);
-    private PipelineDocument? _clipboard;
     private bool _restoring;
     private string _name;
     private double _durationSeconds, _timerLimitSeconds;
@@ -78,8 +77,8 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
     public NodeEditorViewModel? SelectedNode => SelectedNodes.FirstOrDefault();
     public bool HasSelectedNode => SelectedNode is not null;
     public bool CanEdit => !Session.HoldsResources && !Nodes.OfType<AudioNodeEditorViewModel>().Any(n => n.IsCalibrating);
-    public bool CanUndo => CanEdit && _undo.Count > 0 && BindingsAvailable(_undo[^1]);
-    public bool CanRedo => CanEdit && _redo.Count > 0 && BindingsAvailable(_redo[^1]);
+    public bool CanUndo => CanEdit && _history.CanUndo(BindingsAvailable);
+    public bool CanRedo => CanEdit && _history.CanRedo(BindingsAvailable);
     public bool CanStart => CanEdit && Diagnostics.Count == 0 && ReferencedDeviceIds.Count > 0 && ReferencedDeviceIds.All(id =>
         CanBindDevice?.Invoke(id) != false && _controller.Connections.ContainsKey(id) && !_controller.IsDeviceBusy(id));
     public bool CanStop => Session.HoldsResources;
@@ -178,10 +177,10 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
         }));
         TogglePlaybackCommand = new(() => CanStop ? StopAsync() : StartAsync(), onError, () => CanStop || CanStart);
         DeleteSelectionCommand = new(DeleteSelection, () => CanDeleteSelection);
-        CopyCommand = new ActionCommand(CopySelection);
+        CopyCommand = new ActionCommand(() => _clipboard.Copy(ToDocument(), SelectedNodes.Select(n => n.Id)));
         PasteCommand = new ActionCommand(Paste);
-        UndoCommand = new ActionCommand(() => RestoreHistory(_undo, _redo));
-        RedoCommand = new ActionCommand(() => RestoreHistory(_redo, _undo));
+        UndoCommand = new ActionCommand(() => RestoreHistory(redo: false));
+        RedoCommand = new ActionCommand(() => RestoreHistory(redo: true));
         foreach (var registration in Registry.Types)
             Palette.Add(new(registration, () => AddNode(registration.Type)));
         SelectedNodes.CollectionChanged += (_, _) =>
@@ -237,12 +236,7 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
             throw new Core.Localization.LocalizedOperationException("Error.DeviceInUse");
         }
         if (CanEdit)
-        {
-            _undo.Add(before);
-            if (_undo.Count > 100)
-                _undo.RemoveAt(0);
-            _redo.Clear();
-        }
+            _history.Record(before);
         Validate();
         Edited?.Invoke(this, EventArgs.Empty);
     }
@@ -304,42 +298,20 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
         });
     }
 
-    private void CopySelection()
-    {
-        var selected = SelectedNodes.Select(n => n.Id).ToHashSet();
-        var document = ToDocument();
-        _clipboard = document with
-        {
-            Nodes = document.Nodes.Where(n => selected.Contains(n.Id)).ToArray(),
-            Connections = document.Connections.Where(c => selected.Contains(c.Source.Node) && selected.Contains(c.Target.Node)).ToArray(),
-            Layout = document.Layout.Where(l => selected.Contains(l.Node)).ToArray()
-        };
-    }
-
     private void Paste()
     {
-        if (_clipboard is not { Nodes.Length: > 0 } copied)
-            return;
-        Edit(() =>
-        {
-            var ids = copied.Nodes.ToDictionary(n => n.Id, _ => Guid.NewGuid());
-            var current = ToDocument();
-            Restore(current with
-            {
-                Nodes = [.. current.Nodes, .. copied.Nodes.Select(n => n with { Id = ids[n.Id] })],
-                Connections = [.. current.Connections, .. copied.Connections.Select(c => new PipelineConnection(new(ids[c.Source.Node], c.Source.Port), new(ids[c.Target.Node], c.Target.Port)))],
-                Layout = [.. current.Layout, .. copied.Layout.Select(l => new NodeLayout(ids[l.Node], l.X + 40, l.Y + 40))]
-            });
-        });
+        if (CanEdit && _clipboard.Paste(ToDocument()) is { } document)
+            Edit(() => Restore(document));
     }
 
-    private void RestoreHistory(List<PipelineDocument> from, List<PipelineDocument> to)
+    private void RestoreHistory(bool redo)
     {
-        if (!CanEdit || from.Count == 0 || !BindingsAvailable(from[^1]))
+        if (!CanEdit)
             return;
-        to.Add(ToDocument());
-        var previous = from[^1];
-        from.RemoveAt(from.Count - 1);
+        var current = ToDocument();
+        var previous = redo ? _history.Redo(current, BindingsAvailable) : _history.Undo(current, BindingsAvailable);
+        if (previous is null)
+            return;
         Restore(previous);
         Edited?.Invoke(this, EventArgs.Empty);
     }

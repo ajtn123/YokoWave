@@ -389,6 +389,44 @@ public sealed class PipelineTests
     }
 
     [Fact]
+    public async Task TimedPumpCommandsAreDeduplicatedAndResumeAndRestartSendAgain()
+    {
+        var transport = new PipelineTransport();
+        await using var controller = new DeviceController(transport);
+        await controller.ConnectAsync(new("pump", "pump", DeviceKind.Pump, 80, -40), TestContext.Current.CancellationToken);
+        var direction = Number(1);
+        var seconds = Number(17);
+        var output = NodeDefinition.Create(BuiltInNodes.PumpOutput, new PumpOutputNode("pump"));
+        var plan = Compiler().Compile(Graph([direction, seconds, output], Edge(direction, output, "direction"), Edge(seconds, output, "peristalticSeconds")), []);
+        var timed = new PumpOutput(PumpDirection.Forward, PeristalticSeconds: 17);
+        int Count(PumpOutput pump) => transport.Frames.Count(frame => frame.Pump == pump);
+        await using var session = new PipelineSession(controller);
+
+        await session.StartAsync(plan);
+        await session.FlushAsync();
+        Assert.Equal(1, Count(timed));
+        await session.PauseAsync();
+        await session.PauseAsync();
+        await session.FlushAsync();
+        Assert.Equal(2, Count(timed));
+        session.SetConstant(seconds.Id, 0);
+        await session.FlushAsync();
+        var continuous = new PumpOutput(PumpDirection.Forward);
+        var before = Count(continuous);
+        Assert.True(before > 0);
+        await session.FlushAsync();
+        Assert.True(Count(continuous) > before);
+        await session.StopAsync();
+
+        await session.StartAsync(plan);
+        await session.FlushAsync();
+        Assert.Equal(3, Count(timed));
+        await session.StopAsync();
+        Assert.Null(controller.DeviceOwner("pump"));
+        Assert.Null(transport.Last.Pump);
+    }
+
+    [Fact]
     public async Task DocumentsRoundTripWithoutRuntimeStateAndCorruptionCannotBeOverwritten()
     {
         using var directory = new TestFolder();

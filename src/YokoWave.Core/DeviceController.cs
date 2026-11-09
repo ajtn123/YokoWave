@@ -5,23 +5,6 @@ using YokoWave.Core.Localization;
 
 namespace YokoWave.Core;
 
-public sealed class DeviceConnection(DeviceDescriptor device)
-{
-    public DeviceDescriptor Device { get; internal set; } = device;
-    public ElectrodeContact ContactA { get; internal set; } = ElectrodeContact.Unknown;
-    public ElectrodeContact ContactB { get; internal set; } = ElectrodeContact.Unknown;
-    public OutputFrame Output { get; internal set; } = OutputFrame.Zero;
-    public byte? HardwareVersion { get; internal set; }
-    public byte? SoftwareVersion { get; internal set; }
-    public bool? LightEnabled { get; internal set; }
-    public MotionReading? Motion { get; internal set; }
-    public int? Steps { get; internal set; }
-    public DeviceTelemetry? Telemetry { get; internal set; }
-    public DateTimeOffset? TelemetryCapturedAt { get; internal set; }
-    internal long MotionSequence;
-    internal bool MotionStreaming;
-}
-
 /// <summary>Serializes each device's output and lifecycle while independent devices can progress concurrently.</summary>
 public sealed partial class DeviceController : IAsyncDisposable
 {
@@ -40,8 +23,7 @@ public sealed partial class DeviceController : IAsyncDisposable
     public bool IsLocalSimulation => _transport.IsLocalSimulation;
     public bool AreSimulated(IEnumerable<string> ids) => ids.All(id => _connections.TryGetValue(id, out var connection)
         ? connection.Device.Simulated ?? _transport.IsSimulated(id) : IsSimulation);
-    public TimeProvider Clock
-    { get; }
+    public TimeProvider Clock { get; }
     public bool IsDeviceBusy(string id) => _owners.ContainsKey(id);
     public Guid? DeviceOwner(string id) => _owners.TryGetValue(id, out var owner) ? owner : null;
     public event EventHandler? Changed;
@@ -128,43 +110,13 @@ public sealed partial class DeviceController : IAsyncDisposable
 
     private async Task ApplyStatusAsync(object? sender, DeviceStatusUpdate update, DateTimeOffset receivedAt)
     {
-        DateTimeOffset CapturedAt(TimeSpan? age) => age is { } elapsed && (elapsed < TimeSpan.Zero || elapsed > receivedAt - DateTimeOffset.MinValue)
-            ? DateTimeOffset.MinValue : receivedAt - (age ?? TimeSpan.Zero);
         try
         {
             using (await _operations.AcquireAsync([update.DeviceId]))
             {
                 if (_disposed || sender != _transport || !_connections.TryGetValue(update.DeviceId, out var connection))
                     return;
-                if (update.Battery is >= 0 and <= 100)
-                    connection.Device = connection.Device with
-                    {
-                        Battery = update.Battery
-                    };
-                if (update.ContactA is { } a)
-                    connection.ContactA = a;
-                if (update.ContactB is { } b)
-                    connection.ContactB = b;
-                if (update.HardwareVersion is { } hardware)
-                    connection.HardwareVersion = hardware;
-                if (update.SoftwareVersion is { } software)
-                    connection.SoftwareVersion = software;
-                if (update.LightEnabled is { } light)
-                    connection.LightEnabled = light;
-                if (update.Steps is >= 0 and <= 65535)
-                    connection.Steps = update.Steps;
-                if (update.ChannelMask is >= 1 and <= 7)
-                    connection.Device = connection.Device with
-                    {
-                        ChannelMask = update.ChannelMask
-                    };
-                if (update.Telemetry is { } telemetry)
-                {
-                    connection.Telemetry = (connection.Telemetry ?? new()).Merge(telemetry);
-                    connection.TelemetryCapturedAt = CapturedAt(update.TelemetryAge);
-                }
-                if (update.MotionAngle is { } angle && double.IsFinite(angle) && angle is >= 0 and <= 180)
-                    connection.Motion = new(angle, ++connection.MotionSequence, CapturedAt(update.MotionAge), connection.Steps);
+                connection.ApplyStatus(update, receivedAt);
             }
             NotifyChanged();
         }
@@ -340,7 +292,7 @@ public sealed partial class DeviceController : IAsyncDisposable
                 throw new LocalizedOperationException("Error.MotionUnavailable");
             if (GetOutputSettings(id).Hardware?.Accepts(connection.Device, needsMotion: true) == false)
                 throw new LocalizedOperationException("Error.ProtocolSettings");
-            connection.Motion = null;
+            connection.ResetMotion();
             if (_transport is IElectricalMotionSource motion)
             {
                 connection.MotionStreaming = true;
@@ -366,7 +318,7 @@ public sealed partial class DeviceController : IAsyncDisposable
             {
                 if (DeviceOwner(id) != owner || !_connections.TryGetValue(id, out var connection))
                     continue;
-                connection.Motion = new(angle, ++connection.MotionSequence, Clock.GetUtcNow());
+                connection.SetMotion(angle, Clock.GetUtcNow());
             }
         }
     }
@@ -382,9 +334,7 @@ public sealed partial class DeviceController : IAsyncDisposable
             if (connection.Device.Profile?.Light != true || _transport is not IElectricalDeviceFeatures features)
                 throw new LocalizedOperationException("Error.DeviceFeatures");
             var state = await features.RefreshFeaturesAsync(id, ct);
-            connection.HardwareVersion = state.HardwareVersion;
-            connection.SoftwareVersion = state.SoftwareVersion;
-            connection.LightEnabled = state.LightEnabled;
+            connection.ApplyFeatures(state);
         }
         NotifyChanged();
     }
