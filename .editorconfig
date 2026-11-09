@@ -12,6 +12,7 @@ indent_size = 2
 
 [*.cs]
 dotnet_diagnostic.IDE0005.severity = warning
+dotnet_diagnostic.IDE0051.severity = warning
 dotnet_diagnostic.IDE0055.severity = warning
 csharp_using_directive_placement = outside_namespace:warning
 dotnet_sort_system_directives_first = true

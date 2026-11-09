@@ -71,7 +71,7 @@ dotnet build YokoWave.slnx -c Release
 dotnet run --project tests/YokoWave.Tests -c Release
 ```
 
-测试使用 xUnit v3 进程内运行器，包含真实鼠标点击、滑块绑定、页面切换、明暗主题、强调色和语言切换检查。界面截图输出至 `artifacts/screenshots/`。
+测试按设备、协议、波形、管线、远程、存储和界面等领域组织，共用隔离目录、状态等待、GATT 替身和 Headless 操作。运行方式、覆盖范围及 `scripts/test-coverage.ps1` 见 [测试说明](docs/testing.md)。界面截图输出至 `artifacts/screenshots/`。
 
 `dotnet run --project src/YokoWave.Desktop -- --smoke-test` 可执行原生窗口启动检查，发现模拟设备后自动关闭并保存本地数据。可结合 `YOKOWAVE_DATA_DIR` 使用隔离的数据目录。
 
