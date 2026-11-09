@@ -45,7 +45,7 @@
       <Border Grid.Column="1" Classes="pipeline-canvas" ClipToBounds="True">
         <n:NodifyEditor x:Name="Canvas" ItemsSource="{Binding Nodes}" Connections="{Binding Connections}"
                         SelectedItems="{Binding SelectedNodes}" PendingConnection="{Binding PendingConnection}"
-                        ConnectionCompletedCommand="{Binding CreateConnectionCommand}"
+                        ConnectionCompletedCommand="{Binding CompleteConnectionCommand}"
                         RemoveConnectionCommand="{Binding RemoveConnectionCommand}"
                         DisconnectConnectorCommand="{Binding DisconnectConnectorCommand}">
           <n:NodifyEditor.KeyBindings>

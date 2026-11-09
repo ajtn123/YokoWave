@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia;
 using Avalonia.Input;
+using Nodify.Avalonia;
 using YokoWave.App.ViewModels.Pipelines;
 using YokoWave.Core.Localization;
 
@@ -15,6 +16,10 @@ public sealed partial class PipelineEditorView : UserControl
     public PipelineEditorView()
     {
         InitializeComponent();
+        var gestures = new EditorGestures();
+        gestures.Apply(Canvas.InputGestures ?? EditorGestures.Mappings);
+        gestures.Connector.Connect.Value = new ConnectionDragGesture(gestures.Connector.Connect.Value);
+        Canvas.InputGestures = gestures;
         var menu = new ContextMenu();
         void PopulateMenu()
         {

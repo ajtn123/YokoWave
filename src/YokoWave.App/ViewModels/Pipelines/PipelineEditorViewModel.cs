@@ -135,7 +135,7 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
         }
     }
     public double TimerLimitSeconds => _timerLimitSeconds;
-    public ICommand CreateConnectionCommand { get; }
+    public ICommand CompleteConnectionCommand { get; }
     public ICommand RemoveConnectionCommand { get; }
     public ICommand DisconnectConnectorCommand { get; }
     public AsyncCommand TogglePlaybackCommand { get; }
@@ -165,10 +165,10 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
         Session = new(controller, Services);
         Session.Changed += OnSessionChanged;
         Session.Completed += OnCompleted;
-        CreateConnectionCommand = new PipelineParameterCommand<(object Source, object? Target)>(pair =>
+        CompleteConnectionCommand = new PipelineParameterCommand<(object Source, object? Target)>(pair =>
         {
             if (pair.Source is NodePortViewModel a && pair.Target is NodePortViewModel b)
-                Connect(a, b);
+                CompleteConnection(a, b);
         });
         RemoveConnectionCommand = new PipelineParameterCommand<ConnectionViewModel>(connection => Edit(() => Connections.Remove(connection)));
         DisconnectConnectorCommand = new PipelineParameterCommand<NodePortViewModel>(port => Edit(() =>
@@ -261,6 +261,18 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
             Nodes.Add(node);
         });
         return node;
+    }
+
+    private void CompleteConnection(NodePortViewModel a, NodePortViewModel b)
+    {
+        if (!CanEdit)
+            return;
+        var existing = Connections.FirstOrDefault(connection =>
+            (connection.Source == a && connection.Target == b) || (connection.Source == b && connection.Target == a));
+        if (existing is not null)
+            Edit(() => Connections.Remove(existing));
+        else
+            Connect(a, b);
     }
 
     public bool Connect(NodePortViewModel a, NodePortViewModel b)

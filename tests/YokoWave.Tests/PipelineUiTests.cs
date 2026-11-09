@@ -27,7 +27,7 @@ namespace YokoWave.Tests;
 public sealed class PipelineUiTests
 {
     [AvaloniaFact]
-    public async Task AltClickDisconnectsPortsSupportsUndoAndKeepsRunningTopologyLocked()
+    public async Task ConnectionGesturesSupportUndoAndKeepRunningTopologyLocked()
     {
         using var folder = new TestFolder();
         await using var controller = new DeviceController(new SimulationTransport());
@@ -47,19 +47,59 @@ public sealed class PipelineUiTests
         window.Show();
         try
         {
-            void AltClick(NodePortViewModel port)
+            void PrepareCanvas()
             {
                 Dispatcher.UIThread.RunJobs();
                 var canvas = view.GetVisualDescendants().OfType<NodifyEditor>().Single();
                 canvas.FitToScreen();
                 Dispatcher.UIThread.RunJobs();
+            }
+            Point PortPosition(NodePortViewModel port)
+            {
                 var connector = view.GetVisualDescendants().OfType<Connector>().Single(c => ReferenceEquals(c.DataContext, port));
                 var thumb = connector.GetVisualDescendants().OfType<Control>().Single(c => c.Name == "PART_Connector");
-                var point = thumb.TranslatePoint(new Point(thumb.Bounds.Width / 2, thumb.Bounds.Height / 2), window)!.Value;
+                return thumb.TranslatePoint(new Point(thumb.Bounds.Width / 2, thumb.Bounds.Height / 2), window)!.Value;
+            }
+            void AltClick(NodePortViewModel port)
+            {
+                PrepareCanvas();
+                var point = PortPosition(port);
                 window.MouseMove(point);
                 window.MouseDown(point, MouseButton.Left, RawInputModifiers.Alt);
                 window.MouseUp(point, MouseButton.Left, RawInputModifiers.Alt);
                 Dispatcher.UIThread.RunJobs();
+            }
+            void Drag(NodePortViewModel from, NodePortViewModel to)
+            {
+                PrepareCanvas();
+                var start = PortPosition(from);
+                var end = PortPosition(to);
+                window.MouseMove(start);
+                window.MouseDown(start, MouseButton.Left);
+                window.MouseMove(start + new Vector(12, 0));
+                window.MouseMove(end);
+                window.MouseUp(end, MouseButton.Left);
+                Dispatcher.UIThread.RunJobs();
+            }
+            NodePortViewModel Source() => editor.Nodes.OfType<ConstantEditorViewModel>().Single().Outputs.Single();
+            NodePortViewModel Input(string port) => editor.Nodes.OfType<ChannelOutputEditorViewModel>().First().Inputs.Single(p => p.Port.Id == port);
+            Drag(Source(), Input("strength"));
+            Assert.Single(editor.Connections);
+            Assert.Equal(1, Assert.IsType<ChannelOutputEditorViewModel>(editor.Connections[0].Target.Node).Channel);
+            editor.UndoCommand.Execute(null);
+            Assert.Equal(2, editor.Connections.Count);
+            editor.RedoCommand.Execute(null);
+            Assert.Single(editor.Connections);
+            editor.UndoCommand.Execute(null);
+            Drag(Input("strength"), Source());
+            Assert.Single(editor.Connections);
+            editor.UndoCommand.Execute(null);
+            for (var repetition = 0; repetition < 3; repetition++)
+            {
+                Drag(Source(), Input("limit"));
+                Assert.Equal(3, editor.Connections.Count);
+                Drag(Source(), Input("limit"));
+                Assert.Equal(2, editor.Connections.Count);
             }
             var target = editor.Nodes.OfType<ChannelOutputEditorViewModel>().First().Inputs.Single(p => p.Port.Id == "strength");
             AltClick(target);
@@ -83,6 +123,8 @@ public sealed class PipelineUiTests
             editor.UndoCommand.Execute(null);
             Assert.Equal(2, editor.Connections.Count);
             await editor.StartAsync();
+            Drag(Source(), Input("strength"));
+            Assert.Equal(2, editor.Connections.Count);
             AltClick(editor.Nodes.OfType<ConstantEditorViewModel>().Single().Outputs.Single());
             Assert.Equal(2, editor.Connections.Count);
             await editor.StopAsync();
