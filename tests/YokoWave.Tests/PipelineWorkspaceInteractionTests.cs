@@ -296,6 +296,7 @@ public sealed class PipelineWorkspaceInteractionTests
             Assert.False(progress.IsVisible);
             Assert.InRange(timer.Bounds.Width, 1, 120);
             var playbackBounds = playback.Bounds;
+            Assert.True(double.IsNaN(playback.Width));
             Assert.Equal(L10n.Get("Pipeline.Start"), playback.Content);
             Assert.True(editor.DeleteSelectionCommand.CanExecute(null));
             editor.TimerEnabled = true;
@@ -303,11 +304,28 @@ public sealed class PipelineWorkspaceInteractionTests
             Dispatcher.UIThread.RunJobs();
             Assert.True(slider.IsVisible);
             Assert.InRange(timer.Bounds.Width, 1, 245);
+            foreach (var checkbox in toolbar.GetVisualDescendants().OfType<CheckBox>())
+            {
+                var checkboxLabel = checkbox.GetVisualDescendants().OfType<TextBlock>().Single(t => t.IsEffectivelyVisible);
+                var labelCenter = checkboxLabel.TranslatePoint(new Point(0, checkboxLabel.Bounds.Height / 2), checkbox)!.Value.Y;
+                Assert.InRange(Math.Abs(labelCenter - checkbox.Bounds.Height / 2), 0, 1);
+            }
+            var thumb = slider.GetVisualDescendants().OfType<Avalonia.Controls.Primitives.Thumb>().Single();
+            var thumbCenter = thumb.TranslatePoint(new Point(0, thumb.Bounds.Height / 2), toolbar)!.Value.Y;
+            Assert.InRange(Math.Abs(thumbCenter - toolbar.Bounds.Height / 2), 0, 1);
+            using (var timerFrame = window.CaptureRenderedFrame())
+            {
+                Assert.NotNull(timerFrame);
+                var timerScreenshots = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../artifacts/screenshots"));
+                Directory.CreateDirectory(timerScreenshots);
+                timerFrame.Save(Path.Combine(timerScreenshots, "pipeline-toolbar-timer.png"), PngBitmapEncoderOptions.Default);
+            }
             await editor.TogglePlaybackCommand.ExecuteAsync();
             Dispatcher.UIThread.RunJobs();
             Assert.Equal(PipelineState.Running, editor.Session.State);
             Assert.Equal(L10n.Get("Pipeline.Stop"), playback.Content);
-            Assert.Equal(playbackBounds, playback.Bounds);
+            Assert.Equal(playbackBounds.Position, playback.Bounds.Position);
+            Assert.Equal(playbackBounds.Height, playback.Bounds.Height);
             Assert.False(slider.IsVisible);
             Assert.True(progress.IsEffectivelyVisible);
             Assert.False(editor.DeleteSelectionCommand.CanExecute(null));

@@ -139,14 +139,32 @@ public sealed class DevicesPaneViewModel : ObservableObject, IAsyncDisposable
         Raise(nameof(AutoConnect));
     }
     public void StartAutoConnect() => _monitor ??= MonitorConnectionsAsync();
-    private async Task SavePreferencesAsync(Task previous)
+    public async Task FlushPreferencesAsync()
+    {
+        Task pending;
+        do
+        {
+            pending = _preferenceSave;
+            await pending;
+        } while (pending != _preferenceSave);
+    }
+    private Task SaveOutputSettingsAsync(DeviceDescriptor device, DeviceOutputSettings settings) =>
+        _preferenceSave = SavePreferencesAsync(_preferenceSave, () => _controller.SetOutputSettingsAsync(device, settings));
+    private async Task SavePreferencesAsync(Task previous, Func<Task>? update = null)
     {
         await previous;
         try
         {
+            if (update is not null)
+                await update();
             await _save();
         }
-        catch (Exception error) { if (!_disposed) _error(error); }
+        catch (Exception error)
+        {
+            if (_disposed)
+                throw;
+            _error(error);
+        }
     }
     private async Task MonitorConnectionsAsync()
     {
@@ -193,7 +211,7 @@ public sealed class DevicesPaneViewModel : ObservableObject, IAsyncDisposable
                 else
                     Devices.Add(new(device, Devices.Count + 1, d => { SelectedDevice = d; return Task.CompletedTask; }, ToggleConnectionAsync, _error)
                     {
-                        HardwareOptions = new(device, _controller, () => !_disposed && !_controller.IsDeviceBusy(device.Id), _save, _error)
+                        HardwareOptions = new(device, _controller, () => !_disposed && !_controller.IsDeviceBusy(device.Id), settings => SaveOutputSettingsAsync(device, settings), _error)
                     });
             }
             SelectedDevice ??= Devices.FirstOrDefault();
@@ -361,7 +379,7 @@ public sealed class DevicesPaneViewModel : ObservableObject, IAsyncDisposable
         _operations.Release();
         try
         {
-            await _preferenceSave;
+            await FlushPreferencesAsync();
         }
         catch (Exception error) { errors.Add(error); }
         _controller.Changed -= OnChanged;

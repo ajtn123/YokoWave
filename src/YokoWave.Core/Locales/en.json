@@ -772,7 +772,6 @@
   "History.PipelineWaves": "Waveforms: {0}",
   "History.UnknownOutput": "unknown",
   "Pipeline.AddWave": "Add waveform",
-  "Pipeline.Apply": "Apply configuration",
   "Pipeline.Boost": "Hold to boost",
   "Pipeline.Browse": "Choose file",
   "Pipeline.Calibrate": "Calibrate",

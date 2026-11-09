@@ -43,7 +43,7 @@ public abstract class NodeEditorViewModel : ObservableObject
 {
     private Point _location;
     private bool _selected;
-    private JsonElement? _draftConfiguration;
+    private JsonElement? _parameterConfiguration;
     private bool _boost;
     private double _strengthLimit;
     public bool HasStrengthLimit => BuiltInNodes.IsOutput(Type);
@@ -97,7 +97,6 @@ public abstract class NodeEditorViewModel : ObservableObject
     public bool CanEdit => Editor.CanEdit;
     public string StatusText => Editor.Session.NodeStatus.TryGetValue(Id, out var status)
         ? L10n.Format("Pipeline.NodeStatus", L10n.Get("InputPhase." + status.Phase), status.Level, status.Count, Math.Ceiling(status.RemainingSeconds)) : "";
-    public AsyncCommand ApplyConfigurationCommand { get; }
     public ICommand CalibrateCommand { get; }
     public ICommand TriggerCommand { get; }
     public ICommand ExpandCommand { get; }
@@ -105,11 +104,13 @@ public abstract class NodeEditorViewModel : ObservableObject
     public NodeDefinition ToDefinition()
     {
         var definition = BuildDefinition();
+        if (_parameterConfiguration is { } configuration)
+            definition = definition with { Configuration = configuration };
         if (!HasStrengthLimit)
             return definition;
-        var configuration = System.Text.Json.Nodes.JsonNode.Parse(definition.Configuration.GetRawText())!;
-        configuration["Limit"] = StrengthLimit;
-        return definition with { Configuration = JsonSerializer.SerializeToElement(configuration, PipelineJson.Options) };
+        var output = System.Text.Json.Nodes.JsonNode.Parse(definition.Configuration.GetRawText())!;
+        output["Limit"] = StrengthLimit;
+        return definition with { Configuration = JsonSerializer.SerializeToElement(output, PipelineJson.Options) };
     }
     public void ReportError(Exception error) => Editor.ReportError(error);
     protected NodeEditorViewModel(PipelineEditorViewModel editor, NodeDefinition definition)
@@ -118,19 +119,7 @@ public abstract class NodeEditorViewModel : ObservableObject
         Id = definition.Id;
         Type = definition.Type;
         _strengthLimit = HasStrengthLimit ? (definition.Configuration.TryGetProperty("Limit", out var limit) ? limit.GetDouble() : Type == BuiltInNodes.PumpOutput ? 1 : .6) : 1;
-        Parameters = NodeParameterForm.Create(definition, json => _draftConfiguration = JsonSerializer.Deserialize<JsonElement>(json));
-        ApplyConfigurationCommand = new(() =>
-        {
-            var updated = definition with
-            {
-                Configuration = _draftConfiguration ?? ToDefinition().Configuration
-            };
-            var registration = editor.Registry.Get(Type);
-            if (!registration.Validate(registration.Read(updated.Configuration)))
-                throw new Core.Localization.LocalizedArgumentException("Pipeline.Error.Configuration");
-            editor.ReplaceNode(updated);
-            return Task.CompletedTask;
-        }, editor.ReportError, () => CanEdit);
+        Parameters = NodeParameterForm.Create(definition, configuration => Change(() => _parameterConfiguration = configuration));
         CalibrateCommand = new ActionCommand(() => editor.Session.Update(NodeControl.Create(Id, "calibrate", true)));
         TriggerCommand = new ActionCommand(() => editor.Session.Update(NodeControl.Create(Id, "trigger", true)));
         ExpandCommand = new ActionCommand(editor.ExpandSubgraphs);
@@ -139,11 +128,7 @@ public abstract class NodeEditorViewModel : ObservableObject
         foreach (var port in registration.PortsFor(registration.Read(definition.Configuration)))
             (port.Direction == PortDirection.Input ? Inputs : Outputs).Add(new(this, port));
     }
-    protected void Change(Action change, bool live = false) => Editor.Edit(() =>
-    {
-        change();
-        _draftConfiguration = null;
-    }, live: live);
+    protected void Change(Action change, bool live = false) => Editor.Edit(change, live: live);
     internal void MarkExposureChanged() => Editor.MarkEdited();
     public virtual void RefreshLocalization()
     {
@@ -153,7 +138,6 @@ public abstract class NodeEditorViewModel : ObservableObject
         Raise(nameof(StatusText));
         Raise(nameof(Preview));
         Raise(nameof(PreviewPhase));
-        ApplyConfigurationCommand.NotifyCanExecuteChanged();
         if (Editor.Session.State != PipelineState.Running)
             BoostHeld = false;
         foreach (var port in Inputs.Concat(Outputs))

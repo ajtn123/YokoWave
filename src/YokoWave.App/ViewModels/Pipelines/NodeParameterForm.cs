@@ -5,10 +5,10 @@ using YokoWave.Pipelines;
 
 namespace YokoWave.App.ViewModels.Pipelines;
 
-/// <summary>Scalar configuration drafts share the same field controls as protocol command drafts.</summary>
+/// <summary>Scalar node settings share typed field controls with protocol commands.</summary>
 internal static class NodeParameterForm
 {
-    public static IReadOnlyList<ParameterFieldViewModel> Create(NodeDefinition definition, Action<string> changed)
+    public static IReadOnlyList<ParameterFieldViewModel> Create(NodeDefinition definition, Action<JsonElement> changed)
     {
         if (definition.Type is not (BuiltInNodes.RangeMap or BuiltInNodes.Counter or BuiltInNodes.Cycle or BuiltInNodes.Automation or
             BuiltInNodes.Mix or BuiltInNodes.Smooth or BuiltInNodes.Threshold or BuiltInNodes.Touch))
@@ -31,7 +31,7 @@ internal static class NodeParameterForm
                 void Write(JsonNode? updated)
                 {
                     obj[name] = updated;
-                    changed(root.ToJsonString());
+                    changed(JsonSerializer.SerializeToElement(root, PipelineJson.Options));
                 }
                 var kind = value.GetValueKind();
                 if (kind is JsonValueKind.True or JsonValueKind.False)

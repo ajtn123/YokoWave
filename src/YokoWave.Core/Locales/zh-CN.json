@@ -772,7 +772,6 @@
   "History.PipelineWaves": "波形：{0}",
   "History.UnknownOutput": "未知",
   "Pipeline.AddWave": "添加波形",
-  "Pipeline.Apply": "应用配置",
   "Pipeline.Boost": "按住增强",
   "Pipeline.Browse": "选择文件",
   "Pipeline.Calibrate": "校准",

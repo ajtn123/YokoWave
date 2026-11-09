@@ -77,7 +77,6 @@
         <ComboBox ItemsSource="{Binding Commands}" SelectedItem="{Binding SelectedCommand}"><ComboBox.ItemTemplate><DataTemplate x:DataType="items:ProtocolCommandOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
         <ItemsControl ItemsSource="{Binding CommandParameters}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="items:ParameterFieldViewModel"><components:ParameterFieldView /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
         <CheckBox Content="{l:Loc Pipeline.OnStart}" IsChecked="{Binding OnStart}" />
-        <Button Content="{l:Loc Pipeline.Apply}" Command="{Binding ApplyCommandDraft}" />
       </StackPanel>
     </DataTemplate>
     <DataTemplate DataType="vm:ResourceNodeViewModel">
@@ -170,7 +169,6 @@
       <ItemsControl ItemsSource="{Binding Parameters}">
         <ItemsControl.ItemTemplate><DataTemplate x:DataType="items:ParameterFieldViewModel"><components:ParameterFieldView /></DataTemplate></ItemsControl.ItemTemplate>
       </ItemsControl>
-      <Button Content="{l:Loc Pipeline.Apply}" Command="{Binding ApplyConfigurationCommand}" />
     </StackPanel>
     <ContentControl Content="{Binding}" />
     <ContentControl Content="{Binding Preview}">

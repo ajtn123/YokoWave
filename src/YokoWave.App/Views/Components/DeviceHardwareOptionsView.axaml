@@ -20,6 +20,5 @@
         <TextBlock Text="{l:Loc Dg.WidthA}" Classes="field-label" /><NumericUpDown Value="{Binding WidthA}" Minimum="0" Maximum="255" />
         <TextBlock Text="{l:Loc Dg.WidthB}" Classes="field-label" /><NumericUpDown Value="{Binding WidthB}" Minimum="0" Maximum="255" />
       </StackPanel>
-      <Button Content="{l:Loc Pipeline.Apply}" Command="{Binding ApplyCommand}" Classes="small" />
     </StackPanel>
 </UserControl>

@@ -6,7 +6,9 @@ namespace YokoWave.App.ViewModels;
 public sealed class DeviceHardwareOptionsViewModel : ObservableObject
 {
     private DeviceOutputSettings _settings;
-    private bool _dirty;
+    private int _pendingUpdates;
+    private readonly Func<DeviceOutputSettings, Task> _persist;
+    private readonly Action<Exception> _report;
     private readonly DeviceController _controller;
     private readonly DeviceDescriptor _device;
     private readonly Func<bool> _canEdit;
@@ -24,25 +26,20 @@ public sealed class DeviceHardwareOptionsViewModel : ObservableObject
     public SessionOption AuxiliaryMode { get => AuxiliaryModes.Single(m => m.Value == (int)Hardware.AuxiliaryMotor); set { if (value is not null) Update(_settings with { Hardware = Hardware with { AuxiliaryMotor = (AuxiliaryMotorMode)value.Value } }); } }
     public bool Gentle { get => _settings.Gentle; set => Update(_settings with { Gentle = value }); }
     public bool RelativeStrength { get => Hardware.RelativeStrength; set => Update(_settings with { Hardware = Hardware with { RelativeStrength = value } }); }
-    public double LimitA { get => Hardware.ChannelALimit; set => Update(_settings with { Hardware = Hardware with { ChannelALimit = value } }); }
-    public double LimitB { get => Hardware.ChannelBLimit; set => Update(_settings with { Hardware = Hardware with { ChannelBLimit = value } }); }
+    public double LimitA { get => Hardware.ChannelALimit; set { if (double.IsFinite(value)) Update(_settings with { Hardware = Hardware with { ChannelALimit = Math.Clamp(value, 0, 100) } }); } }
+    public double LimitB { get => Hardware.ChannelBLimit; set { if (double.IsFinite(value)) Update(_settings with { Hardware = Hardware with { ChannelBLimit = Math.Clamp(value, 0, 100) } }); } }
     public int FrequencyA { get => Balances.FrequencyA; set => Update(_settings with { Balances = Balances with { FrequencyA = (byte)Math.Clamp(value, 0, 255) } }); }
     public int FrequencyB { get => Balances.FrequencyB; set => Update(_settings with { Balances = Balances with { FrequencyB = (byte)Math.Clamp(value, 0, 255) } }); }
     public int WidthA { get => Balances.WidthA; set => Update(_settings with { Balances = Balances with { WidthA = (byte)Math.Clamp(value, 0, 255) } }); }
     public int WidthB { get => Balances.WidthB; set => Update(_settings with { Balances = Balances with { WidthB = (byte)Math.Clamp(value, 0, 255) } }); }
-    public AsyncCommand ApplyCommand { get; }
-    public DeviceHardwareOptionsViewModel(DeviceDescriptor device, DeviceController controller, Func<bool> canEdit, Func<Task> save, Action<Exception> report)
+    public DeviceHardwareOptionsViewModel(DeviceDescriptor device, DeviceController controller, Func<bool> canEdit, Func<DeviceOutputSettings, Task> persist, Action<Exception> report)
     {
         _device = device;
         _controller = controller;
         _settings = controller.GetOutputSettings(device.Id);
         _canEdit = canEdit;
-        ApplyCommand = new(async () =>
-        {
-            await controller.SetOutputSettingsAsync(device, _settings);
-            await save();
-            _dirty = false;
-        }, report, () => CanEdit);
+        _persist = persist;
+        _report = report;
     }
     private void Update(DeviceOutputSettings settings)
     {
@@ -52,21 +49,37 @@ public sealed class DeviceHardwareOptionsViewModel : ObservableObject
         if (!settings.Accepts(_device))
             return;
         _settings = settings;
-        _dirty = true;
+        _pendingUpdates++;
+        _ = PersistAsync(settings);
+        RaiseSettings();
+    }
+    private async Task PersistAsync(DeviceOutputSettings settings)
+    {
+        try
+        {
+            await _persist(settings);
+        }
+        catch (Exception error) { _report(error); }
+        finally
+        {
+            _pendingUpdates--;
+            Refresh();
+        }
+    }
+    private void RaiseSettings()
+    {
         foreach (var property in new[] { nameof(Gentle), nameof(RelativeStrength), nameof(LimitA), nameof(LimitB), nameof(FrequencyA), nameof(FrequencyB), nameof(WidthA), nameof(WidthB), nameof(AuxiliaryMode) })
             Raise(property);
     }
     public void Refresh()
     {
         var stored = _controller.GetOutputSettings(_device.Id);
-        if (!_dirty && _settings != stored)
+        if (_pendingUpdates == 0 && _settings != stored)
         {
             _settings = stored;
-            foreach (var property in new[] { nameof(Gentle), nameof(RelativeStrength), nameof(LimitA), nameof(LimitB), nameof(FrequencyA), nameof(FrequencyB), nameof(WidthA), nameof(WidthB) })
-                Raise(property);
+            RaiseSettings();
         }
         Raise(nameof(CanEdit));
-        ApplyCommand.NotifyCanExecuteChanged();
         foreach (var mode in AuxiliaryModes)
             mode.RefreshLocalization();
         Raise(nameof(AuxiliaryMode));

@@ -143,7 +143,8 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
         var assigned = (document.AssignedDevices ?? []).Concat(bindings.Select(b => b.DeviceId).Where(id => !id.StartsWith('$')));
         if (assigned.Any(id => Pipelines.Any(p => p.AssignedDeviceIds.Contains(id))))
             throw new LocalizedOperationException("Error.DeviceInUse");
-        var editor = new PipelineEditorViewModel(document, _controller, _presets, ReportError, _completed, _timerLimit(), services, registry);
+        var editor = new PipelineEditorViewModel(document, _controller, _presets, ReportError, _completed, _timerLimit(), services, registry,
+            DevicePane is { } devices ? devices.FlushPreferencesAsync : null);
         editor.CanBindDevice = id => !Pipelines.Any(p => p.Id != editor.Id && p.AssignedDeviceIds.Contains(id));
         editor.GetDefaultOutputLimit = _defaultLimit;
         editor.Session.Changed += OnSessionChanged;

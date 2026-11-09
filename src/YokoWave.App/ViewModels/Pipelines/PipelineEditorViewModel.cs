@@ -32,6 +32,7 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
     private readonly Action<SessionRecord> _completed;
     private readonly ConcurrentQueue<SessionRecord> _completedRecords = new();
     private readonly PipelineCompiler _compiler;
+    private readonly Func<Task>? _flushDeviceSettings;
     private readonly PipelineNodeCatalog _catalog = new();
     public Action<Exception> ReportError { get; }
     public IAudioInputFactory AudioInputs { get; }
@@ -146,11 +147,13 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
     public event EventHandler? Edited;
 
     public PipelineEditorViewModel(PipelineDocument document, DeviceController controller, ObservableCollection<PresetItem> presets,
-        Action<Exception> onError, Action<SessionRecord> completed, double timerLimitSeconds = 7200, PipelineServices? services = null, NodeTypeRegistry? registry = null)
+        Action<Exception> onError, Action<SessionRecord> completed, double timerLimitSeconds = 7200, PipelineServices? services = null, NodeTypeRegistry? registry = null,
+        Func<Task>? flushDeviceSettings = null)
     {
         Id = document.Id;
         _name = document.Name;
         _controller = controller;
+        _flushDeviceSettings = flushDeviceSettings;
         _completed = completed;
         Presets = presets;
         Registry = registry ?? BuiltInNodes.CreateRegistry();
@@ -224,19 +227,6 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
     });
     internal void EditDocument(PipelineDocument document) => Edit(() => Restore(document));
 
-    public void ReplaceNode(NodeDefinition replacement)
-    {
-        if (!CanEdit)
-            return;
-        var document = ToDocument();
-        var candidate = document with
-        {
-            Nodes = document.Nodes.Select(n => n.Id == replacement.Id ? replacement : n).ToArray()
-        };
-        if (_compiler.Validate(candidate, Presets.Select(p => p.Preset)).Any(d => d.Key is "Pipeline.Error.Connection" or "Pipeline.Error.Cycle"))
-            throw new Core.Localization.LocalizedOperationException("Pipeline.Error.Connection");
-        Edit(() => Restore(candidate));
-    }
     public void ExpandSubgraphs() => Edit(() => Restore(SubgraphExpansion.Expand(ToDocument())));
 
     public void Edit(Action mutation, bool layoutOnly = false, bool live = false)
@@ -438,6 +428,8 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
 
     public async Task StartAsync()
     {
+        if (_flushDeviceSettings is not null)
+            await _flushDeviceSettings();
         if (!BindingsAvailable(ToDocument()))
             throw new Core.Localization.LocalizedOperationException("Error.DeviceInUse");
         if (Nodes.OfType<NativeOutputEditorViewModel>().Any(n => n.ValidationError.Length > 0))

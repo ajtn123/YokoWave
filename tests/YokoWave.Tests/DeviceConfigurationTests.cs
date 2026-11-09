@@ -94,8 +94,13 @@ public sealed class DeviceConfigurationTests
         Assert.False(motor.HardwareOptions!.HasAuxiliary || motor.HardwareOptions.HasLimits);
         hardware.LimitA = 35;
         hardware.FrequencyA = 200;
-        await hardware.ApplyCommand.ExecuteAsync();
         var editor = vm.Pipelines.Selected!;
+        editor.RebindDevice("$device", dg.Id);
+        await editor.StartAsync();
+        Assert.Equal(35, controller.GetOutputSettings(dg.Id).Hardware!.ChannelALimit);
+        Assert.Equal(200, controller.GetOutputSettings(dg.Id).Balances!.FrequencyA);
+        await editor.StopAsync();
+        Dispatcher.UIThread.RunJobs();
         var output = editor.Nodes.OfType<ChannelOutputEditorViewModel>().First();
         output.SelectedDevice = output.Devices.Single(d => d.Id == dg.Id);
         Assert.Equal(new[] { 0, 1 }, output.Channels.Select(c => c.Value));
@@ -109,7 +114,6 @@ public sealed class DeviceConfigurationTests
         await controller.AcquireTargetsAsync(owner, [dg.Id], TestContext.Current.CancellationToken);
         vm.Devices.Refresh();
         Assert.False(hardware.CanEdit);
-        Assert.False(hardware.ApplyCommand.CanExecute(null));
         hardware.LimitA = 80;
         Assert.Equal(35, hardware.LimitA);
         await controller.StopOwnedAsync(owner, TestContext.Current.CancellationToken);
@@ -124,6 +128,7 @@ public sealed class DeviceConfigurationTests
             var view = window.GetVisualDescendants().OfType<DeviceHardwareOptionsView>().Single(v => v.IsEffectivelyVisible);
             Assert.Same(hardware, view.DataContext);
             Assert.Empty(view.GetVisualDescendants().OfType<Expander>());
+            Assert.DoesNotContain(view.GetVisualDescendants(), c => c.GetType() == typeof(Button));
             Assert.DoesNotContain(view.GetVisualAncestors(), c => c is DeviceCardView);
             using var frame = window.CaptureRenderedFrame();
             Assert.NotNull(frame);
