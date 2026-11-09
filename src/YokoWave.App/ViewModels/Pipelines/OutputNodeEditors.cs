@@ -79,7 +79,7 @@ public sealed class NativeOutputEditorViewModel : DeviceOutputEditorViewModel
     }
     private void SaveOptions() => Change(() => _settings = _settings with { Gentle = Options.Gentle, Hardware = Options.Hardware.Settings, Balances = Options.Balances });
     public string ValidationError => NativeEditor.ValidationError is { } key ? Core.Localization.L10n.Get(key) : "";
-    public override NodeDefinition ToDefinition() => NodeDefinition.Create(Type, _settings with
+    protected override NodeDefinition BuildDefinition() => NodeDefinition.Create(Type, _settings with
     {
         DeviceId = DeviceId,
         Settings = _program

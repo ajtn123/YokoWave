@@ -45,6 +45,19 @@ public abstract class NodeEditorViewModel : ObservableObject
     private bool _selected;
     private string? _configurationJson;
     private bool _boost;
+    private double _strengthLimit;
+    public bool HasStrengthLimit => BuiltInNodes.IsOutput(Type);
+    public double StrengthLimit
+    {
+        get => _strengthLimit;
+        set
+        {
+            if (!HasStrengthLimit || !double.IsFinite(value) || value is < 0 or > 1 || value == _strengthLimit)
+                return;
+            Change(() => Set(ref _strengthLimit, value), live: true);
+            Editor.Session.SetLimit(Id, value);
+        }
+    }
     public bool BoostHeld
     {
         get => _boost; set
@@ -93,13 +106,23 @@ public abstract class NodeEditorViewModel : ObservableObject
     public ICommand CalibrateCommand { get; }
     public ICommand TriggerCommand { get; }
     public ICommand ExpandCommand { get; }
-    public abstract NodeDefinition ToDefinition();
+    protected abstract NodeDefinition BuildDefinition();
+    public NodeDefinition ToDefinition()
+    {
+        var definition = BuildDefinition();
+        if (!HasStrengthLimit)
+            return definition;
+        var configuration = System.Text.Json.Nodes.JsonNode.Parse(definition.Configuration.GetRawText())!;
+        configuration["Limit"] = StrengthLimit;
+        return definition with { Configuration = JsonSerializer.SerializeToElement(configuration, PipelineJson.Options) };
+    }
     public void ReportError(Exception error) => Editor.ReportError(error);
     protected NodeEditorViewModel(PipelineEditorViewModel editor, NodeDefinition definition)
     {
         Editor = editor;
         Id = definition.Id;
         Type = definition.Type;
+        _strengthLimit = HasStrengthLimit ? (definition.Configuration.TryGetProperty("Limit", out var limit) ? limit.GetDouble() : Type == BuiltInNodes.PumpOutput ? 1 : .6) : 1;
         Parameters = NodeParameterForm.Create(definition, json => ConfigurationJson = json);
         ApplyConfigurationCommand = new(() =>
         {
@@ -165,7 +188,7 @@ public sealed class ConstantEditorViewModel : NodeEditorViewModel
             Editor.Session.SetConstant(Id, _value);
         }
     }
-    public override NodeDefinition ToDefinition() => NodeDefinition.Create(Type, new ConstantNode(Value), Id);
+    protected override NodeDefinition BuildDefinition() => NodeDefinition.Create(Type, new ConstantNode(Value), Id);
 }
 
 public interface IWaveformNodeEditor
@@ -206,7 +229,7 @@ public sealed class WaveformEditorNodeViewModel : NodeEditorViewModel, IWaveform
                 Change(() => Set(ref _channel, value));
         }
     }
-    public override NodeDefinition ToDefinition() => NodeDefinition.Create(Type, new WaveformNode(_waveformId, Channel), Id);
+    protected override NodeDefinition BuildDefinition() => NodeDefinition.Create(Type, new WaveformNode(_waveformId, Channel), Id);
     public bool SelectWaveform(PresetItem preset)
     {
         SelectedPreset = preset;
@@ -228,7 +251,7 @@ public sealed class GainEditorViewModel : NodeEditorViewModel
                 Change(() => Set(ref _gain, value));
         }
     }
-    public override NodeDefinition ToDefinition() => NodeDefinition.Create(Type, new GainNode(Gain), Id);
+    protected override NodeDefinition BuildDefinition() => NodeDefinition.Create(Type, new GainNode(Gain), Id);
 }
 
 public sealed class LimitEditorViewModel : NodeEditorViewModel
@@ -245,7 +268,7 @@ public sealed class LimitEditorViewModel : NodeEditorViewModel
                 Change(() => Set(ref _limit, value));
         }
     }
-    public override NodeDefinition ToDefinition() => NodeDefinition.Create(Type, new LimitNode(Limit), Id);
+    protected override NodeDefinition BuildDefinition() => NodeDefinition.Create(Type, new LimitNode(Limit), Id);
 }
 
 public abstract class DeviceOutputEditorViewModel : NodeEditorViewModel
@@ -290,13 +313,13 @@ public sealed class ChannelOutputEditorViewModel : DeviceOutputEditorViewModel
                 Change(() => Set(ref _channel, value));
         }
     }
-    public override NodeDefinition ToDefinition() => NodeDefinition.Create(Type, _settings with { DeviceId = DeviceId, Channel = Channel }, Id);
+    protected override NodeDefinition BuildDefinition() => NodeDefinition.Create(Type, _settings with { DeviceId = DeviceId, Channel = Channel }, Id);
 }
 
 public sealed class PumpOutputEditorViewModel(PipelineEditorViewModel editor, NodeDefinition definition) : DeviceOutputEditorViewModel(editor, definition,
     ((PumpOutputNode)editor.Registry.Get(definition.Type).Read(definition.Configuration)).DeviceId)
 {
-    public override NodeDefinition ToDefinition() => NodeDefinition.Create(Type, new PumpOutputNode(DeviceId), Id);
+    protected override NodeDefinition BuildDefinition() => NodeDefinition.Create(Type, new PumpOutputNode(DeviceId), Id);
 }
 
 public sealed record PipelineDeviceOption(string Id, string Name)
@@ -308,7 +331,7 @@ public class ConfigurationNodeViewModel : NodeEditorViewModel
 {
     protected NodeDefinition Definition { get; set; }
     public ConfigurationNodeViewModel(PipelineEditorViewModel editor, NodeDefinition definition) : base(editor, definition) => Definition = definition;
-    public override NodeDefinition ToDefinition() => Definition;
+    protected override NodeDefinition BuildDefinition() => Definition;
 }
 
 public sealed class ResourceNodeViewModel : DeviceOutputEditorViewModel
@@ -316,7 +339,7 @@ public sealed class ResourceNodeViewModel : DeviceOutputEditorViewModel
     private readonly NodeDefinition _definition;
     public ResourceNodeViewModel(PipelineEditorViewModel editor, NodeDefinition definition) : base(editor, definition,
         definition.Configuration.GetProperty("DeviceId").GetString() ?? "") => _definition = definition;
-    public override NodeDefinition ToDefinition()
+    protected override NodeDefinition BuildDefinition()
     {
         var json = System.Text.Json.Nodes.JsonNode.Parse(_definition.Configuration.GetRawText())!.AsObject();
         json["DeviceId"] = DeviceId;

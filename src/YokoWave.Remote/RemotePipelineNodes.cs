@@ -43,8 +43,8 @@ public static class RemotePipelineNodes
     public static PipelineTemplate ControlTemplate { get; } = new("control.server", "Pipeline.Node.ControlServer", p =>
     {
         var builder = new PipelineBuilder(p.Name, p.Limit);
-        var source = builder.Add(ControlServer, new ControlServerNode(p.DeviceId, new()));
-        var sink = builder.Add(BuiltInNodes.RouterOutput, new RouterOutputNode(p.DeviceId));
+        var source = builder.Add(ControlServer, new ControlServerNode(p.DeviceId, new(ControlLimit: p.Limit * 100)));
+        var sink = builder.Add(BuiltInNodes.RouterOutput, new RouterOutputNode(p.DeviceId, p.Limit));
         foreach (var port in BuiltInNodes.FramePorts())
             builder.Connect(source, port.Id, sink, port.Id);
         return builder.Build();

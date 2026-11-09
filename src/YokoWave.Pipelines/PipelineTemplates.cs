@@ -118,7 +118,7 @@ public static class PipelineTemplates
     {
         var b = new PipelineBuilder(p.Name, p.Limit);
         var timer = b.Add(BuiltInNodes.PumpTimer, new PumpTimerNode(new()));
-        var output = b.Add(BuiltInNodes.PumpOutput, new PumpOutputNode(p.DeviceId));
+        var output = b.Add(BuiltInNodes.PumpOutput, new PumpOutputNode(p.DeviceId, p.Limit));
         foreach (var port in new[] { "direction", "water", "peristalticSeconds", "waterSeconds" })
             b.Connect(timer, port, output, port);
         return b.Build();
@@ -126,7 +126,7 @@ public static class PipelineTemplates
     private static PipelineDocument Native(TemplateParameters p)
     {
         var b = new PipelineBuilder(p.Name, p.Limit);
-        var output = b.Add(BuiltInNodes.NativeOutput, new NativeOutputNode(p.DeviceId));
+        var output = b.Add(BuiltInNodes.NativeOutput, new NativeOutputNode(p.DeviceId, Limit: p.Limit));
         for (var channel = 0; channel < p.Channels; channel++)
         {
             var strength = b.Add(BuiltInNodes.Constant, new ConstantNode());
@@ -136,7 +136,7 @@ public static class PipelineTemplates
     }
 }
 
-public sealed class PipelineBuilder(string name, double limit = .6)
+public sealed class PipelineBuilder(string name, double defaultOutputLimit = .6)
 {
     private readonly List<NodeDefinition> _nodes = [];
     private readonly List<PipelineConnection> _connections = [];
@@ -155,7 +155,7 @@ public sealed class PipelineBuilder(string name, double limit = .6)
         var strength = Add(BuiltInNodes.Constant, new ConstantNode());
         var automation = Add(BuiltInNodes.Automation, new AutomationNode(new()));
         var gain = Add(BuiltInNodes.Gain, new GainNode());
-        var output = Add(BuiltInNodes.ChannelOutput, new ChannelOutputNode(device, channel));
+        var output = Add(BuiltInNodes.ChannelOutput, new ChannelOutputNode(device, channel, Limit: defaultOutputLimit));
         Connect(strength, "value", automation, "value");
         Connect(automation, "value", gain, "gain");
         Connect(level, levelPort, gain, "value");
@@ -166,5 +166,5 @@ public sealed class PipelineBuilder(string name, double limit = .6)
     }
 
     public PipelineDocument Build() => new(Guid.NewGuid(), name, _nodes.ToArray(), _connections.ToArray(),
-        _nodes.Select((n, i) => new NodeLayout(n.Id, i % 5 * 260 + 40, i / 5 * 200 + 40)).ToArray(), limit);
+        _nodes.Select((n, i) => new NodeLayout(n.Id, i % 5 * 260 + 40, i / 5 * 200 + 40)).ToArray());
 }

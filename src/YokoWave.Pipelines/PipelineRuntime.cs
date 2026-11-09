@@ -40,13 +40,13 @@ public sealed class NodeEvaluationContext
     public void Stop(string reason) => _runtime.StopReason = reason;
     public void Command(string deviceId, Core.Bluetooth.DeviceCommand command) => _runtime.Commands.Add(new(deviceId, command));
     internal void Native(NativeOutputNode binding, double a, double b, double c, NativeProgramSettings program) =>
-        _runtime.Outputs.Native(binding, a, b, c, program, Elapsed);
+        _runtime.Outputs.Native(binding with { Limit = _runtime.Outputs.Limit(NodeId, binding.Limit) }, a, b, c, program, Elapsed);
     internal void RouteNative(NativeOutputNode binding, double a, double b, double c, NativeProgramOutput program) =>
-        _runtime.Outputs.Native(binding, a, b, c, program.Settings, TimeSpan.FromSeconds(program.ElapsedSeconds), program.RemainingSeconds);
+        _runtime.Outputs.Native(binding with { Limit = _runtime.Outputs.Limit(NodeId, binding.Limit) }, a, b, c, program.Settings, TimeSpan.FromSeconds(program.ElapsedSeconds), program.RemainingSeconds);
     internal void Channel(ChannelOutputNode binding, NumericSignal strength, NumericSignal frequency, NumericSignal width, NumericSignal limit) =>
-        _runtime.Outputs.Channel(binding, strength, frequency, width, limit, Now);
+        _runtime.Outputs.Channel(binding with { Limit = _runtime.Outputs.Limit(NodeId, binding.Limit) }, strength, frequency, width, limit, Now);
     internal void Pump(PumpOutputNode binding, NumericSignal direction, NumericSignal water, NumericSignal peristalticSeconds, NumericSignal waterSeconds) =>
-        _runtime.Outputs.Pump(binding, direction, water, peristalticSeconds, waterSeconds, Now);
+        _runtime.Outputs.Pump(binding with { Limit = _runtime.Outputs.Limit(NodeId, binding.Limit) }, direction, water, peristalticSeconds, waterSeconds, Now);
 }
 
 internal sealed class ConstantProcessor(double value) : ISignalProcessor
@@ -116,12 +116,13 @@ public sealed class PipelineRuntime
     private readonly (CompiledNode Node, ISignalProcessor Processor)[] _processors;
     private readonly ConcurrentQueue<(Guid Id, double Value)> _pendingConstants = new();
     private readonly ConcurrentQueue<NodeControl> _pendingControls = new();
-    private readonly ConcurrentQueue<double> _pendingLimits = new();
-    public void SetLimit(double value)
+    private readonly ConcurrentQueue<(Guid Node, double Value)> _pendingLimits = new();
+    public void SetLimit(Guid node, double value)
     {
         if (!double.IsFinite(value) || value is < 0 or > 1)
             throw new Core.Localization.LocalizedArgumentException("Error.InvalidSettings");
-        _pendingLimits.Enqueue(value);
+        if (_plan.Nodes.Any(n => n.Id == node && BuiltInNodes.IsOutput(n.Registration.Type)))
+            _pendingLimits.Enqueue((node, value));
     }
     public PipelineInputs Inputs { get; } = new();
     internal IReadOnlySet<string> SimulatedDevices { get; }
@@ -176,7 +177,7 @@ public sealed class PipelineRuntime
         Elapsed = elapsed;
         Now = now;
         while (_pendingLimits.TryDequeue(out var limit))
-            Outputs.SetLimit(limit);
+            Outputs.SetLimit(limit.Node, limit.Value);
         while (_pendingConstants.TryDequeue(out var change))
             Constants[change.Id] = change.Value;
         while (_pendingControls.TryDequeue(out var control))

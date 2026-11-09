@@ -12,9 +12,9 @@ public sealed class PipelineTests
 {
     private static readonly DeviceDescriptor Device = new("one", "one", DeviceKind.DualChannel, 80, -40);
     private static PipelineDocument Graph(NodeDefinition[] nodes, params PipelineConnection[] edges) =>
-        new(Guid.NewGuid(), "test", nodes, edges, [], 1);
+        new(Guid.NewGuid(), "test", nodes, edges, []);
     private static NodeDefinition Number(double value) => NodeDefinition.Create(BuiltInNodes.Constant, new ConstantNode(value));
-    private static NodeDefinition Output(int channel = 0) => NodeDefinition.Create(BuiltInNodes.ChannelOutput, new ChannelOutputNode("one", channel));
+    private static NodeDefinition Output(int channel = 0) => NodeDefinition.Create(BuiltInNodes.ChannelOutput, new ChannelOutputNode("one", channel, Limit: 1));
     private static PipelineConnection Edge(NodeDefinition from, NodeDefinition to, string target = "strength", string source = "value") => new(new(from.Id, source), new(to.Id, target));
     private static PipelineCompiler Compiler() => new(BuiltInNodes.CreateRegistry());
     private static PipelinePlan Plan(double strength = .5, double? duration = null)
@@ -89,11 +89,31 @@ public sealed class PipelineTests
         Assert.Equal(4, frame.WindowA!.Count);
         var capped = new PipelineRuntime(Compiler().Compile(graph with
         {
-            OutputLimit = .7
+            Nodes = graph.Nodes.Select(n => n.Id == a.Id ? NodeDefinition.Create(n.Type, new ChannelOutputNode("one", Limit: .7), n.Id) : n).ToArray()
         }, []), new HashSet<string>())
             .Evaluate(TimeSpan.Zero, DateTimeOffset.UtcNow).Outputs["one"];
         Assert.Equal(70, capped.ChannelA);
         Assert.Equal(40, capped.ChannelB);
+    }
+
+    [Fact]
+    public void LiveLimitsBelongToOutputNodesAndNeverClampOtherChannelsOrDevices()
+    {
+        var level = Number(.9);
+        var a = Output();
+        var b = Output(1);
+        var other = NodeDefinition.Create(BuiltInNodes.ChannelOutput, new ChannelOutputNode("other", Limit: .8));
+        var runtime = new PipelineRuntime(Compiler().Compile(Graph([level, a, b, other], Edge(level, a), Edge(level, b), Edge(level, other)), []), new HashSet<string>());
+        runtime.SetLimit(a.Id, .2);
+        var frames = runtime.Evaluate(TimeSpan.Zero, DateTimeOffset.UtcNow).Outputs;
+        Assert.Equal(20, frames["one"].ChannelA);
+        Assert.Equal(90, frames["one"].ChannelB);
+        Assert.Equal(80, frames["other"].ChannelA);
+        runtime.SetLimit(b.Id, .4);
+        frames = runtime.Evaluate(TimeSpan.Zero, DateTimeOffset.UtcNow).Outputs;
+        Assert.Equal(20, frames["one"].ChannelA);
+        Assert.Equal(40, frames["one"].ChannelB);
+        Assert.Equal(80, frames["other"].ChannelA);
     }
 
     [Fact]

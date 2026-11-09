@@ -117,7 +117,8 @@ public sealed class GraphWorkspaceUiTests
         var count = editor.Nodes.Count;
         editor.AddNode(BuiltInNodes.Constant);
         Assert.Equal(count, editor.Nodes.Count);
-        editor.OutputLimit = .1;
+        foreach (var output in editor.Nodes.Where(n => n.HasStrengthLimit))
+            output.StrengthLimit = .1;
         await editor.Session.FlushAsync();
         Assert.All(editor.Session.LastFrame!.Outputs.Values, frame => Assert.InRange(frame.ChannelA, 0, 10));
         await editor.StopAsync();

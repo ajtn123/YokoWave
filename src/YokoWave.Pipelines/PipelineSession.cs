@@ -211,7 +211,7 @@ public sealed class PipelineSession : IAsyncDisposable
 
     public bool SetConstant(Guid node, double value) => _runtime?.SetConstant(node, value) == true;
     public bool Update(NodeControl control) => _runtime?.Update(control) == true;
-    public void SetLimit(double value) => _runtime?.SetLimit(value);
+    public void SetLimit(Guid node, double value) => _runtime?.SetLimit(node, value);
     public async Task FlushAsync()
     {
         await _gate.WaitAsync();

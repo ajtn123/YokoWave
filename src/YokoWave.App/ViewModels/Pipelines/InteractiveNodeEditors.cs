@@ -19,7 +19,7 @@ public sealed class SimulatedInputEditorViewModel : NodeEditorViewModel
             Editor.Session.Update(NodeControl.Create(Id, "value", value));
         }
     }
-    public override NodeDefinition ToDefinition() => NodeDefinition.Create(Type, new SimulatedInputNode(Value), Id);
+    protected override NodeDefinition BuildDefinition() => NodeDefinition.Create(Type, new SimulatedInputNode(Value), Id);
 }
 
 public sealed class PumpTimerEditorViewModel : NodeEditorViewModel
@@ -60,7 +60,7 @@ public sealed class PumpTimerEditorViewModel : NodeEditorViewModel
         foreach (var property in new[] { nameof(Direction), nameof(Water), nameof(PeristalticSeconds), nameof(WaterSeconds) })
             Raise(property);
     }
-    public override NodeDefinition ToDefinition() => NodeDefinition.Create(Type, _settings, Id);
+    protected override NodeDefinition BuildDefinition() => NodeDefinition.Create(Type, _settings, Id);
     public override void RefreshLocalization()
     {
         base.RefreshLocalization();

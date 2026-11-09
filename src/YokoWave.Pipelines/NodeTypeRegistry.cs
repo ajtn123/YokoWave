@@ -64,8 +64,8 @@ public sealed record WaveformNode(Guid WaveformId, int Channel = 0);
 public sealed record GainNode(double Gain = 1);
 public sealed record LimitNode(double Limit = .6);
 public sealed record ChannelOutputNode(string DeviceId = "", int Channel = 0, bool Gentle = false,
-    HardwareOutputSettings? Hardware = null, DgBalanceSettings? Balances = null);
-public sealed record PumpOutputNode(string DeviceId = "");
+    HardwareOutputSettings? Hardware = null, DgBalanceSettings? Balances = null, double Limit = .6);
+public sealed record PumpOutputNode(string DeviceId = "", double Limit = 1);
 
 public static partial class BuiltInNodes
 {
@@ -95,13 +95,13 @@ public static partial class BuiltInNodes
             [NodePort.Input("strength", "Pipeline.Port.Strength", 0, 1, 0, "ratio"),
              NodePort.Input("frequency", "Pipeline.Port.Frequency", 1, 100, 20, "Hz"),
              NodePort.Input("pulseWidth", "Pipeline.Port.PulseWidth", 0, 1, 1, "ratio"),
-             NodePort.Input("limit", "Pipeline.Port.Limit", 0, 1, .6, "ratio")],
-            c => c.DeviceId is { Length: > 0 and <= 512 } && c.Channel is >= 0 and <= 2,
+             NodePort.Input("limit", "Pipeline.Port.Limit", 0, 1, 1, "ratio")],
+            c => c.DeviceId is { Length: > 0 and <= 512 } && c.Channel is >= 0 and <= 2 && ValidLimit(c.Limit),
             (c, _) => new ChannelOutputProcessor(c), c => new(c.DeviceId, OutputBindingKind.Channel, c.Channel)))
         .Register(new NodeRegistration<PumpOutputNode>(PumpOutput, "Pipeline.Node.PumpOutput",
             [NodePort.Input("direction", "Pipeline.Port.Direction", 0, 2, integer: true),
              NodePort.Input("water", "Pipeline.Port.Water", 0, 1, integer: true),
              NodePort.Input("peristalticSeconds", "Pipeline.Port.PeristalticSeconds", 0, 65535, 0, "s", true),
              NodePort.Input("waterSeconds", "Pipeline.Port.WaterSeconds", 0, 65535, 0, "s", true)],
-            c => c.DeviceId is { Length: > 0 and <= 512 }, (c, _) => new PumpOutputProcessor(c), c => new(c.DeviceId, OutputBindingKind.Pump)))));
+            c => c.DeviceId is { Length: > 0 and <= 512 } && ValidLimit(c.Limit), (c, _) => new PumpOutputProcessor(c), c => new(c.DeviceId, OutputBindingKind.Pump)))));
 }

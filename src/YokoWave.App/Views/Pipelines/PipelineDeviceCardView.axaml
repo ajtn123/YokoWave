@@ -1,0 +1,16 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:YokoWave.App.ViewModels.Pipelines" xmlns:items="using:YokoWave.App.ViewModels"
+             xmlns:components="using:YokoWave.App.Views.Components" xmlns:views="using:YokoWave.App.Views.Pipelines"
+             x:Class="YokoWave.App.Views.Pipelines.PipelineDeviceCardView" x:DataType="vm:PipelineDeviceCardViewModel">
+  <StackPanel>
+    <ContentControl Content="{Binding Device}"><ContentControl.ContentTemplate><DataTemplate x:DataType="items:DeviceItem">
+      <components:DeviceCardView ShowAssignmentAction="True"
+        AssignmentCommand="{Binding $parent[views:PipelineDeviceCardView].((vm:PipelineDeviceCardViewModel)DataContext).AssignmentCommand}"
+        AssignmentLabel="{Binding $parent[views:PipelineDeviceCardView].((vm:PipelineDeviceCardViewModel)DataContext).AssignmentAction}" />
+    </DataTemplate></ContentControl.ContentTemplate></ContentControl>
+    <Border Classes="list-item device-card" IsVisible="{Binding !IsKnown}"><StackPanel Classes="field">
+      <TextBlock Text="{Binding Id}" Classes="caption muted" TextWrapping="Wrap" />
+      <Button Content="{Binding AssignmentAction}" Command="{Binding AssignmentCommand}" Classes="small" />
+    </StackPanel></Border>
+  </StackPanel>
+</UserControl>

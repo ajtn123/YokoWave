@@ -20,7 +20,7 @@ public sealed class PipelineTemplateChoice(PipelineTemplate? builtIn = null, Pip
             return builtIn.Create(new(name, Limit: limit));
         var graph = preset!.Graph;
         var wrapper = NodeDefinition.Create(SubgraphExpansion.Type, new SubgraphNode(graph, preset.Inputs, preset.Outputs));
-        return new(Guid.NewGuid(), name, [wrapper], [], [new(wrapper.Id, 40, 40)], limit, graph.DurationSeconds, graph.TimerEnabled);
+        return new(Guid.NewGuid(), name, [wrapper], [], [new(wrapper.Id, 40, 40)], graph.DurationSeconds, graph.TimerEnabled);
     }
     public void RefreshLocalization() => Raise(nameof(Name));
 }
@@ -30,7 +30,7 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
     private readonly DeviceController _controller;
     private readonly PipelineStore _store;
     private readonly ObservableCollection<PresetItem> _presets;
-    private readonly Action<Exception> _onError;
+    public Action<Exception> ReportError { get; }
     private readonly Action<SessionRecord> _completed;
     private readonly IAudioInputFactory _audio;
     private readonly Func<double> _timerLimit, _defaultLimit;
@@ -41,6 +41,9 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
     private long _revision, _savedRevision;
     private string _templateName = "";
     public ObservableCollection<PipelineEditorViewModel> Pipelines { get; } = [];
+    public ObservableCollection<PipelineDeviceGroupViewModel> Groups { get; } = [];
+    public ObservableCollection<PipelineDeviceCardViewModel> UnassignedDevices { get; } = [];
+    public bool HasUnassignedDevices => UnassignedDevices.Count > 0;
     public ObservableCollection<PipelineTemplateChoice> Templates { get; } = [];
     public DevicesPaneViewModel? DevicePane { get; }
     public PipelineTemplateChoice? SelectedTemplate
@@ -59,6 +62,7 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
         {
             if (!Set(ref _selected, value))
                 return;
+            RefreshDeviceGroups();
             DeleteCommand.NotifyCanExecuteChanged();
             SaveTemplateCommand.NotifyCanExecuteChanged();
         }
@@ -80,7 +84,7 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
         _controller = controller;
         _store = new(directory);
         _presets = presets;
-        _onError = onError;
+        ReportError = onError;
         _completed = completed;
         _timerLimit = timerLimit;
         _defaultLimit = defaultLimit;
@@ -95,6 +99,9 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
         foreach (var template in PipelineTemplates.All.Concat([RemotePipelineNodes.GattTemplate, RemotePipelineNodes.ControlTemplate]))
             Templates.Add(new(template));
         _template = Templates[0];
+        Pipelines.CollectionChanged += OnDeviceCollectionChanged;
+        if (DevicePane is not null)
+            DevicePane.Devices.CollectionChanged += OnDeviceCollectionChanged;
         _controller.Changed += OnDevicesChanged;
         L10n.Current.PropertyChanged += OnLanguageChanged;
     }
@@ -133,8 +140,9 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
         var bindings = SubgraphExpansion.Expand(document).Nodes.SelectMany(n => registry.Get(n.Type).Resources(registry.Get(n.Type).Read(n.Configuration)));
         if (bindings.Any(b => !b.DeviceId.StartsWith('$') && Pipelines.Any(p => p.BoundDeviceIds.Contains(b.DeviceId))))
             throw new LocalizedOperationException("Error.DeviceInUse");
-        var editor = new PipelineEditorViewModel(document, _controller, _presets, _onError, _completed, _timerLimit(), services, registry);
+        var editor = new PipelineEditorViewModel(document, _controller, _presets, ReportError, _completed, _timerLimit(), services, registry);
         editor.CanBindDevice = id => !Pipelines.Any(p => p.Id != editor.Id && p.BoundDeviceIds.Contains(id));
+        editor.GetDefaultOutputLimit = _defaultLimit;
         editor.Session.Changed += OnSessionChanged;
         editor.Edited += OnEdited;
         editor.WaveformCreated += OnWaveformCreated;
@@ -144,6 +152,38 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
         return editor;
     }
     private void OnWaveformCreated(object? sender, WaveformPreset preset) => WaveformCreated?.Invoke(this, preset);
+    private void OnDeviceCollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) => RefreshDeviceGroups();
+    private void RefreshDeviceGroups()
+    {
+        foreach (var removed in Groups.Where(g => !Pipelines.Contains(g.Editor)).ToArray())
+            Groups.Remove(removed);
+        foreach (var editor in Pipelines)
+        {
+            var group = Groups.FirstOrDefault(g => g.Editor == editor);
+            if (group is null)
+            {
+                group = new(this, editor);
+                Groups.Add(group);
+            }
+            group.IsSelected = editor == Selected;
+            var ids = editor.BoundDeviceIds.Where(id => !id.StartsWith('$')).ToArray();
+            SynchronizeCards(group.Devices, ids, editor);
+            group.Refresh();
+        }
+        var assigned = Pipelines.SelectMany(p => p.BoundDeviceIds).ToHashSet(StringComparer.Ordinal);
+        SynchronizeCards(UnassignedDevices, DevicePane?.Devices.Where(d => !assigned.Contains(d.Id)).Select(d => d.Id).ToArray() ?? [], null);
+        foreach (var device in UnassignedDevices)
+            device.Refresh();
+        Raise(nameof(HasUnassignedDevices));
+    }
+    private void SynchronizeCards(ObservableCollection<PipelineDeviceCardViewModel> cards, string[] ids, PipelineEditorViewModel? owner)
+    {
+        foreach (var removed in cards.Where(c => !ids.Contains(c.Id) || c.Device != DevicePane?.Devices.FirstOrDefault(d => d.Id == c.Id)).ToArray())
+            cards.Remove(removed);
+        foreach (var id in ids)
+            if (cards.All(c => c.Id != id))
+                cards.Add(new(this, id, DevicePane?.Devices.FirstOrDefault(d => d.Id == id), owner));
+    }
     public void Add()
     {
         if (!_loaded || _disposed || SelectedTemplate is not { } template)
@@ -197,6 +237,7 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
     private void OnEdited(object? sender, EventArgs e)
     {
         _revision++;
+        RefreshDeviceGroups();
         foreach (var pipeline in Pipelines)
             pipeline.RefreshDevices();
         DeleteCommand.NotifyCanExecuteChanged();
@@ -206,6 +247,7 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
     {
         if (_disposed)
             return;
+        RefreshDeviceGroups();
         Raise(nameof(IsAnyRunning));
         DeleteCommand.NotifyCanExecuteChanged();
         SaveTemplateCommand.NotifyCanExecuteChanged();
@@ -216,11 +258,13 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
             return;
         foreach (var pipeline in Pipelines)
             pipeline.RefreshDevices();
+        RefreshDeviceGroups();
     });
     private void OnLanguageChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName != nameof(JsonLocalizer.Language))
             return;
+        RefreshDeviceGroups();
         foreach (var template in Templates)
             template.RefreshLocalization();
         foreach (var pipeline in Pipelines)
@@ -297,6 +341,9 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
             await SaveAsync();
         }
         catch (Exception error) { errors.Add(error); }
+        Pipelines.CollectionChanged -= OnDeviceCollectionChanged;
+        if (DevicePane is not null)
+            DevicePane.Devices.CollectionChanged -= OnDeviceCollectionChanged;
         _controller.Changed -= OnDevicesChanged;
         L10n.Current.PropertyChanged -= OnLanguageChanged;
         if (errors.Count > 0)

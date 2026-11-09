@@ -67,7 +67,8 @@ internal sealed class RemoteControlSession(DeviceController devices, Guid owner,
                 };
                 if (_session is { State: PipelineState.Running } && _program?.FrameSource is { } frameSource)
                 {
-                    _session.SetLimit(_frame.OutputLimit / 100);
+                    foreach (var output in _program.Graph.Nodes.Where(n => BuiltInNodes.IsOutput(n.Type)))
+                        _session.SetLimit(output.Id, _frame.OutputLimit / 100);
                     _session.Inputs!.Frames[frameSource] = _frame;
                     await _session.FlushAsync();
                 }

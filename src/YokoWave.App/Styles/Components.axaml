@@ -116,6 +116,7 @@
     <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
     <Setter Property="BorderThickness" Value="{DynamicResource Border.Thin}" />
     <Setter Property="CornerRadius" Value="{DynamicResource Radius.Compact}" />
+    <Setter Property="Padding" Value="{DynamicResource Padding.Small}" />
   </Style>
   <Style Selector="Border.device-card.active">
     <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />

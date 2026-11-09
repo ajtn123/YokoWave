@@ -59,7 +59,7 @@ public sealed class CommandNodeEditorViewModel : DeviceOutputEditorViewModel
         CommandParameters = ProtocolParameterForm.Create(_draft, _selected?.Key ?? "", Editor.FindDevice(DeviceId)?.Profile, json => _draft = json);
         Raise(nameof(CommandParameters));
     }
-    public override NodeDefinition ToDefinition() => NodeDefinition.Create(Type, _settings with { DeviceId = DeviceId }, Id);
+    protected override NodeDefinition BuildDefinition() => NodeDefinition.Create(Type, _settings with { DeviceId = DeviceId }, Id);
     public override void RefreshLocalization()
     {
         base.RefreshLocalization();

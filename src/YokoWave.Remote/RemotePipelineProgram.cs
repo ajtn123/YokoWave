@@ -13,7 +13,7 @@ internal sealed record RemotePipelineProgram(PipelineDocument Graph, WaveformPre
         var source = builder.Add(BuiltInNodes.FrameInput, new FrameInputNode());
         foreach (var device in targets)
         {
-            var sink = builder.Add(BuiltInNodes.RouterOutput, new RouterOutputNode(device.Id));
+            var sink = builder.Add(BuiltInNodes.RouterOutput, new RouterOutputNode(device.Id, Math.Min(maximum, frame.OutputLimit) / 100));
             foreach (var port in BuiltInNodes.FramePorts())
                 builder.Connect(source, port.Id, sink, port.Id);
         }
@@ -46,14 +46,14 @@ internal sealed record RemotePipelineProgram(PipelineDocument Graph, WaveformPre
             if (settings.Kind == RemotePlaybackKind.Pump)
             {
                 var timer = builder.Add(BuiltInNodes.PumpTimer, new PumpTimerNode(settings.Pump ?? new()));
-                var sink = builder.Add(BuiltInNodes.PumpOutput, new PumpOutputNode(device.Id));
+                var sink = builder.Add(BuiltInNodes.PumpOutput, new PumpOutputNode(device.Id, Math.Min(maximum, settings.OutputLimit) / 100));
                 foreach (var port in new[] { "direction", "water", "peristalticSeconds", "waterSeconds" })
                     builder.Connect(timer, port, sink, port);
                 continue;
             }
             if (settings.Kind == RemotePlaybackKind.NativeProgram)
             {
-                var sink = builder.Add(BuiltInNodes.NativeOutput, new NativeOutputNode(device.Id, settings.NativeProgram, settings.Hardware, settings.Balances, settings.Gentle));
+                var sink = builder.Add(BuiltInNodes.NativeOutput, new NativeOutputNode(device.Id, settings.NativeProgram, settings.Hardware, settings.Balances, settings.Gentle, Limit: Math.Min(maximum, settings.OutputLimit) / 100));
                 for (var channel = 0; channel < 3; channel++)
                     if (device.HasChannel(channel))
                         builder.Connect(Strength(channel), "value", sink, "strength" + (char)('A' + channel));
@@ -69,7 +69,7 @@ internal sealed record RemotePipelineProgram(PipelineDocument Graph, WaveformPre
                 var strength = Strength(channel);
                 var automation = builder.Add(BuiltInNodes.Automation, new AutomationNode(settings.Strength ?? new()));
                 var gain = builder.Add(BuiltInNodes.Gain, new GainNode());
-                var output = builder.Add(BuiltInNodes.ChannelOutput, new ChannelOutputNode(device.Id, channel, settings.Gentle, settings.Hardware, settings.Balances));
+                var output = builder.Add(BuiltInNodes.ChannelOutput, new ChannelOutputNode(device.Id, channel, settings.Gentle, settings.Hardware, settings.Balances, Math.Min(maximum, settings.OutputLimit) / 100));
                 builder.Connect(strength, "value", automation, "value");
                 builder.Connect(automation, "value", gain, "gain");
                 builder.Connect(wave, "level", gain, "value");

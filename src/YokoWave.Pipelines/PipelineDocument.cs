@@ -13,7 +13,7 @@ public sealed record PortAddress(Guid Node, string Port);
 public sealed record PipelineConnection(PortAddress Source, PortAddress Target);
 public sealed record NodeLayout(Guid Node, double X, double Y);
 public sealed record PipelineDocument(Guid Id, string Name, NodeDefinition[] Nodes, PipelineConnection[] Connections,
-    NodeLayout[] Layout, double OutputLimit = .6, double DurationSeconds = 90, bool TimerEnabled = false, int Version = 1,
+    NodeLayout[] Layout, double DurationSeconds = 90, bool TimerEnabled = false, int Version = 1,
     ExposedPort[]? Inputs = null, ExposedPort[]? Outputs = null);
 
 public static class PipelineJson

@@ -18,10 +18,10 @@ public sealed record ParameterMapNode;
 public sealed record AutomationNode(StrengthSettings Settings);
 public sealed record PumpTimerNode(PumpOutput Settings, bool StopWhenComplete = true);
 public sealed record NativeOutputNode(string DeviceId = "", NativeProgramSettings? Settings = null,
-    HardwareOutputSettings? Hardware = null, DgBalanceSettings? Balances = null, bool Gentle = false, bool StopWhenComplete = true);
+    HardwareOutputSettings? Hardware = null, DgBalanceSettings? Balances = null, bool Gentle = false, bool StopWhenComplete = true, double Limit = .6);
 public sealed record CommandNode(string DeviceId, DeviceCommand Command, bool OnStart = false);
 public sealed record FrameInputNode;
-public sealed record RouterOutputNode(string DeviceId = "");
+public sealed record RouterOutputNode(string DeviceId = "", double Limit = .6);
 
 public static partial class BuiltInNodes
 {
@@ -40,6 +40,8 @@ public static partial class BuiltInNodes
     public const string Command = "device.command";
     public const string FrameInput = "control.frame";
     public const string RouterOutput = "device.router";
+    public static bool IsOutput(string type) => type is ChannelOutput or PumpOutput or NativeOutput or RouterOutput;
+    private static bool ValidLimit(double limit) => double.IsFinite(limit) && limit is >= 0 and <= 1;
     public static NodePort[] FramePorts() => new[] { 'A', 'B', 'C' }.SelectMany(c => new[]
     {
         Out("strength" + c), Out("frequency" + c), Out("width" + c)
@@ -103,7 +105,7 @@ public static partial class BuiltInNodes
         .Register(new NodeRegistration<NativeOutputNode>(NativeOutput, "Pipeline.Node.Native",
             [In("strengthA", 0, 1), In("strengthB", 0, 1), In("strengthC", 0, 1),
              In("presetA", 0, 255, 1, true), In("presetB", 0, 255, 1, true), In("presetC", 0, 255, 1, true)],
-            c => !string.IsNullOrWhiteSpace(c.DeviceId) && Valid(() => { (c.Settings ?? new()).Validate(); c.Hardware?.Validate(); }),
+            c => !string.IsNullOrWhiteSpace(c.DeviceId) && ValidLimit(c.Limit) && Valid(() => { (c.Settings ?? new()).Validate(); c.Hardware?.Validate(); }),
             (c, _) => new NativeOutputProcessor(c), c => new(c.DeviceId, OutputBindingKind.Native)))
         .Register(new NodeRegistration<CommandNode>(Command, "Pipeline.Node.Command", [In("trigger", 0, 1)],
             c => !string.IsNullOrWhiteSpace(c.DeviceId) && c.Command is not null && Valid(c.Command.Validate),
@@ -115,5 +117,5 @@ public static partial class BuiltInNodes
             In("strength" + c, 0, 1), In("frequency" + c, 1, 100, 20), In("width" + c, 0, 1, 1), In("limit" + c, 0, 1, 1)
         }).Concat(new[] { In("direction", 0, 2, integer: true), In("water", 0, 1, integer: true), In("peristalticSeconds", 0, 65535, integer: true), In("waterSeconds", 0, 65535, integer: true) })
             .Append(NodePort.Intent("intent", "Pipeline.Port.intent", PortDirection.Input)).ToArray(),
-            c => !string.IsNullOrWhiteSpace(c.DeviceId), (c, _) => new RouterOutputProcessor(c), c => new(c.DeviceId, OutputBindingKind.Router)));
+            c => !string.IsNullOrWhiteSpace(c.DeviceId) && ValidLimit(c.Limit), (c, _) => new RouterOutputProcessor(c), c => new(c.DeviceId, OutputBindingKind.Router)));
 }

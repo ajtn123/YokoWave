@@ -15,20 +15,13 @@ public sealed class PipelineNodeCatalog
         [BuiltInNodes.Gain] = (e, d) => new GainEditorViewModel(e, d),
         [BuiltInNodes.Limit] = (e, d) => new LimitEditorViewModel(e, d),
         [BuiltInNodes.ChannelOutput] = (e, d) => new ChannelOutputEditorViewModel(e, d),
-        [BuiltInNodes.PumpOutput] = (e, d) => new PumpOutputEditorViewModel(e, d)
-        ,
-        [BuiltInNodes.Playlist] = (e, d) => new PlaylistEditorViewModel(e, d)
-        ,
-        [BuiltInNodes.Audio] = (e, d) => new AudioNodeEditorViewModel(e, d)
-        ,
-        [BuiltInNodes.Touch] = (e, d) => new TouchNodeEditorViewModel(e, d)
-        ,
-        [BuiltInNodes.Sensor] = (e, d) => new ResourceNodeViewModel(e, d)
-        ,
-        [BuiltInNodes.NativeOutput] = (e, d) => new NativeOutputEditorViewModel(e, d)
-        ,
-        [BuiltInNodes.Command] = (e, d) => new CommandNodeEditorViewModel(e, d)
-        ,
+        [BuiltInNodes.PumpOutput] = (e, d) => new PumpOutputEditorViewModel(e, d),
+        [BuiltInNodes.Playlist] = (e, d) => new PlaylistEditorViewModel(e, d),
+        [BuiltInNodes.Audio] = (e, d) => new AudioNodeEditorViewModel(e, d),
+        [BuiltInNodes.Touch] = (e, d) => new TouchNodeEditorViewModel(e, d),
+        [BuiltInNodes.Sensor] = (e, d) => new ResourceNodeViewModel(e, d),
+        [BuiltInNodes.NativeOutput] = (e, d) => new NativeOutputEditorViewModel(e, d),
+        [BuiltInNodes.Command] = (e, d) => new CommandNodeEditorViewModel(e, d),
         [BuiltInNodes.RouterOutput] = (e, d) => new ResourceNodeViewModel(e, d)
     };
     private readonly Dictionary<string, Func<PipelineEditorViewModel, NodeDefinition>> _defaults = new(StringComparer.Ordinal)
@@ -37,39 +30,23 @@ public sealed class PipelineNodeCatalog
         [BuiltInNodes.Waveform] = e => NodeDefinition.Create(BuiltInNodes.Waveform, new WaveformNode(e.Presets.First().Preset.Id)),
         [BuiltInNodes.Gain] = _ => NodeDefinition.Create(BuiltInNodes.Gain, new GainNode()),
         [BuiltInNodes.Limit] = _ => NodeDefinition.Create(BuiltInNodes.Limit, new LimitNode()),
-        [BuiltInNodes.ChannelOutput] = _ => NodeDefinition.Create(BuiltInNodes.ChannelOutput, new ChannelOutputNode()),
-        [BuiltInNodes.PumpOutput] = _ => NodeDefinition.Create(BuiltInNodes.PumpOutput, new PumpOutputNode())
-        ,
-        [BuiltInNodes.Playlist] = e => NodeDefinition.Create(BuiltInNodes.Playlist, new PlaylistNode(e.Presets.First().Preset.Id, e.Presets.Select(p => p.Preset.Id).ToArray()))
-        ,
-        [BuiltInNodes.Touch] = _ => NodeDefinition.Create(BuiltInNodes.Touch, new TouchNode())
-        ,
-        [BuiltInNodes.Audio] = _ => NodeDefinition.Create(BuiltInNodes.Audio, new AudioNode(new()))
-        ,
-        [BuiltInNodes.Sensor] = _ => NodeDefinition.Create(BuiltInNodes.Sensor, new SensorNode())
-        ,
-        [BuiltInNodes.Deviation] = _ => NodeDefinition.Create(BuiltInNodes.Deviation, new DeviationNode())
-        ,
-        [BuiltInNodes.RangeMap] = _ => NodeDefinition.Create(BuiltInNodes.RangeMap, new RangeMapNode())
-        ,
-        [BuiltInNodes.Counter] = _ => NodeDefinition.Create(BuiltInNodes.Counter, new CounterNode())
-        ,
-        [BuiltInNodes.Cycle] = _ => NodeDefinition.Create(BuiltInNodes.Cycle, new CycleNode())
-        ,
-        [BuiltInNodes.ParameterMap] = _ => NodeDefinition.Create(BuiltInNodes.ParameterMap, new ParameterMapNode())
-        ,
-        [BuiltInNodes.Automation] = _ => NodeDefinition.Create(BuiltInNodes.Automation, new AutomationNode(new()))
-        ,
-        [BuiltInNodes.PumpTimer] = _ => NodeDefinition.Create(BuiltInNodes.PumpTimer, new PumpTimerNode(new()))
-        ,
-        [BuiltInNodes.NativeOutput] = _ => NodeDefinition.Create(BuiltInNodes.NativeOutput, new NativeOutputNode())
-        ,
-        [BuiltInNodes.Command] = _ => NodeDefinition.Create(BuiltInNodes.Command, new CommandNode("", new QueryDevice(DeviceQuery.All)))
-        ,
-        [BuiltInNodes.FrameInput] = _ => NodeDefinition.Create(BuiltInNodes.FrameInput, new FrameInputNode())
-        ,
-        [BuiltInNodes.RouterOutput] = _ => NodeDefinition.Create(BuiltInNodes.RouterOutput, new RouterOutputNode())
-        ,
+        [BuiltInNodes.ChannelOutput] = e => NodeDefinition.Create(BuiltInNodes.ChannelOutput, new ChannelOutputNode(Limit: e.GetDefaultOutputLimit())),
+        [BuiltInNodes.PumpOutput] = e => NodeDefinition.Create(BuiltInNodes.PumpOutput, new PumpOutputNode(Limit: e.GetDefaultOutputLimit())),
+        [BuiltInNodes.Playlist] = e => NodeDefinition.Create(BuiltInNodes.Playlist, new PlaylistNode(e.Presets.First().Preset.Id, e.Presets.Select(p => p.Preset.Id).ToArray())),
+        [BuiltInNodes.Touch] = _ => NodeDefinition.Create(BuiltInNodes.Touch, new TouchNode()),
+        [BuiltInNodes.Audio] = _ => NodeDefinition.Create(BuiltInNodes.Audio, new AudioNode(new())),
+        [BuiltInNodes.Sensor] = _ => NodeDefinition.Create(BuiltInNodes.Sensor, new SensorNode()),
+        [BuiltInNodes.Deviation] = _ => NodeDefinition.Create(BuiltInNodes.Deviation, new DeviationNode()),
+        [BuiltInNodes.RangeMap] = _ => NodeDefinition.Create(BuiltInNodes.RangeMap, new RangeMapNode()),
+        [BuiltInNodes.Counter] = _ => NodeDefinition.Create(BuiltInNodes.Counter, new CounterNode()),
+        [BuiltInNodes.Cycle] = _ => NodeDefinition.Create(BuiltInNodes.Cycle, new CycleNode()),
+        [BuiltInNodes.ParameterMap] = _ => NodeDefinition.Create(BuiltInNodes.ParameterMap, new ParameterMapNode()),
+        [BuiltInNodes.Automation] = _ => NodeDefinition.Create(BuiltInNodes.Automation, new AutomationNode(new())),
+        [BuiltInNodes.PumpTimer] = _ => NodeDefinition.Create(BuiltInNodes.PumpTimer, new PumpTimerNode(new())),
+        [BuiltInNodes.NativeOutput] = e => NodeDefinition.Create(BuiltInNodes.NativeOutput, new NativeOutputNode(Limit: e.GetDefaultOutputLimit())),
+        [BuiltInNodes.Command] = _ => NodeDefinition.Create(BuiltInNodes.Command, new CommandNode("", new QueryDevice(DeviceQuery.All))),
+        [BuiltInNodes.FrameInput] = _ => NodeDefinition.Create(BuiltInNodes.FrameInput, new FrameInputNode()),
+        [BuiltInNodes.RouterOutput] = e => NodeDefinition.Create(BuiltInNodes.RouterOutput, new RouterOutputNode(Limit: e.GetDefaultOutputLimit())),
         [SubgraphExpansion.Type] = _ => NodeDefinition.Create(SubgraphExpansion.Type, new SubgraphNode(
             new PipelineBuilder(L10n.Get("Pipeline.Node.Subgraph")).Build(), [], []))
     };

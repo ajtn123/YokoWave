@@ -153,7 +153,7 @@ public sealed record AppSettings(double DefaultLimit = 60, string? Language = nu
 public sealed record WorkspaceData(int SchemaVersion, List<WaveformPreset> Presets,
     List<SessionRecord> Sessions, AppSettings Settings, SessionStatistics? Statistics = null)
 {
-    public const int CurrentSchema = 8;
+    public const int CurrentSchema = 9;
     public static WorkspaceData Empty => new(CurrentSchema, [], [], new(), new());
 }
 

@@ -20,7 +20,7 @@
         </StackPanel>
         <StackPanel Grid.Row="1">
           <Button Classes="nav" Classes.active="{Binding IsWorkspace}" Command="{Binding WorkspaceCommand}" Content="{l:Loc Nav.Devices}" />
-          <Button Classes="nav" Classes.active="{Binding IsPipelines}" Command="{Binding PipelinesCommand}" Content="{l:Loc Pipeline.Title}" />
+          <Button Classes="nav" Classes.active="{Binding IsPipelines}" Command="{Binding PipelinesCommand}" Content="{l:Loc Nav.Pipelines}" />
           <Button Classes="nav" Classes.active="{Binding IsWaves}" Command="{Binding WavesCommand}" Content="{l:Loc Nav.Waves}" />
           <Button Classes="nav" Classes.active="{Binding IsHistory}" Command="{Binding HistoryCommand}" Content="{l:Loc Nav.History}" />
           <Border Classes="divider" />

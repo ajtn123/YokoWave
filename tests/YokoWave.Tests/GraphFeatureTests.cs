@@ -12,9 +12,9 @@ public sealed class GraphFeatureTests
     private static WaveformPreset Wave(double frequency = 20, double seconds = 1) => new(Guid.NewGuid(), "wave", WaveShape.Custom, seconds, frequency, [1, 1]);
     private static PipelineRuntime Runtime(PipelineBuilder graph, params WaveformPreset[] waves) => new(
         new PipelineCompiler(BuiltInNodes.CreateRegistry()).Compile(graph.Build(), waves), new HashSet<string> { "out", "sensor" });
-    private static NodeDefinition Sink(PipelineBuilder b, NodeDefinition source, string port = "value", int channel = 0)
+    private static NodeDefinition Sink(PipelineBuilder b, NodeDefinition source, string port = "value", int channel = 0, double limit = .6)
     {
-        var output = b.Add(BuiltInNodes.ChannelOutput, new ChannelOutputNode("out", channel));
+        var output = b.Add(BuiltInNodes.ChannelOutput, new ChannelOutputNode("out", channel, Limit: limit));
         b.Connect(source, port, output, "strength");
         return output;
     }
@@ -234,7 +234,7 @@ public sealed class GraphFeatureTests
         var input = b.Add(BuiltInNodes.Constant, new ConstantNode(.3));
         var automation = b.Add(BuiltInNodes.Automation, new AutomationNode(new(mode, 1, 20, 10, 50, 20)));
         b.Connect(input, "value", automation, "value");
-        Sink(b, automation);
+        Sink(b, automation, limit: .5);
         var runtime = Runtime(b);
         Assert.Equal(30, Level(runtime));
         Assert.InRange(Level(runtime, 2), 30, 50);
@@ -278,7 +278,7 @@ public sealed class GraphFeatureTests
         var b = new PipelineBuilder("native", 1);
         var strength = b.Add(BuiltInNodes.Constant, new ConstantNode(kind == NativeProgramKind.MotorPreset ? 1 : .4));
         var program = new NativeProgramSettings(kind, BufferA: [new()], BufferB: [new()], PulseA: new(4, 500, 7));
-        var sink = b.Add(BuiltInNodes.NativeOutput, new NativeOutputNode("out", program));
+        var sink = b.Add(BuiltInNodes.NativeOutput, new NativeOutputNode("out", program, Limit: 1));
         b.Connect(strength, "value", sink, "strengthA");
         var frame = Runtime(b).Evaluate(TimeSpan.Zero, Now).Outputs["out"];
         Assert.Equal(kind, frame.NativeProgram!.Settings.Kind);

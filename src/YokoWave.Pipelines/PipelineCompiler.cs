@@ -42,7 +42,6 @@ public sealed class PipelinePlan
     public IReadOnlyList<DeviceOutputBinding> Bindings { get; }
     public Guid Id => Document.Id;
     public string Name => Document.Name;
-    public double OutputLimit => Document.OutputLimit;
     public TimeSpan? Duration => Document.TimerEnabled ? TimeSpan.FromSeconds(Document.DurationSeconds) : null;
 }
 
@@ -68,7 +67,6 @@ public sealed class PipelineCompiler(NodeTypeRegistry registry)
     {
         List<PipelineDiagnostic> errors = [];
         if (source.Version != 1 || source.Id == Guid.Empty || string.IsNullOrWhiteSpace(source.Name) || source.Name.Length > 60 ||
-            !double.IsFinite(source.OutputLimit) || source.OutputLimit is < 0 or > 1 ||
             !double.IsFinite(source.DurationSeconds) || source.DurationSeconds is < 1 or > 7200 ||
             source.Nodes is null || source.Connections is null || source.Layout is null || source.Nodes.Length > 1000 || source.Connections.Length > 8000 ||
             source.Nodes.Any(n => n is null || n.Configuration.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null) ||

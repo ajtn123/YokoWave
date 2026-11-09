@@ -46,7 +46,7 @@
           </StackPanel>
         </ScrollViewer>
       </Border>
-      <Border Grid.Column="1" Classes="card" ClipToBounds="True">
+      <Border Grid.Column="1" Classes="pipeline-canvas" ClipToBounds="True">
         <n:NodifyEditor x:Name="Canvas" ItemsSource="{Binding Nodes}" Connections="{Binding Connections}"
                         SelectedItems="{Binding SelectedNodes}" PendingConnection="{Binding PendingConnection}"
                         ConnectionCompletedCommand="{Binding CreateConnectionCommand}"
@@ -98,22 +98,6 @@
           <StackPanel Classes="items">
             <TextBlock Text="{l:Loc Pipeline.Inspector}" Classes="card-title" />
             <TextBlock Text="{l:Loc Pipeline.PortHelp}" Classes="caption muted" TextWrapping="Wrap" />
-            <StackPanel Classes="field">
-              <TextBlock Text="{l:Loc Pipeline.SessionLimit}" Classes="muted" />
-              <NumericUpDown Value="{Binding OutputLimit}" Minimum="0" Maximum="1" Increment="0.01" />
-            </StackPanel>
-            <ItemsControl ItemsSource="{Binding Bindings}" IsEnabled="{Binding CanEdit}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:PipelineBindingViewModel">
-                  <StackPanel Classes="field">
-                    <TextBlock Text="{Binding Id}" Classes="caption muted" TextWrapping="Wrap" />
-                    <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding Selected}">
-                      <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PipelineDeviceOption"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
-                    </ComboBox>
-                  </StackPanel>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
             <ContentControl Content="{Binding SelectedNode}" IsVisible="{Binding HasSelectedNode}" />
             <ItemsControl ItemsSource="{Binding Endpoints}">
               <ItemsControl.ItemTemplate>

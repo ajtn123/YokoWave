@@ -156,6 +156,10 @@
   </UserControl.DataTemplates>
   <StackPanel Classes="items">
     <TextBlock Text="{Binding Title}" Classes="section-title" />
+    <StackPanel Classes="field" IsVisible="{Binding HasStrengthLimit}">
+      <TextBlock Text="{l:Loc Pipeline.OutputLimit}" Classes="field-label" />
+      <NumericUpDown Value="{Binding StrengthLimit}" Minimum="0" Maximum="1" Increment="0.01" />
+    </StackPanel>
     <StackPanel Classes="field" IsVisible="{Binding HasParameters}" IsEnabled="{Binding CanEdit}">
       <ItemsControl ItemsSource="{Binding Parameters}">
         <ItemsControl.ItemTemplate><DataTemplate x:DataType="items:ParameterFieldViewModel"><components:ParameterFieldView /></DataTemplate></ItemsControl.ItemTemplate>

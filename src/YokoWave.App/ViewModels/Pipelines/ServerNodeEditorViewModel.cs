@@ -63,6 +63,6 @@ public sealed class ServerNodeEditorViewModel : NodeEditorViewModel
         settings.Validate();
         Change(() => { _settings = settings; Raise(property); });
     }
-    public override NodeDefinition ToDefinition() => _gatt ? NodeDefinition.Create(Type, new GattServerNode(_deviceIds, _settings), Id)
+    protected override NodeDefinition BuildDefinition() => _gatt ? NodeDefinition.Create(Type, new GattServerNode(_deviceIds, _settings), Id)
         : NodeDefinition.Create(Type, new ControlServerNode(_deviceIds[0], _settings), Id);
 }

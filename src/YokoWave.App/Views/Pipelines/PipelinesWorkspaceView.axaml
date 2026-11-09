@@ -1,45 +1,49 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:l="using:YokoWave.App.Localization"
-             xmlns:vm="using:YokoWave.App.ViewModels.Pipelines"
-             xmlns:views="using:YokoWave.App.Views.Pipelines"
-             xmlns:items="using:YokoWave.App.ViewModels"
-             xmlns:components="using:YokoWave.App.Views.Components"
-             x:Class="YokoWave.App.Views.Pipelines.PipelinesWorkspaceView"
-             x:DataType="vm:PipelinesWorkspaceViewModel">
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="using:YokoWave.App.Localization" xmlns:vm="using:YokoWave.App.ViewModels.Pipelines"
+             xmlns:views="using:YokoWave.App.Views.Pipelines" xmlns:items="using:YokoWave.App.ViewModels"
+             x:Class="YokoWave.App.Views.Pipelines.PipelinesWorkspaceView" x:DataType="vm:PipelinesWorkspaceViewModel">
   <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource Space.Medium}">
-    <ScrollViewer>
-    <StackPanel Classes="field pipeline-list">
-      <ComboBox ItemsSource="{Binding Templates}" SelectedItem="{Binding SelectedTemplate}" AutomationProperties.Name="{l:Loc Pipeline.Template}">
-        <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PipelineTemplateChoice"><TextBlock Text="{Binding Name}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate>
-      </ComboBox>
-      <Button Content="{l:Loc Pipeline.Add}" Command="{Binding AddCommand}" Classes="small primary" />
-      <Button Content="{l:Loc Pipeline.Duplicate}" Command="{Binding DuplicateCommand}" Classes="small" />
-      <Button Content="{l:Loc Pipeline.Save}" Command="{Binding SaveCommand}" Classes="small" />
-      <Button Content="{l:Loc Pipeline.Delete}" Command="{Binding DeleteCommand}" Classes="small danger" />
-      <ListBox ItemsSource="{Binding Pipelines}" SelectedItem="{Binding Selected}">
-        <ListBox.ItemTemplate>
-          <DataTemplate x:DataType="vm:PipelineEditorViewModel">
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Classes="items pipeline-list">
+        <ContentControl Content="{Binding DevicePane}"><ContentControl.ContentTemplate><DataTemplate x:DataType="items:DevicesPaneViewModel">
+          <Grid ColumnDefinitions="*,Auto" Classes="columns"><TextBlock Text="{Binding ConnectedSummary}" Classes="muted label" VerticalAlignment="Center" /><Button Grid.Column="1" Content="{Binding ScanLabel}" Command="{Binding ScanCommand}" Classes="small" /></Grid>
+        </DataTemplate></ContentControl.ContentTemplate></ContentControl>
+        <Grid ColumnDefinitions="*,Auto" Classes="columns">
+          <ComboBox ItemsSource="{Binding Templates}" SelectedItem="{Binding SelectedTemplate}" HorizontalAlignment="Stretch" Classes="pipeline-create" AutomationProperties.Name="{l:Loc Pipeline.Template}">
+            <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PipelineTemplateChoice"><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /></DataTemplate></ComboBox.ItemTemplate>
+          </ComboBox>
+          <Button Grid.Column="1" Content="{l:Loc Mode.Add}" Command="{Binding AddCommand}" Classes="small primary pipeline-create" />
+        </Grid>
+        <ItemsControl x:Name="PipelineGroups" ItemsSource="{Binding Groups}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:PipelineDeviceGroupViewModel">
+          <Border Classes="list-item card compact mode-group" Classes.active="{Binding IsSelected}">
             <StackPanel Classes="field">
-              <TextBlock Text="{Binding Name}" TextWrapping="Wrap" />
-              <TextBlock Text="{Binding StateLabel}" Classes="caption muted" />
-              <TextBlock Text="{Binding BoundDevices}" Classes="caption muted" TextWrapping="Wrap" />
+              <Button Command="{Binding SelectCommand}" Classes="mode-select">
+                <ContentControl Content="{Binding Editor}"><ContentControl.ContentTemplate><DataTemplate x:DataType="vm:PipelineEditorViewModel">
+                  <StackPanel Classes="field"><TextBlock Text="{Binding Name}" Classes="small emphasis" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding StateLabel}" Classes="caption accent" /></StackPanel>
+                </DataTemplate></ContentControl.ContentTemplate></ContentControl>
+              </Button>
+              <ItemsControl ItemsSource="{Binding Devices}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:PipelineDeviceCardViewModel"><views:PipelineDeviceCardView /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+              <TextBlock Text="{l:Loc Mode.NoDevices}" IsVisible="{Binding !HasDevices}" Classes="caption muted" />
             </StackPanel>
-          </DataTemplate>
-        </ListBox.ItemTemplate>
-      </ListBox>
-      <TextBox Text="{Binding TemplateName}" PlaceholderText="{l:Loc Pipeline.TemplateName}" MaxLength="60" />
-      <Button Content="{l:Loc Pipeline.SaveTemplate}" Command="{Binding SaveTemplateCommand}" Classes="small" />
-      <Button Content="{l:Loc Pipeline.DeleteTemplate}" Command="{Binding DeleteTemplateCommand}" Classes="small danger" />
-      <ContentControl Content="{Binding DevicePane}">
-        <ContentControl.DataTemplates><DataTemplate DataType="items:DevicesPaneViewModel"><components:DeviceConnectionListView /></DataTemplate></ContentControl.DataTemplates>
-      </ContentControl>
-    </StackPanel>
+          </Border>
+        </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+        <TextBlock Text="{l:Loc Mode.Unassigned}" Classes="small emphasis" />
+        <ItemsControl x:Name="UnassignedDeviceList" ItemsSource="{Binding UnassignedDevices}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:PipelineDeviceCardViewModel"><views:PipelineDeviceCardView /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+        <TextBlock Text="{l:Loc Mode.NoUnassigned}" IsVisible="{Binding !HasUnassignedDevices}" Classes="caption muted" />
+        <Expander Header="{l:Loc Pipeline.Manage}">
+          <StackPanel Classes="field">
+            <WrapPanel Classes="pipeline-toolbar">
+              <Button Content="{l:Loc Pipeline.Duplicate}" Command="{Binding DuplicateCommand}" Classes="small" />
+              <Button Content="{l:Loc Pipeline.Save}" Command="{Binding SaveCommand}" Classes="small" />
+              <Button Content="{l:Loc Pipeline.Delete}" Command="{Binding DeleteCommand}" Classes="small danger" />
+            </WrapPanel>
+            <TextBox Text="{Binding TemplateName}" PlaceholderText="{l:Loc Pipeline.TemplateName}" MaxLength="60" />
+            <Button Content="{l:Loc Pipeline.SaveTemplate}" Command="{Binding SaveTemplateCommand}" Classes="small" />
+            <Button Content="{l:Loc Pipeline.DeleteTemplate}" Command="{Binding DeleteTemplateCommand}" Classes="small danger" />
+          </StackPanel>
+        </Expander>
+      </StackPanel>
     </ScrollViewer>
-    <ContentControl Grid.Column="1" Content="{Binding Selected}">
-      <ContentControl.ContentTemplate>
-        <DataTemplate x:DataType="vm:PipelineEditorViewModel"><views:PipelineEditorView /></DataTemplate>
-      </ContentControl.ContentTemplate>
-    </ContentControl>
+    <ContentControl Grid.Column="1" Content="{Binding Selected}"><ContentControl.ContentTemplate><DataTemplate x:DataType="vm:PipelineEditorViewModel"><views:PipelineEditorView /></DataTemplate></ContentControl.ContentTemplate></ContentControl>
   </Grid>
 </UserControl>

@@ -39,6 +39,7 @@ public sealed class PipelineUiTests
         var sinkNode = NodeDefinition.Create(BuiltInNodes.ChannelOutput, new ChannelOutputNode("test"));
         workspace.AddDocument(new(Guid.NewGuid(), "test", [valueNode, sinkNode], [new(new(valueNode.Id, "value"), new(sinkNode.Id, "strength"))], [new(valueNode.Id, 0, 0), new(sinkNode.Id, 350, 0)]));
         var editor = workspace.Selected!;
+        editor.ShowPalette = true;
         var device = new DeviceDescriptor("test", "Test device", DeviceKind.DualChannel, 90, -30);
         await controller.ConnectAsync(device, TestContext.Current.CancellationToken);
         editor.RefreshDevices();

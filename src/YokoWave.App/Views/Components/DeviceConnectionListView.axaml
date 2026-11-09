@@ -1,5 +1,5 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:YokoWave.App.ViewModels" xmlns:l="using:YokoWave.App.Localization"
+             xmlns:components="using:YokoWave.App.Views.Components" xmlns:vm="using:YokoWave.App.ViewModels" xmlns:l="using:YokoWave.App.Localization"
              x:Class="YokoWave.App.Views.Components.DeviceConnectionListView" x:DataType="vm:DevicesPaneViewModel">
   <StackPanel Classes="items">
     <Button Content="{Binding ScanLabel}" Command="{Binding ScanCommand}" Classes="small" />
@@ -7,15 +7,7 @@
     <ItemsControl ItemsSource="{Binding Devices}">
       <ItemsControl.ItemTemplate>
         <DataTemplate x:DataType="vm:DeviceItem">
-          <Border Classes="card compact list-item">
-            <StackPanel Classes="field">
-              <Button Content="{Binding Name}" Command="{Binding SelectCommand}" Classes="device" />
-              <TextBlock Text="{Binding Status}" TextWrapping="Wrap" Classes="caption muted" />
-              <TextBlock Text="{Binding OutputSummary}" IsVisible="{Binding HasOutput}" Classes="caption muted" TextWrapping="Wrap" />
-              <Button Content="{Binding ConnectionAction}" Command="{Binding ConnectCommand}" Classes="small"
-                      Classes.primary="{Binding !IsConnected}" Classes.danger="{Binding IsConnected}" />
-            </StackPanel>
-          </Border>
+          <components:DeviceCardView />
         </DataTemplate>
       </ItemsControl.ItemTemplate>
     </ItemsControl>

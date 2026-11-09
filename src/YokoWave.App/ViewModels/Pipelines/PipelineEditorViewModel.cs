@@ -37,6 +37,7 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
     public IAudioInputFactory AudioInputs { get; }
     public PipelineServices Services { get; }
     internal Func<string, bool>? CanBindDevice { get; set; }
+    internal Func<double> GetDefaultOutputLimit { get; set; } = () => .6;
     public ObservableCollection<PipelineEndpointViewModel> Endpoints { get; } = [];
     public ObservableCollection<PipelineBindingViewModel> Bindings { get; } = [];
     public event EventHandler<WaveformPreset>? WaveformCreated;
@@ -45,10 +46,10 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
     private PipelineDocument? _clipboard;
     private bool _restoring;
     private string _name;
-    private double _outputLimit, _durationSeconds, _timerLimitSeconds;
+    private double _durationSeconds, _timerLimitSeconds;
     private bool _timerEnabled;
     private bool _disposed;
-    private bool _showPalette = true, _showInspector = true;
+    private bool _showPalette, _showInspector = true;
     public bool ShowPalette { get => _showPalette; set => Set(ref _showPalette, value); }
     public bool ShowInspector { get => _showInspector; set => Set(ref _showInspector, value); }
     public NodeTypeRegistry Registry { get; }
@@ -110,18 +111,6 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
         {
             if (!string.IsNullOrWhiteSpace(value) && value.Length <= 60 && value != _name)
                 Edit(() => Set(ref _name, value));
-        }
-    }
-    public double OutputLimit
-    {
-        get => _outputLimit;
-        set
-        {
-            if (double.IsFinite(value) && value is >= 0 and <= 1 && value != _outputLimit)
-            {
-                Edit(() => Set(ref _outputLimit, value), live: true);
-                Session.SetLimit(value);
-            }
         }
     }
     public bool TimerEnabled
@@ -200,7 +189,7 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
 
     public PipelineDocument ToDocument() => new(Id, Name, Nodes.Select(n => n.ToDefinition()).ToArray(),
         Connections.Select(c => c.Definition).ToArray(), Nodes.Select(n => new NodeLayout(n.Id, n.Location.X, n.Location.Y)).ToArray(),
-        OutputLimit, DurationSeconds, TimerEnabled, Inputs: Nodes.SelectMany(n => n.Inputs).Where(p => p.IsExposed)
+        DurationSeconds, TimerEnabled, Inputs: Nodes.SelectMany(n => n.Inputs).Where(p => p.IsExposed)
             .Select(p => new ExposedPort(p.Node.Id.ToString("N") + "." + p.Port.Id, p.Port.NameKey, new(p.Node.Id, p.Port.Id), p.Port.Parameter, p.Port.Kind)).ToArray(),
         Outputs: Nodes.SelectMany(n => n.Outputs).Where(p => p.IsExposed)
             .Select(p => new ExposedPort(p.Node.Id.ToString("N") + "." + p.Port.Id, p.Port.NameKey, new(p.Node.Id, p.Port.Id), p.Port.Parameter, p.Port.Kind)).ToArray());
@@ -227,6 +216,8 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
             Nodes = document.Nodes.Select(n => SubgraphExpansion.MapDevices(n, new Dictionary<string, string> { [current] = replacement })).ToArray()
         });
     });
+    internal void EditDocument(PipelineDocument document) => Edit(() => Restore(document));
+
     public void ReplaceNode(NodeDefinition replacement)
     {
         if (!CanEdit)
@@ -264,12 +255,12 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
         Edited?.Invoke(this, EventArgs.Empty);
     }
 
-    public NodeEditorViewModel AddNode(string type)
+    public NodeEditorViewModel AddNode(string type, Avalonia.Point? location = null)
     {
         var node = _catalog.Create(this, _catalog.Default(this, type));
         Edit(() =>
         {
-            node.RestoreLocation(new(80 + Nodes.Count % 3 * 260, 80 + Nodes.Count / 3 * 220));
+            node.RestoreLocation(location ?? new(80 + Nodes.Count % 3 * 260, 80 + Nodes.Count / 3 * 220));
             Nodes.Add(node);
         });
         return node;
@@ -352,7 +343,6 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
         try
         {
             _name = document.Name;
-            _outputLimit = document.OutputLimit;
             _timerEnabled = document.TimerEnabled;
             _durationSeconds = Math.Min(document.DurationSeconds, _timerLimitSeconds);
             SelectedNodes.Clear();
@@ -377,7 +367,7 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
             }
         }
         finally { _restoring = false; }
-        foreach (var property in new[] { nameof(Name), nameof(OutputLimit), nameof(TimerEnabled), nameof(DurationSeconds) })
+        foreach (var property in new[] { nameof(Name), nameof(TimerEnabled), nameof(DurationSeconds) })
             Raise(property);
         Validate();
     }

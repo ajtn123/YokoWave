@@ -69,7 +69,7 @@ public sealed class PlaylistEditorViewModel : NodeEditorViewModel, IWaveformNode
         SavePlaylist();
     });
     private void SavePlaylist() => _settings = _settings with { Playlist = Playlist.Select(p => p.Preset.Id).ToArray() };
-    public override NodeDefinition ToDefinition() => NodeDefinition.Create(Type, _settings, Id);
+    protected override NodeDefinition BuildDefinition() => NodeDefinition.Create(Type, _settings, Id);
     public bool SelectWaveform(PresetItem preset)
     {
         SelectedPreset = preset;
@@ -131,7 +131,7 @@ public sealed class TouchNodeEditorViewModel : NodeEditorViewModel
         }, editor.ReportError);
     }
     private void Send() => Editor.Session.Update(NodeControl.Create(Id, "touch", new TouchPoint(Frequency, PulseWidth / 100, IsHeld)));
-    public override NodeDefinition ToDefinition() => NodeDefinition.Create(Type, _settings, Id);
+    protected override NodeDefinition BuildDefinition() => NodeDefinition.Create(Type, _settings, Id);
 }
 
 public sealed class AudioNodeEditorViewModel : NodeEditorViewModel, IAsyncDisposable
@@ -265,7 +265,7 @@ public sealed class AudioNodeEditorViewModel : NodeEditorViewModel, IAsyncDispos
         if (calibratedFloor is { } floor)
             Change(() => { _settings = _settings with { NoiseFloorDb = floor }; Raise(nameof(NoiseFloor)); });
     }
-    public override NodeDefinition ToDefinition() => NodeDefinition.Create(Type, new AudioNode(_settings), Id);
+    protected override NodeDefinition BuildDefinition() => NodeDefinition.Create(Type, new AudioNode(_settings), Id);
     public override void RefreshLocalization()
     {
         base.RefreshLocalization();

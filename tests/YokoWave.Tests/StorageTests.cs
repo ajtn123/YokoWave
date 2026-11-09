@@ -89,6 +89,7 @@ public sealed class StorageTests
     [InlineData(5)]
     [InlineData(6)]
     [InlineData(7)]
+    [InlineData(8)]
     public async Task OldDevelopmentFormatIsResetWithoutMigration(int schema)
     {
         using var folder = new TestFolder();

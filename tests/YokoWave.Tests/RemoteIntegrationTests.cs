@@ -76,7 +76,7 @@ public sealed class RemoteIntegrationTests
         await client.SendAsync(remote.Id, new(80, 70, 20), Ct);
         await Wait(() => controller.Connections[device.Id].Output.ChannelA == 25);
         Assert.Equal(session.OwnerId, controller.DeviceOwner(device.Id));
-        session.SetLimit(.1);
+        session.SetLimit(graph.Nodes.Single(n => n.Type == BuiltInNodes.RouterOutput).Id, .1);
         await session.FlushAsync();
         Assert.Equal(10, controller.Connections[device.Id].Output.ChannelA);
         await session.PauseAsync();

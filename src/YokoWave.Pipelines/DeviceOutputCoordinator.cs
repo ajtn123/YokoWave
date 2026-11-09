@@ -5,8 +5,9 @@ namespace YokoWave.Pipelines;
 /// <summary>Combines each device's channels once, with channel-local caps applied before aggregation.</summary>
 internal sealed class DeviceOutputCoordinator(PipelinePlan plan, IReadOnlySet<string> simulatedDevices)
 {
-    private double _limit = plan.OutputLimit;
-    public void SetLimit(double value) => _limit = value;
+    private readonly Dictionary<Guid, double> _limits = [];
+    public void SetLimit(Guid node, double value) => _limits[node] = value;
+    public double Limit(Guid node, double configured) => _limits.GetValueOrDefault(node, configured);
     private readonly Dictionary<string, (double Peak, WaveformSample[] Samples)[]> _channels = [];
     private readonly Dictionary<string, PumpOutput> _pumps = [];
     private readonly Dictionary<string, OutputFrame> _native = [];
@@ -34,7 +35,7 @@ internal sealed class DeviceOutputCoordinator(PipelinePlan plan, IReadOnlySet<st
             return;
         _options[binding.DeviceId] = binding;
         var levels = Enumerable.Range(0, 4).Select(i => plan.Duration is { } duration && _elapsed.TotalSeconds + i * .025 >= duration.TotalSeconds
-            ? 0 : Math.Min(strength.At(i), Math.Min(limit.At(i), _limit))).ToArray();
+            ? 0 : Math.Min(strength.At(i), Math.Min(limit.At(i), binding.Limit))).ToArray();
         var peak = levels.Max();
         var samples = Enumerable.Range(0, 4).Select(i => new WaveformSample(peak == 0 ? 0 : levels[i] / peak,
             frequency.At(i), width.At(i))).ToArray();
@@ -44,10 +45,10 @@ internal sealed class DeviceOutputCoordinator(PipelinePlan plan, IReadOnlySet<st
     public void Native(NativeOutputNode binding, double a, double b, double c, NativeProgramSettings program, TimeSpan elapsed, double? remaining = null)
     {
         var presets = program.Kind is NativeProgramKind.ElectricalPreset or NativeProgramKind.MotorPreset;
-        var frame = new OutputFrame(presets && program.PresetA == 0 ? 0 : Math.Min(a, _limit) * 100,
-            presets && program.PresetB == 0 ? 0 : Math.Min(b, _limit) * 100, 20,
-            ChannelC: program.Kind == NativeProgramKind.MotorPreset && program.PresetC > 0 ? Math.Min(c, _limit) * 100 : 0,
-            OutputLimit: _limit * 100, NativeProgram: new(program, elapsed.TotalSeconds,
+        var frame = new OutputFrame(presets && program.PresetA == 0 ? 0 : Math.Min(a, binding.Limit) * 100,
+            presets && program.PresetB == 0 ? 0 : Math.Min(b, binding.Limit) * 100, 20,
+            ChannelC: program.Kind == NativeProgramKind.MotorPreset && program.PresetC > 0 ? Math.Min(c, binding.Limit) * 100 : 0,
+            OutputLimit: binding.Limit * 100, NativeProgram: new(program, elapsed.TotalSeconds,
                 plan.Duration is { } duration ? Math.Min(remaining ?? double.MaxValue, Math.Max(0, (duration - _elapsed).TotalSeconds)) : remaining),
             Hardware: binding.Hardware, DgBalances: binding.Balances, Gentle: binding.Gentle);
         frame.NativeProgram!.ValidateOutput(frame);
@@ -59,7 +60,7 @@ internal sealed class DeviceOutputCoordinator(PipelinePlan plan, IReadOnlySet<st
     {
         // Timed commands are discrete. A varying sample window is not a pump command.
         var signals = new[] { direction, water, peristalticSeconds, waterSeconds };
-        if (!Accepts(binding.DeviceId, now, signals) || signals.Any(s => s.Samples.Distinct().Count() != 1) || _limit == 0)
+        if (!Accepts(binding.DeviceId, now, signals) || signals.Any(s => s.Samples.Distinct().Count() != 1) || binding.Limit == 0)
         {
             _pumps[binding.DeviceId] = new();
             return;
@@ -96,7 +97,7 @@ internal sealed class DeviceOutputCoordinator(PipelinePlan plan, IReadOnlySet<st
                 channels[0].Samples?[0], channels[1].Samples?[0], ChannelC: channels[2].Peak,
                 WindowA: channels[0].Samples, WindowB: channels[1].Samples,
                 ReferenceSampleC: channels[2].Samples?[0], WindowC: channels[2].Samples,
-                Hardware: options?.Hardware, DgBalances: options?.Balances, Gentle: options?.Gentle ?? false, OutputLimit: _limit * 100);
+                Hardware: options?.Hardware, DgBalances: options?.Balances, Gentle: options?.Gentle ?? false);
         }
         return frames;
     }

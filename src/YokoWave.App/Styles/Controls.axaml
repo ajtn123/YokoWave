@@ -25,6 +25,9 @@
     <Setter Property="FontFamily" Value="{DynamicResource FontFamily.Ui}" />
     <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
   </Style>
+  <Style Selector="ContextMenu">
+    <Setter Property="FontFamily" Value="{DynamicResource FontFamily.Ui}" />
+  </Style>
   <Style Selector="Border.card">
     <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
