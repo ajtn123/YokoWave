@@ -4,7 +4,7 @@
              xmlns:l="using:YokoWave.App.Localization"
              xmlns:controls="using:YokoWave.App.Controls"
              x:Class="YokoWave.App.Views.Components.WaveformEditorView"
-             x:DataType="vm:MainViewModel">
+             x:DataType="vm:WaveformLibraryViewModel">
   <Border Classes="card">
     <StackPanel Classes="group">
       <TextBlock Text="{l:Loc Wave.Editor}" Classes="section-title" />

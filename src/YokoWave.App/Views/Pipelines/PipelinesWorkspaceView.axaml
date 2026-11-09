@@ -3,11 +3,18 @@
              xmlns:l="using:YokoWave.App.Localization"
              xmlns:vm="using:YokoWave.App.ViewModels.Pipelines"
              xmlns:views="using:YokoWave.App.Views.Pipelines"
+             xmlns:items="using:YokoWave.App.ViewModels"
+             xmlns:components="using:YokoWave.App.Views.Components"
              x:Class="YokoWave.App.Views.Pipelines.PipelinesWorkspaceView"
              x:DataType="vm:PipelinesWorkspaceViewModel">
   <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource Space.Medium}">
+    <ScrollViewer>
     <StackPanel Classes="field pipeline-list">
+      <ComboBox ItemsSource="{Binding Templates}" SelectedItem="{Binding SelectedTemplate}" AutomationProperties.Name="{l:Loc Pipeline.Template}">
+        <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PipelineTemplateChoice"><TextBlock Text="{Binding Name}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
       <Button Content="{l:Loc Pipeline.Add}" Command="{Binding AddCommand}" Classes="small primary" />
+      <Button Content="{l:Loc Pipeline.Duplicate}" Command="{Binding DuplicateCommand}" Classes="small" />
       <Button Content="{l:Loc Pipeline.Save}" Command="{Binding SaveCommand}" Classes="small" />
       <Button Content="{l:Loc Pipeline.Delete}" Command="{Binding DeleteCommand}" Classes="small danger" />
       <ListBox ItemsSource="{Binding Pipelines}" SelectedItem="{Binding Selected}">
@@ -21,7 +28,14 @@
           </DataTemplate>
         </ListBox.ItemTemplate>
       </ListBox>
+      <TextBox Text="{Binding TemplateName}" PlaceholderText="{l:Loc Pipeline.TemplateName}" MaxLength="60" />
+      <Button Content="{l:Loc Pipeline.SaveTemplate}" Command="{Binding SaveTemplateCommand}" Classes="small" />
+      <Button Content="{l:Loc Pipeline.DeleteTemplate}" Command="{Binding DeleteTemplateCommand}" Classes="small danger" />
+      <ContentControl Content="{Binding DevicePane}">
+        <ContentControl.DataTemplates><DataTemplate DataType="items:DevicesPaneViewModel"><components:DeviceConnectionListView /></DataTemplate></ContentControl.DataTemplates>
+      </ContentControl>
     </StackPanel>
+    </ScrollViewer>
     <ContentControl Grid.Column="1" Content="{Binding Selected}">
       <ContentControl.ContentTemplate>
         <DataTemplate x:DataType="vm:PipelineEditorViewModel"><views:PipelineEditorView /></DataTemplate>

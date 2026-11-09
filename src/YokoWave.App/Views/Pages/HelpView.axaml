@@ -5,7 +5,7 @@
   <StackPanel Classes="section reading">
     <Border Classes="card">
       <StackPanel Classes="items">
-        <TextBlock Text="{l:Loc ModeKind.WebSocketServer}" Classes="section-title" />
+        <TextBlock Text="{l:Loc Template.WebSocketServer}" Classes="section-title" />
         <TextBlock Text="{l:Loc Remote.ServerHelp}" Classes="help" />
         <TextBlock Text="{l:Loc Remote.ClientHelp}" Classes="muted help" />
       </StackPanel>
@@ -20,7 +20,7 @@
     </Border>
     <Border Classes="card">
       <StackPanel Classes="items">
-        <TextBlock Text="{l:Loc ModeKind.Pump}" Classes="section-title" />
+        <TextBlock Text="{l:Loc Template.Pump}" Classes="section-title" />
         <TextBlock Text="{l:Loc Pump.Help}" Classes="help" />
       </StackPanel>
     </Border>
@@ -87,25 +87,25 @@
     </Border>
     <Border Classes="card">
       <StackPanel Classes="items">
-        <TextBlock Text="{l:Loc ModeKind.Audio}" Classes="section-title" />
+        <TextBlock Text="{l:Loc Template.Audio}" Classes="section-title" />
         <TextBlock Text="{l:Loc Help.AudioControl}" Classes="help" />
       </StackPanel>
     </Border>
     <Border Classes="card">
       <StackPanel Classes="items">
-        <TextBlock Text="{l:Loc ModeKind.Restraint}" Classes="section-title" />
+        <TextBlock Text="{l:Loc Template.Restraint}" Classes="section-title" />
         <TextBlock Text="{l:Loc Help.Restraint}" Classes="help" />
       </StackPanel>
     </Border>
     <Border Classes="card">
       <StackPanel Classes="items">
-        <TextBlock Text="{l:Loc ModeKind.Exercise}" Classes="section-title" />
+        <TextBlock Text="{l:Loc Template.Exercise}" Classes="section-title" />
         <TextBlock Text="{l:Loc Help.Exercise}" Classes="help" />
       </StackPanel>
     </Border>
     <Border Classes="card">
       <StackPanel Classes="items">
-        <TextBlock Text="{l:Loc ModeKind.SleepDeprivation}" Classes="section-title" />
+        <TextBlock Text="{l:Loc Template.SleepDeprivation}" Classes="section-title" />
         <TextBlock Text="{l:Loc Help.Sleep}" Classes="help" />
       </StackPanel>
     </Border>

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using YokoWave.Core;
 using YokoWave.Core.Localization;
+using YokoWave.Core.Bluetooth;
 
 namespace YokoWave.Pipelines;
 
@@ -28,6 +29,8 @@ public sealed class PipelinePlan
         Waveforms = waveforms;
         Bindings = Array.AsReadOnly(bindings);
         DeviceIds = Array.AsReadOnly(bindings.Select(b => b.DeviceId).Distinct(StringComparer.Ordinal).ToArray());
+        OutputDeviceIds = Array.AsReadOnly(bindings.Where(b => b.Kind is OutputBindingKind.Channel or OutputBindingKind.Pump or OutputBindingKind.Native or OutputBindingKind.Router)
+            .Select(b => b.DeviceId).Distinct(StringComparer.Ordinal).ToArray());
     }
     // The execution definition is private; callers cannot change a compiled graph while it is running.
     internal PipelineDocument Document { get; }
@@ -35,6 +38,7 @@ public sealed class PipelinePlan
     internal Dictionary<PortAddress, PortAddress> Inputs { get; }
     internal Dictionary<Guid, WaveformPreset> Waveforms { get; }
     public IReadOnlyList<string> DeviceIds { get; }
+    public IReadOnlyList<string> OutputDeviceIds { get; }
     public IReadOnlyList<DeviceOutputBinding> Bindings { get; }
     public Guid Id => Document.Id;
     public string Name => Document.Name;
@@ -70,12 +74,35 @@ public sealed class PipelineCompiler(NodeTypeRegistry registry)
             source.Nodes.Any(n => n is null || n.Configuration.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null) ||
             source.Layout.Any(l => l is null || !double.IsFinite(l.X) || !double.IsFinite(l.Y)))
             return (null, [new("Pipeline.Error.Document")]);
-        var document = PipelineJson.Snapshot(source);
+        PipelineDocument document;
+        try
+        {
+            document = SubgraphExpansion.Expand(PipelineJson.Snapshot(source));
+        }
+        catch (PipelineValidationException error)
+        {
+            return (null, error.Diagnostics.ToList());
+        }
+        catch (Exception error) when (error is JsonException or ArgumentException or KeyNotFoundException)
+        {
+            return (null, [new("Pipeline.Error.Connection")]);
+        }
         var waves = waveforms.Where(w => w is not null && w.TryValidate(out _)).ToDictionary(w => w.Id, w => w with
         {
             Points = w.Points?.ToArray(),
             Samples = w.Samples?.Select(s => s with { Channels = s.Channels?.ToArray() }).ToArray()
         });
+        var nodes = ReadNodes(document, waves, errors);
+        var inputs = ConnectInputs(document, nodes, errors);
+        var ordered = SortNodes(nodes, inputs, errors);
+        var bindings = ValidateResources(nodes.Values, devices, errors);
+        if (nodes.Count == 0)
+            errors.Add(new("Pipeline.Error.NoOutput"));
+        return errors.Count > 0 ? (null, errors) : (new(document, ordered, inputs, waves, bindings), errors);
+    }
+
+    private Dictionary<Guid, CompiledNode> ReadNodes(PipelineDocument document, IReadOnlyDictionary<Guid, WaveformPreset> waves, List<PipelineDiagnostic> errors)
+    {
         Dictionary<Guid, CompiledNode> nodes = [];
         foreach (var node in document.Nodes)
         {
@@ -93,8 +120,11 @@ public sealed class PipelineCompiler(NodeTypeRegistry registry)
             {
                 var config = registration.Read(node.Configuration);
                 if (!registration.Validate(config))
+                {
                     errors.Add(new("Pipeline.Error.Configuration", node.Id));
-                if (config is WaveformNode wave && (!waves.TryGetValue(wave.WaveformId, out var preset) || !preset.TryValidate(out _)))
+                    continue;
+                }
+                if (registration.WaveformReferences(config).Any(id => !waves.ContainsKey(id)))
                     errors.Add(new("Pipeline.Error.Waveform", node.Id));
                 nodes.Add(node.Id, new(node.Id, registration, config));
             }
@@ -103,23 +133,36 @@ public sealed class PipelineCompiler(NodeTypeRegistry registry)
                 errors.Add(new("Pipeline.Error.Configuration", node.Id));
             }
         }
+        return nodes;
+    }
+
+    private static Dictionary<PortAddress, PortAddress> ConnectInputs(PipelineDocument document, IReadOnlyDictionary<Guid, CompiledNode> nodes, List<PipelineDiagnostic> errors)
+    {
         Dictionary<PortAddress, PortAddress> inputs = [];
         foreach (var connection in document.Connections)
         {
             if (connection?.Source is not { } from || connection.Target is not { } to ||
                 !nodes.TryGetValue(from.Node, out var sourceNode) || !nodes.TryGetValue(to.Node, out var targetNode) ||
-                !sourceNode.Registration.Ports.Any(p => p.Id == from.Port && p.Direction == PortDirection.Output) ||
-                !targetNode.Registration.Ports.Any(p => p.Id == to.Port && p.Direction == PortDirection.Input))
+                !sourceNode.Registration.PortsFor(sourceNode.Configuration).Any(p => p.Id == from.Port && p.Direction == PortDirection.Output) ||
+                !targetNode.Registration.PortsFor(targetNode.Configuration).Any(p => p.Id == to.Port && p.Direction == PortDirection.Input))
             {
                 errors.Add(new("Pipeline.Error.Connection", connection?.Target?.Node, connection?.Target?.Port));
                 continue;
             }
             if (!inputs.TryAdd(to, from))
                 errors.Add(new("Pipeline.Error.MultipleSources", to.Node, to.Port));
+            if (sourceNode.Registration.PortsFor(sourceNode.Configuration).Single(p => p.Id == from.Port && p.Direction == PortDirection.Output).Kind !=
+                targetNode.Registration.PortsFor(targetNode.Configuration).Single(p => p.Id == to.Port && p.Direction == PortDirection.Input).Kind)
+                errors.Add(new("Pipeline.Error.Connection", to.Node, to.Port));
             if (sourceNode.Configuration is ConstantNode constant &&
-                targetNode.Registration.Ports.Single(p => p.Id == to.Port && p.Direction == PortDirection.Input).Parameter?.Accepts(constant.Value) == false)
+                targetNode.Registration.PortsFor(targetNode.Configuration).Single(p => p.Id == to.Port && p.Direction == PortDirection.Input).Parameter?.Accepts(constant.Value) == false)
                 errors.Add(new("Pipeline.Error.Range", to.Node, to.Port));
         }
+        return inputs;
+    }
+
+    private static CompiledNode[] SortNodes(IReadOnlyDictionary<Guid, CompiledNode> nodes, IReadOnlyDictionary<PortAddress, PortAddress> inputs, List<PipelineDiagnostic> errors)
+    {
         var degrees = nodes.Keys.ToDictionary(id => id, _ => 0);
         var downstream = nodes.Keys.ToDictionary(id => id, _ => new List<Guid>());
         foreach (var (to, from) in inputs)
@@ -138,22 +181,60 @@ public sealed class PipelineCompiler(NodeTypeRegistry registry)
         }
         if (ordered.Count != nodes.Count)
             errors.Add(new("Pipeline.Error.Cycle"));
-        List<DeviceOutputBinding> bindings = [];
-        foreach (var node in nodes.Values)
-        {
-            if (node.Registration.Binding(node.Configuration) is not { } binding)
-                continue;
-            if (bindings.Any(b => b.DeviceId == binding.DeviceId && (b.Kind == OutputBindingKind.Pump || binding.Kind == OutputBindingKind.Pump || b.Channel == binding.Channel)))
-                errors.Add(new("Pipeline.Error.DuplicateOutput", node.Id));
-            bindings.Add(binding);
-            if (devices is not null && (!devices.TryGetValue(binding.DeviceId, out var device) || !Accepts(binding, device)))
-                errors.Add(new("Pipeline.Error.Device", node.Id));
-        }
-        if (bindings.Count == 0)
-            errors.Add(new("Pipeline.Error.NoOutput"));
-        return errors.Count > 0 ? (null, errors) : (new(document, ordered.ToArray(), inputs, waves, bindings.ToArray()), errors);
+        return ordered.ToArray();
     }
 
-    public static bool Accepts(DeviceOutputBinding binding, DeviceDescriptor device) => device.IsSupported && !device.IsInput &&
-        (binding.Kind == OutputBindingKind.Pump ? device.Kind == DeviceKind.Pump : device.Kind != DeviceKind.Pump && device.HasChannel(binding.Channel));
+    internal static DeviceOutputBinding[] ValidateResources(IEnumerable<CompiledNode> source, IReadOnlyDictionary<string, DeviceDescriptor>? devices, List<PipelineDiagnostic> errors)
+    {
+        var nodes = source.ToArray();
+        List<DeviceOutputBinding> bindings = [];
+        var channelOptions = nodes.Where(n => n.Configuration is ChannelOutputNode).Select(n => (ChannelOutputNode)n.Configuration).GroupBy(n => n.DeviceId);
+        foreach (var group in channelOptions)
+            if (group.Select(n => (n.Gentle, Hardware: n.Hardware ?? new(), Balances: n.Balances ?? new())).Distinct().Count() > 1)
+                errors.Add(new("Pipeline.Error.DeviceOptions"));
+        foreach (var node in nodes)
+        {
+            foreach (var binding in node.Registration.Resources(node.Configuration))
+            {
+                if (bindings.Any(b => Conflicts(b, binding)))
+                    errors.Add(new("Pipeline.Error.DuplicateOutput", node.Id));
+                bindings.Add(binding);
+                var needsMotion = nodes.Any(n => n.Configuration is SensorNode sensor && sensor.DeviceId == binding.DeviceId ||
+                    n.Configuration is CommandNode command && command.DeviceId == binding.DeviceId && command.Command is ConfigureMotionStream { Enabled: true });
+                if (devices is not null && (!devices.TryGetValue(binding.DeviceId, out var device) || !Accepts(binding, device) || !AcceptsConfiguration(node.Configuration, device, needsMotion)))
+                    errors.Add(new("Pipeline.Error.Device", node.Id));
+            }
+        }
+        return bindings.ToArray();
+    }
+
+    private static bool Conflicts(DeviceOutputBinding a, DeviceOutputBinding b)
+    {
+        if (a.DeviceId != b.DeviceId)
+            return false;
+        if (a.Kind == OutputBindingKind.Export || b.Kind == OutputBindingKind.Export)
+            return true;
+        var aOutput = a.Kind is OutputBindingKind.Channel or OutputBindingKind.Pump or OutputBindingKind.Native or OutputBindingKind.Router;
+        var bOutput = b.Kind is OutputBindingKind.Channel or OutputBindingKind.Pump or OutputBindingKind.Native or OutputBindingKind.Router;
+        return aOutput && bOutput && (a.Kind != OutputBindingKind.Channel || b.Kind != OutputBindingKind.Channel || a.Channel == b.Channel);
+    }
+    private static bool AcceptsConfiguration(object config, DeviceDescriptor device, bool needsMotion) => config switch
+    {
+        NativeOutputNode native => (native.Settings ?? new()).Accepts(device) && native.Hardware?.Accepts(device, needsMotion) != false,
+        ChannelOutputNode channel => channel.Hardware?.Accepts(device, needsMotion) != false,
+        CommandNode command => device.Profile?.Supports(command.Command.Capability) == true,
+        _ => true
+    };
+    public static bool Accepts(DeviceOutputBinding binding, DeviceDescriptor device) => device.IsSupported && binding.Kind switch
+    {
+        OutputBindingKind.Sensor => device.IsInput || device.Profile?.Motion == true || device.Profile?.Supports(DeviceCapability.SensorStream) == true ||
+            device.Profile?.Supports(DeviceCapability.StatusQuery) == true || device.Simulated == true || device.ProtocolId is null,
+        OutputBindingKind.Command => true,
+        OutputBindingKind.Export => device.Origin == DeviceOrigin.Local,
+        OutputBindingKind.Pump => device.Kind == DeviceKind.Pump,
+        OutputBindingKind.Native => !device.IsInput && device.Kind != DeviceKind.Pump,
+        OutputBindingKind.Router => !device.IsInput,
+        OutputBindingKind.ControlEndpoint => device.Origin == DeviceOrigin.Local,
+        _ => !device.IsInput && device.Kind != DeviceKind.Pump && device.HasChannel(binding.Channel)
+    };
 }

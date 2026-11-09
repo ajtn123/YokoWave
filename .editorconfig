@@ -13,4 +13,4 @@ indent_size = 2
 [*.cs]
 dotnet_diagnostic.IDE0005.severity = warning
 csharp_preserve_single_line_blocks = true
-csharp_preserve_single_line_statements = true
+csharp_preserve_single_line_statements = false

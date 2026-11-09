@@ -12,7 +12,10 @@ public enum WaveShape
     Sine, Triangle, Pulse, Ramp, Custom, Sampled
 }
 
-public enum DeviceOrigin { Local, Remote }
+public enum DeviceOrigin
+{
+    Local, Remote
+}
 public sealed record DeviceDescriptor(string Id, string Name, DeviceKind Kind, int? Battery, int? Signal,
     string? ProtocolId = null, int? ChannelMask = null, DeviceOrigin Origin = DeviceOrigin.Local, bool? Simulated = null)
 {
@@ -41,8 +44,7 @@ public sealed record OutputFrame(double ChannelA, double ChannelB, double Freque
     NativeProgramOutput? NativeProgram = null, HardwareOutputSettings? Hardware = null,
     WaveformSample? ReferenceSampleC = null, IReadOnlyList<WaveformSample>? WindowC = null)
 {
-    public static OutputFrame Zero
-    { get; } = new(0, 0, 1);
+    public static OutputFrame Zero { get; } = new(0, 0, 1);
 }
 
 public sealed record WaveformSample([property: JsonRequired] double Level, [property: JsonRequired] double FrequencyHz,
@@ -140,19 +142,19 @@ public static class WaveformGenerator
     }
 }
 
+public sealed record PipelineContentRecord(Guid NodeId, string Type, Guid? WaveformId = null, string? WaveformName = null);
 public sealed record SessionRecord(Guid Id, DateTimeOffset StartedAt, double DurationSeconds,
-    string WaveformName, int DeviceCount, double PeakA, double PeakB, string Reason, Guid? WaveformId = null,
-    Guid? ChannelBWaveformId = null, string? ChannelBWaveformName = null, bool TouchControl = false, bool Gentle = false,
-    Guid? ModeId = null, string? ModeName = null, ModeKind Kind = ModeKind.Waveform, double PeakC = 0);
+    string PipelineName, int DeviceCount, double? PeakA, double? PeakB, string Reason, Guid? PipelineId = null,
+    double? PeakC = null, IReadOnlyList<PipelineContentRecord>? Contents = null);
 
 public sealed record AppSettings(double DefaultLimit = 60, string? Language = null, bool UseBluetooth = false, int TimerLimitMinutes = 120,
-    List<RemoteEndpointSettings>? RemoteEndpoints = null);
+    List<RemoteEndpointSettings>? RemoteEndpoints = null, bool ShowContacts = true);
 
 public sealed record WorkspaceData(int SchemaVersion, List<WaveformPreset> Presets,
-    List<SessionRecord> Sessions, AppSettings Settings, SessionStatistics? Statistics = null, List<PlaybackModeConfig>? Modes = null)
+    List<SessionRecord> Sessions, AppSettings Settings, SessionStatistics? Statistics = null)
 {
-    public const int CurrentSchema = 6;
-    public static WorkspaceData Empty => new(CurrentSchema, [], [], new(), new(), []);
+    public const int CurrentSchema = 8;
+    public static WorkspaceData Empty => new(CurrentSchema, [], [], new(), new());
 }
 
 public sealed record SessionStatistics(long SessionCount = 0, double TotalDurationSeconds = 0)

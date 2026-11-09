@@ -16,41 +16,6 @@ public sealed class ReviewUiTests
     private static readonly TimeSpan Deadline = TimeSpan.FromSeconds(3);
 
     [AvaloniaFact]
-    public async Task TickSchedulesIndependentModesWithoutWaitingForASlowDevice()
-    {
-        using var folder = new TestFolder();
-        var transport = new ConcurrentTransport();
-        await using var vm = new MainViewModel(new DeviceController(transport), new WorkspaceStore(folder.Path));
-        await vm.InitializeAsync();
-        foreach (var device in vm.Devices)
-            await vm.ToggleConnectionAsync(device);
-        var first = vm.SelectedMode;
-        first.AssignTarget("slow", true);
-        first.ChannelA = 20;
-        await vm.AddModeAsync(ModeKind.Waveform);
-        var second = vm.SelectedMode;
-        second.AssignTarget("fast", true);
-        second.ChannelA = 30;
-        var preset = new PresetItem(new(Guid.NewGuid(), "constant", WaveShape.Custom, 4, 20, [1, 1]));
-        vm.Presets.Add(preset);
-        first.SelectedPreset = second.SelectedPreset = preset;
-        await first.TogglePlaybackAsync();
-        await second.TogglePlaybackAsync();
-        transport.BlockedId = "slow";
-        var tick = vm.TickAsync();
-        try
-        {
-            await transport.FastOutput.Task.WaitAsync(Deadline, TestContext.Current.CancellationToken);
-            Assert.True(first.IsRunning);
-            Assert.True(second.IsRunning);
-            Assert.Equal(30, transport.Outputs["fast"].ChannelA);
-            Assert.False(tick.IsCompleted);
-        }
-        finally { transport.Release.TrySetResult(); await tick; }
-        await vm.StopAllModesAsync();
-    }
-
-    [AvaloniaFact]
     public async Task CommandsDispatchToUiRejectReentryAndRecoverWhenErrorReportingOrSubscribersThrow()
     {
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);

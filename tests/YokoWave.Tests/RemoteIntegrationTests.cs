@@ -15,6 +15,93 @@ public sealed class RemoteIntegrationTests
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
+    [Theory]
+    [InlineData(BluetoothProtocol.YokonexV1)]
+    [InlineData(BluetoothProtocol.YokonexV2)]
+    [InlineData(BluetoothProtocol.YokonexMotor)]
+    [InlineData(BluetoothProtocol.YokonexPump)]
+    [InlineData(BluetoothProtocol.CoyoteV2)]
+    [InlineData(BluetoothProtocol.CoyoteV3)]
+    [InlineData(BluetoothProtocol.Opossum)]
+    [InlineData(BluetoothProtocol.Paw)]
+    [InlineData(BluetoothProtocol.Civet)]
+    public async Task HighLevelClientPreservesDeviceIdentityStatusAndConfirmedStop(BluetoothProtocol protocol)
+    {
+        await using var host = await Host.Create(protocol);
+        await using var transport = new WebSocketControlTransport(new(Guid.NewGuid(), "control", host.Server.Url!.ToString(), RemoteConnectionKind.Control), Host.Token);
+        var device = Assert.Single(await transport.ScanAsync(Ct));
+        Assert.Equal(protocol.ToString(), device.ProtocolId);
+        Assert.Equal(DeviceOrigin.Remote, device.Origin);
+        await transport.ConnectAsync(device, Ct);
+        if (!device.IsInput)
+        {
+            var frame = device.Kind == DeviceKind.Pump ? OutputFrame.Zero with
+            {
+                Pump = new(PumpDirection.Reverse, true)
+            } : new OutputFrame(30, 20, 25, ChannelC: 10);
+            await transport.SendAsync(device.Id, frame, Ct);
+            if (device.Kind == DeviceKind.Pump)
+                Assert.Equal(PumpDirection.Reverse, host.Controller.Connections[host.Devices[0].Id].Output.Pump!.Direction);
+            else
+                Assert.Equal(30, host.Controller.Connections[host.Devices[0].Id].Output.ChannelA);
+            await transport.SendAsync(device.Id, OutputFrame.Zero, Ct);
+        }
+        await transport.DisconnectAsync(device.Id, Ct);
+        Assert.Equal(0, host.Controller.Connections[host.Devices[0].Id].Output.ChannelA);
+        Assert.False(host.Adapter.Links[host.Devices[0].Id].Closed);
+    }
+
+    [Fact]
+    public async Task ControlServerNodeRoutesThroughLocalNumericCapsAndRevokesOnPause()
+    {
+        var adapter = new HardwareGattAdapter(BluetoothProtocol.CoyoteV3);
+        await using var controller = new DeviceController(new BluetoothDeviceTransport(adapter));
+        var device = Assert.Single(await controller.ScanAsync(Ct));
+        await controller.ConnectAsync(device, Ct);
+        var graph = RemotePipelineNodes.ControlTemplate.Create(new("control graph", device.Id, Limit: .25));
+        var serverNode = graph.Nodes.Single(n => n.Type == RemotePipelineNodes.ControlServer);
+        graph = graph with
+        {
+            Nodes = graph.Nodes.Select(n => n.Id == serverNode.Id
+            ? NodeDefinition.Create(n.Type, new ControlServerNode(device.Id, new(Port: 0, LeaseMilliseconds: 1000)), n.Id) : n).ToArray()
+        };
+        var services = new PipelineServices();
+        services.Credentials[serverNode.Id] = new(Host.Token);
+        await using var session = new PipelineSession(controller, services);
+        await session.StartAsync(new PipelineCompiler(RemotePipelineNodes.Register(BuiltInNodes.CreateRegistry())).Compile(graph, [], new Dictionary<string, DeviceDescriptor> { [device.Id] = device }));
+        var endpoint = services.Endpoints[serverNode.Id];
+        await using var client = new WebSocketControlTransport(new(Guid.NewGuid(), "client", endpoint.Url, RemoteConnectionKind.Control), Host.Token);
+        var remote = Assert.Single(await client.ScanAsync(Ct));
+        await client.ConnectAsync(remote, Ct);
+        await client.SendAsync(remote.Id, new(80, 70, 20), Ct);
+        await Wait(() => controller.Connections[device.Id].Output.ChannelA == 25);
+        Assert.Equal(session.OwnerId, controller.DeviceOwner(device.Id));
+        session.SetLimit(.1);
+        await session.FlushAsync();
+        Assert.Equal(10, controller.Connections[device.Id].Output.ChannelA);
+        await session.PauseAsync();
+        Assert.Equal(0, controller.Connections[device.Id].Output.ChannelA);
+        Assert.Equal(session.OwnerId, controller.DeviceOwner(device.Id));
+        await session.PauseAsync();
+        await session.StopAsync();
+        Assert.Empty(services.Endpoints);
+        Assert.Null(controller.DeviceOwner(device.Id));
+        Assert.False(adapter.Links[device.Id].Closed);
+    }
+
+    [Fact]
+    public async Task HighLevelClientCarriesNativeOutputFramesThroughTheSamePipeline()
+    {
+        await using var host = await Host.Create(BluetoothProtocol.CoyoteV2);
+        await using var client = new WebSocketControlTransport(new(Guid.NewGuid(), "native", host.Server.Url!.ToString(), RemoteConnectionKind.Control), Host.Token);
+        var device = Assert.Single(await client.ScanAsync(Ct));
+        await client.ConnectAsync(device, Ct);
+        var pulse = new CoyotePulse(4, 500, 7);
+        await client.SendAsync(device.Id, new(20, 10, 20, NativeProgram: new(new(NativeProgramKind.CoyoteV2Pulse, PulseA: pulse), 0, null)), Ct);
+        Assert.Equal(pulse, host.Controller.Connections[host.Devices[0].Id].Output.NativeProgram!.Settings.PulseA);
+        await client.DisconnectAsync(device.Id, Ct);
+    }
+
     [Fact]
     public async Task CompiledPipelineUsesExistingDriverOverWebSocketGattAndConfirmsStop()
     {
@@ -101,12 +188,19 @@ public sealed class RemoteIntegrationTests
         var device = Assert.Single(await client.Peer.CallAsync<RemoteDevice[]>("devices.list", ct: Ct));
         var lease = await client.Acquire(device.Id, RemoteLeaseType.Gatt);
         var profile = BluetoothDeviceProfiles.FromId(device.ProtocolId)!;
-        var description = await client.Execute<RemoteGattDescription>(lease, "gatt.describe", new { deviceId = device.Id });
+        var description = await client.Execute<RemoteGattDescription>(lease, "gatt.describe", new
+        {
+            deviceId = device.Id
+        });
         Assert.Equal(20, description.MaximumWriteLength);
         Assert.Contains(description.Attributes, attribute => attribute.Address == profile.Write && attribute.Write);
         var received = new TaskCompletionSource<RemoteGattNotification>(TaskCreationOptions.RunContinuationsAsynchronously);
         client.Peer.Notification += (method, data) => { if (method == "gatt.notification") received.TrySetResult(RemoteProtocol.Read<RemoteGattNotification>(data)); };
-        await client.Execute<bool>(lease, "gatt.subscribe", new { deviceId = device.Id, address = profile.Notify });
+        await client.Execute<bool>(lease, "gatt.subscribe", new
+        {
+            deviceId = device.Id,
+            address = profile.Notify
+        });
         host.Adapter.Links[host.Devices[0].Id].Notify([0xb1, 0, 2, 3]);
         Assert.Equal(new byte[] { 0xb1, 0, 2, 3 }, (await received.Task.WaitAsync(TimeSpan.FromSeconds(3), Ct)).Notification.Data);
         var count = host.Adapter.Links[host.Devices[0].Id].Writes.Count;
@@ -127,9 +221,18 @@ public sealed class RemoteIntegrationTests
         var second = await client.Acquire(devices[1].Id, RemoteLeaseType.Control);
         var changed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         client.Peer.Notification += (method, _) => { if (method == "control.status") changed.TrySetResult(); };
-        await client.Execute<bool>(first, "control.subscribe", new { deviceId = devices[0].Id });
-        await client.Execute<bool>(first, "control.output", new { frame = new OutputFrame(90, 80, 20, OutputLimit: 25) });
-        await client.Execute<bool>(second, "control.output", new { frame = new OutputFrame(90, 80, 20) });
+        await client.Execute<bool>(first, "control.subscribe", new
+        {
+            deviceId = devices[0].Id
+        });
+        await client.Execute<bool>(first, "control.output", new
+        {
+            frame = new OutputFrame(90, 80, 20, OutputLimit: 25)
+        });
+        await client.Execute<bool>(second, "control.output", new
+        {
+            frame = new OutputFrame(90, 80, 20)
+        });
         Assert.Equal(25, host.Controller.Connections[host.Devices[0].Id].Output.ChannelA);
         Assert.Equal(40, host.Controller.Connections[host.Devices[1].Id].Output.ChannelA);
         await changed.Task.WaitAsync(TimeSpan.FromSeconds(3), Ct);
@@ -137,7 +240,11 @@ public sealed class RemoteIntegrationTests
         Assert.Equal(0, host.Controller.Connections[host.Devices[0].Id].Output.ChannelA);
         Assert.Equal(40, host.Controller.Connections[host.Devices[1].Id].Output.ChannelA);
         await client.Execute<bool>(first, "control.resume");
-        await client.Execute<bool>(first, "control.strength", new { channelA = 80, channelB = 50 });
+        await client.Execute<bool>(first, "control.strength", new
+        {
+            channelA = 80,
+            channelB = 50
+        });
         Assert.Equal(25, host.Controller.Connections[host.Devices[0].Id].Output.ChannelA);
         await client.Release(first);
         Assert.Equal(40, host.Controller.Connections[host.Devices[1].Id].Output.ChannelA);
@@ -152,12 +259,29 @@ public sealed class RemoteIntegrationTests
         var device = Assert.Single(await client.Peer.CallAsync<RemoteDevice[]>("devices.list", ct: Ct));
         var lease = await client.Acquire(device.Id, RemoteLeaseType.Control);
         var wave = new WaveformPreset(Guid.NewGuid(), "Constant", WaveShape.Custom, 1, 20, [1, 1]);
-        var next = wave with { Id = Guid.NewGuid(), Name = "Next" };
-        await client.Execute<bool>(lease, "control.playlist", new { playback = new RemoteControlProgram(new(new(PlaybackOrder.Sequential), [wave, next], OutputLimit: 30), wave, 70, 70, DurationSeconds: 10) });
+        var next = wave with
+        {
+            Id = Guid.NewGuid(),
+            Name = "Next"
+        };
+        await client.Execute<bool>(lease, "control.playlist", new
+        {
+            playback = new RemoteControlProgram(new(Order: PlaybackOrder.Sequential, Playlist: [wave, next], OutputLimit: 30), wave, 70, 70, DurationSeconds: 10)
+        });
         Assert.Equal(30, host.Controller.Connections[host.Devices[0].Id].Output.ChannelA);
-        Assert.True(await client.Execute<bool>(lease, "control.waveform", new { waveform = next }));
-        await client.Execute<bool>(lease, "control.command", new { deviceId = device.Id, command = (DeviceCommand)new QueryDevice(DeviceQuery.Battery) });
-        var status = await client.Execute<RemoteStatus>(lease, "control.status", new { deviceId = device.Id });
+        Assert.True(await client.Execute<bool>(lease, "control.waveform", new
+        {
+            waveform = next
+        }));
+        await client.Execute<bool>(lease, "control.command", new
+        {
+            deviceId = device.Id,
+            command = (DeviceCommand)new QueryDevice(DeviceQuery.Battery)
+        });
+        var status = await client.Execute<RemoteStatus>(lease, "control.status", new
+        {
+            deviceId = device.Id
+        });
         Assert.Equal(device.Id, status.DeviceId);
         await client.Execute<bool>(lease, "control.stop");
         Assert.Equal(0, host.Controller.Connections[host.Devices[0].Id].Output.ChannelA);
@@ -172,14 +296,21 @@ public sealed class RemoteIntegrationTests
         await using var client = await Client.Create(host.Server.Url!);
         var device = Assert.Single(await client.Peer.CallAsync<RemoteDevice[]>("devices.list", ct: Ct));
         var lease = await client.Acquire(device.Id, type);
-        if (type == RemoteLeaseType.Control) await client.Execute<bool>(lease, "control.output", new { frame = new OutputFrame(20, 30, 20) });
+        if (type == RemoteLeaseType.Control)
+            await client.Execute<bool>(lease, "control.output", new
+            {
+                frame = new OutputFrame(20, 30, 20)
+            });
         var revoked = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         client.Peer.Notification += (method, _) => { if (method == "lease.revoked") revoked.TrySetResult(); };
         await revoked.Task.WaitAsync(TimeSpan.FromSeconds(4), Ct);
         Assert.Equal(0, host.Controller.Connections[host.Devices[0].Id].Output.ChannelA);
         Assert.Equal(host.Server.Session.Id, host.Controller.DeviceOwner(host.Devices[0].Id));
         var next = await client.Acquire(device.Id, RemoteLeaseType.Control);
-        await client.Execute<bool>(next, "control.output", new { frame = new OutputFrame(20, 30, 20) });
+        await client.Execute<bool>(next, "control.output", new
+        {
+            frame = new OutputFrame(20, 30, 20)
+        });
         client.Peer.Abort();
         await Wait(() => host.Controller.Connections[host.Devices[0].Id].Output.ChannelA == 0);
     }
@@ -203,7 +334,16 @@ public sealed class RemoteIntegrationTests
         using var socket = new ClientWebSocket();
         socket.Options.AddSubProtocol(RemoteProtocol.SubProtocol);
         await socket.ConnectAsync(host.Server.Url!, Ct);
-        var packet = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new { jsonrpc = "2.0", id = "1", method = "system.authenticate", @params = new { token = Host.Token } }));
+        var packet = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new
+        {
+            jsonrpc = "2.0",
+            id = "1",
+            method = "system.authenticate",
+            @params = new
+            {
+                token = Host.Token
+            }
+        }));
         await socket.SendAsync(packet.AsMemory(0, 10), WebSocketMessageType.Text, false, Ct);
         await socket.SendAsync(packet.AsMemory(10), WebSocketMessageType.Text, true, Ct);
         Assert.Contains("\"result\":true", await Receive(socket));
@@ -236,7 +376,7 @@ public sealed class RemoteIntegrationTests
         await controller.AcquireTargetsAsync(realOwner, [remote.Id], Ct);
         await controller.SetSimulatedMotionAsync(simulatedOwner, 45);
         await Assert.ThrowsAsync<LocalizedArgumentException>(() => controller.SetSimulatedMotionAsync(realOwner, 45));
-        Assert.False(PlaybackCompatibility.CanRun(remote, ModeKind.WebSocketServer));
+        Assert.Equal(DeviceOrigin.Remote, remote.Origin);
         await controller.StopOwnedAsync(realOwner, Ct);
         await controller.RemoveSourceAsync("network", Ct);
         Assert.True(controller.Connections.ContainsKey(local.Id));
@@ -263,7 +403,10 @@ public sealed class RemoteIntegrationTests
         await firstClient.Peer.Completion.WaitAsync(TimeSpan.FromSeconds(4), Ct);
         Assert.Null(host.Controller.DeviceOwner(host.Devices[0].Id));
         Assert.True(second.Session.IsRunning);
-        await secondClient.Execute<bool>(lease, "control.output", new { frame = new OutputFrame(15, 10, 20) });
+        await secondClient.Execute<bool>(lease, "control.output", new
+        {
+            frame = new OutputFrame(15, 10, 20)
+        });
         Assert.Equal(15, host.Controller.Connections[host.Devices[1].Id].Output.ChannelA);
     }
 
@@ -279,9 +422,19 @@ public sealed class RemoteIntegrationTests
         var electricalLease = await client.Acquire(electrical.Id, RemoteLeaseType.Control);
         var pumpLease = await client.Acquire(pump.Id, RemoteLeaseType.Control);
         var sensorLease = await client.Acquire(sensor.Id, RemoteLeaseType.Control);
-        await client.Execute<bool>(electricalLease, "control.native", new { playback = new RemoteControlProgram(new(Kind: ModeKind.NativeProgram, NativeProgram: new(NativeProgramKind.CoyoteV2Pulse)), ChannelA: 20) });
-        await client.Execute<bool>(pumpLease, "control.pump", new { playback = new RemoteControlProgram(new(Kind: ModeKind.Pump, Pump: new(PumpDirection.Forward, true))) });
-        await client.Execute<bool>(sensorLease, "control.command", new { deviceId = sensor.Id, command = (DeviceCommand)new ConfigurePressureSensor(true, SensorOrientation.Flipped) });
+        await client.Execute<bool>(electricalLease, "control.native", new
+        {
+            playback = new RemoteControlProgram(new(Kind: RemotePlaybackKind.NativeProgram, NativeProgram: new(NativeProgramKind.CoyoteV2Pulse)), ChannelA: 20)
+        });
+        await client.Execute<bool>(pumpLease, "control.pump", new
+        {
+            playback = new RemoteControlProgram(new(Kind: RemotePlaybackKind.Pump, Pump: new(PumpDirection.Forward, true)))
+        });
+        await client.Execute<bool>(sensorLease, "control.command", new
+        {
+            deviceId = sensor.Id,
+            command = (DeviceCommand)new ConfigurePressureSensor(true, SensorOrientation.Flipped)
+        });
         var pumpOutput = host.Controller.Connections[host.Devices.Single(device => device.Kind == DeviceKind.Pump).Id].Output.Pump;
         Assert.Equal(PumpDirection.Forward, pumpOutput!.Direction);
         Assert.True(pumpOutput.Water);
@@ -336,7 +489,10 @@ public sealed class RemoteIntegrationTests
         await Task.Delay(100, Ct);
         await using var next = await Client.Create(host.Server.Url!);
         var recovered = await next.Acquire(device.Id, RemoteLeaseType.Control);
-        await next.Execute<bool>(recovered, "control.output", new { frame = new OutputFrame(10, 15, 20) });
+        await next.Execute<bool>(recovered, "control.output", new
+        {
+            frame = new OutputFrame(10, 15, 20)
+        });
         await next.Release(recovered);
         Assert.Equal(0, host.Controller.Connections[host.Devices[0].Id].Output.ChannelA);
     }
@@ -348,7 +504,11 @@ public sealed class RemoteIntegrationTests
         await using var client = await Client.Create(host.Server.Url!);
         var device = Assert.Single(await client.Peer.CallAsync<RemoteDevice[]>("devices.list", ct: Ct));
         var lease = await client.Acquire(device.Id, RemoteLeaseType.Control);
-        await client.Execute<bool>(lease, "control.command", new { deviceId = device.Id, command = (DeviceCommand)new ConfigurePaw(new PawRandomReaction()) });
+        await client.Execute<bool>(lease, "control.command", new
+        {
+            deviceId = device.Id,
+            command = (DeviceCommand)new ConfigurePaw(new PawRandomReaction())
+        });
         var revoked = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         client.Peer.Notification += (method, _) => { if (method == "lease.revoked") revoked.TrySetResult(); };
         await revoked.Task.WaitAsync(TimeSpan.FromSeconds(4), Ct);
@@ -360,7 +520,8 @@ public sealed class RemoteIntegrationTests
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(Ct);
         timeout.CancelAfter(TimeSpan.FromSeconds(4));
-        while (!condition()) await Task.Delay(20, timeout.Token);
+        while (!condition())
+            await Task.Delay(20, timeout.Token);
     }
 
     private sealed class Host : IAsyncDisposable
@@ -376,15 +537,28 @@ public sealed class RemoteIntegrationTests
             var adapter = new HardwareGattAdapter(protocols) { MaximumWriteLength = maximumWriteLength };
             var controller = new DeviceController(new BluetoothDeviceTransport(adapter));
             var devices = (await controller.ScanAsync(Ct)).ToArray();
-            foreach (var device in devices) await controller.ConnectAsync(device, Ct);
+            foreach (var device in devices)
+                await controller.ConnectAsync(device, Ct);
             var server = new RemoteServer(new(Guid.NewGuid(), controller, devices.Select(device => device.Id).ToArray(), new(Port: 0, LeaseMilliseconds: 1000, ControlLimit: 40)), Token);
-            try { await server.StartAsync(ct: Ct); }
+            try
+            {
+                await server.StartAsync(ct: Ct);
+            }
             catch { await controller.DisposeAsync(); throw; }
-            return new() { Adapter = adapter, Controller = controller, Devices = devices, Server = server };
+            return new()
+            {
+                Adapter = adapter,
+                Controller = controller,
+                Devices = devices,
+                Server = server
+            };
         }
         public async ValueTask DisposeAsync()
         {
-            try { await Server.DisposeAsync(); }
+            try
+            {
+                await Server.DisposeAsync();
+            }
             finally { await Controller.DisposeAsync(); }
         }
     }
@@ -401,12 +575,16 @@ public sealed class RemoteIntegrationTests
             await socket.ConnectAsync(uri, Ct);
             var client = new Client { Peer = new(socket) };
             client.Peer.Start();
-            if (authenticate) await client.Authenticate();
+            if (authenticate)
+                await client.Authenticate();
             return client;
         }
         public async Task Authenticate()
         {
-            await Peer.CallAsync<bool>("system.authenticate", new { token = Host.Token }, Ct);
+            await Peer.CallAsync<bool>("system.authenticate", new
+            {
+                token = Host.Token
+            }, Ct);
             _hello = await Peer.CallAsync<RemoteHello>("system.hello", ct: Ct);
             _helloAt = Stopwatch.GetTimestamp();
         }
@@ -414,7 +592,9 @@ public sealed class RemoteIntegrationTests
         public Task<bool> Release(RemoteLease lease) => Peer.CallAsync<bool>("lease.release", new { lease = lease.Id }, Ct);
         public Task<T> Execute<T>(RemoteLease lease, string method, object? args = null)
         {
-            var parameters = RemoteProtocol.Element(args ?? new { }).EnumerateObject().ToDictionary(property => property.Name, property => (object?)property.Value);
+            var parameters = RemoteProtocol.Element(args ?? new
+            {
+            }).EnumerateObject().ToDictionary(property => property.Name, property => (object?)property.Value);
             parameters["lease"] = lease.Id;
             parameters["sequence"] = _sequences[lease.Id] = _sequences.GetValueOrDefault(lease.Id) + 1;
             parameters.TryAdd("deadline", _hello!.ClockMilliseconds + (long)Stopwatch.GetElapsedTime(_helloAt).TotalMilliseconds + 500);

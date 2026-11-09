@@ -3,7 +3,7 @@
              xmlns:vm="using:YokoWave.App.ViewModels"
              xmlns:l="using:YokoWave.App.Localization"
              x:Class="YokoWave.App.Views.Components.WaveformTransferView"
-             x:DataType="vm:MainViewModel">
+             x:DataType="vm:WaveformLibraryViewModel">
   <Border Classes="card">
     <StackPanel Classes="items">
       <TextBlock Text="{l:Loc Transfer.Title}" Classes="section-title" />

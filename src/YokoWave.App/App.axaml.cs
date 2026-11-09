@@ -35,9 +35,9 @@ public sealed partial class App : Application
                 {
                     try
                     {
-                        for (var attempt = 0; attempt < 600 && (viewModel.Devices.Count == 0 || viewModel.IsScanning) && !viewModel.IsError; attempt++)
+                        for (var attempt = 0; attempt < 600 && (viewModel.Devices.Devices.Count == 0 || viewModel.Devices.IsScanning) && !viewModel.IsError; attempt++)
                             await Task.Delay(50);
-                        if (viewModel.Devices.Count == 0 || viewModel.IsError)
+                        if (viewModel.Devices.Devices.Count == 0 || viewModel.IsError)
                             throw new InvalidOperationException(viewModel.Status);
                         Console.WriteLine("YokoWave native startup completed.");
                         window.Close();

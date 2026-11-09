@@ -1,25 +1,40 @@
 using System.Collections.ObjectModel;
 using Avalonia;
+using System.Text.Json;
+using System.Windows.Input;
 using YokoWave.Core.Localization;
 using YokoWave.Pipelines;
 
 namespace YokoWave.App.ViewModels.Pipelines;
 
-public sealed class NumericPortViewModel(NodeEditorViewModel node, NumericPort port) : ObservableObject
+public sealed class NodePortViewModel(NodeEditorViewModel node, NodePort port) : ObservableObject
 {
     private Point _anchor;
     private bool _connected;
+    private bool _exposed;
+    public bool IsExposed
+    {
+        get => _exposed; set
+        {
+            if (Set(ref _exposed, value))
+                Node.MarkExposureChanged();
+        }
+    }
     public NodeEditorViewModel Node { get; } = node;
-    public NumericPort Port { get; } = port;
+    public NodePort Port { get; } = port;
     public Point Anchor { get => _anchor; set => Set(ref _anchor, value); }
     public bool IsConnected { get => _connected; set => Set(ref _connected, value); }
     public string Title => L10n.Get(Port.NameKey) + (Port.Parameter?.Unit is { Length: > 0 } unit ? $" ({(unit == "ratio" ? "0–1" : unit)})" : "");
     public string Detail => Port.Direction == PortDirection.Input && Port.Parameter is { } spec
         ? L10n.Format("Pipeline.Port.Range", spec.Minimum, spec.Maximum, spec.DefaultValue) : Title;
-    internal void RefreshLocalization() { Raise(nameof(Title)); Raise(nameof(Detail)); }
+    internal void RefreshLocalization()
+    {
+        Raise(nameof(Title));
+        Raise(nameof(Detail));
+    }
 }
 
-public sealed record ConnectionViewModel(NumericPortViewModel Source, NumericPortViewModel Target)
+public sealed record ConnectionViewModel(NodePortViewModel Source, NodePortViewModel Target)
 {
     public PipelineConnection Definition => new(new(Source.Node.Id, Source.Port.Id), new(Target.Node.Id, Target.Port.Id));
 }
@@ -28,13 +43,34 @@ public abstract class NodeEditorViewModel : ObservableObject
 {
     private Point _location;
     private bool _selected;
+    private string? _configurationJson;
+    private bool _boost;
+    public bool BoostHeld
+    {
+        get => _boost; set
+        {
+            if (Set(ref _boost, value))
+                Editor.Session.Update(NodeControl.Create(Id, "boost", value));
+        }
+    }
+    public bool HasAutomation => Type == BuiltInNodes.Automation;
+    public bool HasCalibration => Type is BuiltInNodes.Deviation or BuiltInNodes.Counter;
+    public bool HasTrigger => Type == BuiltInNodes.Command;
+    public bool IsSubgraph => Type == SubgraphExpansion.Type;
+    public IReadOnlyList<ParameterFieldViewModel> Parameters { get; }
+    public bool HasParameters => Parameters.Count > 0;
+    public ICommand ResetAutomationCommand { get; }
     protected PipelineEditorViewModel Editor { get; }
     public Guid Id { get; }
     public string Type { get; }
     public string Title => L10n.Get(Editor.Registry.Get(Type).NameKey);
     public virtual string Summary => "";
-    public ObservableCollection<NumericPortViewModel> Inputs { get; } = [];
-    public ObservableCollection<NumericPortViewModel> Outputs { get; } = [];
+    public virtual PresetItem? Preview => null;
+    public double PreviewPhase => Preview is { } preset ?
+        Editor.Session.NodeStatus.GetValueOrDefault(Id) is { } status ? 1 - status.RemainingSeconds / preset.Preset.PeriodSeconds :
+        Editor.Session.Elapsed.TotalSeconds % preset.Preset.PeriodSeconds / preset.Preset.PeriodSeconds : 0;
+    public ObservableCollection<NodePortViewModel> Inputs { get; } = [];
+    public ObservableCollection<NodePortViewModel> Outputs { get; } = [];
     public Point Location
     {
         get => _location;
@@ -46,23 +82,68 @@ public abstract class NodeEditorViewModel : ObservableObject
     }
     public bool IsSelected { get => _selected; set => Set(ref _selected, value); }
     public bool CanEdit => Editor.CanEdit;
+    public string ConfigurationJson
+    {
+        get => _configurationJson ?? JsonSerializer.Serialize(ToDefinition().Configuration, new JsonSerializerOptions { WriteIndented = true });
+        set => Set(ref _configurationJson, value);
+    }
+    public string StatusText => Editor.Session.NodeStatus.TryGetValue(Id, out var status)
+        ? L10n.Format("Pipeline.NodeStatus", L10n.Get("InputPhase." + status.Phase), status.Level, status.Count, Math.Ceiling(status.RemainingSeconds)) : "";
+    public AsyncCommand ApplyConfigurationCommand { get; }
+    public ICommand CalibrateCommand { get; }
+    public ICommand TriggerCommand { get; }
+    public ICommand ExpandCommand { get; }
     public abstract NodeDefinition ToDefinition();
+    public void ReportError(Exception error) => Editor.ReportError(error);
     protected NodeEditorViewModel(PipelineEditorViewModel editor, NodeDefinition definition)
     {
         Editor = editor;
         Id = definition.Id;
         Type = definition.Type;
-        foreach (var port in editor.Registry.Get(Type).Ports)
+        Parameters = NodeParameterForm.Create(definition, json => ConfigurationJson = json);
+        ApplyConfigurationCommand = new(() =>
+        {
+            using var json = JsonDocument.Parse(ConfigurationJson);
+            var updated = definition with
+            {
+                Configuration = json.RootElement.Clone()
+            };
+            var registration = editor.Registry.Get(Type);
+            if (!registration.Validate(registration.Read(updated.Configuration)))
+                throw new Core.Localization.LocalizedArgumentException("Pipeline.Error.Configuration");
+            editor.ReplaceNode(updated);
+            return Task.CompletedTask;
+        }, editor.ReportError, () => CanEdit);
+        CalibrateCommand = new ActionCommand(() => editor.Session.Update(NodeControl.Create(Id, "calibrate", true)));
+        TriggerCommand = new ActionCommand(() => editor.Session.Update(NodeControl.Create(Id, "trigger", true)));
+        ExpandCommand = new ActionCommand(editor.ExpandSubgraphs);
+        ResetAutomationCommand = new ActionCommand(() => editor.Session.Update(NodeControl.Create(Id, "reset", true)));
+        var registration = editor.Registry.Get(Type);
+        foreach (var port in registration.PortsFor(registration.Read(definition.Configuration)))
             (port.Direction == PortDirection.Input ? Inputs : Outputs).Add(new(this, port));
     }
-    protected void Change(Action change, bool live = false) => Editor.Edit(change, live: live);
+    protected void Change(Action change, bool live = false) => Editor.Edit(() =>
+    {
+        change();
+        _configurationJson = null;
+        Raise(nameof(ConfigurationJson));
+    }, live: live);
+    internal void MarkExposureChanged() => Editor.MarkEdited();
     public virtual void RefreshLocalization()
     {
         Raise(nameof(Title));
         Raise(nameof(Summary));
         Raise(nameof(CanEdit));
+        Raise(nameof(StatusText));
+        Raise(nameof(Preview));
+        Raise(nameof(PreviewPhase));
+        ApplyConfigurationCommand.NotifyCanExecuteChanged();
+        if (Editor.Session.State != PipelineState.Running)
+            BoostHeld = false;
         foreach (var port in Inputs.Concat(Outputs))
             port.RefreshLocalization();
+        foreach (var parameter in Parameters)
+            parameter.Refresh();
     }
     internal void RestoreLocation(Point point) => _location = point;
 }
@@ -87,11 +168,16 @@ public sealed class ConstantEditorViewModel : NodeEditorViewModel
     public override NodeDefinition ToDefinition() => NodeDefinition.Create(Type, new ConstantNode(Value), Id);
 }
 
-public sealed class WaveformEditorNodeViewModel : NodeEditorViewModel
+public interface IWaveformNodeEditor
+{
+    bool SelectWaveform(PresetItem preset);
+}
+public sealed class WaveformEditorNodeViewModel : NodeEditorViewModel, IWaveformNodeEditor
 {
     private Guid _waveformId;
     private int _channel;
     public override string Summary => SelectedPreset?.Name ?? L10n.Get("Pipeline.Error.Waveform");
+    public override PresetItem? Preview => SelectedPreset;
     public WaveformEditorNodeViewModel(PipelineEditorViewModel editor, NodeDefinition definition) : base(editor, definition)
     {
         var config = (WaveformNode)editor.Registry.Get(Type).Read(definition.Configuration);
@@ -105,7 +191,10 @@ public sealed class WaveformEditorNodeViewModel : NodeEditorViewModel
         set
         {
             if (value is not null && value.Preset.Id != _waveformId)
-                Change(() => { _waveformId = value.Preset.Id; Raise(); });
+            {
+                Change(() => { _waveformId = value.Preset.Id; Raise(); }, live: true);
+                Editor.Session.Update(NodeControl.Create(Id, "waveform", value.Preset));
+            }
         }
     }
     public int Channel
@@ -118,6 +207,11 @@ public sealed class WaveformEditorNodeViewModel : NodeEditorViewModel
         }
     }
     public override NodeDefinition ToDefinition() => NodeDefinition.Create(Type, new WaveformNode(_waveformId, Channel), Id);
+    public bool SelectWaveform(PresetItem preset)
+    {
+        SelectedPreset = preset;
+        return true;
+    }
 }
 
 public sealed class GainEditorViewModel : NodeEditorViewModel
@@ -175,10 +269,18 @@ public abstract class DeviceOutputEditorViewModel : NodeEditorViewModel
 
 public sealed class ChannelOutputEditorViewModel : DeviceOutputEditorViewModel
 {
+    private void SaveOptions() => Change(() => _settings = _settings with { Gentle = Options.Gentle, Hardware = Options.Hardware.Settings, Balances = Options.Balances });
+
     private int _channel;
+    private ChannelOutputNode _settings;
+    public OutputOptionsViewModel Options { get; }
     public ChannelOutputEditorViewModel(PipelineEditorViewModel editor, NodeDefinition definition) : base(editor, definition,
-        ((ChannelOutputNode)editor.Registry.Get(definition.Type).Read(definition.Configuration)).DeviceId) =>
-        _channel = ((ChannelOutputNode)editor.Registry.Get(Type).Read(definition.Configuration)).Channel;
+        ((ChannelOutputNode)editor.Registry.Get(definition.Type).Read(definition.Configuration)).DeviceId)
+    {
+        _settings = (ChannelOutputNode)editor.Registry.Get(Type).Read(definition.Configuration);
+        _channel = _settings.Channel;
+        Options = new(_settings.Gentle, _settings.Hardware, _settings.Balances, () => CanEdit, SaveOptions);
+    }
     public int Channel
     {
         get => _channel;
@@ -188,7 +290,7 @@ public sealed class ChannelOutputEditorViewModel : DeviceOutputEditorViewModel
                 Change(() => Set(ref _channel, value));
         }
     }
-    public override NodeDefinition ToDefinition() => NodeDefinition.Create(Type, new ChannelOutputNode(DeviceId, Channel), Id);
+    public override NodeDefinition ToDefinition() => NodeDefinition.Create(Type, _settings with { DeviceId = DeviceId, Channel = Channel }, Id);
 }
 
 public sealed class PumpOutputEditorViewModel(PipelineEditorViewModel editor, NodeDefinition definition) : DeviceOutputEditorViewModel(editor, definition,
@@ -200,4 +302,27 @@ public sealed class PumpOutputEditorViewModel(PipelineEditorViewModel editor, No
 public sealed record PipelineDeviceOption(string Id, string Name)
 {
     public override string ToString() => Name;
+}
+
+public class ConfigurationNodeViewModel : NodeEditorViewModel
+{
+    protected NodeDefinition Definition { get; set; }
+    public ConfigurationNodeViewModel(PipelineEditorViewModel editor, NodeDefinition definition) : base(editor, definition) => Definition = definition;
+    public override NodeDefinition ToDefinition() => Definition;
+}
+
+public sealed class ResourceNodeViewModel : DeviceOutputEditorViewModel
+{
+    private readonly NodeDefinition _definition;
+    public ResourceNodeViewModel(PipelineEditorViewModel editor, NodeDefinition definition) : base(editor, definition,
+        definition.Configuration.GetProperty("DeviceId").GetString() ?? "") => _definition = definition;
+    public override NodeDefinition ToDefinition()
+    {
+        var json = System.Text.Json.Nodes.JsonNode.Parse(_definition.Configuration.GetRawText())!.AsObject();
+        json["DeviceId"] = DeviceId;
+        return _definition with
+        {
+            Configuration = JsonSerializer.SerializeToElement(json, PipelineJson.Options)
+        };
+    }
 }

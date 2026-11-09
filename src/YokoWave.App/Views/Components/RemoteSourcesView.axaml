@@ -10,6 +10,9 @@
       <TextBox Text="{Binding Url}" MaxLength="2048" />
       <TextBlock Text="{l:Loc Remote.Token}" Classes="field-label" />
       <TextBox Text="{Binding Token}" PasswordChar="●" MaxLength="256" />
+      <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind}">
+        <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
       <Button Content="{l:Loc Remote.Add}" Command="{Binding AddCommand}" Classes="primary" />
       <TextBlock Text="{l:Loc Remote.ClientHelp}" Classes="muted caption help" />
       <ItemsControl ItemsSource="{Binding Sources}">

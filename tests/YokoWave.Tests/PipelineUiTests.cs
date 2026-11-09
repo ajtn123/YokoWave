@@ -35,12 +35,15 @@ public sealed class PipelineUiTests
         List<Exception> errors = [];
         await using var workspace = new PipelinesWorkspaceViewModel(controller, folder.Path, presets, errors.Add, _ => { }, () => 7200, () => .6);
         await workspace.LoadAsync();
+        var valueNode = NodeDefinition.Create(BuiltInNodes.Constant, new ConstantNode(.3));
+        var sinkNode = NodeDefinition.Create(BuiltInNodes.ChannelOutput, new ChannelOutputNode("test"));
+        workspace.AddDocument(new(Guid.NewGuid(), "test", [valueNode, sinkNode], [new(new(valueNode.Id, "value"), new(sinkNode.Id, "strength"))], [new(valueNode.Id, 0, 0), new(sinkNode.Id, 350, 0)]));
         var editor = workspace.Selected!;
         var device = new DeviceDescriptor("test", "Test device", DeviceKind.DualChannel, 90, -30);
         await controller.ConnectAsync(device, TestContext.Current.CancellationToken);
         editor.RefreshDevices();
         var output = editor.Nodes.OfType<ChannelOutputEditorViewModel>().Single();
-        output.SelectedDevice = editor.Devices.Single();
+        output.SelectedDevice = editor.Devices.Single(d => d.Id == device.Id);
         var constant = editor.Nodes.OfType<ConstantEditorViewModel>().Single();
         constant.Value = .3;
         editor.TimerEnabled = true;
@@ -57,7 +60,7 @@ public sealed class PipelineUiTests
             var canvas = window.GetVisualDescendants().OfType<NodifyEditor>().Single();
             canvas.FitToScreen();
             Dispatcher.UIThread.RunJobs();
-            Assert.Equal(4, canvas.ItemsSource!.Cast<object>().Count());
+            Assert.Equal(2, canvas.ItemsSource!.Cast<object>().Count());
             var item = window.GetVisualDescendants().OfType<ItemContainer>().Single(c => ReferenceEquals(c.DataContext, constant));
             var point = item.TranslatePoint(new Point(20, 10), window)!.Value;
             window.MouseDown(point, MouseButton.Left);
@@ -82,7 +85,8 @@ public sealed class PipelineUiTests
             Assert.Equal(count, editor.Nodes.Count);
             var extra = editor.AddNode(BuiltInNodes.Constant);
             var frequency = editor.Nodes.OfType<ChannelOutputEditorViewModel>().Single().Inputs.Single(p => p.Port.Id == "frequency");
-            Assert.False(editor.Connect(extra.Outputs.Single(), frequency)); // Already connected.
+            Assert.True(editor.Connect(extra.Outputs.Single(), frequency));
+            Assert.False(editor.Connect(extra.Outputs.Single(), frequency));
             ((ConstantEditorViewModel)extra).Value = 1;
             var capPort = editor.Nodes.OfType<ChannelOutputEditorViewModel>().Single().Inputs.Single(p => p.Port.Id == "limit");
             Dispatcher.UIThread.RunJobs();
@@ -131,7 +135,7 @@ public sealed class PipelineUiTests
             Assert.Equal("00:03", editor.TimerReadout);
             editor.TimerEnabled = false;
             await workspace.SaveAsync();
-            var saved = Assert.Single(await new PipelineStore(folder.Path).LoadAsync());
+            var saved = (await new PipelineStore(folder.Path).LoadAsync()).Single(p => p.Id == editor.Id);
             Assert.False(saved.TimerEnabled);
             Assert.Equal(3, saved.DurationSeconds);
             Assert.Empty(sink.Errors);
@@ -151,8 +155,10 @@ public sealed class PipelineUiTests
         using var folder = new TestFolder();
         await using var controller = new DeviceController(new SimulationTransport());
         List<NodeDefinition> nodes = [NodeDefinition.Create(BuiltInNodes.Constant, new ConstantNode(.5))];
-        for (var i = 0; i < 139; i++) nodes.Add(NodeDefinition.Create(BuiltInNodes.Gain, new GainNode()));
-        for (var i = 0; i < 60; i++) nodes.Add(NodeDefinition.Create(BuiltInNodes.ChannelOutput, new ChannelOutputNode($"device-{i}")));
+        for (var i = 0; i < 139; i++)
+            nodes.Add(NodeDefinition.Create(BuiltInNodes.Gain, new GainNode()));
+        for (var i = 0; i < 60; i++)
+            nodes.Add(NodeDefinition.Create(BuiltInNodes.ChannelOutput, new ChannelOutputNode($"device-{i}")));
         var registry = BuiltInNodes.CreateRegistry();
         var targets = nodes.Skip(1).SelectMany(node => registry.Get(node.Type).Ports.Where(p => p.Direction == PortDirection.Input)
             .Select(port => new PortAddress(node.Id, port.Id))).Take(500).ToArray();
@@ -205,7 +211,8 @@ public sealed class PipelineUiTests
         public bool IsEnabled(LogEventLevel level, string area) => area == LogArea.Binding && level >= LogEventLevel.Warning;
         public void Log(LogEventLevel level, string area, object? source, string messageTemplate)
         {
-            if (IsEnabled(level, area)) Errors.Enqueue(messageTemplate);
+            if (IsEnabled(level, area))
+                Errors.Enqueue(messageTemplate);
         }
         public void Log(LogEventLevel level, string area, object? source, string messageTemplate, params object?[] propertyValues) =>
             Log(level, area, source, $"{messageTemplate} [{string.Join(", ", propertyValues)}]");

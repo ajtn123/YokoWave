@@ -1,25 +1,26 @@
-using System.Diagnostics;
 using System.Text.Json;
 using YokoWave.Core;
 using YokoWave.Core.Bluetooth;
-using YokoWave.Core.Localization;
+using YokoWave.Pipelines;
 
 namespace YokoWave.Remote;
 
-/// <summary>High-level operations use the same engine and command validation as local playback.</summary>
-internal sealed class RemoteControlSession(DeviceController devices, Guid owner, IReadOnlyDictionary<string, string> targets, double maximum, Action<RemoteStatus> notify)
+/// <summary>RPC translates requests to ordinary compiled graphs, including manual output.</summary>
+internal sealed class RemoteControlSession(DeviceController devices, Guid owner, IReadOnlyDictionary<string, string> targets,
+    double maximum, Action<RemoteStatus> notify, DeviceController? statusDevices = null)
 {
-    private SessionEngine? _engine;
-    private readonly Stopwatch _clock = new();
-    private OutputFrame? _manual;
-    private bool _paused;
+    private PipelineSession? _session;
+    private RemotePipelineProgram? _program;
+    private OutputFrame _frame = OutputFrame.Zero;
     private readonly HashSet<string> _subscriptions = [];
     private readonly Dictionary<string, RemoteStatus> _lastStatus = [];
+    private DeviceDescriptor[] Devices => targets.Values.Select(id => devices.Connections[id].Device).ToArray();
     private RemoteStatus Status(string exported)
     {
-        if (!targets.TryGetValue(exported, out var id) || !devices.Connections.TryGetValue(id, out var connection))
+        if (!targets.TryGetValue(exported, out var id) || !(statusDevices ?? devices).Connections.TryGetValue(id, out var connection))
             throw new RemoteRpcException(-32004, "Error.NotConnected");
-        return new(exported, connection.Telemetry, connection.Device.Battery, connection.Motion, connection.ContactA, connection.ContactB, connection.LightEnabled);
+        return new(exported, connection.Telemetry, connection.Device.Battery, connection.Motion, connection.ContactA, connection.ContactB, connection.LightEnabled,
+            connection.HardwareVersion, connection.SoftwareVersion);
     }
     private string Target(JsonElement parameters)
     {
@@ -36,8 +37,10 @@ internal sealed class RemoteControlSession(DeviceController devices, Guid owner,
             case "control.unsubscribe":
                 _ = Target(parameters);
                 var subscription = RemoteProtocol.Parameter<string>(parameters, "deviceId");
-                if (method == "control.subscribe") _subscriptions.Add(subscription);
-                else _subscriptions.Remove(subscription);
+                if (method == "control.subscribe")
+                    _subscriptions.Add(subscription);
+                else
+                    _subscriptions.Remove(subscription);
                 _lastStatus.Remove(subscription);
                 return true;
             case "control.command":
@@ -48,98 +51,114 @@ internal sealed class RemoteControlSession(DeviceController devices, Guid owner,
             case "control.native":
             case "control.pump":
                 var request = RemoteProtocol.Parameter<RemoteControlProgram>(parameters, "playback");
-                if (request.Program.Kind is not (ModeKind.Waveform or ModeKind.NativeProgram or ModeKind.Pump)) throw new RemoteRpcException(-32602, "Error.ModeSettings");
-                if (method == "control.native" && request.Program.Kind != ModeKind.NativeProgram ||
-                    method == "control.pump" && request.Program.Kind != ModeKind.Pump ||
-                    method == "control.playlist" && (request.Program.Kind != ModeKind.Waveform || request.Program.Playlist is not { Count: > 0 }))
-                    throw new RemoteRpcException(-32602, "Error.ModeSettings");
-                request.Program.Validate();
-                await Stop(ct);
-                var preset = request.Waveform ?? request.Program.Playlist?.FirstOrDefault() ?? new WaveformPreset(Guid.NewGuid(), L10n.Get("Remote.Control"), WaveShape.Pulse, 1, 20);
-                _engine = new(devices, ownerId: owner, retainOwnership: true)
-                {
-                    ChannelA = Clamp(request.ChannelA),
-                    ChannelB = Clamp(request.ChannelB),
-                    ChannelC = Clamp(request.ChannelC)
-                };
-                await _engine.StartAsync(targets.Values, preset, request.DurationSeconds is { } seconds ? TimeSpan.FromSeconds(seconds) : null,
-                    request.Program with { OutputLimit = Math.Min(maximum, request.Program.OutputLimit) });
-                _clock.Restart();
-                await _engine.AdvanceAsync(TimeSpan.Zero);
+                if (method == "control.native" && request.Program.Kind != RemotePlaybackKind.NativeProgram ||
+                    method == "control.pump" && request.Program.Kind != RemotePlaybackKind.Pump ||
+                    method == "control.playlist" && request.Program.Playlist is not { Count: > 0 })
+                    throw new RemoteRpcException(-32602, "Error.PlaybackSettings");
+                await Start(RemotePipelineProgram.Playback(Devices, request, maximum), ct);
                 return true;
             case "control.output":
                 var frame = RemoteProtocol.Parameter<OutputFrame>(parameters, "frame");
-                if (!double.IsFinite(frame.OutputLimit) || frame.OutputLimit is < 0 or > 100 || frame.NativeProgram is not null)
+                if (!double.IsFinite(frame.OutputLimit) || frame.OutputLimit is < 0 or > 100)
                     throw new RemoteRpcException(-32602, "Error.InvalidSettings");
-                await Stop(ct);
-                _manual = frame with { OutputLimit = Math.Min(maximum, frame.OutputLimit) };
-                await SendManual(ct);
+                _frame = frame with
+                {
+                    OutputLimit = Math.Min(maximum, frame.OutputLimit)
+                };
+                if (_session is { State: PipelineState.Running } && _program?.FrameSource is { } frameSource)
+                {
+                    _session.SetLimit(_frame.OutputLimit / 100);
+                    _session.Inputs!.Frames[frameSource] = _frame;
+                    await _session.FlushAsync();
+                }
+                else
+                    await Start(RemotePipelineProgram.Manual(Devices, _frame, maximum), ct);
                 return true;
             case "control.strength":
-                var a = Clamp(RemoteProtocol.Parameter<double>(parameters, "channelA"));
-                var b = Clamp(RemoteProtocol.Parameter<double>(parameters, "channelB"));
-                var c = parameters.TryGetProperty("channelC", out var cv) ? Clamp(cv.GetDouble()) : 0;
-                if (_engine is not null)
+                var levels = new[] { Clamp(RemoteProtocol.Parameter<double>(parameters, "channelA")), Clamp(RemoteProtocol.Parameter<double>(parameters, "channelB")),
+                    parameters.TryGetProperty("channelC", out var c) ? Clamp(c.GetDouble()) : 0 };
+                if (_session is null)
                 {
-                    _engine.ChannelA = a;
-                    _engine.ChannelB = b;
-                    _engine.ChannelC = c;
+                    _frame = new(levels[0], levels[1], 20, ChannelC: levels[2], OutputLimit: maximum);
+                    await Start(RemotePipelineProgram.Manual(Devices, _frame, maximum), ct);
                 }
-                else _manual = (_manual ?? new(0, 0, 20, OutputLimit: maximum)) with { ChannelA = a, ChannelB = b, ChannelC = c };
-                await Tick();
+                else if (_program?.FrameSource is { } source)
+                {
+                    _frame = _frame with
+                    {
+                        ChannelA = levels[0],
+                        ChannelB = levels[1],
+                        ChannelC = levels[2]
+                    };
+                    _session.Inputs!.Frames[source] = _frame;
+                    await _session.FlushAsync();
+                }
+                else if (_program is not null)
+                {
+                    foreach (var (channel, nodes) in _program.Strengths)
+                        foreach (var id in nodes)
+                            _session.SetConstant(id, levels[channel] / 100);
+                    await _session.FlushAsync();
+                }
                 return true;
             case "control.waveform":
-                if (_engine is null) throw new RemoteRpcException(-32000, "Error.RemoteNotPlaying");
-                return await _engine.ChangeWaveformAsync(RemoteProtocol.Parameter<WaveformPreset>(parameters, "waveform"));
+                if (_session is null || _program is not { Waves.Count: > 0 })
+                    throw new RemoteRpcException(-32000, "Error.RemoteNotPlaying");
+                var waveform = RemoteProtocol.Parameter<WaveformPreset>(parameters, "waveform");
+                waveform.Validate();
+                foreach (var node in _program.Waves)
+                    _session.Update(NodeControl.Create(node, "waveform", waveform));
+                await _session.FlushAsync();
+                return true;
             case "control.pause":
-                if (_engine is not null) await _engine.SetPausedAsync(true);
-                else await devices.StopOwnedAsync(owner, ct, targets.Values.ToArray(), release: false);
-                _clock.Stop();
-                _paused = true;
+                if (_session?.State == PipelineState.Running)
+                    await _session.PauseAsync();
                 return true;
             case "control.resume":
-                if (_engine is not null) await _engine.SetPausedAsync(false);
-                _clock.Start();
-                _paused = false;
+                if (_session?.State == PipelineState.Paused)
+                    await _session.PauseAsync();
                 return true;
             case "control.stop":
                 await Stop(ct);
                 return true;
-            default: throw new RemoteRpcException(-32601, "Error.RemoteMethod");
+            default:
+                throw new RemoteRpcException(-32601, "Error.RemoteMethod");
+        }
+    }
+    private async Task Start(RemotePipelineProgram program, CancellationToken ct)
+    {
+        var plan = new PipelineCompiler(BuiltInNodes.CreateRegistry()).Compile(program.Graph, program.Assets, Devices.ToDictionary(d => d.Id));
+        await Stop(ct);
+        _program = program;
+        _session = new(devices, ownerId: owner, retainOwnership: true);
+        await _session.StartAsync(plan);
+        if (program.FrameSource is { } source)
+        {
+            _session.Inputs!.Frames[source] = _frame;
+            await _session.FlushAsync();
         }
     }
     private double Clamp(double value) => double.IsFinite(value) && value >= 0 ? Math.Min(value, maximum) : throw new RemoteRpcException(-32602, "Error.InvalidSettings");
-    private async Task SendManual(CancellationToken ct)
+    public Task Tick()
     {
-        if (_paused || _manual is not { } frame) return;
-        foreach (var id in targets.Values) await devices.SendOwnedAsync(owner, id, frame, ct);
-    }
-    public async Task Tick()
-    {
-        if (_engine?.IsRunning == true && !_engine.IsPaused) await _engine.AdvanceAsync(_clock.Elapsed);
-        else if (_engine is null) await SendManual(CancellationToken.None);
+        if (_session?.Error is { } error)
+            throw error;
         foreach (var exported in _subscriptions)
         {
             var status = Status(exported);
-            if (_lastStatus.TryGetValue(exported, out var last) && last == status) continue;
+            if (_lastStatus.TryGetValue(exported, out var last) && last == status)
+                continue;
             _lastStatus[exported] = status;
             notify(status);
         }
+        return Task.CompletedTask;
     }
     public async Task Stop(CancellationToken ct)
     {
-        _manual = null;
-        _paused = false;
-        List<Exception> errors = [];
-        if (_engine is not null)
-        {
-            try { await _engine.StopAsync(); }
-            catch (Exception error) { errors.Add(error); }
-        }
-        try { await devices.StopOwnedAsync(owner, ct, targets.Values.ToArray(), release: false); }
-        catch (Exception error) { errors.Add(error); }
-        if (errors.Count > 0) throw new LocalizedAggregateException("Error.StopUnconfirmed", errors);
-        _engine = null;
-        _clock.Reset();
+        if (_session is not null)
+            await _session.DisposeAsync();
+        await devices.StopOwnedAsync(owner, ct, targets.Values.ToArray(), release: false);
+        _session = null;
+        _program = null;
     }
 }

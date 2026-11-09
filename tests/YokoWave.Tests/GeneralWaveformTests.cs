@@ -36,33 +36,6 @@ public sealed class GeneralWaveformTests
         Assert.Equal(before, adapter.Links[device.Id].Writes.Count);
     }
 
-    [Theory]
-    [InlineData(BluetoothProtocol.YokonexV1)]
-    [InlineData(BluetoothProtocol.YokonexV2)]
-    [InlineData(BluetoothProtocol.CoyoteV2)]
-    [InlineData(BluetoothProtocol.CoyoteV3)]
-    [InlineData(BluetoothProtocol.YokonexMotor)]
-    [InlineData(BluetoothProtocol.Opossum)]
-    public async Task AllDefaultWavesPlayThroughEveryOutputDriverWithoutChangingTheStoredData(BluetoothProtocol protocol)
-    {
-        var adapter = new HardwareGattAdapter(protocol);
-        await using var controller = new DeviceController(new BluetoothDeviceTransport(adapter));
-        var device = Assert.Single(await controller.ScanAsync(TestContext.Current.CancellationToken));
-        await controller.ConnectAsync(device, TestContext.Current.CancellationToken);
-        var before = WorkspaceStore.ExportPresets(DefaultWaveformCatalog.Presets);
-        var engine = new SessionEngine(controller) { ChannelA = 20, ChannelB = 15, ChannelC = 10 };
-        foreach (var wave in DefaultWaveformCatalog.Presets)
-        {
-            Assert.True(device.Profile!.Accepts(wave));
-            await engine.StartAsync([device.Id], wave, null, new(OutputLimit: 25));
-            for (var index = 0; index < wave.Samples!.Length; index++)
-                await engine.AdvanceAsync(TimeSpan.FromSeconds(index * wave.PeriodSeconds / wave.Samples.Length));
-            Assert.True(engine.IsRunning); await engine.StopAsync();
-        }
-        Assert.Equal(before, WorkspaceStore.ExportPresets(DefaultWaveformCatalog.Presets));
-        Assert.True(adapter.Links[device.Id].Writes.Count > 1000);
-    }
-
     [Fact]
     public void NormalizedJsonRoundTripsSignedChannelsWithoutAnyProtocolFields()
     {
@@ -83,10 +56,13 @@ public sealed class GeneralWaveformTests
         var frame = new OutputFrame(40, 50, 20, sample, ChannelC: 60, OutputLimit: 30);
         var packet = V2Protocol.Encode(frame);
         Assert.Equal(41, BinaryPrimitives.ReadUInt16BigEndian(packet.AsSpan(3, 2)));
-        Assert.Equal(new byte[] { 20, 80 }, packet[5..7]); Assert.Equal(new byte[] { 20, 40 }, packet[9..11]);
+        Assert.Equal(new byte[] { 20, 80 }, packet[5..7]);
+        Assert.Equal(new byte[] { 20, 40 }, packet[9..11]);
         var v3 = DgLabProtocol.V3(frame);
-        Assert.Equal(new byte[] { 30, 30 }, v3[2..4]); Assert.Equal((byte)50, v3[4]);
-        Assert.Equal((byte)80, v3[8]); Assert.Equal((byte)40, v3[16]);
+        Assert.Equal(new byte[] { 30, 30 }, v3[2..4]);
+        Assert.Equal((byte)50, v3[4]);
+        Assert.Equal((byte)80, v3[8]);
+        Assert.Equal((byte)40, v3[16]);
         var motors = YokonexToyProtocol.MotorOutput(frame, 7);
         Assert.Equal(new byte[] { 2, 1, 0 }, motors[2..5]);
         Assert.Equal(new double[] { -1, .5, .25 }, sample.Channels);

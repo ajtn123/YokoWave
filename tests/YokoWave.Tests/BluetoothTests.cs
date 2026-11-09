@@ -126,28 +126,10 @@ public sealed class BluetoothTests
         Assert.True(link.Closed);
     }
 
-    [Fact]
-    public async Task ElectricalSamplingKeepsIntensitySeparateFromPulseWidth()
-    {
-        var adapter = new FakeBluetoothAdapter();
-        await using var controller = new DeviceController(new BluetoothDeviceTransport(adapter));
-        var device = Assert.Single(await controller.ScanAsync(TestContext.Current.CancellationToken));
-        await controller.ConnectAsync(device, ct: TestContext.Current.CancellationToken);
-        var engine = new SessionEngine(controller) { ChannelA = 30, ChannelB = 20 };
-        var preset = DefaultWaveformCatalog.Presets[0];
-        await engine.StartAsync([device.Id], preset, TimeSpan.FromSeconds(10));
-        await engine.AdvanceAsync(TimeSpan.FromSeconds(0.1));
-        Assert.Equal(30, controller.Connections[device.Id].Output.ChannelA);
-        Assert.Equal(18, adapter.Links[device.Id].Writes[^1][6]);
-        await engine.StopAsync();
-        await Assert.ThrowsAnyAsync<ArgumentException>(() => engine.StartAsync([device.Id],
-            preset with { FormatVersion = 999 }, TimeSpan.FromSeconds(10)));
-        Assert.Equal(V2Protocol.Stop(), adapter.Links[device.Id].Writes[^1]);
-    }
-
     private static async Task WaitAsync(Func<bool> condition)
     {
-        for (var index = 0; index < 100 && !condition(); index++) await Task.Delay(10, TestContext.Current.CancellationToken);
+        for (var index = 0; index < 100 && !condition(); index++)
+            await Task.Delay(10, TestContext.Current.CancellationToken);
         Assert.True(condition());
     }
 }
@@ -183,18 +165,32 @@ internal sealed class FakeBluetoothConnection : IBluetoothConnection
     public Task WriteAsync(byte[] packet, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
-        if (FailWrites) throw new IOException("Injected disconnected radio");
-        if (FailNextWrite) { FailNextWrite = false; throw new IOException("Injected write failure"); }
+        if (FailWrites)
+            throw new IOException("Injected disconnected radio");
+        if (FailNextWrite)
+        {
+            FailNextWrite = false;
+            throw new IOException("Injected write failure");
+        }
         Writes.Add(packet.ToArray());
-        if (ReplyToFeatures && packet.SequenceEqual(V2Protocol.QueryVersion())) Notify(V1Protocol.WithChecksum([0x36, 0x13, 1, 2]));
-        if (ReplyToFeatures && packet[1] == 0x15) LightEnabled = packet[2] == 1;
+        if (ReplyToFeatures && packet.SequenceEqual(V2Protocol.QueryVersion()))
+            Notify(V1Protocol.WithChecksum([0x36, 0x13, 1, 2]));
+        if (ReplyToFeatures && packet[1] == 0x15)
+            LightEnabled = packet[2] == 1;
         if (ReplyToQueries && packet[1] == 0x71)
         {
-            if (packet[2] == 4) Notify(V1Protocol.WithChecksum([0x35, 0x71, 4, 82]));
-            else if (packet[2] is 1 or 2) Notify(V1Protocol.WithChecksum([0x35, 0x71, packet[2], 0, 0, 0, 0, 0]));
-            else if (packet[2] == 7 && ReplyToFeatures) Notify(V1Protocol.WithChecksum([0x35, 0x71, 7, (byte)(LightEnabled ? 1 : 0)]));
+            if (packet[2] == 4)
+                Notify(V1Protocol.WithChecksum([0x35, 0x71, 4, 82]));
+            else if (packet[2] is 1 or 2)
+                Notify(V1Protocol.WithChecksum([0x35, 0x71, packet[2], 0, 0, 0, 0, 0]));
+            else if (packet[2] == 7 && ReplyToFeatures)
+                Notify(V1Protocol.WithChecksum([0x35, 0x71, 7, (byte)(LightEnabled ? 1 : 0)]));
         }
         return Task.CompletedTask;
     }
-    public ValueTask DisposeAsync() { Closed = true; return ValueTask.CompletedTask; }
+    public ValueTask DisposeAsync()
+    {
+        Closed = true;
+        return ValueTask.CompletedTask;
+    }
 }

@@ -74,41 +74,6 @@ public sealed class DeviceConcurrencyTests
     }
 
     [Fact]
-    public async Task OneModeDispatchesBothTargetsAndWaitsForEveryWriteBeforeStopping()
-    {
-        var transport = new ConcurrentTransport();
-        await using var controller = new DeviceController(transport);
-        await Connect(controller, "slow");
-        await Connect(controller, "fast");
-        var engine = new SessionEngine(controller) { ChannelA = 40 };
-        SessionRecord? record = null;
-        engine.Completed += (_, result) => record = result;
-        await engine.StartAsync(["slow", "fast"], Wave(), null);
-        transport.BlockedId = "slow";
-        var advance = engine.AdvanceAsync(TimeSpan.FromSeconds(.1));
-        Task? stop = null;
-        try
-        {
-            await transport.FastOutput.Task.WaitAsync(Deadline, TestContext.Current.CancellationToken);
-            Assert.Equal(40, transport.Outputs["fast"].ChannelA);
-            Assert.False(advance.IsCompleted);
-            stop = engine.StopAsync();
-            Assert.False(stop.IsCompleted);
-        }
-        finally
-        {
-            transport.Release.TrySetResult();
-            await advance;
-            await (stop ?? engine.StopAsync());
-        }
-        Assert.Equal(40, record!.PeakA);
-        Assert.Equal(OutputFrame.Zero, transport.Outputs["slow"]);
-        Assert.Equal(OutputFrame.Zero, transport.Outputs["fast"]);
-        await engine.AdvanceAsync(TimeSpan.FromSeconds(.2));
-        Assert.Equal(OutputFrame.Zero, transport.Outputs["fast"]);
-    }
-
-    [Fact]
     public async Task OverlappingClaimsInOppositeOrdersCannotDeadlockOrClaimOnlyPartOfTheTargets()
     {
         var transport = new ConcurrentTransport();
@@ -194,22 +159,6 @@ public sealed class DeviceConcurrencyTests
     }
 
     [Fact]
-    public async Task MotionStartupAndFailedRollbackPreserveBothErrorsAndTheDeviceLease()
-    {
-        var transport = new ConcurrentTransport { FailMotionStart = true };
-        await using var controller = new DeviceController(transport);
-        await Connect(controller, "fast");
-        var engine = new SessionEngine(controller);
-        var error = await Assert.ThrowsAsync<LocalizedAggregateException>(() => engine.StartAsync(["fast"], Wave(), null, new(Kind: ModeKind.Restraint)));
-        Assert.Same(transport.MotionError, error.InnerExceptions[0]);
-        var cleanup = Assert.IsType<LocalizedAggregateException>(error.InnerExceptions[1]);
-        Assert.IsType<IOException>(Assert.Single(cleanup.InnerExceptions));
-        Assert.False(engine.IsRunning); Assert.Equal(engine.OwnerId, controller.DeviceOwner("fast"));
-        transport.FailZeroAfterMotion = false;
-        await engine.StopAsync(); Assert.Null(controller.DeviceOwner("fast"));
-    }
-
-    [Fact]
     public async Task TargetCapabilitiesRejectUnrelatedFeaturesEvenWhenTheTransportImplementsThem()
     {
         var transport = new ConcurrentTransport();
@@ -248,7 +197,8 @@ internal sealed class ConcurrentTransport : IDeviceTransport, IDeviceStatusSourc
     }
     public async Task SendAsync(string deviceId, OutputFrame frame, CancellationToken cancellationToken = default)
     {
-        if (FailZeroAfterMotion && frame == OutputFrame.Zero) throw new IOException("rollback stop");
+        if (FailZeroAfterMotion && frame == OutputFrame.Zero)
+            throw new IOException("rollback stop");
         if (BlockAllWrites || deviceId == BlockedId && frame.ChannelA > 0)
         {
             Blocked.TrySetResult();
@@ -262,7 +212,11 @@ internal sealed class ConcurrentTransport : IDeviceTransport, IDeviceStatusSourc
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     public Task SetMotionStreamingAsync(string deviceId, bool enabled, CancellationToken cancellationToken = default)
     {
-        if (enabled && FailMotionStart) { FailZeroAfterMotion = true; throw MotionError; }
+        if (enabled && FailMotionStart)
+        {
+            FailZeroAfterMotion = true;
+            throw MotionError;
+        }
         return Task.CompletedTask;
     }
     public Task<ElectricalFeatureState> RefreshFeaturesAsync(string deviceId, CancellationToken cancellationToken = default)

@@ -12,7 +12,8 @@ public sealed partial class WaveformTransferView : UserControl
 
     private async void ImportFileClick(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not MainViewModel vm || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage) return;
+        if (DataContext is not WaveformLibraryViewModel vm || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
+            return;
         try
         {
             var files = await storage.OpenFilePickerAsync(new()
@@ -21,13 +22,15 @@ public sealed partial class WaveformTransferView : UserControl
                 AllowMultiple = false,
                 FileTypeFilter = [new(L10n.Get("Dialog.Json")) { Patterns = ["*.json"] }]
             });
-            if (files.Count == 0) return;
+            if (files.Count == 0)
+                return;
             await using var stream = await files[0].OpenReadAsync();
             using var reader = new StreamReader(stream);
             // Bound memory even when a file picker supplies an unusually large stream.
             var buffer = new char[1_000_001];
             var length = await reader.ReadBlockAsync(buffer, 0, buffer.Length);
-            if (length > 1_000_000) throw new LocalizedArgumentException("Error.FileSize");
+            if (length > 1_000_000)
+                throw new LocalizedArgumentException("Error.FileSize");
             vm.TransferJson = new string(buffer, 0, length);
             await vm.ImportAsync(vm.TransferJson);
         }
@@ -36,17 +39,19 @@ public sealed partial class WaveformTransferView : UserControl
 
     private async void ExportFileClick(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not MainViewModel vm || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage) return;
+        if (DataContext is not WaveformLibraryViewModel vm || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage)
+            return;
         try
         {
             var file = await storage.SaveFilePickerAsync(new()
             {
                 Title = L10n.Get("Dialog.Export"),
-                SuggestedFileName = "yokowave-presets.json",
+                SuggestedFileName = "yokowave-waveforms.json",
                 DefaultExtension = "json",
                 FileTypeChoices = [new(L10n.Get("Dialog.Json")) { Patterns = ["*.json"] }]
             });
-            if (file is null) return;
+            if (file is null)
+                return;
             await using var stream = await file.OpenWriteAsync();
             stream.SetLength(0);
             await using var writer = new StreamWriter(stream);

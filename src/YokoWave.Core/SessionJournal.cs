@@ -21,17 +21,21 @@ public sealed class SessionJournal(string directory)
         _current = await ReadAsync(FilePath, options);
         _seen.Clear();
         foreach (var record in _previous.Concat(_current))
-            if (!_seen.Add(record.Id)) throw new LocalizedArgumentException("Error.InvalidRecords");
+            if (!_seen.Add(record.Id))
+                throw new LocalizedArgumentException("Error.InvalidRecords");
     }
 
     private static async Task<List<SessionRecord>> ReadAsync(string path, JsonSerializerOptions options)
     {
-        if (!File.Exists(path)) return [];
-        if (new FileInfo(path).Length > MaxFileBytes) throw new LocalizedArgumentException("Error.SessionFileSize");
+        if (!File.Exists(path))
+            return [];
+        if (new FileInfo(path).Length > MaxFileBytes)
+            throw new LocalizedArgumentException("Error.SessionFileSize");
         List<SessionRecord> records = [];
         foreach (var line in await File.ReadAllLinesAsync(path))
         {
-            if (string.IsNullOrWhiteSpace(line)) continue;
+            if (string.IsNullOrWhiteSpace(line))
+                continue;
             var record = JsonSerializer.Deserialize<SessionRecord>(line, options) ?? throw new JsonException("Invalid session record.");
             ValidateRecord(record);
             records.Add(record);
@@ -43,10 +47,12 @@ public sealed class SessionJournal(string directory)
     {
         foreach (var record in records.OrderBy(record => record.StartedAt))
         {
-            if (_seen.Contains(record.Id)) continue;
+            if (_seen.Contains(record.Id))
+                continue;
             ValidateRecord(record);
             var bytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(record, options) + "\n");
-            if (bytes.Length > MaxFileBytes) throw new LocalizedArgumentException("Error.SessionFileSize");
+            if (bytes.Length > MaxFileBytes)
+                throw new LocalizedArgumentException("Error.SessionFileSize");
             if (File.Exists(FilePath) && new FileInfo(FilePath).Length + bytes.Length > MaxFileBytes)
             {
                 File.Move(FilePath, PreviousFilePath, true);
@@ -63,10 +69,10 @@ public sealed class SessionJournal(string directory)
 
     internal static void ValidateRecord(SessionRecord record)
     {
-        if (record.Id == Guid.Empty || string.IsNullOrWhiteSpace(record.WaveformName) || record.Reason is null || !Enum.IsDefined(record.Kind) ||
+        static bool ValidPeak(double? peak) => peak is null || double.IsFinite(peak.Value) && peak is >= 0 and <= 100;
+        if (record.Id == Guid.Empty || string.IsNullOrWhiteSpace(record.PipelineName) || record.Reason is null ||
             !double.IsFinite(record.DurationSeconds) || record.DurationSeconds < 0 || record.DurationSeconds > TimeSpan.MaxValue.TotalSeconds ||
-            record.DeviceCount < 1 || !double.IsFinite(record.PeakA) || record.PeakA is < 0 or > 100 ||
-            !double.IsFinite(record.PeakB) || record.PeakB is < 0 or > 100 || !double.IsFinite(record.PeakC) || record.PeakC is < 0 or > 100)
+            record.DeviceCount < 0 || !ValidPeak(record.PeakA) || !ValidPeak(record.PeakB) || !ValidPeak(record.PeakC))
             throw new LocalizedArgumentException("Error.InvalidRecords");
     }
 }

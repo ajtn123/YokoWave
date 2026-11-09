@@ -33,6 +33,13 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
     private readonly ConcurrentQueue<SessionRecord> _completedRecords = new();
     private readonly PipelineCompiler _compiler;
     private readonly PipelineNodeCatalog _catalog = new();
+    public Action<Exception> ReportError { get; }
+    public IAudioInputFactory AudioInputs { get; }
+    public PipelineServices Services { get; }
+    internal Func<string, bool>? CanBindDevice { get; set; }
+    public ObservableCollection<PipelineEndpointViewModel> Endpoints { get; } = [];
+    public ObservableCollection<PipelineBindingViewModel> Bindings { get; } = [];
+    public event EventHandler<WaveformPreset>? WaveformCreated;
     private readonly List<PipelineDocument> _undo = [];
     private readonly List<PipelineDocument> _redo = [];
     private PipelineDocument? _clipboard;
@@ -53,15 +60,25 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
     public ObservableCollection<ConnectionViewModel> Connections { get; } = [];
     public ObservableCollection<NodeEditorViewModel> SelectedNodes { get; } = [];
     public ObservableCollection<PipelinePaletteItem> Palette { get; } = [];
+    private string _search = "";
+    public string Search
+    {
+        get => _search; set
+        {
+            if (Set(ref _search, value))
+                Raise(nameof(FilteredPalette));
+        }
+    }
+    public IEnumerable<PipelinePaletteItem> FilteredPalette => Palette.Where(p => p.Title.Contains(Search, StringComparison.CurrentCultureIgnoreCase));
     public ObservableCollection<PipelineDiagnostic> Diagnostics { get; } = [];
     public object PendingConnection { get; } = new();
     public NodeEditorViewModel? SelectedNode => SelectedNodes.FirstOrDefault();
     public bool HasSelectedNode => SelectedNode is not null;
-    public bool CanEdit => !Session.HoldsResources;
-    public bool CanUndo => CanEdit && _undo.Count > 0;
-    public bool CanRedo => CanEdit && _redo.Count > 0;
+    public bool CanEdit => !Session.HoldsResources && !Nodes.OfType<AudioNodeEditorViewModel>().Any(n => n.IsCalibrating);
+    public bool CanUndo => CanEdit && _undo.Count > 0 && BindingsAvailable(_undo[^1]);
+    public bool CanRedo => CanEdit && _redo.Count > 0 && BindingsAvailable(_redo[^1]);
     public bool CanStart => CanEdit && Diagnostics.Count == 0 && BoundDeviceIds.All(id =>
-        _controller.Connections.ContainsKey(id) && !_controller.IsDeviceBusy(id));
+        CanBindDevice?.Invoke(id) != false && _controller.Connections.ContainsKey(id) && !_controller.IsDeviceBusy(id));
     public bool CanStop => Session.HoldsResources;
     public bool CanPause => Session.State is PipelineState.Running or PipelineState.Paused;
     public string StateLabel => L10n.Get($"Pipeline.State.{Session.State}");
@@ -72,7 +89,19 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
     public string TimerReadout => TimerEnabled ? TimeSpan.FromSeconds(Math.Ceiling(CanEdit ? DurationSeconds : Session.Remaining?.TotalSeconds ?? DurationSeconds))
         .ToString(DurationSeconds >= 3600 ? @"h\:mm\:ss" : @"mm\:ss") : L10n.Get("Session.NoTimer");
     public string BoundDevices => string.Join(", ", BoundDeviceIds.Select(id => Devices.FirstOrDefault(d => d.Id == id)?.Name ?? id));
-    public IReadOnlyList<string> BoundDeviceIds => Nodes.OfType<DeviceOutputEditorViewModel>().Select(n => n.DeviceId).Where(id => id.Length > 0).Distinct(StringComparer.Ordinal).ToArray();
+    public IReadOnlyList<string> BoundDeviceIds => GetBoundDevices();
+    private IReadOnlyList<string> GetBoundDevices()
+    {
+        try
+        {
+            return SubgraphExpansion.Expand(ToDocument()).Nodes.SelectMany(n => Registry.Get(n.Type).Resources(Registry.Get(n.Type).Read(n.Configuration)))
+                .Select(b => b.DeviceId).Where(id => !string.IsNullOrWhiteSpace(id)).Distinct(StringComparer.Ordinal).ToArray();
+        }
+        catch (Exception error) when (error is System.Text.Json.JsonException or PipelineValidationException or KeyNotFoundException or ArgumentException)
+        {
+            return [];
+        }
+    }
     public string InputStatus => Session.Error?.Message ?? (Session.LastFrame?.Diagnostics.Count > 0 ? L10n.Get("Pipeline.Error.Input") : "");
     public string Name
     {
@@ -89,7 +118,10 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
         set
         {
             if (double.IsFinite(value) && value is >= 0 and <= 1 && value != _outputLimit)
-                Edit(() => Set(ref _outputLimit, value));
+            {
+                Edit(() => Set(ref _outputLimit, value), live: true);
+                Session.SetLimit(value);
+            }
         }
     }
     public bool TimerEnabled
@@ -125,26 +157,29 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
     public event EventHandler? Edited;
 
     public PipelineEditorViewModel(PipelineDocument document, DeviceController controller, ObservableCollection<PresetItem> presets,
-        Action<Exception> onError, Action<SessionRecord> completed, double timerLimitSeconds = 7200)
+        Action<Exception> onError, Action<SessionRecord> completed, double timerLimitSeconds = 7200, PipelineServices? services = null, NodeTypeRegistry? registry = null)
     {
         Id = document.Id;
         _name = document.Name;
         _controller = controller;
         _completed = completed;
         Presets = presets;
-        Registry = BuiltInNodes.CreateRegistry();
+        Registry = registry ?? BuiltInNodes.CreateRegistry();
+        ReportError = onError;
+        AudioInputs = services?.Audio ?? new UnavailableAudioInputFactory();
+        Services = services ?? new(AudioInputs);
         _compiler = new(Registry);
         _timerLimitSeconds = timerLimitSeconds;
-        Session = new(controller);
+        Session = new(controller, Services);
         Session.Changed += OnSessionChanged;
         Session.Completed += OnCompleted;
         CreateConnectionCommand = new PipelineParameterCommand<(object Source, object? Target)>(pair =>
         {
-            if (pair.Source is NumericPortViewModel a && pair.Target is NumericPortViewModel b)
+            if (pair.Source is NodePortViewModel a && pair.Target is NodePortViewModel b)
                 Connect(a, b);
         });
         RemoveConnectionCommand = new PipelineParameterCommand<ConnectionViewModel>(connection => Edit(() => Connections.Remove(connection)));
-        DisconnectConnectorCommand = new PipelineParameterCommand<NumericPortViewModel>(port => Edit(() =>
+        DisconnectConnectorCommand = new PipelineParameterCommand<NodePortViewModel>(port => Edit(() =>
         {
             foreach (var connection in Connections.Where(c => c.Source == port || c.Target == port).ToArray())
                 Connections.Remove(connection);
@@ -165,7 +200,47 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
 
     public PipelineDocument ToDocument() => new(Id, Name, Nodes.Select(n => n.ToDefinition()).ToArray(),
         Connections.Select(c => c.Definition).ToArray(), Nodes.Select(n => new NodeLayout(n.Id, n.Location.X, n.Location.Y)).ToArray(),
-        OutputLimit, DurationSeconds, TimerEnabled);
+        OutputLimit, DurationSeconds, TimerEnabled, Inputs: Nodes.SelectMany(n => n.Inputs).Where(p => p.IsExposed)
+            .Select(p => new ExposedPort(p.Node.Id.ToString("N") + "." + p.Port.Id, p.Port.NameKey, new(p.Node.Id, p.Port.Id), p.Port.Parameter, p.Port.Kind)).ToArray(),
+        Outputs: Nodes.SelectMany(n => n.Outputs).Where(p => p.IsExposed)
+            .Select(p => new ExposedPort(p.Node.Id.ToString("N") + "." + p.Port.Id, p.Port.NameKey, new(p.Node.Id, p.Port.Id), p.Port.Parameter, p.Port.Kind)).ToArray());
+    public void MarkEdited()
+    {
+        if (!_restoring)
+            Edited?.Invoke(this, EventArgs.Empty);
+    }
+    public void AddRecording(WaveformPreset preset) => WaveformCreated?.Invoke(this, preset);
+    public bool UsesWaveform(Guid id) => SubgraphExpansion.Expand(ToDocument()).Nodes.Any(n =>
+        Registry.Get(n.Type).WaveformReferences(Registry.Get(n.Type).Read(n.Configuration)).Contains(id));
+    public bool CanUseWaveform => Nodes.Any(n => n is IWaveformNodeEditor);
+    public bool UseWaveform(WaveformPreset preset)
+    {
+        var node = SelectedNode as IWaveformNodeEditor ?? Nodes.OfType<IWaveformNodeEditor>().FirstOrDefault();
+        var item = Presets.FirstOrDefault(p => p.Preset.Id == preset.Id);
+        return item is not null && node?.SelectWaveform(item) == true;
+    }
+    public void RebindDevice(string current, string replacement) => Edit(() =>
+    {
+        var document = ToDocument();
+        Restore(document with
+        {
+            Nodes = document.Nodes.Select(n => SubgraphExpansion.MapDevices(n, new Dictionary<string, string> { [current] = replacement })).ToArray()
+        });
+    });
+    public void ReplaceNode(NodeDefinition replacement)
+    {
+        if (!CanEdit)
+            return;
+        var document = ToDocument();
+        var candidate = document with
+        {
+            Nodes = document.Nodes.Select(n => n.Id == replacement.Id ? replacement : n).ToArray()
+        };
+        if (_compiler.Validate(candidate, Presets.Select(p => p.Preset)).Any(d => d.Key is "Pipeline.Error.Connection" or "Pipeline.Error.Cycle"))
+            throw new Core.Localization.LocalizedOperationException("Pipeline.Error.Connection");
+        Edit(() => Restore(candidate));
+    }
+    public void ExpandSubgraphs() => Edit(() => Restore(SubgraphExpansion.Expand(ToDocument())));
 
     public void Edit(Action mutation, bool layoutOnly = false, bool live = false)
     {
@@ -173,6 +248,11 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
             return;
         var before = ToDocument();
         mutation();
+        if (!layoutOnly && BoundDeviceIds.Any(id => !id.StartsWith('$') && CanBindDevice?.Invoke(id) == false))
+        {
+            Restore(before);
+            throw new Core.Localization.LocalizedOperationException("Error.DeviceInUse");
+        }
         if (CanEdit)
         {
             _undo.Add(before);
@@ -195,16 +275,19 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
         return node;
     }
 
-    public bool Connect(NumericPortViewModel a, NumericPortViewModel b)
+    public bool Connect(NodePortViewModel a, NodePortViewModel b)
     {
         if (!CanEdit || !Nodes.Contains(a.Node) || !Nodes.Contains(b.Node))
             return false;
         var source = a.Port.Direction == PortDirection.Output ? a : b;
         var target = source == a ? b : a;
-        if (source.Port.Direction != PortDirection.Output || target.Port.Direction != PortDirection.Input || source.Node == target.Node ||
+        if (source.Port.Direction != PortDirection.Output || target.Port.Direction != PortDirection.Input || source.Port.Kind != target.Port.Kind || source.Node == target.Node ||
             Connections.Any(c => c.Target == target))
             return false;
-        var candidate = ToDocument() with { Connections = [.. Connections.Select(c => c.Definition), new(new(source.Node.Id, source.Port.Id), new(target.Node.Id, target.Port.Id))] };
+        var candidate = ToDocument() with
+        {
+            Connections = [.. Connections.Select(c => c.Definition), new(new(source.Node.Id, source.Port.Id), new(target.Node.Id, target.Port.Id))]
+        };
         if (_compiler.Validate(candidate, Presets.Select(p => p.Preset)).Any(d => d.Key == "Pipeline.Error.Cycle"))
             return false;
         Edit(() => Connections.Add(new(source, target)));
@@ -252,7 +335,7 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
 
     private void RestoreHistory(List<PipelineDocument> from, List<PipelineDocument> to)
     {
-        if (!CanEdit || from.Count == 0)
+        if (!CanEdit || from.Count == 0 || !BindingsAvailable(from[^1]))
             return;
         to.Add(ToDocument());
         var previous = from[^1];
@@ -260,6 +343,8 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
         Restore(previous);
         Edited?.Invoke(this, EventArgs.Empty);
     }
+    private bool BindingsAvailable(PipelineDocument document) => SubgraphExpansion.Expand(document).Nodes.SelectMany(n =>
+        Registry.Get(n.Type).Resources(Registry.Get(n.Type).Read(n.Configuration))).All(b => b.DeviceId.StartsWith('$') || CanBindDevice?.Invoke(b.DeviceId) != false);
 
     private void Restore(PipelineDocument document)
     {
@@ -279,6 +364,10 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
                 if (document.Layout.FirstOrDefault(l => l.Node == definition.Id) is { } layout)
                     node.RestoreLocation(new(layout.X, layout.Y));
                 Nodes.Add(node);
+                foreach (var port in node.Inputs)
+                    port.IsExposed = document.Inputs?.Any(p => p.Address.Node == node.Id && p.Address.Port == port.Port.Id) == true;
+                foreach (var port in node.Outputs)
+                    port.IsExposed = document.Outputs?.Any(p => p.Address.Node == node.Id && p.Address.Port == port.Port.Id) == true;
             }
             foreach (var connection in document.Connections)
             {
@@ -298,16 +387,21 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
         Diagnostics.Clear();
         foreach (var issue in _compiler.Validate(ToDocument(), Presets.Select(p => p.Preset)))
             Diagnostics.Add(issue);
+        foreach (var native in Nodes.OfType<NativeOutputEditorViewModel>().Where(n => n.ValidationError.Length > 0))
+            Diagnostics.Add(new("Error.ProtocolSettings", native.Id));
         foreach (var port in Nodes.SelectMany(n => n.Inputs.Concat(n.Outputs)))
             port.IsConnected = Connections.Any(c => c.Source == port || c.Target == port);
         RefreshState();
     }
 
+    public DeviceDescriptor? FindDevice(string id) => _controller.Connections.GetValueOrDefault(id)?.Device;
+
     public void RefreshDevices()
     {
         var descriptors = _controller.Connections.Values.Select(c => c.Device).ToArray();
-        var desired = descriptors.Select(d => new PipelineDeviceOption(d.Id, d.Name))
-            .Concat(BoundDeviceIds.Where(id => descriptors.All(d => d.Id != id)).Select(id => new PipelineDeviceOption(id, id))).ToArray();
+        var desired = descriptors.Where(d => CanBindDevice?.Invoke(d.Id) != false).Select(d => new PipelineDeviceOption(d.Id, d.Name))
+            .Concat(BoundDeviceIds.Where(id => descriptors.All(d => d.Id != id)).Select(id => new PipelineDeviceOption(id, id)))
+            .Prepend(new("$device", L10n.Get("Pipeline.Unbound"))).DistinctBy(d => d.Id).ToArray();
         if (!Devices.SequenceEqual(desired))
         {
             Devices.Clear();
@@ -317,6 +411,13 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
                 node.RefreshDevices();
         }
         RefreshState();
+        var bindings = BoundDeviceIds;
+        if (!Bindings.Select(b => b.Id).SequenceEqual(bindings))
+        {
+            Bindings.Clear();
+            foreach (var id in bindings)
+                Bindings.Add(new(this, id));
+        }
     }
 
     public void SetTimerLimit(double seconds)
@@ -332,6 +433,10 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
 
     public async Task StartAsync()
     {
+        if (!BindingsAvailable(ToDocument()))
+            throw new Core.Localization.LocalizedOperationException("Error.DeviceInUse");
+        if (Nodes.OfType<NativeOutputEditorViewModel>().Any(n => n.ValidationError.Length > 0))
+            throw new Core.Localization.LocalizedOperationException("Error.ProtocolSettings");
         var plan = _compiler.Compile(ToDocument(), Presets.Select(p => p.Preset), _controller.Connections.ToDictionary(p => p.Key, p => p.Value.Device));
         await Session.StartAsync(plan);
     }
@@ -365,6 +470,14 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
         StartCommand.NotifyCanExecuteChanged();
         StopCommand.NotifyCanExecuteChanged();
         PauseCommand.NotifyCanExecuteChanged();
+        var endpoints = Services.Endpoints.Select(p => new PipelineEndpointViewModel(p.Value.Url, p.Value.Kind,
+            Services.Credentials.GetValueOrDefault(p.Key)?.Token ?? "")).ToArray();
+        if (!Endpoints.SequenceEqual(endpoints))
+        {
+            Endpoints.Clear();
+            foreach (var endpoint in endpoints)
+                Endpoints.Add(endpoint);
+        }
         foreach (var node in Nodes)
             node.RefreshLocalization();
     }
@@ -373,6 +486,7 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
     {
         foreach (var item in Palette)
             item.RefreshLocalization();
+        Raise(nameof(FilteredPalette));
         Validate();
     }
 
@@ -382,7 +496,22 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
             return;
         try
         {
-            await Session.DisposeAsync();
+            List<Exception> errors = [];
+            try
+            {
+                await Session.DisposeAsync();
+            }
+            catch (Exception error) { errors.Add(error); }
+            foreach (var node in Nodes.OfType<IAsyncDisposable>())
+            {
+                try
+                {
+                    await node.DisposeAsync();
+                }
+                catch (Exception error) { errors.Add(error); }
+            }
+            if (errors.Count > 0)
+                throw new Core.Localization.LocalizedAggregateException("Error.Cleanup", errors);
             FlushRecords();
         }
         finally
@@ -390,6 +519,22 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
             _disposed = true;
             Session.Changed -= OnSessionChanged;
             Session.Completed -= OnCompleted;
+        }
+    }
+}
+
+public sealed record PipelineEndpointViewModel(string Url, string Kind, string Token);
+public sealed class PipelineBindingViewModel(PipelineEditorViewModel editor, string id) : ObservableObject
+{
+    public string Id { get; } = id;
+    public ObservableCollection<PipelineDeviceOption> Devices => editor.Devices;
+    public PipelineDeviceOption? Selected
+    {
+        get => Devices.FirstOrDefault(d => d.Id == Id);
+        set
+        {
+            if (value is not null && value.Id != Id)
+                editor.RebindDevice(Id, value.Id);
         }
     }
 }

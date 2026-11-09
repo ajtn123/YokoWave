@@ -7,61 +7,17 @@ namespace YokoWave.Core;
 
 public sealed class DeviceConnection(DeviceDescriptor device)
 {
-    public DeviceDescriptor Device
-    {
-        get;
-        internal set;
-    } = device;
-    public ElectrodeContact ContactA
-    {
-        get;
-        internal set;
-    } = ElectrodeContact.Unknown;
-    public ElectrodeContact ContactB
-    {
-        get;
-        internal set;
-    } = ElectrodeContact.Unknown;
-    public OutputFrame Output
-    {
-        get;
-        internal set;
-    } = OutputFrame.Zero;
-    public byte? HardwareVersion
-    {
-        get;
-        internal set;
-    }
-    public byte? SoftwareVersion
-    {
-        get;
-        internal set;
-    }
-    public bool? LightEnabled
-    {
-        get;
-        internal set;
-    }
-    public MotionReading? Motion
-    {
-        get;
-        internal set;
-    }
-    public int? Steps
-    {
-        get;
-        internal set;
-    }
-    public DeviceTelemetry? Telemetry
-    {
-        get;
-        internal set;
-    }
-    public DateTimeOffset? TelemetryCapturedAt
-    {
-        get;
-        internal set;
-    }
+    public DeviceDescriptor Device { get; internal set; } = device;
+    public ElectrodeContact ContactA { get; internal set; } = ElectrodeContact.Unknown;
+    public ElectrodeContact ContactB { get; internal set; } = ElectrodeContact.Unknown;
+    public OutputFrame Output { get; internal set; } = OutputFrame.Zero;
+    public byte? HardwareVersion { get; internal set; }
+    public byte? SoftwareVersion { get; internal set; }
+    public bool? LightEnabled { get; internal set; }
+    public MotionReading? Motion { get; internal set; }
+    public int? Steps { get; internal set; }
+    public DeviceTelemetry? Telemetry { get; internal set; }
+    public DateTimeOffset? TelemetryCapturedAt { get; internal set; }
     internal long MotionSequence;
     internal bool MotionStreaming;
 }
@@ -151,12 +107,15 @@ public sealed class DeviceController : IAsyncDisposable
             List<Exception> errors = [];
             foreach (var id in _transport.DeviceIds(key))
             {
-                try { await DisconnectAsync(id, ct); }
+                try
+                { await DisconnectAsync(id, ct); }
                 catch (Exception error) { errors.Add(error); }
             }
-            try { await _transport.RemoveAsync(key); }
+            try
+            { await _transport.RemoveAsync(key); }
             catch (Exception error) { errors.Add(error); }
-            if (errors.Count > 0) throw new LocalizedAggregateException("Error.Cleanup", errors);
+            if (errors.Count > 0)
+                throw new LocalizedAggregateException("Error.Cleanup", errors);
         }
         finally { _lifecycleGate.Release(); }
     }
@@ -359,7 +318,8 @@ public sealed class DeviceController : IAsyncDisposable
                 {
                     await StopConnectionAsync(connection, ct);
                 }
-                if (release) _owners.TryRemove(id, out _);
+                if (release)
+                    _owners.TryRemove(id, out _);
             }
         })));
         NotifyChanged();
@@ -432,11 +392,13 @@ public sealed class DeviceController : IAsyncDisposable
         {
             ThrowIfDisposed();
             var connection = Get(id);
-            if (!command.ReadOnly && DeviceOwner(id) is { } current && current != owner) throw new LocalizedOperationException("Error.DeviceInUse");
+            if (!command.ReadOnly && DeviceOwner(id) is { } current && current != owner)
+                throw new LocalizedOperationException("Error.DeviceInUse");
             if (connection.Device.Profile?.Supports(command.Capability) != true || _transport is not IDeviceCommandTransport transport)
                 throw new LocalizedOperationException("Error.DeviceFeatures");
             await transport.ExecuteCommandAsync(id, command, ct);
-            if (command is ConfigureMotionStream motion) connection.MotionStreaming = motion.Enabled;
+            if (command is ConfigureMotionStream motion)
+                connection.MotionStreaming = motion.Enabled;
         }
         NotifyChanged();
     }
@@ -520,7 +482,8 @@ public sealed class DeviceController : IAsyncDisposable
 
     private async Task WriteCoreAsync(DeviceConnection connection, OutputFrame frame, CancellationToken ct)
     {
-        if (!double.IsFinite(frame.OutputLimit) || frame.OutputLimit is < 0 or > 100) throw new LocalizedArgumentException("Error.InvalidSettings");
+        if (!double.IsFinite(frame.OutputLimit) || frame.OutputLimit is < 0 or > 100)
+            throw new LocalizedArgumentException("Error.InvalidSettings");
         frame.Hardware?.Validate();
         var output = frame with
         {
@@ -539,11 +502,13 @@ public sealed class DeviceController : IAsyncDisposable
     {
         var id = connection.Device.Id;
         List<Exception> errors = [];
-        try { await WriteCoreAsync(connection, OutputFrame.Zero, ct); }
+        try
+        { await WriteCoreAsync(connection, OutputFrame.Zero, ct); }
         catch (Exception error) { errors.Add(error); }
         if (connection.Device.IsInput && connection.Device.Profile?.Supports(DeviceCapability.SensorStream) == true)
         {
-            try { await _transport.ExecuteCommandAsync(id, new ConfigureSensorStream(false), ct); }
+            try
+            { await _transport.ExecuteCommandAsync(id, new ConfigureSensorStream(false), ct); }
             catch (Exception error) { errors.Add(error); }
         }
         if (connection.MotionStreaming)
@@ -555,7 +520,8 @@ public sealed class DeviceController : IAsyncDisposable
             }
             catch (Exception error) { errors.Add(error); }
         }
-        if (errors.Count == 1) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(errors[0]).Throw();
+        if (errors.Count == 1)
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(errors[0]).Throw();
         ThrowErrors(errors, "Error.StopUnconfirmed");
     }
     private async Task StopAllCoreAsync(CancellationToken ct = default)

@@ -1,5 +1,5 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:YokoWave.App.ViewModels" xmlns:l="using:YokoWave.App.Localization"
+             xmlns:components="using:YokoWave.App.Views.Components" xmlns:vm="using:YokoWave.App.ViewModels" xmlns:l="using:YokoWave.App.Localization"
              x:Class="YokoWave.App.Views.Components.ProtocolFeaturesView" x:DataType="vm:ProtocolFeaturesViewModel" >
   <Expander Header="{l:Loc Protocol.Title}" IsVisible="{Binding IsVisible}" HorizontalAlignment="Stretch">
     <StackPanel Classes="items">
@@ -10,17 +10,7 @@
       <TextBlock Text="{Binding Help}" Classes="muted caption help" />
       <ItemsControl ItemsSource="{Binding Parameters}">
         <ItemsControl.ItemTemplate>
-          <DataTemplate x:DataType="vm:ProtocolParameter">
-            <StackPanel Classes="field" Margin="{DynamicResource Margin.BelowLarge}">
-              <TextBlock Text="{Binding Group}" Classes="muted caption" IsVisible="{Binding HasGroup}" />
-              <TextBlock Text="{Binding Label}" Classes="field-label" IsVisible="{Binding !IsBoolean}" />
-              <NumericUpDown Value="{Binding Number}" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}" FormatString="0" IsVisible="{Binding IsNumber}" />
-              <CheckBox Content="{Binding Label}" IsChecked="{Binding Enabled}" IsVisible="{Binding IsBoolean}" />
-              <ComboBox ItemsSource="{Binding Choices}" SelectedItem="{Binding Selected}" IsVisible="{Binding IsChoice}" HorizontalAlignment="Stretch">
-                <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
-              </ComboBox>
-            </StackPanel>
-          </DataTemplate>
+          <DataTemplate x:DataType="vm:ParameterFieldViewModel"><components:ParameterFieldView /></DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
       <WrapPanel>

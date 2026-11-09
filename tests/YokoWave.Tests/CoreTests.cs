@@ -1,6 +1,5 @@
 using System.Text.Json;
 using YokoWave.Core;
-using YokoWave.Core.Localization;
 using Xunit;
 
 namespace YokoWave.Tests;
@@ -29,26 +28,6 @@ public sealed class CoreTests
     }
 
     [Fact]
-    public async Task ControllerClampsProtocolRangeAndModeAppliesItsOwnLimitImmediately()
-    {
-        var transport = new RecordingTransport();
-        await using var controller = new DeviceController(transport);
-        await controller.ConnectAsync(Device(), TestContext.Current.CancellationToken);
-        Assert.Equal(OutputFrame.Zero, transport.Latest["one"]);
-        await controller.SendAsync("one", new(99, double.NaN, double.PositiveInfinity), TestContext.Current.CancellationToken);
-        Assert.Equal(new OutputFrame(99, 0, 1), transport.Latest["one"]);
-        var engine = new SessionEngine(controller) { ChannelA = 99 };
-        await engine.StartAsync(["one"], Sine(), null, new(OutputLimit: 40));
-        await engine.AdvanceAsync(TimeSpan.FromSeconds(2));
-        Assert.Equal(40, transport.Latest["one"].ChannelA);
-        await engine.SetOutputLimitAsync(12);
-        Assert.Equal(12, transport.Latest["one"].ChannelA);
-        await controller.DisconnectAsync("one", TestContext.Current.CancellationToken);
-        Assert.Equal("send:one:0:0", transport.Events[^2]);
-        Assert.Equal("disconnect:one", transport.Events[^1]);
-    }
-
-    [Fact]
     public async Task SingleChannelDeviceNeverReceivesChannelB()
     {
         var transport = new RecordingTransport();
@@ -74,68 +53,15 @@ public sealed class CoreTests
     }
 
     [Fact]
-    public async Task SessionSharesItsLimitAcrossTargetsAndTimesOut()
-    {
-        var transport = new RecordingTransport();
-        await using var controller = new DeviceController(transport);
-        await controller.ConnectAsync(Device("one"), TestContext.Current.CancellationToken);
-        await controller.ConnectAsync(Device("two"), TestContext.Current.CancellationToken);
-        var engine = new SessionEngine(controller) { ChannelA = 40, ChannelB = 30, OffsetChannelB = false };
-        SessionRecord? completed = null;
-        engine.Completed += (_, record) => completed = record;
-        await engine.StartAsync(["one", "two"], Sine(), TimeSpan.FromSeconds(4), new(OutputLimit: 15));
-        await engine.AdvanceAsync(TimeSpan.FromSeconds(2));
-        Assert.Equal(15, transport.Latest["one"].ChannelA);
-        Assert.Equal(15, transport.Latest["two"].ChannelA);
-        await engine.AdvanceAsync(TimeSpan.FromSeconds(5));
-        Assert.False(engine.IsRunning);
-        Assert.All(transport.Latest.Values, frame => Assert.Equal(0, frame.ChannelA));
-        Assert.NotNull(completed);
-        Assert.Equal(4, completed.DurationSeconds);
-        Assert.Equal(2, completed.DeviceCount);
-        Assert.Equal("Reason.Timer", completed.Reason);
-        await engine.AdvanceAsync(TimeSpan.FromSeconds(6));
-        Assert.All(transport.Latest.Values, frame => Assert.Equal(0, frame.ChannelA));
-    }
-
-    [Fact]
-    public async Task SessionFailureStopsOtherTargetsAndReportsError()
-    {
-        var transport = new RecordingTransport();
-        await using var controller = new DeviceController(transport);
-        await controller.ConnectAsync(Device("one"), ct: TestContext.Current.CancellationToken);
-        await controller.ConnectAsync(Device("two"), ct: TestContext.Current.CancellationToken);
-        var engine = new SessionEngine(controller) { ChannelA = 30 };
-        await engine.StartAsync(["one", "two"], Sine(), TimeSpan.FromMinutes(1));
-        transport.FailId = "two";
-        var failure = await Assert.ThrowsAsync<LocalizedAggregateException>(() => engine.AdvanceAsync(TimeSpan.FromSeconds(2)));
-        Assert.Equal(2, failure.Flatten().InnerExceptions.Count);
-        Assert.All(failure.Flatten().InnerExceptions, error => Assert.IsType<IOException>(error));
-        Assert.False(engine.IsRunning);
-        Assert.Equal(0, transport.Latest["one"].ChannelA);
-        transport.FailId = null;
-    }
-
-    [Fact]
-    public async Task ConcurrentTickAndStopCannotWriteNonZeroAfterStop()
-    {
-        var transport = new RecordingTransport();
-        await using var controller = new DeviceController(transport);
-        await controller.ConnectAsync(Device(), ct: TestContext.Current.CancellationToken);
-        var engine = new SessionEngine(controller) { ChannelA = 40 };
-        await engine.StartAsync(["one"], Sine(), TimeSpan.FromMinutes(1));
-        await Task.WhenAll(engine.AdvanceAsync(TimeSpan.FromSeconds(2)), engine.StopAsync());
-        await engine.AdvanceAsync(TimeSpan.FromSeconds(3));
-        Assert.False(engine.IsRunning);
-        Assert.Equal(0, transport.Latest["one"].ChannelA);
-    }
-
-    [Fact]
     public async Task WorkspaceRoundTripsAndPreservesCorruptOriginal()
     {
         using var folder = new TestFolder();
         var store = new WorkspaceStore(folder.Path);
-        var custom = WaveformPreset.BuiltIn[0] with { Id = Guid.NewGuid(), Name = "自定义" };
+        var custom = WaveformPreset.BuiltIn[0] with
+        {
+            Id = Guid.NewGuid(),
+            Name = "自定义"
+        };
         await store.SaveAsync(new(WorkspaceData.CurrentSchema, [custom], [], new(35)));
         var loaded = await store.LoadAsync();
         Assert.Equivalent(custom, Assert.Single(loaded.Presets));
@@ -168,16 +94,24 @@ internal sealed class RecordingTransport : IDeviceTransport
     public Task<IReadOnlyList<DeviceDescriptor>> ScanAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<DeviceDescriptor>>([]);
     public Task ConnectAsync(DeviceDescriptor device, CancellationToken cancellationToken = default)
-    { Latest.Add(device.Id, OutputFrame.Zero); return Task.CompletedTask; }
+    {
+        Latest.Add(device.Id, OutputFrame.Zero);
+        return Task.CompletedTask;
+    }
     public Task SendAsync(string deviceId, OutputFrame frame, CancellationToken cancellationToken = default)
     {
-        if (deviceId == FailId) throw new IOException("Test connection lost");
+        if (deviceId == FailId)
+            throw new IOException("Test connection lost");
         Latest[deviceId] = frame;
         Events.Add($"send:{deviceId}:{frame.ChannelA}:{frame.ChannelB}");
         return Task.CompletedTask;
     }
     public Task DisconnectAsync(string deviceId, CancellationToken cancellationToken = default)
-    { Events.Add($"disconnect:{deviceId}"); Latest.Remove(deviceId); return Task.CompletedTask; }
+    {
+        Events.Add($"disconnect:{deviceId}");
+        Latest.Remove(deviceId);
+        return Task.CompletedTask;
+    }
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }
 

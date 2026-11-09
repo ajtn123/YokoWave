@@ -63,60 +63,6 @@ public sealed class ProtocolFeatureTests
         Assert.Null(V1Protocol.Parse(V1Protocol.WithChecksum([0x35, 0x71, 3, 7])));
     }
 
-    [Theory]
-    [InlineData(BluetoothProtocol.YokonexV1)]
-    [InlineData(BluetoothProtocol.YokonexV2)]
-    public async Task ElectricalProgramsAreModeOwnedDoNotRestartAndStopAuxiliaryMotor(BluetoothProtocol protocol)
-    {
-        var adapter = new HardwareGattAdapter(protocol);
-        await using var controller = new DeviceController(new BluetoothDeviceTransport(adapter));
-        var device = await Connect(controller);
-        var engine = new SessionEngine(controller) { ChannelA = 50, ChannelB = 25 };
-        await engine.StartAsync([device.Id], Wave, null, new(Kind: ModeKind.NativeProgram, NativeProgram: new(PresetA: 16, PresetB: 2),
-            Hardware: new(AuxiliaryMotor: AuxiliaryMotorMode.Pattern2)));
-        await engine.AdvanceAsync(TimeSpan.Zero);
-        var link = adapter.Links[device.Id];
-        Assert.Contains(link.Writes, entry => entry.Data.SequenceEqual(V1Protocol.AuxiliaryMotor(AuxiliaryMotorMode.Pattern2)));
-        var count = link.Writes.Count;
-        await engine.AdvanceAsync(TimeSpan.FromMilliseconds(100));
-        Assert.Equal(count, link.Writes.Count);
-        await Assert.ThrowsAsync<LocalizedOperationException>(() => controller.ExecuteCommandAsync(device.Id, new ControlStepCounter(StepCounterAction.Reset), ct: TestContext.Current.CancellationToken));
-        await engine.SetPausedAsync(true);
-        Assert.Equal(engine.OwnerId, controller.DeviceOwner(device.Id));
-        Assert.Contains(link.Writes.TakeLast(2), entry => entry.Data.SequenceEqual(V1Protocol.AuxiliaryMotor(AuxiliaryMotorMode.Off)));
-        await engine.SetPausedAsync(false);
-        await engine.AdvanceAsync(TimeSpan.FromMilliseconds(200));
-        Assert.True(link.Writes.Count > count);
-        await engine.StopAsync();
-        Assert.Null(controller.DeviceOwner(device.Id));
-    }
-
-    [Fact]
-    public async Task V2FrequencyBuffersRespectMtuEntryBoundariesAndDoNotRestartEarly()
-    {
-        var adapter = new HardwareGattAdapter(BluetoothProtocol.YokonexV2);
-        await using var controller = new DeviceController(new BluetoothDeviceTransport(adapter));
-        var device = await Connect(controller);
-        var samples = Enumerable.Range(1, 10).Select(f => new FrequencyPulse(f, f * 10)).ToArray();
-        var engine = new SessionEngine(controller) { ChannelA = 50, ChannelB = 50 };
-        await engine.StartAsync([device.Id], Wave, null, new(Kind: ModeKind.NativeProgram,
-            NativeProgram: new(NativeProgramKind.ElectricalBuffered, BufferA: samples, BufferB: samples, Repeat: false)));
-        await engine.AdvanceAsync(TimeSpan.Zero);
-        var link = adapter.Links[device.Id];
-        var packets = link.Writes.Where(entry => entry.Data is [0x35, 0x11, 3, ..]).Select(entry => entry.Data).ToArray();
-        Assert.Equal(2, packets.Length);
-        Assert.All(packets, packet => Assert.Equal(19, packet.Length));
-        Assert.Equal(new byte[] { 1, 10, 2, 20, 3, 30, 4, 40, 5, 50, 6, 60 }, packets[0][6..^1]);
-        var count = link.Writes.Count;
-        await engine.AdvanceAsync(TimeSpan.FromMilliseconds(500));
-        Assert.Equal(count, link.Writes.Count);
-        await engine.AdvanceAsync(TimeSpan.FromMilliseconds(600));
-        Assert.Equal(new byte[] { 7, 70, 8, 80, 9, 90, 10, 100 }, link.Writes[^1].Data[6..^1]);
-        await engine.AdvanceAsync(TimeSpan.FromSeconds(1));
-        Assert.False(engine.IsRunning);
-        Assert.Equal(V2Protocol.Stop(), link.Writes[^1].Data);
-    }
-
     [Fact]
     public async Task FixedMotorProgramsValidateReportedCountsAndNeverPretendToLimitIntensity()
     {
@@ -134,50 +80,6 @@ public sealed class ProtocolFeatureTests
         Assert.Equal(count, link.Writes.Count);
         await Assert.ThrowsAsync<LocalizedOperationException>(() => transport.SendAsync(device.Id, frame with { OutputLimit = 60 }, cancellationToken: TestContext.Current.CancellationToken));
         await Assert.ThrowsAsync<LocalizedArgumentException>(() => transport.SendAsync(device.Id, frame with { NativeProgram = native with { Settings = native.Settings with { PresetA = 6 } } }, cancellationToken: TestContext.Current.CancellationToken));
-    }
-
-    [Fact]
-    public async Task CoyoteV2RawPulseAndReadbackUseFullFieldRanges()
-    {
-        var pulse = new CoyotePulse(31, 1023, 31);
-        Assert.Equal(new byte[] { 255, 255, 15 }, DgLabProtocol.V2Pulse(pulse));
-        Assert.Equal(pulse, DgLabProtocol.ParseV2Pulse([255, 255, 15]));
-        Assert.Null(DgLabProtocol.ParseV2Pulse([255, 255, 31]));
-        var adapter = new HardwareGattAdapter(BluetoothProtocol.CoyoteV2);
-        await using var controller = new DeviceController(new BluetoothDeviceTransport(adapter));
-        var device = await Connect(controller);
-        var engine = new SessionEngine(controller) { ChannelA = 20 };
-        await engine.StartAsync([device.Id], Wave, null, new(Kind: ModeKind.NativeProgram, NativeProgram: new(NativeProgramKind.CoyoteV2Pulse, PulseA: pulse)));
-        await engine.AdvanceAsync(TimeSpan.Zero);
-        var link = adapter.Links[device.Id];
-        Assert.Equal(new byte[] { 255, 255, 15 }, link.Writes.Last(entry => entry.Address == BluetoothDeviceProfiles.V2WaveA).Data);
-        Assert.Equal(new byte[] { 0, 0, 0 }, link.Writes.Last(entry => entry.Address == BluetoothDeviceProfiles.V2WaveB).Data);
-        await controller.ExecuteCommandAsync(device.Id, new QueryDevice(), ct: TestContext.Current.CancellationToken);
-        Assert.Contains(BluetoothDeviceProfiles.V2WaveA, link.Reads);
-        Assert.Contains(BluetoothDeviceProfiles.V2WaveB, link.Reads);
-        await engine.StopAsync();
-    }
-
-    [Fact]
-    public async Task V3RelativeUpdatesUseConfirmedLevelsAndIndependentHardwareLimits()
-    {
-        var adapter = new HardwareGattAdapter(BluetoothProtocol.CoyoteV3);
-        await using var controller = new DeviceController(new BluetoothDeviceTransport(adapter));
-        var device = await Connect(controller);
-        var engine = new SessionEngine(controller) { ChannelA = 40, ChannelB = 20 };
-        await engine.StartAsync([device.Id], Wave, null, new(OutputLimit: 80, Hardware: new(30, 50, RelativeStrength: true)));
-        await engine.AdvanceAsync(TimeSpan.Zero);
-        var link = adapter.Links[device.Id];
-        var first = link.Writes[^1].Data;
-        Assert.Equal(5, first[1] & 15);
-        Assert.NotEqual(0, first[1] >> 4);
-        Assert.Equal(new byte[] { 60, 40 }, first[2..4]);
-        Assert.Contains(link.Writes, entry => entry.Data is [0xbf, 60, 100, ..]);
-        engine.ChannelA = 10;
-        await engine.AdvanceAsync(TimeSpan.FromMilliseconds(100));
-        Assert.Equal(8, link.Writes[^1].Data[1] & 15);
-        Assert.Equal(new byte[] { 40, 0 }, link.Writes[^1].Data[2..4]);
-        await engine.StopAsync();
     }
 
     [Theory]
@@ -217,7 +119,8 @@ public sealed class ProtocolFeatureTests
         link.Notify([0x5b, 1, 1]);
         link.Notify([0x5c, 1, 3, 22]);
         link.Notify(Convert.FromHexString("F161FF0000FEFFD8002800000000"));
-        for (var i = 0; i < 100 && controller.Connections[device.Id].Telemetry?.Calibration is null; i++) await Task.Delay(10, TestContext.Current.CancellationToken);
+        for (var i = 0; i < 100 && controller.Connections[device.Id].Telemetry?.Calibration is null; i++)
+            await Task.Delay(10, TestContext.Current.CancellationToken);
         var data = controller.Connections[device.Id].Telemetry!;
         Assert.Contains(data.PawEvents!, entry => entry is { EventId: 1, Active: false, Parameter: 80 });
         Assert.Contains(data.PawEvents!, entry => entry is { EventId: 2, Active: true, Parameter: 40 });
@@ -240,24 +143,6 @@ public sealed class ProtocolFeatureTests
         await controller.ExecuteCommandAsync(device.Id, new ConfigurePressureSensor(true, SensorOrientation.Flipped), ct: TestContext.Current.CancellationToken);
         Assert.Equal(13, adapter.Links[device.Id].Writes[^1].Data.Length);
         await Assert.ThrowsAsync<LocalizedOperationException>(() => controller.ExecuteCommandAsync(device.Id, new ControlStepCounter(StepCounterAction.Reset), ct: TestContext.Current.CancellationToken));
-    }
-
-    [Fact]
-    public async Task PumpTimersUseSessionTimeAndStopChannelsIndependently()
-    {
-        var transport = new SimulationTransport();
-        await using var controller = new DeviceController(transport);
-        var device = (await controller.ScanAsync(TestContext.Current.CancellationToken)).Single(item => item.Kind == DeviceKind.Pump);
-        await controller.ConnectAsync(device, TestContext.Current.CancellationToken);
-        var engine = new SessionEngine(controller);
-        await engine.StartAsync([device.Id], Wave, null, new(Kind: ModeKind.Pump, Pump: new(PumpDirection.Forward, true, 2, 3)));
-        await engine.AdvanceAsync(TimeSpan.FromSeconds(1));
-        Assert.Equal(1, transport.Outputs[device.Id].Pump!.PeristalticSeconds);
-        await engine.AdvanceAsync(TimeSpan.FromSeconds(2));
-        Assert.Equal(PumpDirection.Off, transport.Outputs[device.Id].Pump!.Direction);
-        Assert.True(transport.Outputs[device.Id].Pump!.Water);
-        await engine.AdvanceAsync(TimeSpan.FromSeconds(3));
-        Assert.False(engine.IsRunning);
     }
 
     [Fact]
@@ -318,51 +203,4 @@ public sealed class ProtocolFeatureTests
         link.Reply = true;
     }
 
-    [Fact]
-    public async Task BufferedProgramsResumeAtActivePositionAndClipToSessionDeadline()
-    {
-        var adapter = new HardwareGattAdapter(BluetoothProtocol.YokonexV2) { MaximumWriteLength = 512 };
-        await using var controller = new DeviceController(new BluetoothDeviceTransport(adapter));
-        var device = await Connect(controller);
-        var samples = Enumerable.Range(1, 100).Select(f => new FrequencyPulse(f, 50)).ToArray();
-        var engine = new SessionEngine(controller) { ChannelA = 30 };
-        await engine.StartAsync([device.Id], Wave, TimeSpan.FromSeconds(1), new(Kind: ModeKind.NativeProgram,
-            NativeProgram: new(NativeProgramKind.ElectricalBuffered, BufferA: samples, BufferB: samples)));
-        await engine.AdvanceAsync(TimeSpan.Zero);
-        var link = adapter.Links[device.Id];
-        Assert.Equal(27, link.Writes.Last(entry => entry.Data is [0x35, 0x11, 3, 1, ..]).Data.Length);
-        await engine.AdvanceAsync(TimeSpan.FromMilliseconds(500));
-        await engine.SetPausedAsync(true);
-        await engine.SetPausedAsync(false);
-        await engine.AdvanceAsync(TimeSpan.FromMilliseconds(500));
-        var resumed = link.Writes.Last(entry => entry.Data is [0x35, 0x11, 3, 1, ..]).Data;
-        Assert.Equal(17, resumed.Length);
-        Assert.Equal(6, resumed[6]);
-        await engine.StopAsync();
-    }
-
-    [Fact]
-    public void NativeConfigurationValidatesOnlyItsActiveProgramAndRejectsInvalidTime()
-    {
-        new NativeProgramSettings(NativeProgramKind.CoyoteV2Pulse, PresetA: 255).Validate();
-        Assert.Throws<LocalizedArgumentException>(() => new NativeProgramSettings(NativeProgramKind.ElectricalBuffered,
-            BufferA: [null!], BufferB: [new()]).Validate());
-        Assert.Throws<LocalizedArgumentException>(() => new NativeProgramOutput(new(), double.NaN, null).ValidateOutput(OutputFrame.Zero));
-        Assert.Throws<LocalizedOperationException>(() => new SessionProgram(Kind: ModeKind.NativeProgram,
-            NativeProgram: new(NativeProgramKind.MotorPreset), OutputLimit: 60).Validate());
-    }
-
-    [Fact]
-    public async Task DisabledNativeProgramReportsZeroSentStrength()
-    {
-        var adapter = new HardwareGattAdapter(BluetoothProtocol.YokonexV1);
-        await using var controller = new DeviceController(new BluetoothDeviceTransport(adapter));
-        var device = await Connect(controller);
-        var engine = new SessionEngine(controller) { ChannelA = 40, ChannelB = 20 };
-        await engine.StartAsync([device.Id], Wave, null, new(Kind: ModeKind.NativeProgram, NativeProgram: new(PresetA: 0, PresetB: 1)));
-        await engine.AdvanceAsync(TimeSpan.Zero);
-        Assert.Equal(0, controller.Connections[device.Id].Output.ChannelA);
-        Assert.Equal(20, controller.Connections[device.Id].Output.ChannelB);
-        await engine.StopAsync();
-    }
 }

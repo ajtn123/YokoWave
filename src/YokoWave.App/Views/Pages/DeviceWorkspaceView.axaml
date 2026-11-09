@@ -1,140 +1,26 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:YokoWave.App.ViewModels"
-             xmlns:l="using:YokoWave.App.Localization"
-             xmlns:controls="using:YokoWave.App.Controls"
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:YokoWave.App.ViewModels" xmlns:l="using:YokoWave.App.Localization"
              xmlns:components="using:YokoWave.App.Views.Components"
-             x:Class="YokoWave.App.Views.Pages.DeviceWorkspaceView"
-             x:DataType="vm:MainViewModel">
-  <StackPanel Classes="section">
-    <Grid Classes="summary" ColumnDefinitions="*,*,*">
-      <Border Classes="card summary">
-        <Grid ColumnDefinitions="*,Auto">
-          <StackPanel Classes="field">
-            <TextBlock Text="{l:Loc Device.Count}" Classes="muted label" />
-            <TextBlock Text="{Binding ConnectedSummary}" Classes="metric" />
-          </StackPanel>
-          <TextBlock Grid.Column="1" Text="⌁" VerticalAlignment="Center" Classes="icon accent" />
-        </Grid>
-      </Border>
-      <Border Grid.Column="1" Classes="card summary">
-        <StackPanel Classes="field">
-          <TextBlock Text="{Binding SelectedMode.SessionTimeLabel}" Classes="muted label" />
-          <StackPanel Classes="actions">
-            <TextBlock x:Name="SessionClockText" Text="{Binding SelectedMode.SessionClock}" Classes="metric" />
-            <TextBlock Text="{Binding SelectedMode.SessionState}" VerticalAlignment="Center" Classes="caption channel-b" />
-          </StackPanel>
+             x:Class="YokoWave.App.Views.Pages.DeviceWorkspaceView" x:DataType="vm:DevicesPaneViewModel">
+  <Grid x:Name="WorkspaceGrid" Classes="workspace" ColumnDefinitions="Auto,*" RowDefinitions="Auto">
+    <StackPanel x:Name="DevicePane" Classes="group">
+      <components:DeviceConnectionListView />
+    </StackPanel>
+    <StackPanel x:Name="ControlPane" Grid.Column="1" Classes="group">
+      <Border Classes="card detail">
+        <StackPanel Classes="items">
+          <TextBlock Text="{Binding SelectedName}" Classes="title" />
+          <TextBlock Text="{Binding SelectedKind}" Classes="muted label" />
+          <SelectableTextBlock Text="{Binding SelectedId}" Classes="caption muted" />
+          <TextBlock Text="{Binding SelectedBatteryLabel}" Classes="label" />
+          <TextBlock Text="{Binding SelectedSignal}" Classes="caption muted" />
+          <TextBlock Text="{Binding SelectedContacts}" IsVisible="{Binding HasElectrodeReadings}" Classes="caption muted" />
+          <TextBlock Text="{Binding DeviceHelp}" Classes="caption muted" TextWrapping="Wrap" />
+          <components:DeviceFeaturesView />
         </StackPanel>
       </Border>
-      <Border Grid.Column="2" Classes="card summary">
-        <StackPanel Classes="field">
-          <TextBlock Text="{Binding SelectedMode.CurrentContentTitle}" Classes="muted label" />
-          <TextBlock x:Name="SelectedWaveNameText" Text="{Binding SelectedMode.SelectedPresetName}" TextTrimming="CharacterEllipsis" Classes="title" />
-        </StackPanel>
-      </Border>
-    </Grid>
-
-    <Grid x:Name="WorkspaceGrid" Classes="workspace" ColumnDefinitions="Auto,*" RowDefinitions="Auto">
-      <StackPanel x:Name="DevicePane" Classes="group">
-        <components:ModeDeviceListView />
-
-        <Border Classes="card detail">
-          <StackPanel Classes="group">
-          <Grid ColumnDefinitions="*,Auto">
-            <StackPanel Classes="field">
-              <TextBlock Text="{Binding SelectedName}" Classes="title" />
-              <TextBlock Text="{Binding SelectedKind}" Classes="muted label" />
-              <TextBlock Text="{Binding SelectedContacts}" IsVisible="{Binding HasElectrodeReadings}" Classes="muted caption" TextWrapping="Wrap" />
-            </StackPanel>
-            <StackPanel Grid.Column="1" VerticalAlignment="Center" Classes="field">
-              <TextBlock Text="{Binding SelectedBatteryLabel}" HorizontalAlignment="Right" Classes="label accent" />
-              <TextBlock Text="{Binding SelectedSignal}" Classes="muted caption" HorizontalAlignment="Right" />
-              <TextBlock Text="{Binding ReadingsLabel}" Classes="muted fine-print" HorizontalAlignment="Right" />
-            </StackPanel>
-          </Grid>
-          <components:DeviceFeaturesView IsVisible="{Binding HasDeviceFeatures}" />
-          <components:DeviceTelemetryView DataContext="{Binding Telemetry}" />
-          <components:ProtocolFeaturesView DataContext="{Binding ProtocolFeatures}" />
-          </StackPanel>
-        </Border>
-      </StackPanel>
-
-      <StackPanel x:Name="ControlPane" Grid.Column="1" Classes="group">
-        <components:ModeWorkspaceView />
-
-        <StackPanel DataContext="{Binding SelectedMode}" x:DataType="vm:PlaybackModeViewModel" Classes="group">
-          <components:RemoteServerModeView />
-          <components:WaveformModeView x:Name="WaveformModePanel" IsVisible="{Binding IsWaveformControl}" />
-          <Border x:Name="TouchModePanel" Classes="card output" IsVisible="{Binding UseTouchControl}">
-            <StackPanel Classes="group">
-              <TextBlock Text="{l:Loc Touch.Title}" Classes="card-title" />
-              <components:TouchControlView />
-            </StackPanel>
-          </Border>
-          <components:AudioModeView />
-          <components:RestraintModeView />
-          <components:ExerciseModeView />
-          <components:SleepModeView />
-          <components:PumpModeView x:Name="PumpModePanel" />
-          <components:NativeProgramView x:Name="NativeProgramPanel" />
-          <components:HardwareOutputView />
-          <components:DgBalanceView />
-          <components:ReactiveInputView />
-          <Grid Classes="columns" ColumnDefinitions="*,*" IsVisible="{Binding HasStrength}">
-            <Border Classes="card channel">
-              <StackPanel Classes="field" IsEnabled="{Binding HasChannelA}">
-                <Grid ColumnDefinitions="*,Auto">
-                  <TextBlock Text="{l:Loc Channel.A}" VerticalAlignment="Center" Classes="emphasis accent" />
-                  <TextBlock Grid.Column="1" Text="{Binding ChannelA, StringFormat='{}{0:0}%'}" Classes="metric" />
-                </Grid>
-                <Slider x:Name="ChannelASlider" Minimum="0" Maximum="100" Value="{Binding ChannelA}" TickFrequency="1" IsSnapToTickEnabled="True" />
-                <TextBlock x:Name="SelectedOutputAText" Text="{Binding SelectedOutputALabel}" Classes="muted caption" />
-              </StackPanel>
-            </Border>
-            <Border Grid.Column="1" Classes="card channel">
-              <StackPanel IsEnabled="{Binding HasChannelB}" Classes="field">
-                <Grid ColumnDefinitions="*,Auto">
-                  <TextBlock Text="{l:Loc Channel.B}" VerticalAlignment="Center" Classes="emphasis channel-b" />
-                  <TextBlock Grid.Column="1" Text="{Binding ChannelB, StringFormat='{}{0:0}%'}" Classes="metric" />
-                </Grid>
-                <Slider x:Name="ChannelBSlider" Minimum="0" Maximum="100" Value="{Binding ChannelB}" TickFrequency="1" IsSnapToTickEnabled="True" />
-                <TextBlock x:Name="SelectedOutputBText" Text="{Binding SelectedOutputBLabel}" Classes="muted caption" />
-              </StackPanel>
-            </Border>
-          </Grid>
-
-          <Border Classes="card channel" IsVisible="{Binding HasAnalogChannelC}">
-            <StackPanel Classes="field">
-              <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Text="{l:Loc Channel.C}" Classes="emphasis accent" VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1" Text="{Binding ChannelC, StringFormat='{}{0:0}%'}" Classes="metric" />
-              </Grid>
-              <Slider x:Name="ChannelCSlider" Minimum="0" Maximum="100" Value="{Binding ChannelC}" TickFrequency="1" IsSnapToTickEnabled="True" />
-              <TextBlock Text="{Binding SelectedOutputCLabel}" Classes="muted caption" />
-            </StackPanel>
-          </Border>
-          <components:EstimAutomationView IsVisible="{Binding HasStrength}" />
-          <Border Classes="card session">
-            <StackPanel Classes="items">
-              <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding HasStrength}">
-                <TextBlock Text="{l:Loc Device.Limit}" Classes="small emphasis" />
-                <TextBlock Grid.Column="1" Text="{Binding OutputLimit, StringFormat='{}{0:0}%'}" Classes="small accent" />
-              </Grid>
-              <Slider x:Name="LimitSlider" Minimum="0" Maximum="100" Value="{Binding OutputLimit}" TickFrequency="5" IsSnapToTickEnabled="True" IsVisible="{Binding HasStrength}" />
-              <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Text="{Binding RoutingSummary}" Classes="muted caption" VerticalAlignment="Center" />
-                <CheckBox Grid.Column="1" IsChecked="{Binding OffsetChannelB}" IsEnabled="{Binding CanOffsetChannelB}" IsVisible="{Binding HasStrength}" Content="{l:Loc Channel.Offset}" Classes="caption compact" />
-              </Grid>
-              <components:SessionTimerView />
-              <Grid ColumnDefinitions="*,Auto" Classes="columns">
-                <Button x:Name="PlaybackButton" Classes="primary" Command="{Binding PlaybackCommand}" Content="{Binding PlaybackLabel}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
-                <Button Grid.Column="1" x:Name="PauseButton" IsVisible="{Binding !IsServerMode}" Command="{Binding PauseCommand}" Content="{Binding PauseLabel}" />
-              </Grid>
-            </StackPanel>
-          </Border>
-        </StackPanel>
-        <TextBlock Text="{Binding DeviceHelp}" Classes="caption muted help" />
-      </StackPanel>
-    </Grid>
-  </StackPanel>
+      <components:DeviceTelemetryView DataContext="{Binding Telemetry}" />
+      <components:ProtocolFeaturesView DataContext="{Binding ProtocolFeatures}" />
+    </StackPanel>
+  </Grid>
 </UserControl>

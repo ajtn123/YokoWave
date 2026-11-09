@@ -28,8 +28,8 @@
           <Button x:Name="HelpNavigationButton" Classes="nav" Classes.active="{Binding IsHelp}" Command="{Binding HelpCommand}" Content="{l:Loc Nav.Help}" />
         </StackPanel>
         <StackPanel Grid.Row="2" Classes="items">
-          <Border Classes="mode-panel">
-            <TextBlock Text="{Binding ModeLabel}" Classes="label emphasis accent" />
+          <Border Classes="mode-panel" DataContext="{Binding Devices}">
+            <TextBlock Text="{Binding TransportName}" Classes="label emphasis accent" />
           </Border>
           <TextBlock Text="YokoWave  /  0.1.0" Margin="{DynamicResource Margin.Horizontal}" Classes="caption muted" />
         </StackPanel>
@@ -58,16 +58,16 @@
       <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding !IsPipelines}">
         <Grid Margin="{DynamicResource Margin.Content}">
           <!-- Workspace -->
-          <pages:DeviceWorkspaceView x:Name="WorkspacePage" IsVisible="{Binding IsWorkspace}" />
+          <Border IsVisible="{Binding IsWorkspace}"><pages:DeviceWorkspaceView x:Name="WorkspacePage" DataContext="{Binding Devices}" /></Border>
 
           <!-- Waveform library -->
-          <pages:WaveformLibraryView x:Name="WavesPage" IsVisible="{Binding IsWaves}" />
+          <Border IsVisible="{Binding IsWaves}"><pages:WaveformLibraryView x:Name="WavesPage" DataContext="{Binding Waveforms}" /></Border>
 
           <!-- History -->
-          <pages:SessionHistoryView x:Name="HistoryPage" IsVisible="{Binding IsHistory}" />
+          <Border IsVisible="{Binding IsHistory}"><pages:SessionHistoryView x:Name="HistoryPage" DataContext="{Binding History}" /></Border>
 
           <!-- Settings -->
-          <pages:SettingsView x:Name="SettingsPage" IsVisible="{Binding IsSettings}" />
+          <Border IsVisible="{Binding IsSettings}"><pages:SettingsView x:Name="SettingsPage" DataContext="{Binding Settings}" /></Border>
 
           <!-- Help -->
           <pages:HelpView x:Name="HelpPage" IsVisible="{Binding IsHelp}" />

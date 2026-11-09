@@ -61,20 +61,17 @@ internal static class DiagnosticProbes
                 {
                     for (var cycle = 0; cycle < 5; cycle++)
                     {
-                        await using var input = await new Audio.MiniAudioInputFactory().StartAsync(
-                            new(Core.AudioSourceKind.MediaFile, audioPath, PlaybackVolume: 0), timeout.Token);
-                        var engine = new Core.SessionEngine(controller) { ChannelA = 0, ChannelB = 0 };
-                        try
+                        var graph = Pipelines.PipelineTemplates.Create("audio", new("Audio probe", devices[0].Id, Limit: 0));
+                        graph = graph with
                         {
-                            await engine.StartAsync([devices[0].Id], Core.DefaultWaveformCatalog.Presets[0], TimeSpan.FromSeconds(2), new(Kind: Core.ModeKind.Audio));
-                            for (var tick = 1; tick <= 5; tick++)
-                            {
-                                await Task.Delay(100, timeout.Token);
-                                await engine.SetAudioFrameAsync(input.Latest);
-                                await engine.AdvanceAsync(TimeSpan.FromMilliseconds(tick * 100));
-                            }
-                        }
-                        finally { await engine.StopAsync(); }
+                            Nodes = graph.Nodes.Select(node => node.Type == Pipelines.BuiltInNodes.Audio
+                            ? Pipelines.NodeDefinition.Create(node.Type, new Pipelines.AudioNode(new(Core.AudioSourceKind.MediaFile, audioPath, PlaybackVolume: 0)), node.Id) : node).ToArray()
+                        };
+                        var plan = new Pipelines.PipelineCompiler(Pipelines.BuiltInNodes.CreateRegistry()).Compile(graph, []);
+                        await using var session = new Pipelines.PipelineSession(controller, new(new Audio.MiniAudioInputFactory()));
+                        await session.StartAsync(plan);
+                        await Task.Delay(500, timeout.Token);
+                        await session.StopAsync();
                         Console.WriteLine($"Zero-strength audio session {cycle + 1}: started and stopped; no nonzero output sent.");
                     }
                 }

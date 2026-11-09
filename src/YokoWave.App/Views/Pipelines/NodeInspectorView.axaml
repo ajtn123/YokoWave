@@ -1,0 +1,196 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:YokoWave.App.ViewModels.Pipelines" xmlns:items="using:YokoWave.App.ViewModels"
+             xmlns:components="using:YokoWave.App.Views.Components" xmlns:controls="using:YokoWave.App.Controls" xmlns:l="using:YokoWave.App.Localization"
+             x:Class="YokoWave.App.Views.Pipelines.NodeInspectorView" x:DataType="vm:NodeEditorViewModel">
+  <UserControl.DataTemplates>
+    <DataTemplate DataType="vm:ConstantEditorViewModel">
+      <StackPanel Classes="field">
+        <TextBlock Text="{l:Loc Pipeline.Port.Value}" Classes="muted" />
+        <NumericUpDown x:Name="ConstantValueInput" Value="{Binding Value}" Increment="0.01" />
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate DataType="vm:WaveformEditorNodeViewModel">
+      <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
+        <TextBlock Text="{l:Loc Pipeline.Node.Waveform}" Classes="muted" />
+        <ComboBox ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="items:PresetItem">
+              <TextBlock Text="{Binding Name}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+        <TextBlock Text="{l:Loc Pipeline.SourceChannel}" Classes="muted" />
+        <NumericUpDown Value="{Binding Channel}" Minimum="0" Maximum="2" Increment="1" />
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate DataType="vm:GainEditorViewModel">
+      <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
+        <TextBlock Text="{l:Loc Pipeline.Port.Gain}" Classes="muted" />
+        <NumericUpDown Value="{Binding Gain}" Minimum="-1000" Maximum="1000" Increment="0.01" />
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate DataType="vm:LimitEditorViewModel">
+      <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
+        <TextBlock Text="{l:Loc Pipeline.Port.Limit}" Classes="muted" />
+        <NumericUpDown Value="{Binding Limit}" Minimum="0" Maximum="1" Increment="0.01" />
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate DataType="vm:ChannelOutputEditorViewModel">
+      <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
+        <TextBlock Text="{l:Loc Pipeline.Device}" Classes="muted" />
+        <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}">
+          <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PipelineDeviceOption"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
+        </ComboBox>
+        <TextBlock Text="{l:Loc Pipeline.OutputChannel}" Classes="muted" />
+        <NumericUpDown Value="{Binding Channel}" Minimum="0" Maximum="2" Increment="1" />
+        <components:OutputOptionsView DataContext="{Binding Options}" />
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate DataType="vm:PumpOutputEditorViewModel">
+      <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
+        <TextBlock Text="{l:Loc Pipeline.Device}" Classes="muted" />
+        <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}">
+          <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PipelineDeviceOption"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
+        </ComboBox>
+        <TextBlock Text="{l:Loc Pipeline.PumpHelp}" Classes="caption muted" TextWrapping="Wrap" />
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate DataType="vm:NativeOutputEditorViewModel">
+      <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
+        <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}"><ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PipelineDeviceOption"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+        <components:NativeProgramView DataContext="{Binding NativeEditor}" />
+        <TextBlock Text="{Binding ValidationError}" Classes="muted caption" />
+        <components:OutputOptionsView DataContext="{Binding Options}" />
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate DataType="vm:SimulatedInputEditorViewModel"><StackPanel Classes="field"><TextBlock Text="{l:Loc Pipeline.SimulatedHelp}" Classes="caption muted" TextWrapping="Wrap" /><NumericUpDown Value="{Binding Value}" /></StackPanel></DataTemplate>
+    <DataTemplate DataType="vm:PumpTimerEditorViewModel"><StackPanel Classes="field">
+      <ComboBox ItemsSource="{Binding Directions}" SelectedItem="{Binding Direction}"><ComboBox.ItemTemplate><DataTemplate x:DataType="items:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+      <CheckBox Content="{l:Loc Pump.Water}" IsChecked="{Binding Water}" />
+      <TextBlock Text="{l:Loc Pump.PeristalticSeconds}" Classes="field-label" /><NumericUpDown Value="{Binding PeristalticSeconds}" Minimum="0" Maximum="65535" />
+      <TextBlock Text="{l:Loc Pump.WaterSeconds}" Classes="field-label" /><NumericUpDown Value="{Binding WaterSeconds}" Minimum="0" Maximum="65535" />
+    </StackPanel></DataTemplate>
+    <DataTemplate DataType="vm:ConfigurationNodeViewModel"><Panel /></DataTemplate>
+    <DataTemplate DataType="vm:CommandNodeEditorViewModel">
+      <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
+        <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}"><ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PipelineDeviceOption"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+        <ComboBox ItemsSource="{Binding Commands}" SelectedItem="{Binding SelectedCommand}"><ComboBox.ItemTemplate><DataTemplate x:DataType="items:ProtocolCommandOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+        <ItemsControl ItemsSource="{Binding CommandParameters}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="items:ParameterFieldViewModel"><components:ParameterFieldView /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+        <CheckBox Content="{l:Loc Pipeline.OnStart}" IsChecked="{Binding OnStart}" />
+        <Button Content="{l:Loc Pipeline.Apply}" Command="{Binding ApplyCommandDraft}" />
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate DataType="vm:ResourceNodeViewModel">
+      <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}" IsEnabled="{Binding CanEdit}">
+        <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PipelineDeviceOption"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
+    </DataTemplate>
+    <DataTemplate DataType="vm:PlaylistEditorViewModel">
+      <StackPanel Classes="field">
+        <ComboBox ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}">
+          <ComboBox.ItemTemplate><DataTemplate x:DataType="items:PresetItem"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
+        </ComboBox>
+        <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
+          <ComboBox ItemsSource="{Binding Orders}" SelectedItem="{Binding SelectedOrder}">
+            <ComboBox.ItemTemplate><DataTemplate x:DataType="items:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+          </ComboBox>
+          <ListBox ItemsSource="{Binding Playlist}" SelectedItem="{Binding SelectedEntry}">
+            <ListBox.ItemTemplate><DataTemplate x:DataType="items:PresetItem"><TextBlock Text="{Binding Name}" /></DataTemplate></ListBox.ItemTemplate>
+          </ListBox>
+          <Button Content="{l:Loc Pipeline.AddWave}" Command="{Binding AddWaveCommand}" Classes="small" />
+          <Button Content="{l:Loc Pipeline.RemoveWave}" Command="{Binding RemoveWaveCommand}" Classes="small" />
+          <StackPanel Classes="actions">
+            <Button Content="{l:Loc Pipeline.MoveUp}" Command="{Binding MoveUpCommand}" Classes="small" />
+            <Button Content="{l:Loc Pipeline.MoveDown}" Command="{Binding MoveDownCommand}" Classes="small" />
+          </StackPanel>
+        </StackPanel>
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate DataType="vm:TouchNodeEditorViewModel">
+      <StackPanel Classes="field">
+        <controls:ElectricalPad Frequency="{Binding Frequency}" PulseWidth="{Binding PulseWidth}" IsHeld="{Binding IsHeld}" />
+        <TextBox Text="{Binding RecordingName}" PlaceholderText="{l:Loc Wave.Name}" MaxLength="60" />
+        <Button Content="{l:Loc Touch.SaveRecording}" Command="{Binding SaveRecordingCommand}" />
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate DataType="vm:AudioNodeEditorViewModel">
+      <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
+        <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding Source}">
+          <ComboBox.ItemTemplate><DataTemplate x:DataType="items:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+        </ComboBox>
+        <ComboBox ItemsSource="{Binding FollowModes}" SelectedItem="{Binding Follow}">
+          <ComboBox.ItemTemplate><DataTemplate x:DataType="items:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+        </ComboBox>
+        <StackPanel Classes="field" IsVisible="{Binding IsMedia}">
+          <TextBox Text="{Binding MediaPath}" PlaceholderText="{l:Loc Audio.File}" />
+          <Button Content="{l:Loc Pipeline.Browse}" Click="BrowseMedia" />
+          <TextBlock Text="{l:Loc Pipeline.PlaybackVolume}" Classes="muted" />
+          <Slider Minimum="0" Maximum="100" Value="{Binding PlaybackVolume}" />
+          <CheckBox Content="{l:Loc Pipeline.LoopMedia}" IsChecked="{Binding LoopMedia}" />
+        </StackPanel>
+        <TextBlock Text="{l:Loc Pipeline.Sensitivity}" Classes="muted" />
+        <Slider Minimum="0" Maximum="100" Value="{Binding Sensitivity}" />
+        <TextBlock Text="{Binding NoiseFloor}" Classes="caption muted" />
+        <Button Content="{l:Loc Pipeline.Calibrate}" Command="{Binding CalibrateAudioCommand}" />
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate DataType="vm:ServerNodeEditorViewModel">
+      <StackPanel Classes="field">
+        <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
+          <TextBlock Text="{l:Loc Remote.Address}" Classes="field-label" />
+          <TextBox Text="{Binding Address}" />
+          <TextBlock Text="{l:Loc Remote.Port}" Classes="field-label" />
+          <NumericUpDown Value="{Binding Port}" Minimum="0" Maximum="65535" />
+          <TextBlock Text="{l:Loc Pipeline.LeaseMilliseconds}" Classes="field-label" />
+          <NumericUpDown Value="{Binding LeaseMilliseconds}" Minimum="1000" Maximum="10000" />
+          <TextBlock Text="{l:Loc Remote.ControlLimit}" Classes="field-label" />
+          <Slider Value="{Binding ControlLimit}" Minimum="0" Maximum="100" />
+          <TextBlock Text="{l:Loc Remote.Certificate}" Classes="field-label" />
+          <TextBox Text="{Binding CertificatePath}" />
+          <TextBox Text="{Binding CertificatePassword}" PasswordChar="●" PlaceholderText="{l:Loc Pipeline.CertificatePassword}" />
+        </StackPanel>
+        <TextBlock Text="{l:Loc Remote.Token}" Classes="field-label" />
+        <SelectableTextBlock Text="{Binding Token}" TextWrapping="Wrap" />
+      </StackPanel>
+    </DataTemplate>
+  </UserControl.DataTemplates>
+  <StackPanel Classes="items">
+    <TextBlock Text="{Binding Title}" Classes="section-title" />
+    <StackPanel Classes="field" IsVisible="{Binding HasParameters}" IsEnabled="{Binding CanEdit}">
+      <ItemsControl ItemsSource="{Binding Parameters}">
+        <ItemsControl.ItemTemplate><DataTemplate x:DataType="items:ParameterFieldViewModel"><components:ParameterFieldView /></DataTemplate></ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <Button Content="{l:Loc Pipeline.Apply}" Command="{Binding ApplyConfigurationCommand}" />
+    </StackPanel>
+    <ContentControl Content="{Binding}" />
+    <ContentControl Content="{Binding Preview}">
+      <ContentControl.ContentTemplate><DataTemplate x:DataType="items:PresetItem">
+        <StackPanel Classes="field"><TextBlock Text="{Binding Name}" Classes="caption muted" /><controls:WaveformPlot Preset="{Binding Preset}" Classes="thumbnail" /></StackPanel>
+      </DataTemplate></ContentControl.ContentTemplate>
+    </ContentControl>
+    <TextBlock Text="{Binding StatusText}" Classes="caption muted" TextWrapping="Wrap" />
+    <Button Content="{l:Loc Pipeline.Calibrate}" Command="{Binding CalibrateCommand}" IsVisible="{Binding HasCalibration}" />
+    <Button Content="{l:Loc Pipeline.Trigger}" Command="{Binding TriggerCommand}" IsVisible="{Binding HasTrigger}" />
+    <Button Content="{l:Loc Pipeline.Boost}" IsVisible="{Binding HasAutomation}" PointerPressed="BoostPressed" PointerReleased="BoostReleased" PointerCaptureLost="BoostLost" KeyDown="BoostKeyDown" KeyUp="BoostKeyUp" LostFocus="BoostFocusLost" />
+    <Button Content="{l:Loc Pipeline.ResetAutomation}" Command="{Binding ResetAutomationCommand}" IsVisible="{Binding HasAutomation}" />
+    <Button Content="{l:Loc Pipeline.Expand}" Command="{Binding ExpandCommand}" IsVisible="{Binding IsSubgraph}" IsEnabled="{Binding CanEdit}" />
+    <Expander Header="{l:Loc Pipeline.Configuration}">
+      <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
+        <TextBox Text="{Binding ConfigurationJson}" AcceptsReturn="True" TextWrapping="Wrap" Height="{DynamicResource Size.JsonEditorHeight}" />
+        <Button Content="{l:Loc Pipeline.Apply}" Command="{Binding ApplyConfigurationCommand}" />
+      </StackPanel>
+    </Expander>
+    <Expander Header="{l:Loc Pipeline.ExposedPorts}">
+      <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
+        <TextBlock Text="{l:Loc Pipeline.Inputs}" Classes="muted" />
+        <ItemsControl ItemsSource="{Binding Inputs}">
+          <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:NodePortViewModel"><CheckBox Content="{Binding Title}" IsChecked="{Binding IsExposed}" /></DataTemplate></ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock Text="{l:Loc Pipeline.Outputs}" Classes="muted" />
+        <ItemsControl ItemsSource="{Binding Outputs}">
+          <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:NodePortViewModel"><CheckBox Content="{Binding Title}" IsChecked="{Binding IsExposed}" /></DataTemplate></ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </Expander>
+  </StackPanel>
+</UserControl>

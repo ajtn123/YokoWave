@@ -42,54 +42,18 @@ public sealed class WaveformPlot : Control
     static WaveformPlot() => AffectsRender<WaveformPlot>(PresetProperty, PresetBProperty, AmplitudeAProperty, AmplitudeBProperty,
         OffsetProperty, PlayheadProperty, ShowGridProperty, GridBrushProperty, ChannelABrushProperty,
         ChannelBBrushProperty, AreaBrushProperty, PlayheadBrushProperty);
-    public WaveformPreset? Preset
-    {
-        get => GetValue(PresetProperty); set => SetValue(PresetProperty, value);
-    }
-    public WaveformPreset? PresetB
-    {
-        get => GetValue(PresetBProperty); set => SetValue(PresetBProperty, value);
-    }
-    public double AmplitudeA
-    {
-        get => GetValue(AmplitudeAProperty); set => SetValue(AmplitudeAProperty, value);
-    }
-    public double AmplitudeB
-    {
-        get => GetValue(AmplitudeBProperty); set => SetValue(AmplitudeBProperty, value);
-    }
-    public bool Offset
-    {
-        get => GetValue(OffsetProperty); set => SetValue(OffsetProperty, value);
-    }
-    public double Playhead
-    {
-        get => GetValue(PlayheadProperty); set => SetValue(PlayheadProperty, value);
-    }
-    public bool ShowGrid
-    {
-        get => GetValue(ShowGridProperty); set => SetValue(ShowGridProperty, value);
-    }
-    public IBrush? GridBrush
-    {
-        get => GetValue(GridBrushProperty); set => SetValue(GridBrushProperty, value);
-    }
-    public IBrush? ChannelABrush
-    {
-        get => GetValue(ChannelABrushProperty); set => SetValue(ChannelABrushProperty, value);
-    }
-    public IBrush? ChannelBBrush
-    {
-        get => GetValue(ChannelBBrushProperty); set => SetValue(ChannelBBrushProperty, value);
-    }
-    public IBrush? AreaBrush
-    {
-        get => GetValue(AreaBrushProperty); set => SetValue(AreaBrushProperty, value);
-    }
-    public IBrush? PlayheadBrush
-    {
-        get => GetValue(PlayheadBrushProperty); set => SetValue(PlayheadBrushProperty, value);
-    }
+    public WaveformPreset? Preset { get => GetValue(PresetProperty); set => SetValue(PresetProperty, value); }
+    public WaveformPreset? PresetB { get => GetValue(PresetBProperty); set => SetValue(PresetBProperty, value); }
+    public double AmplitudeA { get => GetValue(AmplitudeAProperty); set => SetValue(AmplitudeAProperty, value); }
+    public double AmplitudeB { get => GetValue(AmplitudeBProperty); set => SetValue(AmplitudeBProperty, value); }
+    public bool Offset { get => GetValue(OffsetProperty); set => SetValue(OffsetProperty, value); }
+    public double Playhead { get => GetValue(PlayheadProperty); set => SetValue(PlayheadProperty, value); }
+    public bool ShowGrid { get => GetValue(ShowGridProperty); set => SetValue(ShowGridProperty, value); }
+    public IBrush? GridBrush { get => GetValue(GridBrushProperty); set => SetValue(GridBrushProperty, value); }
+    public IBrush? ChannelABrush { get => GetValue(ChannelABrushProperty); set => SetValue(ChannelABrushProperty, value); }
+    public IBrush? ChannelBBrush { get => GetValue(ChannelBBrushProperty); set => SetValue(ChannelBBrushProperty, value); }
+    public IBrush? AreaBrush { get => GetValue(AreaBrushProperty); set => SetValue(AreaBrushProperty, value); }
+    public IBrush? PlayheadBrush { get => GetValue(PlayheadBrushProperty); set => SetValue(PlayheadBrushProperty, value); }
 
     public override void Render(DrawingContext context)
     {

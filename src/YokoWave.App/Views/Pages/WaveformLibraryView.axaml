@@ -5,7 +5,7 @@
              xmlns:controls="using:YokoWave.App.Controls"
              xmlns:components="using:YokoWave.App.Views.Components"
              x:Class="YokoWave.App.Views.Pages.WaveformLibraryView"
-             x:DataType="vm:MainViewModel">
+             x:DataType="vm:WaveformLibraryViewModel">
   <StackPanel Classes="section">
     <Grid ColumnDefinitions="*,Auto">
       <StackPanel Classes="field">

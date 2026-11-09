@@ -12,8 +12,7 @@ public sealed class ProtocolFeaturesViewModel : ObservableObject
     private BluetoothDeviceProfile? _profile;
     private ProtocolCommandOption? _selected;
     private string _json = "{}";
-    public IReadOnlyList<ProtocolCommandOption> Commands
-    { get; private set; } = [];
+    public IReadOnlyList<ProtocolCommandOption> Commands { get; private set; } = [];
     public bool IsVisible => Commands.Count > 0;
     public bool CanConfigure => _deviceId is { } id && _controller.Connections.ContainsKey(id) && !_controller.IsDeviceBusy(id);
     public ProtocolCommandOption? SelectedCommand
@@ -21,13 +20,13 @@ public sealed class ProtocolFeaturesViewModel : ObservableObject
         get => _selected;
         set
         {
-            if (!Set(ref _selected, value)) return;
+            if (!Set(ref _selected, value))
+                return;
             Json = value?.Template ?? "{}";
             Raise(nameof(Help));
         }
     }
-    public IReadOnlyList<ProtocolParameter> Parameters
-    { get; private set; } = [];
+    public IReadOnlyList<ParameterFieldViewModel> Parameters { get; private set; } = [];
     public string Json
     {
         get => _json;
@@ -51,15 +50,16 @@ public sealed class ProtocolFeaturesViewModel : ObservableObject
         }
     }
     public string Help => _selected is { } selected ? L10n.Get($"ProtocolHelp.{selected.Key}") : "";
-    public AsyncCommand ApplyCommand
-    { get; }
-    public ActionCommand ResetDraftCommand
-    { get; }
-    public ActionCommand UseCalibrationCommand
-    { get; }
+    public AsyncCommand ApplyCommand { get; }
+    public ActionCommand ResetDraftCommand { get; }
+    public ActionCommand UseCalibrationCommand { get; }
     public bool HasCalibration => _deviceId is { } id && _controller.Connections.TryGetValue(id, out var connection) && connection.Telemetry?.Calibration is not null;
     public string Readings => _deviceId is { } id && _controller.Connections.TryGetValue(id, out var connection)
-        ? SettingsJson.Write(new { connection.Steps, connection.Telemetry }) : "";
+        ? SettingsJson.Write(new
+        {
+            connection.Steps,
+            connection.Telemetry
+        }) : "";
     public ProtocolFeaturesViewModel(DeviceController controller, Action<Exception> report)
     {
         _controller = controller;
@@ -69,7 +69,8 @@ public sealed class ProtocolFeaturesViewModel : ObservableObject
     }
     public async Task ExecuteAsync()
     {
-        if (!CanConfigure || _deviceId is not { } id || _selected is not { } selected) return;
+        if (!CanConfigure || _deviceId is not { } id || _selected is not { } selected)
+            return;
         var command = selected.Parse(Json);
         command.Validate();
         await _controller.ExecuteCommandAsync(id, command);
@@ -77,9 +78,11 @@ public sealed class ProtocolFeaturesViewModel : ObservableObject
     }
     private void UseCalibration()
     {
-        if (_deviceId is not { } id || !_controller.Connections.TryGetValue(id, out var connection) || connection.Telemetry?.Calibration is not { } calibration) return;
+        if (_deviceId is not { } id || !_controller.Connections.TryGetValue(id, out var connection) || connection.Telemetry?.Calibration is not { } calibration)
+            return;
         SelectedCommand = Commands.FirstOrDefault(command => command.Key == "PawButtonMotion");
-        if (_selected is null) return;
+        if (_selected is null)
+            return;
         Json = SettingsJson.Write(new PawTriggerDraft<PawButtonMotion>(new(Dynamics: new(), Motion: new(EventId: 2, UseAngles: true, X: calibration.X, Y: calibration.Y, Z: calibration.Z))));
     }
     public void SelectDevice(DeviceDescriptor? device)
@@ -97,22 +100,26 @@ public sealed class ProtocolFeaturesViewModel : ObservableObject
                 Raise(nameof(SelectedCommand));
                 Raise(nameof(Help));
             }
-            else SelectedCommand = command;
+            else
+                SelectedCommand = command;
         }
         Refresh();
     }
     public void RefreshLocalization()
     {
-        foreach (var command in Commands) command.Refresh();
-        foreach (var field in Parameters) field.Refresh();
+        foreach (var command in Commands)
+            command.Refresh();
+        foreach (var field in Parameters)
+            field.Refresh();
         Raise(nameof(Help));
     }
     public void Refresh()
     {
-        foreach (var name in new[] { nameof(IsVisible), nameof(CanConfigure), nameof(Help), nameof(HasCalibration), nameof(Readings) }) Raise(name);
+        foreach (var name in new[] { nameof(IsVisible), nameof(CanConfigure), nameof(Help), nameof(HasCalibration), nameof(Readings) })
+            Raise(name);
         ApplyCommand.NotifyCanExecuteChanged();
     }
-    private static readonly ProtocolCommandOption[] AllCommands =
+    internal static readonly ProtocolCommandOption[] AllCommands =
     [
         ProtocolCommandOption.For("Query", new QueryDevice()),
         ProtocolCommandOption.For("Steps", new ControlStepCounter(StepCounterAction.Start)),
@@ -137,13 +144,10 @@ public sealed record PawTriggerDraft<T>(T Trigger, int IndicatorColor = 1) where
 
 public sealed class ProtocolCommandOption : ObservableObject
 {
-    public string Key
-    { get; }
+    public string Key { get; }
     public string Label => L10n.Get($"ProtocolCommand.{Key}");
-    public DeviceCapability Capability
-    { get; }
-    public string Template
-    { get; }
+    public DeviceCapability Capability { get; }
+    public string Template { get; }
     private readonly Func<string, DeviceCommand> _parse;
     private ProtocolCommandOption(string key, DeviceCapability capability, string template, Func<string, DeviceCommand> parse)
     {

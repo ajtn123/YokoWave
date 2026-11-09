@@ -1,12 +1,7 @@
-<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:YokoWave.App.ViewModels" xmlns:l="using:YokoWave.App.Localization"
-             x:Class="YokoWave.App.Views.Components.NativeProgramView" x:DataType="vm:PlaybackModeViewModel" >
-  <Border Classes="card" IsVisible="{Binding IsNativeProgram}">
-    <StackPanel Classes="items">
-      <TextBlock Text="{l:Loc ModeKind.NativeProgram}" Classes="section-title" />
-      <StackPanel DataContext="{Binding NativeEditor}" x:DataType="vm:NativeProgramEditorViewModel" Classes="items" IsEnabled="{Binding $parent[UserControl].((vm:PlaybackModeViewModel)DataContext).CanEditRouting}">
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:items="using:YokoWave.App.ViewModels" xmlns:l="using:YokoWave.App.Localization" x:Class="YokoWave.App.Views.Components.NativeProgramView" x:DataType="items:NativeProgramEditorViewModel">
+      <StackPanel Classes="field">
         <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding SelectedKind}" HorizontalAlignment="Stretch">
-          <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+          <ComboBox.ItemTemplate><DataTemplate x:DataType="items:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
         </ComboBox>
         <StackPanel Classes="items" IsVisible="{Binding IsPreset}">
           <TextBlock Text="{l:Loc Native.PresetHelp}" Classes="muted caption help" />
@@ -34,12 +29,5 @@
           <CheckBox Content="{l:Loc Native.Repeat}" IsChecked="{Binding Repeat}" />
         </StackPanel>
       </StackPanel>
-      <StackPanel IsVisible="{Binding IsNativeMotor}" Classes="field">
-        <TextBlock Text="{l:Loc Native.MotorHelp}" Classes="muted caption help" />
-        <CheckBox Content="{l:Loc Channel.A}" IsChecked="{Binding NativeEnabledA}" IsEnabled="{Binding HasChannelA}" />
-        <CheckBox Content="{l:Loc Channel.B}" IsChecked="{Binding NativeEnabledB}" IsEnabled="{Binding HasChannelB}" />
-        <CheckBox Content="{l:Loc Channel.C}" IsChecked="{Binding NativeEnabledC}" IsEnabled="{Binding HasChannelC}" />
-      </StackPanel>
-    </StackPanel>
-  </Border>
+
 </UserControl>

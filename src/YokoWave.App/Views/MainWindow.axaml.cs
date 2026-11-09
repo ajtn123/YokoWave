@@ -15,15 +15,22 @@ public sealed partial class MainWindow : Window
             if (e.Key == Key.Escape && DataContext is MainViewModel vm)
             {
                 e.Handled = true;
-                try { await vm.StopAllModesAsync("Reason.Shortcut"); }
+                try
+                {
+                    await vm.StopAllAsync("Reason.Shortcut");
+                }
                 catch (Exception error) { vm.ShowError(error); }
             }
         };
         Closing += async (_, e) =>
         {
-            if (_closing || DataContext is not MainViewModel vm) return;
+            if (_closing || DataContext is not MainViewModel vm)
+                return;
             e.Cancel = true;
-            try { await vm.DisposeAsync(); }
+            try
+            {
+                await vm.DisposeAsync();
+            }
             catch (Exception error) { vm.ShowError(error); }
             finally { _closing = true; Close(); }
         };

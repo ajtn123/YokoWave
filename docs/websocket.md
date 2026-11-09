@@ -2,17 +2,17 @@
 
 ## 应用内使用
 
-服务端先连接本地蓝牙设备，添加「WebSocket 服务端」玩法并分配目标，设置监听 IP、端口和租约超时，然后开始。支持现有九种协议的输出设备和输入设备；模拟设备、远程设备不能再次共享。一个设备同时只属于一个玩法，服务端运行期间不能改派。
+连接本地蓝牙设备后，创建 WebSocket GATT 或 control 服务端模板并绑定设备。GATT 节点导出原始读写／通知，远端使用同一协议工厂运行驱动；control 节点的远端输出先进入本地图，再通过数值处理、限幅和设备路由提交。两类资源节点分别只允许对应租约。输入设备可由 GATT 导出，或通过 control 读取状态和执行命令。
 
-默认监听 `127.0.0.1:9000`，每个玩法的路径是 `/ws/{玩法ID，32位无连字符}`。同一地址、端口和证书的多个玩法共享监听器，各自独立认证、设备及定时。客户端应使用服务端面板显示的完整 WebSocket 地址；监听 `0.0.0.0` 或 `::` 时，将地址中的主机改为客户端可达的服务器 IP。跨电脑连接可配置 PFX 证书，客户端必须信任该证书；不跳过 TLS 证书验证。
+默认监听 127.0.0.1:9000，路径为 /ws/{资源节点 ID，32 位无连字符}。多个节点可共享相同地址／端口／证书的监听器，各自保持认证与设备范围。非回环监听使用客户端可达地址；PFX 证书须由客户端信任，不跳过证书校验。
 
-客户端在「偏好设置 → WebSocket 设备」添加名称、地址和令牌，再点击连接、发现设备。远程设备带 WebSocket 标识，可与本地蓝牙或模拟设备共存，加入波形、声控、滑动等兼容玩法。自带客户端申请 `gatt` 租约，在控制端通过原有协议工厂创建驱动，播放链路及设备能力与直接连接相同；平台音频仍在控制端采集。主机需要 Windows 蓝牙后端；控制端可以使用 Windows、macOS 或 Linux。
+设置页添加名称、URL、连接种类和内存令牌。GATT 客户端在本机运行协议驱动，control 客户端作为统一设备传输发送输出帧／原生程序／泵与类型化命令；两种客户端都维护租约续期、顺序号与服务端单调时钟，可与本地及模拟来源共存。主机真实 BLE 后端为 Windows，控制端可使用其他桌面平台。
 
-服务端令牌随机生成，仅本次应用运行有效。端点地址及名称保存在 `settings.json`，服务端参数保存在所属玩法的 `modes.json`；令牌和证书密码不写入配置。重启不自动连接、监听或恢复输出。运行依赖 `.NET 10` 和 `Microsoft.AspNetCore.App 10`；SDK 已包含所需运行时。
+图、服务端参数和设备引用保存在 pipelines.json，端点地址／名称／连接种类保存在 settings.json；令牌和证书密码仅在内存。启动不自动连接、监听或恢复输出。Remote 依赖 .NET 10 的 Microsoft.AspNetCore.App。
 
 ## 协议及租约
 
-- WebSocket 子协议：`yokowave.v1`。文本 JSON-RPC 2.0，UTF-8，可分片，单条最大 1 MiB，深度最大 32，不接收批量 RPC 数组。
+- WebSocket 子协议：`yokowave.v2`。文本 JSON-RPC 2.0，UTF-8，可分片，单条最大 1 MiB，深度最大 32，不接收批量 RPC 数组。
 - 请求 `id` 是正整数或十进制正整数字符串，在同一连接上严格递增，不可重复。响应返回原始 `id`。设备控制必须使用请求，服务端不执行没有 `id` 的控制通知。
 - 首先调用 `system.authenticate`，参数 `{ "token": "..." }`；10 秒内未认证则关闭连接。随后 `system.hello` 返回版本、服务端玩法 ID、租约超时、消息上限和单调时钟 `clockMilliseconds`。枚举使用 camelCase 字符串，二进制数据使用 Base64。
 - `devices.list` 返回设备数组；`devices.describe` 使用 `deviceId`。设备 ID 是服务端玩法内的匿名标识；客户端将端点 ID、玩法 ID、设备 ID 组合为本地标识。设备包含协议、能力、通道掩码、电量、信号及模拟标记。
@@ -50,8 +50,8 @@
 
 | 方法 | 参数／行为 |
 | --- | --- |
-| `control.output` | `frame` 为 Core `OutputFrame` 的 camelCase JSON；按 100 ms 周期保持该帧，支持三通道、采样窗口、温柔模式、泵及硬件选项；原生程序使用下列程序接口 |
-| `control.play` | `playback: { program, waveform?, channelA?, channelB?, channelC?, durationSeconds? }`；`program` 为 Core `SessionProgram`，支持 `waveform`、`nativeProgram`、`pump` |
+| `control.output` | `frame` 为 Core `OutputFrame` 的 camelCase JSON；按 100 ms 周期保持该帧，支持三通道、采样窗口、温柔模式、泵、原生程序及硬件选项；也可使用下列程序接口 |
+| `control.play` | `playback: { program, waveform?, channelA?, channelB?, channelC?, durationSeconds? }`；`program` 为 `RemotePlaybackSettings`，`kind` 支持 `waveform`、`nativeProgram`、`pump`；配置含 order、playlist、channelBWaveform、outputLimit、strength、offsetChannelB、gentle、pump、nativeProgram、hardware、balances，播放请求会编译为普通管线图 |
 | `control.playlist` | 同上，要求 waveform 类型和非空 `program.playlist`；支持顺序、随机、单曲及独立 A/B 配置 |
 | `control.native` | 同上，要求 nativeProgram 类型；原生程序参数和目标必须兼容，固定程序的幅度／上限约束同本地玩法 |
 | `control.pump` | 同上，要求 pump 类型；方向、开关、两路时长放在 `program.pump` |
@@ -91,7 +91,7 @@ Paw 的 `trigger.type` 支持 `none`、`live`、`random`、`probability`、`volt
 以下代码在浏览器中连接一个已运行的服务端，仅发送零强度；填写面板的地址和令牌。生产客户端应在连接关闭时处理自身状态，并保持一个租约操作队列。
 
 ```js
-const socket = new WebSocket(serverUrl, "yokowave.v1");
+const socket = new WebSocket(serverUrl, "yokowave.v2");
 await new Promise((resolve, reject) => {
   socket.onopen = resolve;
   socket.onerror = reject;

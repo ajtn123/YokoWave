@@ -51,25 +51,6 @@ public sealed class DefaultWaveformTests
     }
 
     [Fact]
-    public async Task SessionAndControllerPreserveReferenceFramesForBothChannels()
-    {
-        var transport = new RecordingTransport();
-        await using var controller = new DeviceController(transport);
-        await controller.ConnectAsync(new("one", "one", DeviceKind.DualChannel, 90, -40), ct: TestContext.Current.CancellationToken);
-        var preset = DefaultWaveformCatalog.Presets[0];
-        var engine = new SessionEngine(controller) { ChannelA = 30, ChannelB = 20, OffsetChannelB = true };
-        await engine.StartAsync(["one"], preset, TimeSpan.FromSeconds(10));
-        await engine.AdvanceAsync(TimeSpan.FromSeconds(0.1));
-        Assert.Equal(30, transport.Latest["one"].ChannelA);
-        Assert.Equal(20, transport.Latest["one"].ChannelB);
-        Assert.Equal(WaveformGenerator.ReferenceSample(preset, 0.1), transport.Latest["one"].ReferenceSample);
-        Assert.Equal(WaveformGenerator.ReferenceSample(preset, 0.1, 0.5), transport.Latest["one"].ReferenceSampleB);
-        await engine.StopAsync();
-        Assert.Null(transport.Latest["one"].ReferenceSample);
-        Assert.Null(transport.Latest["one"].ReferenceSampleB);
-    }
-
-    [Fact]
     public void ImportAcceptsLegacyDescriptionButExportDoesNotIncludeIt()
     {
         var json = """

@@ -1,123 +1,33 @@
 # YokoWave 架构
 
-## 依赖方向
+## 依赖与职责
 
-`Desktop → App → Remote → Core`，App 同时直接引用 Core。Core 不依赖 UI 或操作系统 API，包含传输抽象和独立的纯协议编码器。Remote 使用 ASP.NET Core 承载 WebSocket，不依赖 Avalonia 或原生蓝牙；共享界面使用编译绑定，不引入服务定位器或额外的 MVVM 框架。
+`Desktop → App → Remote → Pipelines → Core`；各层可直接引用所需的下层模型。Core 包含设备、统一波形、能力、协议驱动和存储；Pipelines 包含图定义、注册表、编译器、处理器与后台会话；Remote 包含 RPC、租约、GATT／control 设备和服务端资源；App 只承载编辑与展示；Desktop 提供原生蓝牙和音频。
 
-App 还引用纯 .NET 的 `Pipelines → Core`。节点页面使用独立的 `PipelineSession → DeviceController → IDeviceTransport` 链路，后台调度实际输出；Nodify.Avalonia 只属于 UI。图编译、数值端口、通道合并、节点编辑和当前支持范围见 [节点玩法](pipelines.md)。以下 `SessionEngine` 与视图定时推进的说明适用于普通玩法页面。
+Nodify.Avalonia 2.0.0 只出现在 App，图文件不保存控件模型。组合优先于继承：配置是不可变数据，处理器每次启动重新创建；仅在多个实现确实共享行为时使用接口。没有按玩法枚举分派的另一套执行系统，模板只生成普通节点图。
 
-`MainViewModel` 管理当前选择、命令和集合；`MainView` 负责导航外壳和定时调度。`Views/Pages` 分为设备工作台、波形资料库、会话记录、偏好设置和帮助五个页面。帮助页集中提供操作说明与已实现的功能限制，使用共享阅读宽度和卡片样式，并支持运行时语言切换；设置页保留配置项及其直接说明。`Views/Components` 中的波形编辑器与 JSON 导入导出组件由波形页组合，平台文件选择器由导入导出组件处理。设备页独立处理窄窗口堆叠布局。视图每 100 ms 请求一次会话推进，时间来自单调 `Stopwatch`，不会累计定时器误差。
+`MainViewModel` 组合 `DevicesPaneViewModel`、`SettingsViewModel`、`WaveformLibraryViewModel`、`HistoryViewModel` 和 `PipelinesWorkspaceViewModel`，负责导航、保存与关闭。页面直接绑定所属 VM，不通过根 VM 转发属性。每个图由 `PipelineEditorViewModel` 管理草稿、撤销、选择与独立会话；节点编辑器按职责拆分。设备只保存连接与实时读数，图拥有输出设置。
 
-## 输出链路
+## 图执行
 
-`SessionEngine → DeviceController → IDeviceTransport`。
+`PipelineCompiler` 解析注册配置、展开嵌入子图、验证端口种类与范围、检测环、排序节点，并检查同设备写入冲突、能力与硬件选项。编译结果保存独立配置和波形快照。
 
-每个 `PlaybackModeViewModel` 持有独立的 `SessionEngine`、单调时钟、强度、输出上限、定时、波形、播放策略与目标设备集合。玩法可命名、添加、删除及保存，一对一与一对多玩法可以并行运行。设备对象只保留连接、协议状态及实时读数，不保存输出配置。同一玩法的目标共享该玩法的上限与时钟，单通道设备的 B 输出恒为零。
+`PipelineRuntime` 每帧按拓扑同步求值一次。数值信号含一个标量或四个 25 ms 样本、有效期、模拟来源与输入序号。处理器保留来源／有效期；目标端口执行单位范围和离散数值校验。已连接但无效的输入不会退回非零默认值。原生程序与控制帧的结构化元数据使用单独的 intent 端口，频率、强度等仍为数值。
 
-`ModeDeviceListView` 将玩法实例作为分组，内部直接显示所属设备，`UnassignedDevices` 单独显示未分配设备。选择分组切换右侧操作面板；兼容设备可在连接蓝牙前后分配。配置阶段同一设备也只能归属一个玩法，由视图模型和存储校验共同约束；改派先移除，启动、运行及暂停期间锁定归属。`ModeKind` 包含波形、滑动、声控、禁锢、运动、睡眠剥夺、泵控制、设备原生程序和 WebSocket 服务端，各实例类型固定，分别使用独立组件；普通输出共用强度、上限与定时控件，泵使用方向／开关和公共定时。输入设备不参与输出归属，但可分配给服务端玩法进行共享。
+`IRunParticipant` 管理音频、传感器和网络 I/O；平台音频只提供特征。`IInteractiveProcessor` 接收边界队列中的数值、波形、滑动、增强、校准、泵和命令操作；`ISuspendableProcessor` 清理暂停时不应保留的输入状态。`DeviceOutputCoordinator` 将通道独立限幅后合并为设备帧。
 
-`DeviceController` 使用玩法 ID 原子申请目标设备：任一目标已被其他玩法占用则拒绝整个申请，不改变原玩法输出。暂停保留占用；停止只向所属目标发送零输出，成功后释放占用，无法确认停止时保留占用以阻止其他玩法接管。普通发送入口拒绝绕过已占用设备的玩法控制。目标选择在启动及运行期间锁定。
+`PipelineSession` 负责后台单调计时、原子设备申请、资源启动、约 100 ms 的求值／提交、暂停、错误和停止收尾。独立设备并行写入，同设备由控制器串行化。停止可以取消尚未完成的音频启动；提交、暂停和停止有明确的异步边界。停止先撤销网络输出，再归零、停流与释放资源；失败收集原始和清理错误，未确认设备继续保留占用。
 
-定时默认开启。`SessionTimerView` 将开关、时长滑块和时间读数排在同一行；运行时在滑块原位置显示剩余进度条，进度以本次会话的时长归一化，切换波形不重置进度。滑块按秒设置，方向键每次调整 1 秒，上限由设置页的 `TimerLimitMinutes` 配置（1 至 120 分钟）；降低上限会同步裁剪所有玩法的时长。关闭定时时引擎使用空期限，不设置隐含的两小时上限。倒计时向上取整到秒显示。开关与时长保存到玩法预设，滑块最大时长保存在全局设置；任一玩法启动或运行时锁定全局上限。
+## 设备与远程
 
-`ChangeWaveformAsync` 与计时推进、停止使用同一异步锁。运行中切换时只替换对应通道波形，并在下一次输出从新波形的第一帧开始，不重置设备、强度、全局时间或定时期限，也不结束会话。无效格式被拒绝；所有有效的统一波形均可用于电击／震动输出。会话记录保存结束时的 A/B 波形和输出模式。
+`DeviceController` 对本地、模拟和远程传输提供一致的整台设备独占。暂停保留占用，运行期不允许改派。`BluetoothProtocolDriverFactory` 按集中定义的能力创建九类公开协议驱动。统一波形在播放时转换为设备格式，不在资产中存储设备包。
 
-`SessionProgram` 是播放配置快照，保留现有存储格式。`SessionEngine` 只管理串行门、设备占用、会话计时、最终上限、峰值和停止收尾；渲染交给 `Playback/` 中的 `PlaybackModeRuntime`。每次开始创建新的玩法对象，停止后可保留录制用于另存，重新开始时不会复用输入状态或计数。输入更新通过音频、触控、运动三个小能力接口传递，不要求所有玩法实现无关操作。非波形玩法的会话记录不保存虚构波形 ID。
+GATT 客户端把远程连接交给相同协议工厂；control 客户端作为设备传输发送统一输出帧与类型化命令。两者复用认证、心跳、租约顺序与服务端时钟逻辑。GATT 服务端节点独占并导出设备，远端运行协议驱动；control 服务端节点通过缓冲传输把远端请求送回本地图，继续经过数值处理、上限和输出协调。远程播放请求同样编译成图，不另设播放引擎。详情见 [WebSocket](websocket.md)。
 
-| 玩法类 | 独立职责 |
-| --- | --- |
-| `WaveformModeRuntime` | 波形轨道与播放顺序 |
-| `TouchModeRuntime` | 按住状态、最多 256 帧的轨迹录制、松手／循环／保持 |
-| `AudioModeRuntime` | 双通道包络、音频帧序列和有效期 |
-| `RestraintModeRuntime` | 各目标的基准角度与偏差映射 |
-| `ExerciseModeRuntime` | 动作阈值、空闲等待与动作目标 |
-| `SleepModeRuntime` | 固定／随机／活动重置周期和本地随机池 |
-| `PumpModeRuntime` | 两路泵输出、独立活动时间与完成条件 |
-| `NativeProgramModeRuntime` | 设备固定程序、频率序列与原始脉冲配置快照 |
+## 存储与界面
 
-`WaveformPlayback` 组合独立 A/B 的 `WaveformTrack`；`StrengthAutomation` 处理自动和临时增量；`MotionTracker` 处理每个目标的读数有效期、校准与动作采样；运动和睡眠通过 `ActivityModeRuntime` 复用 `BurstCycle` 的等待／输出计时。只有这些确实共用的状态形成抽象，不为纯协议函数或配置记录增加接口。`PlaybackModeDefinition` 集中提供波形、播放列表、输入与设备能力要求，编辑器、路由校验和引擎共享定义。暂停只归零自身目标，VM 停止自身单调时钟，继续后不计入暂停时长。操作范围见 [离线电刺激控制](estim.md)。
+`workspace.json` 只保存版本／累计统计，`settings.json` 保存全局设置，`waveforms.json` 保存统一自定义波形，`pipelines.json` 保存实例，`pipeline-presets.json` 保存用户模板。会话使用 128 KiB、单旧文件的紧凑 JSON Lines。开发阶段 schema 不匹配时只重置已知应用文件；损坏数据保留并阻止覆盖。
 
-`PlaybackModeViewModel.Estim` 处理玩法内的播放配置，`MainViewModel.DeviceFeatures` 处理实体设备固件功能；玩法控件直接绑定 `SelectedMode`，不经主视图模型代理属性；播放命令由玩法持有。玩法编辑、波形选择、自动强度、滑动面板和设备功能各有独立组件。灯光通过 `IElectricalDeviceFeatures` 与状态回报确认，只有兼容且版本已确认的二代设备可用；设备被玩法占用时禁用固件操作。
+颜色集中在 Palette，尺寸／间距／圆角集中在 Metrics，共享语义样式用于各页面。字体继承系统无衬线，主题与可用强调色跟随系统。en／zh-CN 使用 JSON 本地化，切换语言不重建图或丢弃输入。帮助页集中说明操作和限制；设置仅保留配置及直接说明。
 
-`NativeProgramEditorViewModel` 与 `HardwareOutputEditorViewModel` 分别持有玩法的设备原生程序和硬件输出草稿，独立组件直接绑定。`DeviceTelemetryViewModel` 直接提供设备解码读数、单位换算和压力归零命令；`ProtocolFeaturesViewModel` 持有非输出命令的临时表单，能力与可用查询集中在 `BluetoothDeviceProfile`；`DeviceCommand` 使用类型化参数和处理器登记，配置指令经 `DeviceController` 所有权校验后进入同一 GATT 串行门。表单编辑类型化命令的标量字段，不反射广播 VM，也不保存设备配置。输入解码由各协议负责，爪印逐事件维护活动与参数状态。`ProgramPacketWriter` 避免重复启动固定程序；`BufferedFrequencyWriter` 按 MTU 和活动时间发送序列，二者均为每连接状态。
-
-`PlaybackModeViewModel.Playlist` 管理玩法内的有序、去重列表，最多 100 个波形；`ModePlaylistView` 提供添加、移除、上下移动和有界滚动列表。顺序与随机模式只使用列表快照，并从首项开始，A/B 共用列表曲线；运行中选择器也只展示列表内波形，核心动态切换入口再次验证成员资格。停止时可编辑，播放不回退到整个波形库。单曲与仅播放当前保留独立 A/B 波形。所有来源的统一波形可以混合入队，播放时由目标设备编码器转换。全局库编辑同步刷新列表引用，运行中引用的波形禁止编辑和删除。
-
-波形资料库使用独立的 `LibrarySelectedPreset`，浏览、复制或保存新波形不会切换玩法输出；只有明确执行「用于控制」才将波形应用到当前波形玩法。列表模式仅允许应用列表成员，滑动玩法不提供此操作。
-
-`WaveformEditorViewModel` 独立持有草稿、类型选择、采样 JSON 解析和预览，编辑组件直接绑定该对象。主视图模型只协调保存、引用刷新及播放中的编辑限制；编辑器不依赖设备、会话或存储服务。
-
-感应状态由对应玩法对象持有，`SessionEngine` 在最终上限之前调用玩法渲染；过期输入归零，调度中断不补发旧输出。每台目标的运行时基准和计数均不写入设备配置。详见 [声控与感应玩法](live-modes.md)。
-
-Core 定义 `IAudioInputFactory` / `IAudioInputSession`，Desktop 用 SoundFlow/MiniAudio 实现。App 的 `Playback/ModeInputController` 在实例创建时选择输入控制器，统一启动、每帧更新、暂停、取消与释放入口；音频、模拟角度和触控各自实现。`AudioModeInputController` 独占采集资源、启动取消和噪声校准；ViewModel 保留界面绑定与通知。只有显式开始或校准才初始化音频设备；实时 PCM 转成 50 ms 特征后不保存。结束或真实异常释放资源，无 PCM、过期帧、静音及媒体结束保持监听并归零。系统 loopback 仅 Windows 可用，文件与默认麦克风使用跨平台后端。自动测试注入替身，不打开真实采集设备。
-
-`BluetoothDeviceTransport` 支持角度流开关及校验后的加速度／计步通知，`DeviceController` 记录接收时间与序列；感应引擎只消费新鲜读数。真实连接拒绝模拟输入；模拟来源的角度滑块明确标记，使用同一套核心状态机。
-
-`DeviceController` 按设备 ID 串行化写入、通知、停止和断开操作，门跨重连保留；生命周期门只协调扫描、连接、传输切换和释放，处理非有限数值、协议输出范围与频率约束。玩法降低上限时立即重写自身目标输出。连接成功后先发送零输出；断开前尝试归零。停止同时处理所属目标，即使一台失败也继续处理其他目标，并返回错误。批量占用按设备 ID 固定顺序取得全部目标的门再校验，取消时释放已取得的门；停止确认失败仍保留占用。
-
-每个引擎的推进与停止由同一个异步锁串行化，独立玩法与同一玩法的各目标并行推进。停止等所有在途写入结束后归零，避免停止后被计时回调再次写入非零输出；各目标的峰值在写入全部结束后合并。定时结束、断连及输出故障只停止所属玩法。切换页面、查看设备、选择其他玩法均不结束已有会话；切换玩法会清除原玩法的临时按住状态。「全部停止」、Esc、切换设备来源和关闭应用遍历全部玩法。关闭应用在清理设备前等待停止与本地保存。
-
-`SimulationTransport` 提供本地内存模拟，`BluetoothDeviceTransport` 通过可替换的 `IBluetoothAdapter` 接入多种设备。`BluetoothDeviceProfiles` 定义型号识别、输出域、通道数、GATT 特征与所需能力；`BluetoothProtocolDriverFactory` 是协议到驱动的唯一构造入口。郊狼 V2/V3、负鼠、Paw、Civet、YOKONEX 电击器、震动器和泵各自拥有驱动；V2/V3/负鼠仅共用强度通知与停止确认，Paw/Civet 共用输入流生命周期。每个连接拥有独立的驱动、串行门和状态。Windows 原生适配器位于 Desktop 项目，负责多个服务与特征的发现、权限检查、主／附加通知、电量读取及所有 GATT 句柄的生命周期；Core 不引用 Windows SDK。停止期间仍处理确认通知，关闭完成后才解绑。`WindowsGattResolver` 分离原生服务／特征发现，连接构建器持有资源并统一清理；CLI 探针位于 `Diagnostics/DiagnosticProbes`。
-
-`DeviceController` 统一管理传输、连接和玩法占用，按设备处理后台通知，并通过事件传递状态与故障；通知处理及订阅者异常有独立诊断边界；`MainViewModel` 将后台事件调度回 UI 线程。切换设备来源先停止所有玩法并断开全部连接，再替换驱动。玩法参数保留，旧目标标识显示为不可用，需显式重新选择，不自动改派设备。来源保存在偏好设置中，不恢复连接或输出。
-
-## 未来接入硬件
-
-新增平台时实现 `IBluetoothAdapter` / `IBluetoothConnection`，在 Desktop 组合入口注册，无需修改共享视图或编码器；新增设备协议则实现独立编码器与匹配规则。具体接入状态、机型、协议来源和验证记录见 [蓝牙说明](bluetooth.md)。
-
-接口中的 `OutputFrame` 是归一化的应用模型，并非厂商二进制帧。采样序列携带通用 `Level`、`FrequencyHz`、`PulseWidth`、有符号 `Channels`，不含厂商家族或编码。`WaveformRendering` 在播放链路解析通道、方向降级、包络与四帧重采样，再由各协议编码器量化。所有电击／震动型号共享波形，基础强度与上限仍属于玩法。当前原生驱动已经实机验证初始化关闭和状态读取，非零输出尚未实机验证，百分比不表示已校准物理量。
-
-没有实现后台蓝牙、固件升级、账号、聊天、商城、云端数据或移动端入口。
-
-## WebSocket 与混合设备来源
-
-`RoutedDeviceTransport` 按发现的设备 ID 分派到本地或多个 WebSocket 来源，转发状态、命令和 GATT 操作。`DeviceDescriptor.Origin` 标识本地／远程，`Simulated` 标识输入安全边界；模拟输入按实际目标判断，不能因同一控制器存在模拟设备而写入真实设备。移除远程来源只清理其设备，保留其他来源。
-
-WebSocket 服务端作为独立玩法，通过 `RemoteServerEditorViewModel` 管理设置与生命周期，实际监听、租约看门狗和高层会话推进位于 `YokoWave.Remote`，不依赖 UI 定时器。多个玩法可共用 Kestrel 监听器，以玩法 ID 路径分离。`RemoteSourcesViewModel` 直接绑定设置组件，保存端点地址，不保存令牌、不自动连接。
-
-服务端玩法先通过 `DeviceController` 预留全部本地目标；对等连接再通过互斥的 `gatt` 或 `control` 子租约划分设备，不改变核心玩法所有者。`RemoteControlSession` 复用 `SessionEngine`，以限定目标范围、保留父占用的方式停止，不影响其他租约。原生程序、统一波形及强类型设备命令使用原有能力验证。
-
-占用前、结束占用和全部停止共用连接清理方法：输出归零，输入设备关闭传感器流及爪印独立触发器，已启用的运动流关闭。各步骤独立尝试并保留错误；单一错误保留原异常，多个失败聚合报告。
-
-`WebSocketGattAdapter` / `WebSocketGattConnection` 实现已有蓝牙适配器接口，虚拟特征保留真实权限和 MTU，将通知交给控制端原有驱动工厂。主机透传期间暂停驱动与维护通知；恢复时创建新驱动并初始化归零。网络帧使用单调时钟截止时间、递增请求 ID／租约序号、定期续租和有界队列；不重试输出请求。详细协议及当前限制见 [WebSocket 说明](websocket.md)。
-
-## 波形与本地存储
-
-`WaveformPreset` 对名称、周期、频率和采样点进行验证；自定义曲线采用线性插值，`Sampled` 序列按帧保持输出。导入限制为 1 MB、最多 100 条、单条最多 256 个采样点或帧；相同标识不会覆盖已有波形。波形导出不包含描述字段。
-
-`DefaultWaveformCatalog` 从两个嵌入 JSON 读取 24 个默认波形（22 个原系统波形及 2 个郊狼公开示例），使用稳定 ID 识别与本地化。删除命令的可执行状态和实际删除操作均拒绝默认波形，编辑默认波形只会另存副本；副本保留全部采样参数。默认波形不写入用户工作区。数据来源、字段和维护规则见 [默认波形说明](default-waveforms.md)。
-
-`WorkspaceStore` 串行协调独立存储文件，基础统计、设置、自定义波形与玩法预设使用紧凑 JSON，并通过临时文件替换目标；读取损坏的文件时保留原文件并阻止覆盖。开发阶段不迁移旧版工作区，Schema 不匹配时只重置已知数据文件，保留同目录其他文件。玩法恢复已保存参数及目标标识，但不连接设备、不打开音频输入、不开始会话或恢复输出。
-
-| 文件 | 内容 |
-| --- | --- |
-| `workspace.json` | Schema 6、累计会话次数、累计时长（秒） |
-| `settings.json` | 语言、设备来源、新玩法默认上限、定时滑块最大时长 |
-| `modes.json` | 各玩法的 ID、名称、类型、ABC 强度、上限、定时、A/B 波形、本地列表、音频／感应／泵参数、原生程序与硬件输出选项、V3 平衡参数与唯一归属的目标设备标识 |
-| `presets.json` | 自定义波形 |
-| `sessions.jsonl` | 当前会话日志，一行一个紧凑 JSON 对象 |
-| `sessions.1.jsonl` | 唯一的滚动旧日志 |
-
-`SessionJournal` 按实际 UTF-8 字节数在下一条记录会使文件超过 128 KiB 时滚动，覆盖唯一旧日志；单条记录也不得超过该上限。重复保存按会话 ID 去重。UI 跟随两份日志裁剪历史列表，累计统计独立保存，不因旧日志淘汰而减少。
-
-## 主题
-
-`App.axaml` 的 `RequestedThemeVariant="Default"` 跟随系统。FluentTheme 不设置自定义 Accent，从平台读取系统强调色。所有固定颜色和语义资源集中在 `Styles/Palette.axaml` 的 Light / Dark 字典中。
-
-应用使用系统已有字体，不捆绑字体包；当前 UI 和代码编辑框的字体回退配置统一保存在 `Styles/Metrics.axaml`，控件通过样式获取。平台字体行为参考 [Avalonia Typography](https://docs.avaloniaui.net/docs/styling/typography)。
-
-`Styles/Metrics.axaml` 还集中定义字号、间距尺度、内边距、圆角、控件尺寸、固定列宽及响应式断点。`Typography.axaml` 定义标题、标签、说明与数值等文字角色，`Layout.axaml` 定义卡片、分组、表单和操作行，`Controls.axaml` 定义基础控件外观，`Components.axaml` 定义代码编辑器、波形预览和导航外壳。`App.axaml` 只组合资源字典与样式文件。
-
-视图使用语义样式，例如 `Border.card`、`TextBlock.section-title`、`TextBlock.field-label`、`StackPanel.field` 和 `Grid.form`；表单使用真正的 `RowSpacing` / `ColumnSpacing`，不插入空白行列。外观资源通过 `DynamicResource` 引用。视图中仍保留数据绑定、行列索引、输入范围与格式等功能信息，窗口初始尺寸保留用户设置。
-
-视图与绘图控件均使用动态资源。波形图缓存曲线、填充和画笔，只有参数、波形、相位、显示范围或尺寸变化时重新计算几何；播放头移动复用已有曲线，颜色变化仍即时显示。自定义图表把画笔暴露为 Avalonia 样式属性，资源变化会触发重绘。强调色按钮通过相对亮度计算选择合适的前景色。通道 B 保留独立的语义颜色，避免两条曲线无法区分。
-
-## 本地化
-
-翻译来自嵌入的 `Locales/en.json` 和 `Locales/zh-CN.json`。`JsonLocalizer` 提供键查找、英文回退与属性通知，XAML 通过 `LocExtension` 绑定。视图模型刷新语言相关属性，现有连接和用户输入保持不变。消息保留键与格式参数，使用稳定键以便重新翻译。语言代码保存在偏好设置中；未配置时使用系统默认语言。详见 [本地化说明](localization.md)。
-
-## 测试
-
-核心测试验证周期边界、玩法输出限制、非有限值、单通道隔离、多玩法独立运行、原子设备占用、暂停保留占用、停止失败保留占用、定时结束、停止与计时并发及损坏数据保护。界面测试另验证多玩法切换不污染参数、断连只影响所属玩法及配置恢复不启动输出。
-
-Headless 集成测试使用 Skia 渲染真实视图，模拟鼠标点击和控件值变化，验证连接、播放、停止、波形保存、导入去重、布局切换与持久化。主题测试切换窗口的 Light / Dark，并模拟强调色资源变化，验证界面和图表一起更新。Headless 测试不能替代各平台的原生窗口与硬件测试。
+完整节点与模板行为见 [节点玩法](pipelines.md)，设备能力见 [蓝牙协议](bluetooth.md)。

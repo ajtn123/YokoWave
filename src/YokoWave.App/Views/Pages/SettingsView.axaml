@@ -4,7 +4,7 @@
              xmlns:components="using:YokoWave.App.Views.Components"
              xmlns:l="using:YokoWave.App.Localization"
              x:Class="YokoWave.App.Views.Pages.SettingsView"
-             x:DataType="vm:MainViewModel">
+             x:DataType="vm:SettingsViewModel">
   <StackPanel Classes="section settings">
     <components:RemoteSourcesView DataContext="{Binding RemoteSources}" />
     <Border Classes="card">
@@ -48,6 +48,7 @@
             <TextBlock Text="{l:Loc Unit.Minutes}" Classes="muted label" VerticalAlignment="Center" />
           </StackPanel>
         </StackPanel>
+        <CheckBox Content="{l:Loc Settings.ShowContacts}" IsChecked="{Binding ShowContacts}" />
         <Button x:Name="SaveSettingsButton" Classes="primary" Command="{Binding SaveSettingsCommand}" Content="{l:Loc Settings.Save}" />
       </StackPanel>
     </Border>

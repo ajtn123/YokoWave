@@ -1,0 +1,12 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:YokoWave.App.ViewModels" x:Class="YokoWave.App.Views.Components.ParameterFieldView" x:DataType="vm:ParameterFieldViewModel">
+  <StackPanel Classes="field" Margin="{DynamicResource Margin.BelowLarge}">
+    <TextBlock Text="{Binding Group}" Classes="muted caption" IsVisible="{Binding HasGroup}" />
+    <TextBlock Text="{Binding Label}" Classes="field-label" IsVisible="{Binding !IsBoolean}" />
+    <NumericUpDown Value="{Binding Number}" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}" IsVisible="{Binding IsNumber}" />
+    <CheckBox Content="{Binding Label}" IsChecked="{Binding Enabled}" IsVisible="{Binding IsBoolean}" />
+    <ComboBox ItemsSource="{Binding Choices}" SelectedItem="{Binding Selected}" IsVisible="{Binding IsChoice}" HorizontalAlignment="Stretch">
+      <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:SessionOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+    </ComboBox>
+  </StackPanel>
+</UserControl>

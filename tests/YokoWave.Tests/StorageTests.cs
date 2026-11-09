@@ -15,23 +15,26 @@ public sealed class StorageTests
     {
         using var folder = new TestFolder();
         var store = new WorkspaceStore(folder.Path);
-        var preset = DefaultWaveformCatalog.Presets[0] with { Id = Guid.NewGuid(), Name = "custom" };
+        var preset = DefaultWaveformCatalog.Presets[0] with
+        {
+            Id = Guid.NewGuid(),
+            Name = "custom"
+        };
         var record = Record(1);
         var settings = new AppSettings(TimerLimitMinutes: 5);
-        var mode = new PlaybackModeConfig(Guid.NewGuid(), "Mode", DurationSeconds: 3);
-        await store.SaveAsync(new(WorkspaceData.CurrentSchema, [preset], [record], settings, Modes: [mode]));
+        await store.SaveAsync(new(WorkspaceData.CurrentSchema, [preset], [record], settings));
         var json = await File.ReadAllTextAsync(store.FilePath, TestContext.Current.CancellationToken);
         using var document = JsonDocument.Parse(json);
         Assert.Equal(new[] { "SchemaVersion", "SessionCount", "TotalDurationSeconds" }, document.RootElement.EnumerateObject().Select(p => p.Name));
         Assert.DoesNotContain('\n', json);
         Assert.DoesNotContain('\n', await File.ReadAllTextAsync(store.SettingsPath, TestContext.Current.CancellationToken));
-        Assert.DoesNotContain('\n', await File.ReadAllTextAsync(store.PresetsPath, TestContext.Current.CancellationToken));
-        Assert.DoesNotContain('\n', await File.ReadAllTextAsync(store.ModesPath, TestContext.Current.CancellationToken));
+        Assert.DoesNotContain('\n', await File.ReadAllTextAsync(store.WaveformsPath, TestContext.Current.CancellationToken));
+        Assert.Equal("waveforms.json", Path.GetFileName(store.WaveformsPath));
+        Assert.False(File.Exists(Path.Combine(folder.Path, "presets.json")));
         var line = Assert.Single(await File.ReadAllLinesAsync(store.Journal.FilePath, TestContext.Current.CancellationToken));
         Assert.Equal(record.Id, JsonSerializer.Deserialize<SessionRecord>(line, new JsonSerializerOptions { Converters = { new JsonStringEnumConverter() } })!.Id);
         var restored = await new WorkspaceStore(folder.Path).LoadAsync();
         Assert.Equal(settings, restored.Settings);
-        Assert.Equivalent(mode, Assert.Single(restored.Modes!));
         Assert.Equivalent(preset, Assert.Single(restored.Presets));
         Assert.Equal(record, Assert.Single(restored.Sessions));
         Assert.Equal(new SessionStatistics(1, 10), restored.Statistics);
@@ -42,8 +45,6 @@ public sealed class StorageTests
     {
         using var folder = new TestFolder();
         var store = new WorkspaceStore(folder.Path);
-        await Assert.ThrowsAnyAsync<ArgumentException>(() => store.SaveAsync(new(WorkspaceData.CurrentSchema, [], [], new(TimerLimitMinutes: 5),
-            Modes: [new(Guid.NewGuid(), "Mode", DurationSeconds: 360)])));
         await Assert.ThrowsAnyAsync<ArgumentException>(() => store.SaveAsync(new(WorkspaceData.CurrentSchema, [], [], new(TimerLimitMinutes: 0))));
         await Assert.ThrowsAnyAsync<ArgumentException>(() => store.SaveAsync(new(WorkspaceData.CurrentSchema, [], [], new(TimerLimitMinutes: 121))));
     }
@@ -86,24 +87,28 @@ public sealed class StorageTests
     [InlineData(3)]
     [InlineData(4)]
     [InlineData(5)]
+    [InlineData(6)]
+    [InlineData(7)]
     public async Task OldDevelopmentFormatIsResetWithoutMigration(int schema)
     {
         using var folder = new TestFolder();
         var store = new WorkspaceStore(folder.Path);
-        await File.WriteAllTextAsync(store.FilePath, JsonSerializer.Serialize(new { SchemaVersion = schema }), TestContext.Current.CancellationToken);
+        await File.WriteAllTextAsync(store.FilePath, JsonSerializer.Serialize(new
+        {
+            SchemaVersion = schema
+        }), TestContext.Current.CancellationToken);
         await File.WriteAllTextAsync(store.Journal.FilePath, "old data", TestContext.Current.CancellationToken);
-        await File.WriteAllTextAsync(store.ModesPath, "old modes", TestContext.Current.CancellationToken);
+        await File.WriteAllTextAsync(Path.Combine(folder.Path, "modes.json"), "old modes", TestContext.Current.CancellationToken);
         var unrelated = Path.Combine(folder.Path, "keep.txt");
         await File.WriteAllTextAsync(unrelated, "keep", TestContext.Current.CancellationToken);
         var data = await store.LoadAsync();
         Assert.Equal(WorkspaceData.CurrentSchema, data.SchemaVersion);
         Assert.Empty(data.Presets);
         Assert.Empty(data.Sessions);
-        Assert.Empty(data.Modes!);
         Assert.Equal(new AppSettings(), data.Settings);
         Assert.Null(store.LoadWarning);
         Assert.False(File.Exists(store.Journal.FilePath));
-        Assert.False(File.Exists(store.ModesPath));
+        Assert.False(File.Exists(Path.Combine(folder.Path, "modes.json")));
         Assert.True(File.Exists(unrelated));
         await store.SaveAsync(data);
         Assert.Equal(0, (await store.LoadAsync()).Statistics!.SessionCount);

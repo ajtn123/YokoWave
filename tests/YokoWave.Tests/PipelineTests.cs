@@ -21,7 +21,11 @@ public sealed class PipelineTests
     {
         var value = Number(strength);
         var output = Output();
-        return Compiler().Compile(Graph([value, output], Edge(value, output)) with { DurationSeconds = duration ?? 90, TimerEnabled = duration.HasValue }, []);
+        return Compiler().Compile(Graph([value, output], Edge(value, output)) with
+        {
+            DurationSeconds = duration ?? 90,
+            TimerEnabled = duration.HasValue
+        }, []);
     }
 
     [Fact]
@@ -37,7 +41,10 @@ public sealed class PipelineTests
         Assert.Contains(errors, d => d.Key == "Pipeline.Error.Cycle");
         Assert.Contains(errors, d => d.Key == "Pipeline.Error.MultipleSources");
         Assert.Contains(errors, d => d.Key == "Pipeline.Error.Connection");
-        Assert.Contains(Compiler().Validate(graph with { Nodes = [number with { Type = "unknown" }, output] }, []), d => d.Key == "Pipeline.Error.UnknownNode");
+        Assert.Contains(Compiler().Validate(graph with
+        {
+            Nodes = [number with { Type = "unknown" }, output]
+        }, []), d => d.Key == "Pipeline.Error.UnknownNode");
         Assert.Throws<PipelineValidationException>(() => Compiler().Compile(graph, []));
     }
 
@@ -80,7 +87,10 @@ public sealed class PipelineTests
         Assert.Equal(40, frame.ChannelB);
         Assert.Equal(1, frame.ReferenceSample!.Level);
         Assert.Equal(4, frame.WindowA!.Count);
-        var capped = new PipelineRuntime(Compiler().Compile(graph with { OutputLimit = .7 }, []), new HashSet<string>())
+        var capped = new PipelineRuntime(Compiler().Compile(graph with
+        {
+            OutputLimit = .7
+        }, []), new HashSet<string>())
             .Evaluate(TimeSpan.Zero, DateTimeOffset.UtcNow).Outputs["one"];
         Assert.Equal(70, capped.ChannelA);
         Assert.Equal(40, capped.ChannelB);
@@ -140,7 +150,7 @@ public sealed class PipelineTests
         NumericSignal signal = new([.5], now.AddSeconds(1));
         var processor = new TestInputProcessor(() => signal);
         var registry = BuiltInNodes.CreateRegistry().Register(new NodeRegistration<TestInputNode>("test.input", "Pipeline.Port.Value",
-            [NumericPort.Output("value", "Pipeline.Port.Value")], _ => true, (_, _) => processor));
+            [NodePort.Output("value", "Pipeline.Port.Value")], _ => true, (_, _) => processor));
         var input = NodeDefinition.Create("test.input", new TestInputNode());
         var gain = NodeDefinition.Create(BuiltInNodes.Gain, new GainNode());
         var a = Output();
@@ -263,14 +273,17 @@ public sealed class PipelineTests
         var transport = new PipelineTransport();
         await using var controller = new DeviceController(transport);
         await controller.ConnectAsync(Device, TestContext.Current.CancellationToken);
-        await controller.ConnectAsync(Device with { Id = "fast" }, TestContext.Current.CancellationToken);
+        await controller.ConnectAsync(Device with
+        {
+            Id = "fast"
+        }, TestContext.Current.CancellationToken);
         await using var session = new PipelineSession(controller);
         var number = Number(.5);
         var first = Output();
         var second = NodeDefinition.Create(BuiltInNodes.ChannelOutput, new ChannelOutputNode("fast"));
         var plan = Compiler().Compile(Graph([number, first, second], Edge(number, first), Edge(number, second)), []);
         transport.BlockNonzero = true;
-        await session.StartAsync(plan);
+        var start = session.StartAsync(plan);
         Task? stop = null;
         try
         {
@@ -282,6 +295,7 @@ public sealed class PipelineTests
         finally
         {
             transport.ReleaseWrite.TrySetResult();
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => start);
             await (stop ?? session.StopAsync());
         }
         Assert.Null(controller.DeviceOwner("one"));
@@ -333,7 +347,11 @@ public sealed class PipelineTests
         using var directory = new TestFolder();
         var store = new PipelineStore(directory.Path);
         var node = Number(.3);
-        var graph = Graph([node, Output()]) with { Layout = [new(node.Id, 123, 456)], DurationSeconds = 5 };
+        var graph = Graph([node, Output()]) with
+        {
+            Layout = [new(node.Id, 123, 456)],
+            DurationSeconds = 5
+        };
         await store.SaveAsync([graph]);
         var json = await File.ReadAllTextAsync(store.FilePath, TestContext.Current.CancellationToken);
         Assert.DoesNotContain('\n', json);
@@ -350,7 +368,8 @@ public sealed class PipelineTests
     {
         for (var i = 0; i < 300; i++)
         {
-            if (predicate()) return;
+            if (predicate())
+                return;
             await Task.Delay(10, TestContext.Current.CancellationToken);
         }
         Assert.True(predicate());
@@ -372,8 +391,10 @@ public sealed class PipelineTests
         public Task DisconnectAsync(string deviceId, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public async Task SendAsync(string deviceId, OutputFrame frame, CancellationToken cancellationToken = default)
         {
-            if (FailZero && frame.ChannelA == 0) throw new IOException("zero failed");
-            if (FailNonzero && frame.ChannelA > 0) throw new IOException("write failed");
+            if (FailZero && frame.ChannelA == 0)
+                throw new IOException("zero failed");
+            if (FailNonzero && frame.ChannelA > 0)
+                throw new IOException("write failed");
             if (frame.ChannelA > 0 && deviceId == "one" && BlockNonzero)
             {
                 WriteStarted.TrySetResult();

@@ -11,57 +11,7 @@
              x:Class="YokoWave.App.Views.Pipelines.PipelineEditorView"
              x:DataType="vm:PipelineEditorViewModel">
   <UserControl.DataTemplates>
-    <DataTemplate DataType="vm:ConstantEditorViewModel">
-      <StackPanel Classes="field">
-        <TextBlock Text="{l:Loc Pipeline.Port.Value}" Classes="muted" />
-        <NumericUpDown x:Name="ConstantValueInput" Value="{Binding Value}" Increment="0.01" />
-      </StackPanel>
-    </DataTemplate>
-    <DataTemplate DataType="vm:WaveformEditorNodeViewModel">
-      <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
-        <TextBlock Text="{l:Loc Pipeline.Node.Waveform}" Classes="muted" />
-        <ComboBox ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}">
-          <ComboBox.ItemTemplate>
-            <DataTemplate x:DataType="items:PresetItem">
-              <TextBlock Text="{Binding Name}" />
-            </DataTemplate>
-          </ComboBox.ItemTemplate>
-        </ComboBox>
-        <TextBlock Text="{l:Loc Pipeline.SourceChannel}" Classes="muted" />
-        <NumericUpDown Value="{Binding Channel}" Minimum="0" Maximum="2" Increment="1" />
-      </StackPanel>
-    </DataTemplate>
-    <DataTemplate DataType="vm:GainEditorViewModel">
-      <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
-        <TextBlock Text="{l:Loc Pipeline.Port.Gain}" Classes="muted" />
-        <NumericUpDown Value="{Binding Gain}" Minimum="-1000" Maximum="1000" Increment="0.01" />
-      </StackPanel>
-    </DataTemplate>
-    <DataTemplate DataType="vm:LimitEditorViewModel">
-      <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
-        <TextBlock Text="{l:Loc Pipeline.Port.Limit}" Classes="muted" />
-        <NumericUpDown Value="{Binding Limit}" Minimum="0" Maximum="1" Increment="0.01" />
-      </StackPanel>
-    </DataTemplate>
-    <DataTemplate DataType="vm:ChannelOutputEditorViewModel">
-      <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
-        <TextBlock Text="{l:Loc Pipeline.Device}" Classes="muted" />
-        <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}">
-          <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PipelineDeviceOption"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
-        </ComboBox>
-        <TextBlock Text="{l:Loc Pipeline.OutputChannel}" Classes="muted" />
-        <NumericUpDown Value="{Binding Channel}" Minimum="0" Maximum="2" Increment="1" />
-      </StackPanel>
-    </DataTemplate>
-    <DataTemplate DataType="vm:PumpOutputEditorViewModel">
-      <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
-        <TextBlock Text="{l:Loc Pipeline.Device}" Classes="muted" />
-        <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}">
-          <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PipelineDeviceOption"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
-        </ComboBox>
-        <TextBlock Text="{l:Loc Pipeline.PumpHelp}" Classes="caption muted" TextWrapping="Wrap" />
-      </StackPanel>
-    </DataTemplate>
+    <DataTemplate DataType="vm:NodeEditorViewModel"><views:NodeInspectorView /></DataTemplate>
   </UserControl.DataTemplates>
   <Grid RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource Space.Medium}">
     <WrapPanel Classes="pipeline-toolbar">
@@ -80,7 +30,8 @@
         <ScrollViewer>
           <StackPanel Classes="field">
             <TextBlock Text="{l:Loc Pipeline.Nodes}" Classes="card-title" />
-            <ItemsControl ItemsSource="{Binding Palette}" IsEnabled="{Binding CanEdit}">
+            <TextBox Text="{Binding Search}" PlaceholderText="{l:Loc Pipeline.Search}" />
+            <ItemsControl ItemsSource="{Binding FilteredPalette}" IsEnabled="{Binding CanEdit}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:PipelinePaletteItem">
                   <Button Content="{Binding Title}" Command="{Binding AddCommand}" Classes="small pipeline-add" />
@@ -118,13 +69,13 @@
             <DataTemplate x:DataType="vm:NodeEditorViewModel">
               <nodes:Node Header="{Binding Title}" Content="{Binding Summary}" Input="{Binding Inputs}" Output="{Binding Outputs}">
                 <nodes:Node.InputConnectorTemplate>
-                  <DataTemplate x:DataType="vm:NumericPortViewModel">
+                  <DataTemplate x:DataType="vm:NodePortViewModel">
                     <nodes:NodeInput Header="{Binding Title}" Anchor="{Binding Anchor, Mode=OneWayToSource}"
                                      IsConnected="{Binding IsConnected}" ToolTip.Tip="{Binding Detail}" />
                   </DataTemplate>
                 </nodes:Node.InputConnectorTemplate>
                 <nodes:Node.OutputConnectorTemplate>
-                  <DataTemplate x:DataType="vm:NumericPortViewModel">
+                  <DataTemplate x:DataType="vm:NodePortViewModel">
                     <nodes:NodeOutput Header="{Binding Title}" Anchor="{Binding Anchor, Mode=OneWayToSource}"
                                       IsConnected="{Binding IsConnected}" ToolTip.Tip="{Binding Detail}" />
                   </DataTemplate>
@@ -147,11 +98,34 @@
           <StackPanel Classes="items">
             <TextBlock Text="{l:Loc Pipeline.Inspector}" Classes="card-title" />
             <TextBlock Text="{l:Loc Pipeline.PortHelp}" Classes="caption muted" TextWrapping="Wrap" />
-            <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
+            <StackPanel Classes="field">
               <TextBlock Text="{l:Loc Pipeline.SessionLimit}" Classes="muted" />
               <NumericUpDown Value="{Binding OutputLimit}" Minimum="0" Maximum="1" Increment="0.01" />
             </StackPanel>
+            <ItemsControl ItemsSource="{Binding Bindings}" IsEnabled="{Binding CanEdit}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:PipelineBindingViewModel">
+                  <StackPanel Classes="field">
+                    <TextBlock Text="{Binding Id}" Classes="caption muted" TextWrapping="Wrap" />
+                    <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding Selected}">
+                      <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PipelineDeviceOption"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
+                    </ComboBox>
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
             <ContentControl Content="{Binding SelectedNode}" IsVisible="{Binding HasSelectedNode}" />
+            <ItemsControl ItemsSource="{Binding Endpoints}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:PipelineEndpointViewModel">
+                  <StackPanel Classes="field">
+                    <SelectableTextBlock Text="{Binding Url}" TextWrapping="Wrap" />
+                    <TextBlock Text="{l:Loc Remote.Token}" Classes="caption muted" />
+                    <SelectableTextBlock Text="{Binding Token}" TextWrapping="Wrap" />
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
             <TextBlock Text="{Binding BoundDevices}" Classes="caption muted" TextWrapping="Wrap" />
             <TextBlock Text="{Binding InputStatus}" Classes="caption error" TextWrapping="Wrap" />
           </StackPanel>
