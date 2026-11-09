@@ -164,7 +164,7 @@
   "Help.Connect": "Choose a device source in Settings, then scan and manage connections in the Devices tab. Pipelines list only connected devices. Auto-connect retries devices previously connected manually, at startup and after a lost link. Manually disconnecting a device removes it from auto-connect. Changing the source stops sessions and disconnects existing devices.",
   "Help.Discovery": "Bluetooth requires Windows 10 (2004) or later. Turn on the device, bring it closer, disconnect other control apps, and scan again. Local simulation sends no Bluetooth commands.",
   "Help.LinkedTitle": "Mode groups and device assignment",
-  "Help.Linked": "Create instances from graph templates and edit their nodes. Adding or removing a device keeps nodes and connections unchanged; compatible empty references can be filled automatically. Each device belongs to one mode. Only devices referenced by nodes participate in a session. Assignment and topology are locked until stopped. Save as a template to reuse the graph.",
+  "Help.Linked": "Create instances from graph templates and edit their nodes. Adding or removing a device keeps nodes and connections unchanged; compatible empty references can be filled automatically. Each device belongs to one mode. Only devices referenced by nodes participate in a session. Assignment and topology are locked until stopped. Save as a template to reuse the graph. Stop the mode, then Alt+left-click a connection to remove it or a port to disconnect all of its connections. Ctrl+Z restores the change.",
   "Help.LiveWave": "Select a playlist or waveform node to change its waveform live. Only that node restarts its waveform phase; targets, strength and session time remain.",
   "Help.OutputTitle": "Strength and channels",
   "Help.Output": "Zero strength can start. Each output or control node has its own strength limit; channel caps are applied independently before merging a device frame.",
@@ -949,5 +949,9 @@
   "Pipeline.Port.levelB": "Level B",
   "Pipeline.Port.levelC": "Level C",
   "Pipeline.SentStrength": "Sent strength · {0}",
-  "Pipeline.OutputUnknown": "Output state unknown"
+  "Pipeline.OutputUnknown": "Output state unknown",
+  "Pipeline.AddItem": "Add",
+  "Pipeline.RemoveItem": "Remove",
+  "Pipeline.Up": "Up",
+  "Pipeline.Down": "Down"
 }

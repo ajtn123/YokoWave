@@ -97,11 +97,11 @@
           <ListBox ItemsSource="{Binding Playlist}" SelectedItem="{Binding SelectedEntry}">
             <ListBox.ItemTemplate><DataTemplate x:DataType="items:PresetItem"><TextBlock Text="{Binding Name}" /></DataTemplate></ListBox.ItemTemplate>
           </ListBox>
-          <Button Content="{l:Loc Pipeline.AddWave}" Command="{Binding AddWaveCommand}" Classes="small" />
-          <Button Content="{l:Loc Pipeline.RemoveWave}" Command="{Binding RemoveWaveCommand}" Classes="small" />
-          <StackPanel Classes="actions">
-            <Button Content="{l:Loc Pipeline.MoveUp}" Command="{Binding MoveUpCommand}" Classes="small" />
-            <Button Content="{l:Loc Pipeline.MoveDown}" Command="{Binding MoveDownCommand}" Classes="small" />
+          <StackPanel Classes="inline playlist-actions">
+            <Button Content="{l:Loc Pipeline.AddItem}" Command="{Binding AddWaveCommand}" Classes="small playlist-action" ToolTip.Tip="{l:Loc Pipeline.AddWave}" AutomationProperties.Name="{l:Loc Pipeline.AddWave}" />
+            <Button Content="{l:Loc Pipeline.RemoveItem}" Command="{Binding RemoveWaveCommand}" Classes="small playlist-action" ToolTip.Tip="{l:Loc Pipeline.RemoveWave}" AutomationProperties.Name="{l:Loc Pipeline.RemoveWave}" />
+            <Button Content="{l:Loc Pipeline.Up}" Command="{Binding MoveUpCommand}" Classes="small playlist-action" ToolTip.Tip="{l:Loc Pipeline.MoveUp}" AutomationProperties.Name="{l:Loc Pipeline.MoveUp}" />
+            <Button Content="{l:Loc Pipeline.Down}" Command="{Binding MoveDownCommand}" Classes="small playlist-action" ToolTip.Tip="{l:Loc Pipeline.MoveDown}" AutomationProperties.Name="{l:Loc Pipeline.MoveDown}" />
           </StackPanel>
         </StackPanel>
       </StackPanel>

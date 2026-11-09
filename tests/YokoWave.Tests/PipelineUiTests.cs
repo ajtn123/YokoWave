@@ -27,6 +27,71 @@ namespace YokoWave.Tests;
 public sealed class PipelineUiTests
 {
     [AvaloniaFact]
+    public async Task AltClickDisconnectsPortsSupportsUndoAndKeepsRunningTopologyLocked()
+    {
+        using var folder = new TestFolder();
+        await using var controller = new DeviceController(new SimulationTransport());
+        await controller.ConnectAsync(new("test", "Test device", DeviceKind.DualChannel, 90, -30), TestContext.Current.CancellationToken);
+        var builder = new PipelineBuilder("disconnect");
+        var value = builder.Add(BuiltInNodes.Constant, new ConstantNode(.3));
+        for (var channel = 0; channel < 2; channel++)
+        {
+            var output = builder.Add(BuiltInNodes.ChannelOutput, new ChannelOutputNode("test", channel));
+            builder.Connect(value, "value", output, "strength");
+        }
+        List<Exception> errors = [];
+        await using var editor = new PipelineEditorViewModel(builder.Build(), controller, [], errors.Add, _ => { });
+        editor.RefreshDevices();
+        var view = new PipelineEditorView { DataContext = editor };
+        var window = new Window { Width = 1200, Height = 750, Content = view };
+        window.Show();
+        try
+        {
+            void AltClick(NodePortViewModel port)
+            {
+                Dispatcher.UIThread.RunJobs();
+                var canvas = view.GetVisualDescendants().OfType<NodifyEditor>().Single();
+                canvas.FitToScreen();
+                Dispatcher.UIThread.RunJobs();
+                var connector = view.GetVisualDescendants().OfType<Connector>().Single(c => ReferenceEquals(c.DataContext, port));
+                var thumb = connector.GetVisualDescendants().OfType<Control>().Single(c => c.Name == "PART_Connector");
+                var point = thumb.TranslatePoint(new Point(thumb.Bounds.Width / 2, thumb.Bounds.Height / 2), window)!.Value;
+                window.MouseMove(point);
+                window.MouseDown(point, MouseButton.Left, RawInputModifiers.Alt);
+                window.MouseUp(point, MouseButton.Left, RawInputModifiers.Alt);
+                Dispatcher.UIThread.RunJobs();
+            }
+            var target = editor.Nodes.OfType<ChannelOutputEditorViewModel>().First().Inputs.Single(p => p.Port.Id == "strength");
+            AltClick(target);
+            Assert.Single(editor.Connections);
+            Assert.Equal(3, editor.Nodes.Count);
+            editor.UndoCommand.Execute(null);
+            Assert.Equal(2, editor.Connections.Count);
+            Dispatcher.UIThread.RunJobs();
+            var line = view.GetVisualDescendants().OfType<Connection>().First();
+            var middle = line.TranslatePoint(new Point((line.Source.X + line.Target.X) / 2, (line.Source.Y + line.Target.Y) / 2), window)!.Value;
+            window.MouseMove(middle);
+            window.MouseDown(middle, MouseButton.Left, RawInputModifiers.Alt);
+            window.MouseUp(middle, MouseButton.Left, RawInputModifiers.Alt);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Single(editor.Connections);
+            editor.UndoCommand.Execute(null);
+            Assert.Equal(2, editor.Connections.Count);
+            AltClick(editor.Nodes.OfType<ConstantEditorViewModel>().Single().Outputs.Single());
+            Assert.Empty(editor.Connections);
+            Assert.Equal(3, editor.Nodes.Count);
+            editor.UndoCommand.Execute(null);
+            Assert.Equal(2, editor.Connections.Count);
+            await editor.StartAsync();
+            AltClick(editor.Nodes.OfType<ConstantEditorViewModel>().Single().Outputs.Single());
+            Assert.Equal(2, editor.Connections.Count);
+            await editor.StopAsync();
+            Assert.Empty(errors);
+        }
+        finally { window.Close(); }
+    }
+
+    [AvaloniaFact]
     public async Task EditorConnectsSelectsCopiesUndoesPersistsAndRunsNumericParameters()
     {
         using var folder = new TestFolder();

@@ -371,6 +371,27 @@ public sealed class PipelineWorkspaceInteractionTests
             var document = await File.ReadAllTextAsync(Path.Combine(directory.Path, "pipelines.json"), TestContext.Current.CancellationToken);
             Assert.DoesNotContain("OutputLimit", document);
             Assert.Contains("Limit", document);
+            editor.SelectedNodes.Clear();
+            editor.SelectedNodes.Add(editor.Nodes.OfType<PlaylistEditorViewModel>().First());
+            var originalLanguage = L10n.Current.Language;
+            try
+            {
+                foreach (var language in new[] { "en", "zh-CN" })
+                {
+                    L10n.Current.SetLanguage(language);
+                    Dispatcher.UIThread.RunJobs();
+                    var row = workspace.GetVisualDescendants().OfType<StackPanel>().Single(p => p.Classes.Contains("playlist-actions"));
+                    var actions = row.Children.OfType<Button>().ToArray();
+                    Assert.Equal(4, actions.Length);
+                    Assert.Single(actions.Select(button => button.Bounds.Y).Distinct());
+                    Assert.Single(actions.Select(button => button.Bounds.Height).Distinct());
+                    Assert.All(actions, button => Assert.InRange(button.Bounds.Right, 0, row.Bounds.Width));
+                }
+                using var playlistFrame = window.CaptureRenderedFrame();
+                Assert.NotNull(playlistFrame);
+                playlistFrame.Save(Path.Combine(screenshots, "playlist-actions-inline.png"), PngBitmapEncoderOptions.Default);
+            }
+            finally { L10n.Current.SetLanguage(originalLanguage); }
             await vm.NavigateAsync("devices");
             Dispatcher.UIThread.RunJobs();
             var deviceCards = window.GetVisualDescendants().OfType<DeviceCardView>().Where(v => v.IsEffectivelyVisible).ToArray();

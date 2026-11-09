@@ -61,6 +61,12 @@
     <Setter Property="HorizontalAlignment" Value="Stretch" />
     <Setter Property="Margin" Value="{DynamicResource Margin.AboveSmall}" />
   </Style>
+  <Style Selector="StackPanel.playlist-actions">
+    <Setter Property="Spacing" Value="{DynamicResource Space.XSmall}" />
+  </Style>
+  <Style Selector="Button.playlist-action">
+    <Setter Property="Padding" Value="{DynamicResource Padding.CompactButton}" />
+  </Style>
   <Style Selector="ProgressBar.node-strength">
     <Setter Property="MinWidth" Value="{DynamicResource Size.NodeStrengthWidth}" />
     <Setter Property="Height" Value="{DynamicResource Size.NodeStrengthHeight}" />

@@ -46,6 +46,7 @@
   <Thickness x:Key="Padding.Session">20,16</Thickness>
   <Thickness x:Key="Padding.Button">14,10</Thickness>
   <Thickness x:Key="Padding.ButtonSmall">10,5</Thickness>
+  <Thickness x:Key="Padding.CompactButton">6,5</Thickness>
   <Thickness x:Key="Padding.Input">10,9</Thickness>
   <Thickness x:Key="Padding.Navigation">16,13</Thickness>
   <Thickness x:Key="Padding.Device">14</Thickness>
