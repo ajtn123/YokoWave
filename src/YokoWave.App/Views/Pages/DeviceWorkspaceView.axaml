@@ -21,6 +21,7 @@
         </StackPanel>
       </Border>
       <components:DeviceTelemetryView DataContext="{Binding Telemetry}" />
+      <components:DgLabDeviceStateView DataContext="{Binding DgLabState}" />
       <components:ProtocolFeaturesView DataContext="{Binding ProtocolFeatures}" />
       <components:RemoteSourcesView DataContext="{Binding RemoteSources}" />
     </StackPanel>

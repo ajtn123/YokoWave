@@ -21,6 +21,7 @@ public sealed class DgLabV4Relay(DgLabV4RelaySettings settings, TimeProvider? cl
     private readonly CancellationTokenSource _lifetime = new();
     private readonly TimeProvider _clock = clock ?? TimeProvider.System;
     private WebApplication? _app;
+    private X509Certificate2? _certificate;
     private Task _heartbeat = Task.CompletedTask;
     private int _disposed;
     public Uri? Url { get; private set; }
@@ -37,10 +38,17 @@ public sealed class DgLabV4Relay(DgLabV4RelaySettings settings, TimeProvider? cl
         builder.WebHost.ConfigureKestrel(options => options.Listen(IPAddress.Parse(settings.Address), settings.Port, listen =>
         {
             if (settings.CertificatePath is { Length: > 0 } path)
-                listen.UseHttps(X509CertificateLoader.LoadPkcs12FromFile(path, certificatePassword));
+            {
+                _certificate = X509CertificateLoader.LoadPkcs12FromFile(path, certificatePassword);
+                listen.UseHttps(_certificate);
+            }
         }));
         var app = builder.Build();
-        app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = TimeSpan.FromSeconds(10), KeepAliveTimeout = TimeSpan.FromSeconds(30) });
+        app.UseWebSockets(new WebSocketOptions
+        {
+            KeepAliveInterval = TimeSpan.FromMilliseconds(settings.PingMilliseconds),
+            KeepAliveTimeout = TimeSpan.FromMilliseconds((long)settings.PingMilliseconds * settings.MaximumMissedPongs)
+        });
         app.Run(AcceptAsync);
         try
         {
@@ -50,9 +58,20 @@ public sealed class DgLabV4Relay(DgLabV4RelaySettings settings, TimeProvider? cl
             Url = new UriBuilder(address) { Scheme = settings.CertificatePath is { Length: > 0 } ? "wss" : "ws", Path = settings.Path }.Uri;
             _heartbeat = HeartbeatAsync();
         }
-        catch
+        catch (Exception error)
         {
-            await app.DisposeAsync().ConfigureAwait(false);
+            try
+            {
+                await app.DisposeAsync().ConfigureAwait(false);
+            }
+            catch (Exception cleanup)
+            {
+                throw new LocalizedAggregateException("Error.Cleanup", [error, cleanup]);
+            }
+            finally
+            {
+                _certificate?.Dispose();
+            }
             throw;
         }
     }
@@ -68,9 +87,16 @@ public sealed class DgLabV4Relay(DgLabV4RelaySettings settings, TimeProvider? cl
         foreach (var connection in connections)
             connection.Wire.Abort();
         await _heartbeat.ConfigureAwait(false);
-        if (_app is not null)
-            await _app.DisposeAsync().ConfigureAwait(false);
-        _lifetime.Dispose();
+        try
+        {
+            if (_app is not null)
+                await _app.DisposeAsync().ConfigureAwait(false);
+        }
+        finally
+        {
+            _certificate?.Dispose();
+            _lifetime.Dispose();
+        }
     }
 
     private async Task AcceptAsync(HttpContext context)
@@ -87,13 +113,12 @@ public sealed class DgLabV4Relay(DgLabV4RelaySettings settings, TimeProvider? cl
         }
         string? controllerId = context.Request.Query["tid"].FirstOrDefault();
         using var socket = await context.WebSockets.AcceptWebSocketAsync().ConfigureAwait(false);
-        await using var wire = new JsonWebSocket(socket);
-        var connection = new RelayConnection(NewId(), wire, string.IsNullOrEmpty(controllerId) ? null : controllerId, _clock.GetUtcNow());
-        wire.Received += frame => Receive(connection, frame);
-        wire.Start();
+        await using var wire = new JsonWebSocket(socket, ignoreInvalidJson: true);
+        RelayConnection connection;
         bool attached;
         lock (_gate)
         {
+            connection = new RelayConnection(NewId(), wire, string.IsNullOrEmpty(controllerId) ? null : controllerId, _clock.GetTimestamp());
             attached = _connections.Count < 256 && (connection.Controller is null ||
                 _connections.TryGetValue(connection.Controller, out var controller) && controller.Controller is null);
             Send(connection, new { type = "hello", clientId = connection.Id });
@@ -109,6 +134,8 @@ public sealed class DgLabV4Relay(DgLabV4RelaySettings settings, TimeProvider? cl
                 }
             }
         }
+        wire.Received += frame => Receive(connection, frame);
+        wire.Start();
         if (!attached)
         {
             Send(connection, new { type = "error", code = "controller_not_found" });
@@ -131,7 +158,9 @@ public sealed class DgLabV4Relay(DgLabV4RelaySettings settings, TimeProvider? cl
         {
             if (!_connections.ContainsKey(connection.Id))
                 return;
-            string type = DgLabV4Protocol.String(frame, "type");
+            if (!frame.TryGetProperty("type", out var kind) || kind.ValueKind != JsonValueKind.String)
+                return;
+            string? type = kind.GetString();
             if (type == "ping")
             {
                 Send(connection, new { type = "pong", ts = _clock.GetUtcNow().ToUnixTimeMilliseconds() });
@@ -170,7 +199,7 @@ public sealed class DgLabV4Relay(DgLabV4RelaySettings settings, TimeProvider? cl
             if (connection.Controller is { } parent && _connections.TryGetValue(parent, out var controller))
             {
                 controller.Clients.Remove(connection.Id);
-                controller.IdleSince = _clock.GetUtcNow();
+                controller.IdleSince = _clock.GetTimestamp();
                 Send(controller, new { type = "client_disconnected", clientId = connection.Id });
             }
             foreach (string id in connection.Clients)
@@ -190,17 +219,22 @@ public sealed class DgLabV4Relay(DgLabV4RelaySettings settings, TimeProvider? cl
     {
         try
         {
+            long heartbeatAt = _clock.GetTimestamp();
             using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(Math.Min(settings.HeartbeatMilliseconds, settings.IdleMilliseconds)), _clock);
             while (await timer.WaitForNextTickAsync(_lifetime.Token).ConfigureAwait(false))
             {
                 List<RelayConnection> expired = [];
+                bool heartbeatDue = _clock.GetElapsedTime(heartbeatAt) >= TimeSpan.FromMilliseconds(settings.HeartbeatMilliseconds);
+                if (heartbeatDue)
+                    heartbeatAt = _clock.GetTimestamp();
                 lock (_gate)
                 {
                     foreach (var connection in _connections.Values)
                     {
-                        Send(connection, new { type = "heartbeat" });
+                        if (heartbeatDue)
+                            Send(connection, new { type = "heartbeat" });
                         if (connection.Controller is null && connection.Clients.Count == 0 &&
-                            _clock.GetUtcNow() - connection.IdleSince >= TimeSpan.FromMilliseconds(settings.IdleMilliseconds))
+                            _clock.GetElapsedTime(connection.IdleSince) >= TimeSpan.FromMilliseconds(settings.IdleMilliseconds))
                         {
                             Send(connection, new { type = "idle_timeout" });
                             expired.Add(connection);
@@ -243,12 +277,12 @@ public sealed class DgLabV4Relay(DgLabV4RelaySettings settings, TimeProvider? cl
         }
     }
 
-    private sealed class RelayConnection(string id, JsonWebSocket wire, string? controller, DateTimeOffset idleSince)
+    private sealed class RelayConnection(string id, JsonWebSocket wire, string? controller, long idleSince)
     {
         public string Id { get; } = id;
         public JsonWebSocket Wire { get; } = wire;
         public string? Controller { get; } = controller;
         public HashSet<string> Clients { get; } = [];
-        public DateTimeOffset IdleSince { get; set; } = idleSince;
+        public long IdleSince { get; set; } = idleSince;
     }
 }

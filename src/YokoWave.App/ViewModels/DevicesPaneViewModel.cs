@@ -44,6 +44,7 @@ public sealed class DevicesPaneViewModel : ObservableObject, IAsyncDisposable
     public DeviceTelemetryViewModel Telemetry { get; }
     public ProtocolFeaturesViewModel ProtocolFeatures { get; }
     public RemoteSourcesViewModel RemoteSources { get; }
+    public DgLabDeviceStateViewModel DgLabState { get; }
     public bool UsesLocalBluetooth => !_controller.IsLocalSimulation;
     public string TransportName => _controller.TransportName;
     public bool IsScanning
@@ -133,6 +134,7 @@ public sealed class DevicesPaneViewModel : ObservableObject, IAsyncDisposable
         Telemetry = new(controller, error);
         ProtocolFeatures = new(controller, error);
         RemoteSources = new(controller, ScanAsync, save, id => stopForDevice(id, "Reason.ConnectionChanged"), error);
+        DgLabState = new(() => RemoteSources.FindSlot(SelectedDevice?.Id ?? ""));
         ScanCommand = new(ScanAsync, error, () => !IsScanning);
         ReadDeviceFeaturesCommand = new(() => FeatureAsync(id => controller.RefreshFeaturesAsync(id)), error, () => CanReadDeviceFeatures);
         ToggleLightCommand = new(() => FeatureAsync(id => controller.SetLightAsync(id, Connection?.LightEnabled != true)), error, () => CanControlLight);
@@ -258,6 +260,7 @@ public sealed class DevicesPaneViewModel : ObservableObject, IAsyncDisposable
                 item.UpdateReadings(connection.Device);
         }
         Telemetry.SelectDevice(SelectedDevice?.Device);
+        DgLabState.Refresh();
         ProtocolFeatures.SelectDevice(SelectedDevice?.Device);
         foreach (string? property in new[] { nameof(TransportName), nameof(UsesLocalBluetooth), nameof(ScanLabel), nameof(ConnectedCount), nameof(ConnectedSummary), nameof(HasSelection),
             nameof(SelectedName), nameof(SelectedKind), nameof(SelectedId), nameof(SelectedBatteryLabel), nameof(SelectedSignal), nameof(SelectedConnected), nameof(SelectedContacts),

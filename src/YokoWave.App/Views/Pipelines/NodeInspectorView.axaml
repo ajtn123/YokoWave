@@ -131,6 +131,10 @@
         <NumericUpDown Value="{Binding HeartbeatMilliseconds}" Minimum="100" Maximum="300000" Increment="1000" />
         <TextBlock Text="{l:Loc DgLab.IdleTimeout}" Classes="field-label" />
         <NumericUpDown Value="{Binding IdleMilliseconds}" Minimum="100" Maximum="3600000" Increment="1000" />
+          <TextBlock Text="{l:Loc DgLab.PingInterval}" Classes="field-label" />
+          <NumericUpDown Value="{Binding PingMilliseconds}" Minimum="100" Maximum="300000" Increment="1000" />
+          <TextBlock Text="{l:Loc DgLab.MissedPongs}" Classes="field-label" />
+          <NumericUpDown Value="{Binding MaximumMissedPongs}" Minimum="1" Maximum="30" />
         <TextBlock Text="{l:Loc Remote.Certificate}" Classes="field-label" />
         <TextBox Text="{Binding CertificatePath}" />
         <TextBox Text="{Binding CertificatePassword}" PasswordChar="●" PlaceholderText="{l:Loc Pipeline.CertificatePassword}" />

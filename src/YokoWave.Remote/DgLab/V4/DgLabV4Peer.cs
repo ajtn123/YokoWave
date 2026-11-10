@@ -11,6 +11,7 @@ public sealed record DgLabV4Request(string SourceId, string Id, string Method, J
 public sealed class DgLabV4Peer : IAsyncDisposable
 {
     private readonly ConcurrentDictionary<(string Client, string Id), TaskCompletionSource<JsonElement>> _pending = new();
+    private readonly object _requestsGate = new();
     private readonly TaskCompletionSource<string> _hello = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource _attached = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private JsonWebSocket? _wire;
@@ -60,16 +61,26 @@ public sealed class DgLabV4Peer : IAsyncDisposable
     public async Task<JsonElement> RequestAsync(string clientId, string method, object? data = null,
         TimeSpan? timeout = null, CancellationToken cancellationToken = default)
     {
-        if (!IsConnected || _pending.Count >= 256)
+        cancellationToken.ThrowIfCancellationRequested();
+        var responseTimeout = timeout ?? TimeSpan.FromSeconds(8);
+        if (responseTimeout != Timeout.InfiniteTimeSpan && (responseTimeout <= TimeSpan.Zero || responseTimeout.TotalMilliseconds > uint.MaxValue - 1))
+            throw new LocalizedArgumentException("Error.RemoteSettings");
+        if (!IsConnected)
             throw new LocalizedIOException("Error.RemoteDisconnected");
         string id = Interlocked.Increment(ref _nextId).ToString(System.Globalization.CultureInfo.InvariantCulture);
         var completion = new TaskCompletionSource<JsonElement>(TaskCreationOptions.RunContinuationsAsynchronously);
         var key = (clientId, id);
-        _pending[key] = completion;
+        lock (_requestsGate)
+        {
+            int capacity = method == "device.op.clear" ? 261 : IsReplacement(method, data) ? 257 : 256;
+            if (_pending.Count >= capacity)
+                throw new DgLabV4Exception("queue_full");
+            _pending[key] = completion;
+        }
         try
         {
-            SendData(clientId, new { t = "req", reqId = id, m = method, data });
-            return await completion.Task.WaitAsync(timeout ?? TimeSpan.FromSeconds(8), cancellationToken).ConfigureAwait(false);
+            SendData(clientId, data is null ? new { t = "req", reqId = id, m = method } : (object)new { t = "req", reqId = id, m = method, data });
+            return await completion.Task.WaitAsync(responseTimeout, cancellationToken).ConfigureAwait(false);
         }
         catch (TimeoutException error)
         {
@@ -191,5 +202,13 @@ public sealed class DgLabV4Peer : IAsyncDisposable
             if (_pending.TryRemove(entry.Key, out var completion))
                 completion.TrySetException(error ?? new LocalizedIOException("Error.RemoteDisconnected"));
         }
+    }
+
+    private static bool IsReplacement(string method, object? data)
+    {
+        if (method != "device.op" || data is null)
+            return false;
+        var operation = data is JsonElement element ? element : RemoteProtocol.Element(data);
+        return operation.ValueKind == JsonValueKind.Object && operation.TryGetProperty("im", out var immediate) && immediate.ValueKind == JsonValueKind.True;
     }
 }

@@ -9,7 +9,7 @@ public sealed class DgLabV4Exception(string code) : Exception, ILocalizedError
 {
     public string Code { get; } = code;
     public LocalizedMessage LocalizedMessage { get; } = code is "invalid_params" or "invalid_operate" or "slot_not_found" or "method_not_found" or
-        "duplicate_request_id" or "internal_error" or "client_not_found" or "controller_not_found" or "bad_request"
+        "duplicate_request_id" or "internal_error" or "client_not_found" or "controller_not_found" or "bad_request" or "queue_full"
         ? new("DgLab.Error." + code, []) : new("DgLab.Error", [code]);
     public override string Message => LocalizedMessage.Value;
 }
@@ -50,7 +50,7 @@ public static class DgLabV4Protocol
 {
     public static string String(JsonElement value, string key) => value.TryGetProperty(key, out var field) && field.ValueKind == JsonValueKind.String
         ? field.GetString()! : throw new DgLabV4Exception("invalid_params");
-    public static JsonElement Data(JsonElement frame) => frame.TryGetProperty("data", out var data) && data.ValueKind is not (JsonValueKind.Null or JsonValueKind.Undefined)
+    public static JsonElement Data(JsonElement frame) => frame.TryGetProperty("data", out var data)
         ? data : RemoteProtocol.Element(new { });
     public static T Read<T>(JsonElement value)
     {

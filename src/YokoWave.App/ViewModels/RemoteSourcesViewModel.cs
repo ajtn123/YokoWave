@@ -58,6 +58,7 @@ public sealed class RemoteSourcesViewModel : ObservableObject, IAsyncDisposable
             Add(endpoint);
     }
     public List<RemoteEndpointSettings> ToSettings() => Sources.Select(item => item.Settings).ToList();
+    public DgLabV4Slot? FindSlot(string deviceId) => Sources.Select(source => source.FindSlot(deviceId)).FirstOrDefault(slot => slot is not null);
     public async ValueTask DisposeAsync()
     {
         foreach (var item in Sources)

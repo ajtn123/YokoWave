@@ -5,16 +5,17 @@ namespace YokoWave.Remote.DgLab.V4;
 
 internal static class DgLabV4Models
 {
-    public static bool Supports(DeviceDescriptor device) => device.Profile?.Protocol is BluetoothProtocol.CoyoteV2 or BluetoothProtocol.CoyoteV3 or BluetoothProtocol.Opossum or BluetoothProtocol.Civet;
-    public static string Type(DeviceDescriptor device) => device.Profile?.Protocol switch
-    {
-        BluetoothProtocol.CoyoteV2 => "COYOTE_020",
-        BluetoothProtocol.CoyoteV3 => "COYOTE_030",
-        BluetoothProtocol.Opossum => "OVC_1",
-        BluetoothProtocol.Civet => "BMTR_1",
-        _ => throw new DgLabV4Exception("invalid_operate")
-    };
-    public static double Maximum(DeviceDescriptor device) => device.Profile?.Protocol == BluetoothProtocol.CoyoteV2 ? 2047 : 200;
+    private static readonly DgLabV4DeviceModel[] _models =
+    [
+        new("COYOTE_020", BluetoothProtocol.CoyoteV2, DeviceKind.DualChannel, 3, 2047),
+        new("COYOTE_030", BluetoothProtocol.CoyoteV3, DeviceKind.DualChannel, 3, 200),
+        new("OVC_1", BluetoothProtocol.Opossum, DeviceKind.Vibration, 3, 200),
+        new("BMTR_1", BluetoothProtocol.Civet, DeviceKind.Sensor, 0, 0)
+    ];
+    public static DgLabV4DeviceModel? Find(string type) => _models.FirstOrDefault(model => model.Type == type);
+    public static bool Supports(DeviceDescriptor device) => _models.Any(model => model.Protocol == device.Profile?.Protocol);
+    public static string Type(DeviceDescriptor device) => Require(device).Type;
+    public static double Maximum(DeviceDescriptor device) => Require(device).Maximum;
 
     public static DgLabV4Device Snapshot(string slotId, DeviceConnection connection)
     {
@@ -24,10 +25,15 @@ internal static class DgLabV4Models
         {
             ["power"] = device.Battery,
             ["connectState"] = "connected",
-            ["version"] = connection.HardwareVersion,
-            ["intensityA"] = connection.Telemetry?.IntensityA ?? (int)(connection.Output.ChannelA * maximum / 100),
-            ["intensityB"] = connection.Telemetry?.IntensityB ?? (int)(connection.Output.ChannelB * maximum / 100)
+            ["version"] = connection.HardwareVersion
         };
+        if (!device.IsInput)
+        {
+            props["intensityA"] = connection.Telemetry?.IntensityA;
+            props["intensityB"] = connection.Telemetry?.IntensityB;
+            if (device.Profile?.Protocol == BluetoothProtocol.Opossum && connection.Telemetry?.ModeA is { } mode)
+                props["mode"] = mode;
+        }
         if (connection.Telemetry?.PressureKpa is { } pressure)
         {
             props["pressure"] = pressure;
@@ -37,9 +43,17 @@ internal static class DgLabV4Models
         {
             ["hasDevice"] = true,
             ["markLight"] = "yellow",
-            ["channelA"] = new System.Text.Json.Nodes.JsonObject { ["isMuted"] = false, ["intensityMax"] = maximum },
-            ["channelB"] = new System.Text.Json.Nodes.JsonObject { ["isMuted"] = false, ["intensityMax"] = maximum }
         };
+        if (!device.IsInput)
+        {
+            state["channelA"] = new System.Text.Json.Nodes.JsonObject { ["isMuted"] = false, ["intensityMax"] = maximum };
+            state["channelB"] = new System.Text.Json.Nodes.JsonObject { ["isMuted"] = false, ["intensityMax"] = maximum };
+        }
         return new(slotId, device.Name, Type(device), props, state);
     }
+
+    private static DgLabV4DeviceModel Require(DeviceDescriptor device) => _models.FirstOrDefault(model => model.Protocol == device.Profile?.Protocol)
+        ?? throw new DgLabV4Exception("invalid_operate");
 }
+
+internal sealed record DgLabV4DeviceModel(string Type, BluetoothProtocol Protocol, DeviceKind Kind, int Channels, double Maximum);

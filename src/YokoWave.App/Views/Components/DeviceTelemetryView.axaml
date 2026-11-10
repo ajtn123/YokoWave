@@ -4,16 +4,7 @@
   <StackPanel Classes="items">
     <TextBlock Text="{l:Loc Telemetry.Title}" Classes="card-title" />
     <TextBlock Text="{Binding Timestamp}" Classes="muted caption" />
-    <ItemsControl x:Name="TelemetryList" ItemsSource="{Binding Readings}">
-      <ItemsControl.ItemTemplate>
-        <DataTemplate x:DataType="vm:TelemetryRow">
-          <Grid Classes="columns" ColumnDefinitions="*,Auto">
-            <TextBlock Text="{Binding Label}" Classes="muted caption" TextWrapping="Wrap" />
-            <TextBlock Grid.Column="1" Text="{Binding Value}" Classes="caption" />
-          </Grid>
-        </DataTemplate>
-      </ItemsControl.ItemTemplate>
-    </ItemsControl>
+    <ItemsControl x:Name="TelemetryList" ItemsSource="{Binding Readings}" ItemTemplate="{DynamicResource Template.TelemetryRow}" />
     <Button x:Name="ResetPressureButton" IsVisible="{Binding CanResetPressure}" Command="{Binding ResetPressureCommand}" Content="{l:Loc Telemetry.ResetPressure}" Classes="small" />
   </StackPanel>
 </UserControl>

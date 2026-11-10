@@ -6,15 +6,16 @@ using YokoWave.Core.Localization;
 namespace YokoWave.Remote;
 
 /// <summary>Bounded JSON text framing shared by protocol peers; one reader and one writer own the socket.</summary>
-internal sealed class JsonWebSocket(WebSocket socket) : IAsyncDisposable
+internal sealed class JsonWebSocket(WebSocket socket, bool ignoreInvalidJson = false) : IAsyncDisposable
 {
     private readonly CancellationTokenSource _lifetime = new();
+    private readonly TaskCompletionSource _completed = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly Channel<byte[]> _outgoing = Channel.CreateBounded<byte[]>(new BoundedChannelOptions(256) { SingleReader = true });
     private Task _writer = Task.CompletedTask;
     private Task _reader = Task.CompletedTask;
     private int _started;
     private int _disposed;
-    public Task Completion => _reader;
+    public Task Completion => _completed.Task;
     public Exception? Error { get; private set; }
     public event Action<JsonElement>? Received;
 
@@ -54,6 +55,8 @@ internal sealed class JsonWebSocket(WebSocket socket) : IAsyncDisposable
             await _writer.WaitAsync(timeout.Token).ConfigureAwait(false);
             if (socket.State is WebSocketState.Open or WebSocketState.CloseReceived)
                 await socket.CloseOutputAsync((WebSocketCloseStatus)code, reason, timeout.Token).ConfigureAwait(false);
+            // Let the peer receive queued errors and the close frame before disposing the underlying connection.
+            await _reader.WaitAsync(timeout.Token).ConfigureAwait(false);
         }
         catch (Exception error) when (error is WebSocketException or OperationCanceledException)
         {
@@ -67,6 +70,7 @@ internal sealed class JsonWebSocket(WebSocket socket) : IAsyncDisposable
             return;
         Abort();
         await Task.WhenAll(_reader, _writer).ConfigureAwait(false);
+        _completed.TrySetResult();
         socket.Dispose();
         _lifetime.Dispose();
     }
@@ -102,10 +106,9 @@ internal sealed class JsonWebSocket(WebSocket socket) : IAsyncDisposable
                         throw new LocalizedIOException("Error.RemoteMessageSize");
                     message.Write(buffer, 0, result.Count);
                 } while (!result.EndOfMessage);
-                using var document = JsonDocument.Parse(message.ToArray(), new JsonDocumentOptions { MaxDepth = 32 });
-                if (document.RootElement.ValueKind != JsonValueKind.Object)
-                    throw new LocalizedIOException("Error.RemoteRequest");
-                Received?.Invoke(document.RootElement);
+                using var document = Parse(message.ToArray());
+                if (document is not null)
+                    Received?.Invoke(document.RootElement);
             }
         }
         catch (Exception error) when (error is not OutOfMemoryException and not StackOverflowException)
@@ -115,6 +118,27 @@ internal sealed class JsonWebSocket(WebSocket socket) : IAsyncDisposable
         finally
         {
             Abort();
+            _completed.TrySetResult();
         }
+    }
+
+    private JsonDocument? Parse(byte[] message)
+    {
+        JsonDocument document;
+        try
+        {
+            document = JsonDocument.Parse(message, new JsonDocumentOptions { MaxDepth = 32 });
+        }
+        catch (JsonException) when (ignoreInvalidJson)
+        {
+            // The V4 relay ignores invalid JSON; typed peers remain strict.
+            return null;
+        }
+        if (document.RootElement.ValueKind == JsonValueKind.Object)
+            return document;
+        document.Dispose();
+        if (ignoreInvalidJson)
+            return null;
+        throw new LocalizedIOException("Error.RemoteRequest");
     }
 }

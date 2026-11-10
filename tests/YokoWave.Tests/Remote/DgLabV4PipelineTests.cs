@@ -162,8 +162,12 @@ public sealed class DgLabV4PipelineTests
         await using var controller = new DgLabV4Peer();
         await controller.ConnectAsync(relay.Url!, Ct);
         var snapshot = new TaskCompletionSource<double>(TaskCreationOptions.RunContinuationsAsynchronously);
+        ConcurrentQueue<string> frames = new();
+        Exception? wireError = null;
+        controller.Disconnected += error => wireError = error;
         controller.FrameReceived += (type, frame) =>
         {
+            frames.Enqueue(frame.GetRawText());
             if (type != "message")
                 return;
             var data = frame.GetProperty("data");
@@ -179,6 +183,16 @@ public sealed class DgLabV4PipelineTests
         builder.Add(DgLabV4Nodes.App, new DgLabV4AppNode(device.Id, relay.Url!.ToString(), controller.ClientId));
         await using var session = new PipelineSession(devices);
         await session.StartAsync(new PipelineCompiler(RemotePipelineNodes.Register(BuiltInNodes.CreateRegistry())).Compile(builder.Build(), [], new Dictionary<string, DeviceDescriptor> { [device.Id] = device }));
+        try
+        {
+            await snapshot.Task.WaitAsync(TimeSpan.FromSeconds(3), Ct);
+        }
+        catch (TimeoutException)
+        {
+            Assert.Fail($"Pressure publication missing. State: {session.State}; telemetry: {devices.Connections[device.Id].Telemetry}; frames: {string.Join(Environment.NewLine, frames)}");
+        }
+        Assert.True(controller.IsConnected, wireError?.ToString());
+        Assert.Null(session.Error);
         Assert.Equal(1.23, await snapshot.Task.WaitAsync(TimeSpan.FromSeconds(3), Ct));
         await session.StopAsync();
         var stream = adapter.Links[device.Id].Writes.Where(write => write.Data[0] == 0x50).Select(write => write.Data[2]);

@@ -3,6 +3,12 @@
   <DataTemplate x:Key="Template.SessionOption" x:DataType="vm:SessionOption">
     <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
   </DataTemplate>
+  <DataTemplate x:Key="Template.TelemetryRow" x:DataType="vm:TelemetryRow">
+    <Grid Classes="columns" ColumnDefinitions="*,Auto">
+      <TextBlock Text="{Binding Label}" Classes="muted caption" TextWrapping="Wrap" />
+      <TextBlock Grid.Column="1" Text="{Binding Value}" Classes="caption" TextWrapping="Wrap" />
+    </Grid>
+  </DataTemplate>
   <DataTemplate x:Key="Template.DeviceOption" x:DataType="pipelines:PipelineDeviceOption">
     <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
   </DataTemplate>

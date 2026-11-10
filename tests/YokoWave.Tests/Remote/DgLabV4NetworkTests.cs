@@ -1,4 +1,9 @@
 using System.Collections.Concurrent;
+using System.Net.WebSockets;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
+using System.Text.Json;
 using YokoWave.Core;
 using YokoWave.Remote.DgLab.V4;
 
@@ -58,7 +63,7 @@ public sealed class DgLabV4NetworkTests
         };
         await app.ConnectAsync(appUri, Ct);
         app.SendData(null, new { t = "ev", ev = "devices.snapshot", devices = new[] { new { slotId = "one", name = "Coyote", type = "COYOTE_030", slotState = new { hasDevice = true } } } });
-        await AsyncAssert.EventuallyAsync(() => source.Slots.Count == 1);
+        await AsyncAssert.EventuallyAsync(() => source.Slots.Count == 1 && source.Slots[0].Online);
         var device = Assert.Single(await source.ScanAsync(Ct));
         Assert.Equal("Coyote", device.Name);
         await source.ConnectAsync(device, Ct);
@@ -116,5 +121,92 @@ public sealed class DgLabV4NetworkTests
         await expired.Task.WaitAsync(TimeSpan.FromSeconds(3), Ct);
         await AsyncAssert.EventuallyAsync(() => !controller.IsConnected);
         Assert.Null(relay.Error);
+    }
+
+    [Fact]
+    public async Task ClearingRemainsAvailableWhenAllRegularRequestSlotsAreOccupied()
+    {
+        await using var relay = new DgLabV4Relay(new(Port: 0));
+        await relay.StartAsync(cancellationToken: Ct);
+        await using var peer = new DgLabV4Peer();
+        await peer.ConnectAsync(relay.Url!, Ct);
+        await using var app = new DgLabV4Peer();
+        int received = 0;
+        app.Requested += request =>
+        {
+            if (request.Method == "device.op.clear")
+                app.Respond(request, new { });
+            else
+                Interlocked.Increment(ref received);
+        };
+        await app.ConnectAsync(DgLabV4Protocol.AppUri(relay.Url!.ToString(), peer.ClientId), Ct);
+        var pending = Enumerable.Range(0, 256).Select(_ => peer.RequestAsync(app.ClientId, "device.op", new { }, Timeout.InfiniteTimeSpan, Ct)).ToArray();
+        await AsyncAssert.EventuallyAsync(() => Volatile.Read(ref received) == 256);
+        var full = await Assert.ThrowsAsync<DgLabV4Exception>(() => peer.RequestAsync(app.ClientId, "device.op", cancellationToken: Ct));
+        Assert.Equal("queue_full", full.Code);
+        await new DgLabV4Controller(peer).ClearAsync(app.ClientId, cancellationToken: Ct);
+        await peer.DisposeAsync();
+        await Assert.ThrowsAnyAsync<IOException>(() => Task.WhenAll(pending));
+    }
+
+    [Fact]
+    public async Task RelayIgnoresMalformedFramesAndPreservesOpaquePayloads()
+    {
+        await using var relay = new DgLabV4Relay(new(Port: 0));
+        await relay.StartAsync(cancellationToken: Ct);
+        using var controller = new ClientWebSocket();
+        await controller.ConnectAsync(relay.Url!, Ct);
+        string id = (await ReceiveAsync(controller)).GetProperty("clientId").GetString()!;
+        foreach (string message in new[] { "not-json", "[]", "{}", "{\"type\":7}", "{\"type\":\"ping\"}" })
+            await controller.SendAsync(Encoding.UTF8.GetBytes(message), WebSocketMessageType.Text, true, Ct);
+        Assert.Equal("pong", (await ReceiveAsync(controller)).GetProperty("type").GetString());
+        await using var app = new DgLabV4Peer();
+        var forwarded = new TaskCompletionSource<JsonElement>(TaskCreationOptions.RunContinuationsAsynchronously);
+        app.FrameReceived += (type, frame) =>
+        {
+            if (type == "message")
+                forwarded.TrySetResult(frame.GetProperty("data").Clone());
+        };
+        await app.ConnectAsync(DgLabV4Protocol.AppUri(relay.Url!.ToString(), id), Ct);
+        string raw = JsonSerializer.Serialize(new { type = "message", clientId = app.ClientId, data = new[] { 1, 2, 3 } });
+        await controller.SendAsync(Encoding.UTF8.GetBytes(raw), WebSocketMessageType.Text, true, Ct);
+        Assert.Equal(new[] { 1, 2, 3 }, (await forwarded.Task.WaitAsync(TimeSpan.FromSeconds(3), Ct)).EnumerateArray().Select(item => item.GetInt32()));
+    }
+
+    [Fact]
+    public async Task RelaySupportsPfxTlsWithoutDisablingClientTrustValidation()
+    {
+        using var folder = new TestFolder();
+        using var key = RSA.Create(2048);
+        var request = new CertificateRequest("CN=localhost", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        using var certificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-1), DateTimeOffset.UtcNow.AddHours(1));
+        string path = Path.Combine(folder.Path, "test.pfx");
+        await File.WriteAllBytesAsync(path, certificate.Export(X509ContentType.Pfx, "test-only"), Ct);
+        await using var relay = new DgLabV4Relay(new(Port: 0, CertificatePath: path));
+        await relay.StartAsync("test-only", Ct);
+        Assert.Equal("wss", relay.Url!.Scheme);
+        await using var untrusted = new DgLabV4Peer();
+        await Assert.ThrowsAsync<WebSocketException>(() => untrusted.ConnectAsync(relay.Url, Ct));
+        using var trusted = new ClientWebSocket();
+        trusted.Options.RemoteCertificateValidationCallback = (_, peer, _, _) => peer?.GetCertHashString() == certificate.GetCertHashString();
+        await trusted.ConnectAsync(relay.Url, Ct);
+        Assert.Equal("hello", (await ReceiveAsync(trusted)).GetProperty("type").GetString());
+    }
+
+    private static async Task<JsonElement> ReceiveAsync(ClientWebSocket socket)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        timeout.CancelAfter(TimeSpan.FromSeconds(3));
+        byte[] buffer = new byte[8192];
+        using var bytes = new MemoryStream();
+        WebSocketReceiveResult frame;
+        do
+        {
+            frame = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), timeout.Token);
+            Assert.Equal(WebSocketMessageType.Text, frame.MessageType);
+            bytes.Write(buffer, 0, frame.Count);
+        } while (!frame.EndOfMessage);
+        using var document = JsonDocument.Parse(bytes.ToArray());
+        return document.RootElement.Clone();
     }
 }

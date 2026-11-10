@@ -1,0 +1,7 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:YokoWave.App.ViewModels" xmlns:l="using:YokoWave.App.Localization"
+             x:Class="YokoWave.App.Views.Components.DgLabDeviceStateView" x:DataType="vm:DgLabDeviceStateViewModel" IsVisible="{Binding IsVisible}">
+  <StackPanel Classes="items">
+    <TextBlock Text="{l:Loc DgLab.DeviceState}" Classes="card-title" />
+    <ItemsControl ItemsSource="{Binding Readings}" ItemTemplate="{DynamicResource Template.TelemetryRow}" />
+  </StackPanel>
+</UserControl>

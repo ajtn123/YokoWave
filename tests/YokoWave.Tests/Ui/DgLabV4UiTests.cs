@@ -1,6 +1,8 @@
+using System.Text.Json.Nodes;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using YokoWave.App.ViewModels;
 using YokoWave.App.ViewModels.Pipelines;
 using YokoWave.App.Views.Components;
@@ -14,6 +16,42 @@ namespace YokoWave.Tests.Ui;
 
 public sealed class DgLabV4UiTests
 {
+    [AvaloniaFact]
+    public void ReportedSlotStateUsesLocalizedReadOnlyRowsInBothLanguages()
+    {
+        using var state = new UiTestState();
+        DgLabV4Slot? selected = new("id", "app", new("slot", "Coyote", "COYOTE_030", new() { ["channelAStatus"] = 2 },
+            JsonNode.Parse("{\"hasDevice\":true,\"markLight\":\"green\",\"channelA\":{\"warmUpScale\":0.5,\"comfortLimit\":{\"mode\":\"complex\",\"absoluteMax\":100,\"overheat\":true,\"autoIncrScope\":3}}}")!.AsObject()), DateTimeOffset.UtcNow);
+        var model = new DgLabDeviceStateViewModel(() => selected);
+        using var sink = new BindingLogCapture();
+        var view = new DgLabDeviceStateView { DataContext = model };
+        var window = new Window { Width = 600, Height = 700, Content = view };
+        try
+        {
+            window.Show();
+            foreach (string language in new[] { "en", "zh-CN" })
+            {
+                L10n.Current.SetLanguage(language);
+                model.Refresh();
+                Dispatcher.UIThread.RunJobs();
+                Assert.Contains(model.Readings, row => row.Value == L10n.Get("DgLab.Value.green"));
+                Assert.Contains(model.Readings, row => row.Value == L10n.Get("DgLab.Value.ChannelStatus2"));
+                Assert.Contains(model.Readings, row => row.Value == L10n.Get("DgLab.Value.Scope3"));
+                Assert.DoesNotContain(window.GetVisualDescendants().OfType<TextBlock>(), text => text.Text?.StartsWith('[') == true);
+            }
+            UiArtifacts.Capture(window, "dglab-v4-state.png");
+            selected = null;
+            model.Refresh();
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(view.IsVisible);
+            Assert.Empty(sink.Errors);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
     [AvaloniaFact]
     public async Task SourceShowsPairingWithoutTokenAndLanguageChangesRetainTheQrCode()
     {
@@ -89,6 +127,8 @@ public sealed class DgLabV4UiTests
             settings.Path = "/test";
             settings.HeartbeatMilliseconds = 200;
             settings.IdleMilliseconds = 2000;
+            settings.PingMilliseconds = 5000;
+            settings.MaximumMissedPongs = 4;
             settings.CertificatePassword = "memory-only";
             Assert.Same(settings, Assert.Single(relay.Nodes));
             Assert.True(relay.CanStart);
@@ -118,6 +158,8 @@ public sealed class DgLabV4UiTests
         Assert.Equal("/test", loaded.Path);
         Assert.Equal(200, loaded.HeartbeatMilliseconds);
         Assert.Equal(2000, loaded.IdleMilliseconds);
+        Assert.Equal(5000, loaded.PingMilliseconds);
+        Assert.Equal(4, loaded.MaximumMissedPongs);
         Assert.Empty(loaded.CertificatePassword);
         var input = Assert.IsType<DgLabAppEditorViewModel>(restored.Pipelines.Single(graph => graph.Id == appId).Nodes.Single(node => node.Type == DgLabV4Nodes.App));
         Assert.Equal("ws://localhost:9998/test", input.Url);

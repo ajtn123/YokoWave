@@ -59,13 +59,13 @@ public sealed class DgLabV4ProtocolTests
             devices = new[] { new DgLabV4Device("slot", name, "COYOTE_030", JsonNode.Parse("{\"power\":80}")!.AsObject(),
             JsonNode.Parse("{\"hasDevice\":true,\"channelA\":{\"isMuted\":false,\"intensityMax\":90}}")!.AsObject()) }
         };
-        catalog.Apply("one", RemoteProtocol.Element(Snapshot("First")));
-        catalog.Apply("two", RemoteProtocol.Element(Snapshot("Second")));
-        var slots = catalog.Slots;
+        catalog.ApplyEvent("one", RemoteProtocol.Element(Snapshot("First")));
+        catalog.ApplyEvent("two", RemoteProtocol.Element(Snapshot("Second")));
+        var slots = catalog.Snapshot();
         Assert.Equal(2, slots.Count);
         Assert.NotEqual(slots[0].Id, slots[1].Id);
-        catalog.Apply("one", RemoteProtocol.Element(new { ev = "slots.patch", slots = new[] { new { slotId = "slot", slotState = new { channelA = new { isMuted = true } } } } }));
-        var first = catalog.Slots.Single(slot => slot.AppId == "one");
+        catalog.ApplyEvent("one", RemoteProtocol.Element(new { ev = "slots.patch", slots = new[] { new { slotId = "slot", slotState = new { channelA = new { isMuted = true } } } } }));
+        var first = catalog.Snapshot().Single(slot => slot.AppId == "one");
         Assert.Equal(0, first.Limit(0));
         Assert.Equal(90, first.Device.SlotState!["channelA"]!["intensityMax"]!.GetValue<int>());
         Assert.True(first.Device.SlotState!["channelA"]!["isMuted"]!.GetValue<bool>());
@@ -73,7 +73,7 @@ public sealed class DgLabV4ProtocolTests
         Assert.False(first.Descriptor.Supports(DeviceCapability.Balance));
         Assert.False(new NativeProgramSettings(NativeProgramKind.CoyoteV2Pulse).Accepts(first.Descriptor));
         catalog.RemoveApp("one");
-        Assert.Equal("Second", Assert.Single(catalog.Slots).Device.Name);
+        Assert.Equal("Second", Assert.Single(catalog.Snapshot()).Device.Name);
     }
 
     [Fact]
@@ -81,7 +81,7 @@ public sealed class DgLabV4ProtocolTests
     {
         var clock = new ManualInputClock();
         var catalog = new DgLabV4DeviceCatalog(Guid.NewGuid(), clock);
-        catalog.Apply("app", RemoteProtocol.Element(new
+        catalog.ApplyEvent("app", RemoteProtocol.Element(new
         {
             ev = "devices.snapshot",
             devices = new[]
@@ -90,17 +90,17 @@ public sealed class DgLabV4ProtocolTests
             new DgLabV4Device("unknown", "Unknown", "FUTURE_DEVICE")
         }
         }));
-        Assert.False(catalog.Slots.Single(slot => slot.Device.SlotId == "unknown").Descriptor.IsSupported);
-        var captured = catalog.Slots.Single(slot => slot.Device.SlotId == "sensor").CapturedAt;
+        Assert.False(catalog.Snapshot().Single(slot => slot.Device.SlotId == "unknown").Descriptor.IsSupported);
+        var captured = catalog.Snapshot().Single(slot => slot.Device.SlotId == "sensor").CapturedAt;
         clock.Advance(3);
-        catalog.Apply("app", RemoteProtocol.Element(new { ev = "slots.patch", slots = new[] { new { slotId = "sensor", props = new { power = 90 } } } }));
-        Assert.Equal(captured, catalog.Slots.Single(slot => slot.Device.SlotId == "sensor").CapturedAt);
-        catalog.Apply("app", RemoteProtocol.Element(new { devices = new[] { new DgLabV4Device("sensor", "Renamed", "BMTR_1") } }), descriptions: true);
-        var sensor = Assert.Single(catalog.Slots);
+        catalog.ApplyEvent("app", RemoteProtocol.Element(new { ev = "slots.patch", slots = new[] { new { slotId = "sensor", props = new { power = 90 } } } }));
+        Assert.Equal(captured, catalog.Snapshot().Single(slot => slot.Device.SlotId == "sensor").CapturedAt);
+        catalog.ApplyDescriptions("app", RemoteProtocol.Element(new { devices = new[] { new DgLabV4Device("sensor", "Renamed", "BMTR_1") } }), catalog.Revision("app"));
+        var sensor = Assert.Single(catalog.Snapshot());
         Assert.Equal(2, sensor.Device.Props!["pressure"]!.GetValue<int>());
         Assert.Equal(captured, sensor.CapturedAt);
-        catalog.Apply("app", RemoteProtocol.Element(new { ev = "slots.patch", slots = new[] { new { slotId = "sensor", props = new { updateTime = "next-sample" } } } }));
-        Assert.Equal(clock.GetUtcNow(), Assert.Single(catalog.Slots).CapturedAt);
+        catalog.ApplyEvent("app", RemoteProtocol.Element(new { ev = "slots.patch", slots = new[] { new { slotId = "sensor", props = new { updateTime = "next-sample" } } } }));
+        Assert.Equal(clock.GetUtcNow(), Assert.Single(catalog.Snapshot()).CapturedAt);
     }
 
     [Fact]
@@ -120,5 +120,74 @@ public sealed class DgLabV4ProtocolTests
         Assert.Equal(new[] { "completed", "cleared", "cleared" }, scheduler.DrainCompleted().Select(result => result.Reason));
         Assert.Throws<DgLabV4Exception>(() => new DgLabV4Scheduler(double.NaN));
         Assert.Throws<DgLabV4Exception>(() => scheduler.Submit("invalid", new("s", 7, 0, RemoteProtocol.Element(1))));
+    }
+
+    [Fact]
+    public void StaleQueriesCannotUndoNewerEventsAndInvalidMeasurementsDoNotBecomeFresh()
+    {
+        var clock = new ManualInputClock();
+        var catalog = new DgLabV4DeviceCatalog(Guid.NewGuid(), clock);
+        long initial = catalog.Revision("app");
+        catalog.ApplyEvent("app", RemoteProtocol.Element(new
+        {
+            ev = "devices.snapshot",
+            devices = new[]
+        {
+            new DgLabV4Device("s", "Sensor", "BMTR_1", new() { ["pressure"] = 3 }, new() { ["hasDevice"] = true })
+        }
+        }));
+        Assert.False(catalog.ApplyDescriptions("app", RemoteProtocol.Element(new { devices = new DgLabV4Device[0] }), initial));
+        Assert.Single(catalog.Snapshot());
+        clock.Advance(4);
+        catalog.ApplyEvent("app", RemoteProtocol.Element(new { ev = "slots.patch", slots = new[] { new { slotId = "s", props = new { pressure = (double?)null } } } }));
+        var slot = Assert.Single(catalog.Snapshot());
+        Assert.Equal(DateTimeOffset.MinValue, slot.CapturedAt);
+        Assert.Null(slot.Status(clock.GetUtcNow()).Telemetry!.PressureKpa);
+        long revision = catalog.Revision("app");
+        Assert.Throws<DgLabV4Exception>(() => catalog.ApplyEvent("app", RemoteProtocol.Element(new { ev = "devices.snapshot", devices = new[] { new DgLabV4Device("duplicate", "a", "BMTR_1"), new DgLabV4Device("duplicate", "b", "BMTR_1") } })));
+        Assert.Equal(revision, catalog.Revision("app"));
+        Assert.Equal(slot.Id, Assert.Single(catalog.Snapshot()).Id);
+        catalog.Clear();
+        Assert.False(catalog.ApplyDescriptions("app", RemoteProtocol.Element(new { devices = new[] { slot.Device } }), revision));
+        Assert.Empty(catalog.Snapshot());
+    }
+
+    [Fact]
+    public void TaskWindowsRespectSubTickDurationsAndImmediateReplacementAtCapacity()
+    {
+        var scheduler = new DgLabV4Scheduler();
+        scheduler.Submit("level", new("s", 4, 0, RemoteProtocol.Element(100), Duration: 50));
+        scheduler.Submit("pulse", new("s", 0, 0, RemoteProtocol.Element(new[] { "3232323264646464" }), Duration: 50));
+        var frame = scheduler.Evaluate(TimeSpan.Zero);
+        Assert.Equal(new[] { 1d, 1, 0, 0 }, frame.WindowA!.Select(sample => sample.Level));
+        Assert.Equal(new[] { 1d, 1, 0, 0 }, frame.WindowA!.Select(sample => sample.PulseWidth));
+        Assert.Equal(0, scheduler.Evaluate(TimeSpan.FromMilliseconds(100)).ChannelA);
+        Assert.Equal(2, scheduler.DrainCompleted().Count);
+        for (int i = 0; i < 256; i++)
+            scheduler.Submit(i.ToString(), new("s", 4, 0, RemoteProtocol.Element(0)));
+        scheduler.Submit("replace", new("s", 4, 0, RemoteProtocol.Element(0), Immediate: true));
+        Assert.Equal(1, scheduler.Count);
+        Assert.Equal(256, scheduler.DrainCompleted().Count);
+    }
+
+    [Fact]
+    public void SlotStatusMapsOnlyReportedValuesAndPreservesUnknownFields()
+    {
+        var slot = new DgLabV4Slot("id", "app", new("slot", "Opossum", "OVC_1", new()
+        {
+            ["power"] = 90,
+            ["version"] = 2,
+            ["channelAStatus"] = true,
+            ["channelBStatus"] = false,
+            ["mode"] = 2,
+            ["future"] = new JsonObject { ["nested"] = "value" }
+        }, new() { ["hasDevice"] = true }), DateTimeOffset.UtcNow);
+        var status = slot.Status(DateTimeOffset.UtcNow);
+        Assert.Equal(ElectrodeContact.Connected, status.ContactA);
+        Assert.Equal(ElectrodeContact.NotConnected, status.ContactB);
+        Assert.Equal((byte)2, status.HardwareVersion);
+        Assert.Equal(2, status.Telemetry!.ModeA);
+        Assert.Null(status.Telemetry.IntensityA);
+        Assert.Equal("value", slot.Device.Props!["future"]!["nested"]!.GetValue<string>());
     }
 }

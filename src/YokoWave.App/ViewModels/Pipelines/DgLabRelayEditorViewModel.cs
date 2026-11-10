@@ -11,6 +11,8 @@ public sealed class DgLabRelayEditorViewModel : NodeEditorViewModel
     public string Path { get => _settings.Path; set => Update(_settings with { Path = value }, nameof(Path)); }
     public int HeartbeatMilliseconds { get => _settings.HeartbeatMilliseconds; set => Update(_settings with { HeartbeatMilliseconds = value }, nameof(HeartbeatMilliseconds)); }
     public int IdleMilliseconds { get => _settings.IdleMilliseconds; set => Update(_settings with { IdleMilliseconds = value }, nameof(IdleMilliseconds)); }
+    public int PingMilliseconds { get => _settings.PingMilliseconds; set => Update(_settings with { PingMilliseconds = value }, nameof(PingMilliseconds)); }
+    public int MaximumMissedPongs { get => _settings.MaximumMissedPongs; set => Update(_settings with { MaximumMissedPongs = value }, nameof(MaximumMissedPongs)); }
     public string CertificatePath { get => _settings.CertificatePath ?? ""; set => Update(_settings with { CertificatePath = value.Length == 0 ? null : value }, nameof(CertificatePath)); }
     public string CertificatePassword
     {

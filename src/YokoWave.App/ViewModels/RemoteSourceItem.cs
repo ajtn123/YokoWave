@@ -66,6 +66,8 @@ public sealed class RemoteSourceItem : ObservableObject
         Raise(nameof(Status));
     }
 
+    public DgLabV4Slot? FindSlot(string deviceId) => _dglab?.FindSlot(deviceId);
+
     private void OnDevicesChanged() => Dispatcher.UIThread.Post(() =>
     {
         PairingCode.Update(_dglab?.PairingUrl ?? "", _dglab?.ControllerId ?? "");

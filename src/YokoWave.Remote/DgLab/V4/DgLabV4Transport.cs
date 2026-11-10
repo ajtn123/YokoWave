@@ -10,6 +10,7 @@ namespace YokoWave.Remote.DgLab.V4;
 public sealed class DgLabV4Transport : IDeviceTransport, IDeviceStatusSource, IDeviceCommandTransport
 {
     private readonly DgLabV4Peer _peer = new();
+    private readonly DgLabV4Controller _controller;
     private readonly DgLabV4DeviceCatalog _catalog;
     private readonly Uri _url;
     private readonly Uri _advertised;
@@ -25,13 +26,15 @@ public sealed class DgLabV4Transport : IDeviceTransport, IDeviceStatusSource, ID
     public string ControllerId => IsConnected ? _peer.ClientId : "";
     public Exception? Error { get; private set; }
     public bool IsConnected => _peer.IsConnected;
-    public IReadOnlyList<DgLabV4Slot> Slots => _catalog.Slots;
+    public IReadOnlyList<DgLabV4Slot> Slots => _catalog.Snapshot();
+    public DgLabV4Slot? FindSlot(string deviceId) => _catalog.Find(deviceId);
     public event EventHandler<DeviceStatusUpdate>? StatusChanged;
     public event EventHandler<DeviceTransportFault>? Faulted;
     public event Action? DevicesChanged;
 
     public DgLabV4Transport(Guid endpoint, string url, TimeProvider? clock = null, string? advertisedHost = null)
     {
+        _controller = new(_peer);
         _url = DgLabV4Protocol.ControllerUri(url);
         _advertised = advertisedHost is { Length: > 0 } ? new UriBuilder(_url) { Host = advertisedHost }.Uri : _url;
         _clock = clock ?? TimeProvider.System;
@@ -40,8 +43,8 @@ public sealed class DgLabV4Transport : IDeviceTransport, IDeviceStatusSource, ID
         _peer.FrameReceived += Receive;
         _peer.Disconnected += error =>
         {
-            foreach (string id in _connected.Keys)
-                Faulted?.Invoke(this, new(id, true, error ?? new LocalizedIOException("Error.RemoteDisconnected")));
+            Error = error ?? new LocalizedIOException("Error.RemoteDisconnected");
+            _catalog.Clear();
             DevicesChanged?.Invoke();
         };
     }
@@ -50,7 +53,7 @@ public sealed class DgLabV4Transport : IDeviceTransport, IDeviceStatusSource, ID
     {
         if (!_peer.IsConnected)
             await _peer.ConnectAsync(_url, cancellationToken).ConfigureAwait(false);
-        return _catalog.Slots.Select(slot => slot.Descriptor).ToArray();
+        return _catalog.Snapshot().Select(slot => slot.Descriptor).ToArray();
     }
 
     public async Task ConnectAsync(DeviceDescriptor device, CancellationToken cancellationToken = default)
@@ -93,9 +96,9 @@ public sealed class DgLabV4Transport : IDeviceTransport, IDeviceStatusSource, ID
                 percent *= .65;
             double value = Math.Min(Math.Floor(percent * slot.Maximum / 100), slot.Limit(channel));
             // Accepted tasks outlive this frame's cancellation; stop is an ordered clear/reset request.
-            Track(deviceId, _peer.RequestAsync(slot.AppId, "device.op", new { s = slot.Device.SlotId, t = 4, c = channel, p = 1, d = 400, im = true, v = value }));
+            Track(deviceId, _controller.SetTemporaryIntensityAsync(slot.AppId, slot.Device.SlotId, channel, value, new(Duration: 400, Immediate: true)));
             string encoded = DgLabV4Pulse.Encode(frame, channel);
-            Track(deviceId, _peer.RequestAsync(slot.AppId, "device.op", new { s = slot.Device.SlotId, t = 0, c = channel, p = 1, d = 100, im = true, ver = 3, v = new[] { encoded } }));
+            Track(deviceId, _controller.SendPulseAsync(slot.AppId, slot.Device.SlotId, channel, RemoteProtocol.Element(new[] { encoded }), options: new(Duration: 100, Immediate: true)));
         }
     }
 
@@ -104,8 +107,9 @@ public sealed class DgLabV4Transport : IDeviceTransport, IDeviceStatusSource, ID
         if (command is not QueryDevice)
             throw new LocalizedOperationException("Error.DeviceFeatures");
         var slot = Require(deviceId);
-        var result = await _peer.RequestAsync(slot.AppId, "devices.get", cancellationToken: cancellationToken).ConfigureAwait(false);
-        _catalog.Apply(slot.AppId, result, descriptions: true);
+        long revision = _catalog.Revision(slot.AppId);
+        var result = await _controller.GetDevicesAsync(slot.AppId, cancellationToken).ConfigureAwait(false);
+        _catalog.ApplyDescriptions(slot.AppId, result, revision);
         Publish(Require(deviceId));
     }
 
@@ -145,11 +149,11 @@ public sealed class DgLabV4Transport : IDeviceTransport, IDeviceStatusSource, ID
 
     private async Task ClearAsync(DgLabV4Slot slot, CancellationToken cancellationToken)
     {
-        await _peer.RequestAsync(slot.AppId, "device.op.clear", new { s = slot.Device.SlotId }, cancellationToken: cancellationToken).ConfigureAwait(false);
+        await _controller.ClearAsync(slot.AppId, slot.Device.SlotId, cancellationToken: cancellationToken).ConfigureAwait(false);
         if (slot.Descriptor.IsInput)
             return;
         for (int channel = 0; channel < 2; channel++)
-            await _peer.RequestAsync(slot.AppId, "device.op", new { s = slot.Device.SlotId, t = 7, c = channel, v = 0, im = true }, cancellationToken: cancellationToken).ConfigureAwait(false);
+            await _controller.ResetIntensityAsync(slot.AppId, slot.Device.SlotId, channel, new(Immediate: true), cancellationToken).ConfigureAwait(false);
     }
 
     private void Receive(string type, JsonElement frame)
@@ -170,16 +174,27 @@ public sealed class DgLabV4Transport : IDeviceTransport, IDeviceStatusSource, ID
         else if (type == "message")
         {
             var data = DgLabV4Protocol.Data(frame);
-            if (data.TryGetProperty("t", out var kind) && kind.GetString() == "ev" && data.TryGetProperty("ev", out var action))
+            if (data.ValueKind == JsonValueKind.Object && data.TryGetProperty("t", out var kind) && kind.ValueKind == JsonValueKind.String &&
+                kind.GetString() == "ev" && data.TryGetProperty("ev", out var action) && action.ValueKind == JsonValueKind.String)
             {
                 string app = DgLabV4Protocol.String(frame, "clientId");
                 if (action.GetString() is "devices.snapshot" or "devices.patch" or "slots.patch")
                 {
-                    _catalog.Apply(app, data);
+                    try
+                    {
+                        _catalog.ApplyEvent(app, data);
+                    }
+                    catch (DgLabV4Exception error)
+                    {
+                        Error = error;
+                        _catalog.RemoveApp(app);
+                        DevicesChanged?.Invoke();
+                    }
                 }
-                else if (action.GetString() == "custom.action" && data.TryGetProperty("action", out var number) && number.TryGetInt32(out int value) && value is >= 0 and <= 9)
+                else if (action.GetString() == "custom.action" && data.TryGetProperty("action", out var number) && number.ValueKind == JsonValueKind.Number &&
+                    number.TryGetInt32(out int value) && value is >= 0 and <= 9)
                 {
-                    foreach (var slot in _catalog.Slots.Where(slot => slot.AppId == app && _connected.ContainsKey(slot.Id)))
+                    foreach (var slot in _catalog.Snapshot().Where(slot => slot.AppId == app && _connected.ContainsKey(slot.Id)))
                         StatusChanged?.Invoke(this, new(slot.Id, telemetry: new(EventId: value, EventActive: true, EventCapturedAt: _clock.GetUtcNow())));
                 }
             }
@@ -188,8 +203,9 @@ public sealed class DgLabV4Transport : IDeviceTransport, IDeviceStatusSource, ID
 
     private async Task RefreshAsync(string app)
     {
-        var result = await _peer.RequestAsync(app, "devices.get").ConfigureAwait(false);
-        _catalog.Apply(app, result, descriptions: true);
+        long revision = _catalog.Revision(app);
+        var result = await _controller.GetDevicesAsync(app).ConfigureAwait(false);
+        _catalog.ApplyDescriptions(app, result, revision);
         Error = null;
     }
 
@@ -221,10 +237,7 @@ public sealed class DgLabV4Transport : IDeviceTransport, IDeviceStatusSource, ID
 
     private void Publish(DgLabV4Slot slot)
     {
-        var props = slot.Device.Props;
-        var telemetry = slot.Descriptor.IsInput ? new DeviceTelemetry(PressureKpa: DgLabV4Slot.Number(props?["pressure"]), PressureCapturedAt: slot.CapturedAt)
-            : new DeviceTelemetry(IntensityA: (int)DgLabV4Slot.Number(props?["intensityA"]), IntensityB: (int)DgLabV4Slot.Number(props?["intensityB"]));
-        StatusChanged?.Invoke(this, new(slot.Id, slot.Descriptor.Battery, telemetry: telemetry, telemetryAge: _clock.GetUtcNow() - slot.CapturedAt));
+        StatusChanged?.Invoke(this, slot.Status(_clock.GetUtcNow()));
     }
 
     private void Track(string id, Task task)
