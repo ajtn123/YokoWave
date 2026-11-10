@@ -46,6 +46,14 @@ dotnet tests/YokoWave.Tests/bin/Release/net10.0/YokoWave.Tests.dll -namespace 'Y
 
 截图写入 `artifacts/screenshots/`，完整验证的 xUnit 报告写入 `artifacts/test-results.xml`。截图辅助诊断，布局、绑定、状态和渲染变化仍通过断言检查；大图测试验证全部节点和连线被呈现，不将单次运行的时间或内存快照当作性能基准。
 
+浏览器模块使用 Node 内置测试运行器，独立于 .NET 检查，不安装 npm 包：
+
+```sh
+node --test tests/dinosaur/*.test.js
+```
+
+`tests/dinosaur` 验证固定步长物理、碰撞一次性触发、暂停、有限波形、通道路由、RPC 顺序、租约续期、取消及超时清理，并核对根目录各组词典。Remote 的单次碰撞脉冲测试通过实际回环服务端验证客户端不发送停止请求时仍归零且保留租约。浏览器交互、响应式布局和实际协议联调另行检查，不对真实硬件发送非零测试输出。
+
 ## 覆盖率与边界
 
 先完成还原和构建，再运行：

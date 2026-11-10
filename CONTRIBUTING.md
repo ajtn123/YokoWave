@@ -51,6 +51,14 @@ dotnet run --project src/YokoWave.Desktop -- --smoke-test
 
 蓝牙和音频诊断入口见[蓝牙诊断](docs/bluetooth.md#诊断入口)。这些入口操作真实设备／输入，不属于常规构建步骤。
 
+浏览器模块只使用原生 HTML、JS、CSS。恐龙游戏无需 npm 依赖；在仓库根目录用 Python 内置 HTTP 服务预览，步骤见[模块说明](docs/dinosaur.md)。使用 Node 22 或更新版本运行模块测试：
+
+```sh
+node --test tests/dinosaur/*.test.js
+```
+
+所有翻译位于根目录 `locales/`，应用与每个模块分别维护 `en.json` / `zh-CN.json`；应用词典由 Core 嵌入，模块词典通过同源 HTTP 加载。
+
 ## 修改功能
 
 | 修改范围 | 入口与需要保持的边界 |

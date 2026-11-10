@@ -280,5 +280,23 @@ public sealed class ControlApiTests
         Assert.Equal(new byte[] { 0x66, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 2 }, host.Adapter.Links[host.Devices.Single(device => device.Kind == DeviceKind.Sensor).Id].Writes[^1].Data);
     }
 
+    [Fact]
+    public async Task FiniteCollisionPulseStopsWithoutAClientStopAndKeepsTheLease()
+    {
+        await using var host = await RemoteTestHost.CreateAsync(BluetoothProtocol.CoyoteV3);
+        await using var client = await RemoteTestClient.CreateAsync(host.Server.Url!);
+        var device = Assert.Single(await client.Peer.CallAsync<RemoteDevice[]>("devices.list", cancellationToken: Ct));
+        var lease = await client.AcquireAsync(device.Id, RemoteLeaseType.Control);
+        var waveform = new WaveformAsset(Guid.NewGuid(), "Collision", WaveShape.Sampled, .35, 20, Samples: [new(1, 20), new(1, 20)]);
+        var playback = new RemoteControlProgram(new(Order: PlaybackOrder.Once, OutputLimit: 25, OffsetChannelB: false), waveform, ChannelB: 25, DurationSeconds: 1);
+
+        await client.ExecuteAsync<bool>(lease, "control.play", new { playback });
+        Assert.Equal(0, host.Controller.Connections[host.Devices[0].Id].Output.ChannelA);
+        Assert.Equal(25, host.Controller.Connections[host.Devices[0].Id].Output.ChannelB);
+        await AsyncAssert.EventuallyAsync(() => host.Controller.Connections[host.Devices[0].Id].Output.ChannelB == 0);
+        await client.Peer.CallAsync<RemoteHeartbeat>("lease.renew", new { lease = lease.Id }, Ct);
+        Assert.Equal(host.Server.Session.Id, host.Controller.DeviceOwner(host.Devices[0].Id));
+    }
+
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 }

@@ -10,6 +10,7 @@
 | [输入](inputs.md) | 音频、传感器、有效期、模拟来源和资源生命周期 |
 | [蓝牙](bluetooth.md) | 能力与协议覆盖、GATT、确认、驱动与诊断 |
 | [WebSocket](websocket.md) | 服务端／客户端结构、RPC、租约、时钟与 API |
+| [恐龙游戏](dinosaur.md) | 静态浏览器模块、运行步骤及碰撞输出 |
 | [波形](waveforms.md) | 统一格式、Schema、默认库与设备转换 |
 | [存储](storage.md) | 文件所有权、写入顺序、损坏保护与重置 |
 | [界面与本地化](localization.md) | JSON 词典、动态文本、系统主题、共享资源及帮助页 |

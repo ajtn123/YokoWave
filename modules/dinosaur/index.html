@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="referrer" content="no-referrer">
+  <title>YokoWave · Dinosaur</title>
+  <link rel="icon" href="../../src/YokoWave.App/Assets/YokoWave.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <main>
+    <header class="page-header">
+      <a class="brand" href="../../README.md"><img src="../../src/YokoWave.App/Assets/YokoWave.svg" width="32" height="32" alt="">YokoWave</a>
+      <label class="language"><span data-i18n="Dinosaur.Language"></span><select id="language"><option value="en">English</option><option value="zh-CN">简体中文</option></select></label>
+    </header>
+
+    <div class="layout">
+      <section class="game-panel" aria-labelledby="game-title">
+        <div class="game-heading"><h1 id="game-title" data-i18n="Dinosaur.Title"></h1><div class="scores"><span><small data-i18n="Dinosaur.Best"></small><strong id="best">00000</strong></span><span><small data-i18n="Dinosaur.Score"></small><strong id="score">00000</strong></span></div></div>
+        <div class="playfield">
+          <canvas id="game" width="960" height="360" tabindex="0" data-i18n-aria="Dinosaur.Canvas"></canvas>
+          <div id="overlay" class="overlay"><div><h2 id="game-state"></h2><p id="game-hint"></p><button id="play" class="primary"></button></div></div>
+        </div>
+        <div class="game-toolbar"><div class="touch-controls"><button id="jump" data-i18n="Dinosaur.Jump"></button><button id="duck" data-i18n="Dinosaur.Duck"></button></div><button id="pause" data-i18n="Dinosaur.Pause" disabled></button></div>
+        <p class="keyboard-help" data-i18n="Dinosaur.Keys"></p>
+        <p id="game-announcement" class="sr-only" aria-live="polite"></p>
+      </section>
+
+      <aside class="card" aria-labelledby="output-title">
+        <div class="section-heading"><h2 id="output-title" data-i18n="Dinosaur.Output"></h2><span id="connection-state" class="badge"></span></div>
+        <form id="connection-form">
+          <label><span data-i18n="Dinosaur.Server"></span><input id="url" type="url" placeholder="ws://127.0.0.1:9000/ws/…" autocomplete="off" spellcheck="false" required></label>
+          <label><span data-i18n="Dinosaur.Token"></span><input id="token" type="password" autocomplete="off" spellcheck="false" minlength="24" maxlength="256" required></label>
+          <button id="connect" class="secondary" type="submit" data-i18n="Dinosaur.Connect"></button>
+        </form>
+        <hr>
+        <fieldset id="output-fields" disabled>
+          <label><span data-i18n="Dinosaur.Device"></span><select id="device"></select></label>
+          <label><span data-i18n="Dinosaur.Channel"></span><select id="channel"></select></label>
+          <label><span class="field-heading"><span data-i18n="Dinosaur.Strength"></span><output id="strength-value" for="strength">0%</output></span><input id="strength" type="range" min="0" max="100" step="1" value="0"></label>
+          <div class="field-row"><label><span data-i18n="Dinosaur.Frequency"></span><input id="frequency" type="number" min="1" max="100" step="1" value="20" required></label><label><span data-i18n="Dinosaur.Duration"></span><input id="duration" type="number" min="200" max="2000" step="50" value="350" required></label></div>
+        </fieldset>
+        <label class="check"><input id="armed" type="checkbox" disabled><span data-i18n="Dinosaur.Enable"></span></label>
+        <button id="stop-output" class="danger" data-i18n="Dinosaur.StopOutput" disabled></button>
+        <p id="output-status" class="status" role="status" aria-live="polite"></p>
+        <p class="detail" data-i18n="Dinosaur.OutputHelp"></p>
+      </aside>
+    </div>
+    <p id="load-error" role="alert" hidden></p>
+  </main>
+</body>
+</html>

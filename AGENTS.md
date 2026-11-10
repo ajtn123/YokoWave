@@ -21,8 +21,9 @@
 ## 界面、文字与本地化
 
 - 文字只表达功能、操作、状态、数值与限制。删除无有效信息的文字，不加宣传语；波形只显示名称、参数和预览。
-- 文案位于 `src/YokoWave.Core/Locales/{en,zh-CN}.json`，两份同时修改，键和占位符一致。XAML 使用 `{l:Loc Key}`，C# 使用 `L10n.Get` / `L10n.Format`；切换语言保留状态和输入。
+- 文案统一放在根目录 `locales/`；应用使用 `locales/app/{en,zh-CN}.json`，各模块使用 `locales/<module>/{en,zh-CN}.json`。每组两份同时修改，键和占位符一致。XAML 使用 `{l:Loc Key}`，C# 使用 `L10n.Get` / `L10n.Format`；切换语言保留状态和输入。
 - 继承系统无衬线字体，不引入字体包。颜色在 `Styles/Palette.axaml`，尺寸、间距、圆角在 `Styles/Metrics.axaml`；复用 `card`、`field` 等语义样式。
+- 浏览器模块的颜色和外观尺寸集中于模块样式表的 CSS 自定义属性，复用语义类，遵循系统字体与明暗主题。
 - 控件大多数属性保持同一行。Grid 使用共享间距，不用空白行列占位。菜单继承窗口字体。
 - 所有配置提供对应 UI，不暴露 JSON 配置编辑器。输出通道下拉框按实际通道掩码生成；硬件选项按设备能力显示在设备页右侧详情卡片。
 

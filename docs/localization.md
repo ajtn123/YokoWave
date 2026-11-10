@@ -2,7 +2,9 @@
 
 ## 词典与动态文本
 
-`src/YokoWave.Core/Locales/en.json` 和 `zh-CN.json` 是嵌入资源，通过 `System.Text.Json` 读取，不使用 ResX。`JsonLocalizer` 实现属性通知，`LocExtension` 将 XAML 的资源键绑定到该服务。
+根目录 `locales/` 按使用方划分词典：`app/en.json` 和 `app/zh-CN.json` 属于桌面应用，`dinosaur/en.json` 和 `dinosaur/zh-CN.json` 属于恐龙游戏。每个模块维护独立的两份文件，不把模块文案混入应用词典。
+
+Core 项目直接将 `locales/app/*.json` 嵌入程序集，通过 `System.Text.Json` 读取，不使用 ResX 或运行时文件复制。`JsonLocalizer` 实现属性通知，`LocExtension` 将 XAML 的资源键绑定到该服务。浏览器模块从同源 `locales/<module>/` 加载自己的词典；已知 RPC 错误使用模块翻译，未知错误显示本地化错误前缀及服务端资源键。
 
 首次启动按系统界面语言选择：中文映射为 `zh-CN`，其他语言回退为 `en`。`SettingsViewModel` 切换语言后立即更新现有绑定并保存设置；页面、节点、设备连接与用户输入保持原对象。用户名称不翻译，原生对话框按钮和外部异常由平台决定。
 
@@ -31,6 +33,8 @@ XAML 使用语义样式和动态资源：
 - `Controls` / `Components` / `Pipelines` / `ItemTemplates`：控件、复用组件及图编辑器样式。
 
 默认跟随系统明暗主题；平台提供时 FluentTheme 更新强调色，否则使用 Avalonia 默认值。字体继承系统无衬线，不引入字体包；上下文菜单继承窗口字体。自绘控件缓存几何和画笔，并在参数、尺寸及主题资源变化时失效。图标源为 Assets/YokoWave.svg，ICO 用于窗口及 Windows EXE。
+
+浏览器模块在自己的 CSS 中集中定义颜色、间距和圆角变量，使用系统字体与 `prefers-color-scheme`，不依赖桌面样式资源。
 
 ## 用户手册
 

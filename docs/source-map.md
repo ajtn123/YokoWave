@@ -8,7 +8,6 @@ src/
     Bluetooth/           协议识别、驱动、编码、通知与 GATT 抽象
     Data/                规范化内置波形
     Localization/        JSON 词典、本地化消息与异常
-    Locales/             en.json / zh-CN.json
   YokoWave.Pipelines/     纯 .NET 图定义、编译、处理器和会话
   YokoWave.Remote/        WebSocket RPC、租约、设备客户端与资源节点
   YokoWave.App/           Avalonia 界面
@@ -27,6 +26,11 @@ src/
     Diagnostics/         原生蓝牙／音频探针
 tests/YokoWave.Tests/    按领域组织的 xUnit 和 Headless 测试
   Support/               图工厂、传输替身、隔离目录及 UI 操作
+tests/dinosaur/          Node 内置测试运行器验证浏览器模块
+modules/dinosaur/        HTML、JS、CSS 恐龙游戏，调用现有 control 服务端
+locales/
+  app/                   应用的 en.json / zh-CN.json，嵌入 Core
+  dinosaur/              恐龙游戏的 en.json / zh-CN.json，同源加载
 schemas/                 单波形与波形数组的 JSON Schema
 scripts/                 风格、验证及覆盖率脚本
 ```
@@ -50,7 +54,8 @@ scripts/                 风格、验证及覆盖率脚本
 | RPC 和租约 | [WebSocketRpcPeer](../src/YokoWave.Remote/WebSocketRpcPeer.cs)、[RemoteExportSession](../src/YokoWave.Remote/RemoteExportSession.cs)、[RemoteClientConnection](../src/YokoWave.Remote/RemoteClientConnection.cs) |
 | 波形资产、生成和交换 | [WaveformAsset](../src/YokoWave.Core/WaveformAsset.cs)、[WaveformGenerator](../src/YokoWave.Core/WaveformGenerator.cs)、[WaveformExchange](../src/YokoWave.Core/WaveformExchange.cs) |
 | 本地数据 | [WorkspaceStore](../src/YokoWave.Core/WorkspaceStore.cs)、[SessionJournal](../src/YokoWave.Core/SessionJournal.cs)、[PipelineStore](../src/YokoWave.Pipelines/PipelineStore.cs) |
-| 用户手册 | [HelpView.axaml](../src/YokoWave.App/Views/Pages/HelpView.axaml)，正文在 [en.json](../src/YokoWave.Core/Locales/en.json) / [zh-CN.json](../src/YokoWave.Core/Locales/zh-CN.json) 的 `Help.*` |
+| 用户手册 | [HelpView.axaml](../src/YokoWave.App/Views/Pages/HelpView.axaml)，正文在 [en.json](../locales/app/en.json) / [zh-CN.json](../locales/app/zh-CN.json) 的 `Help.*` |
+| 恐龙游戏 | [modules/dinosaur](../modules/dinosaur/)，物理、绘制、输出和界面分别组合；见[运行与接口](dinosaur.md) |
 
 ## 界面资源
 

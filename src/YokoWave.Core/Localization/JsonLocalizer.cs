@@ -61,7 +61,7 @@ public sealed class JsonLocalizer : INotifyPropertyChanged
 
     private static IReadOnlyDictionary<string, string> ReadCatalog(string language)
     {
-        using var stream = typeof(JsonLocalizer).Assembly.GetManifestResourceStream($"YokoWave.Core.Locales.{language}.json")
+        using var stream = typeof(JsonLocalizer).Assembly.GetManifestResourceStream($"YokoWave.Locales.App.{language}.json")
             ?? throw new InvalidOperationException($"Missing localization catalog: {language}");
         using var document = JsonDocument.Parse(stream);
         var result = new Dictionary<string, string>(StringComparer.Ordinal);
