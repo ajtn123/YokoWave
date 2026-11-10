@@ -2,7 +2,11 @@
   {
     "FormatVersion": 1,
     "Id": "38af96d9-312a-5dfc-83f9-fa4cbdce792b",
-    "Name": "郊狼 · 挤压",
+    "Name": "挤压",
+    "Names": {
+      "en": "Extrusion",
+      "zh-CN": "挤压"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 0.2,
     "Frequency": 100,
@@ -48,12 +52,24 @@
         "PulseWidth": 1
       }
     ],
-    "NameKey": "DefaultWave.Coyote.Extrusion.Name"
+    "Source": {
+      "Provider": "dglab-kit",
+      "Collection": "coyote",
+      "Key": "EXTRUSTION",
+      "Repository": "https://github.com/dungeonlab-open/dglab-kit",
+      "Revision": "3e7ed447e387c2fa52f2c27353c27ff295b0bdeb",
+      "Path": "src/waveform/coyote.ts",
+      "License": "GPL-3.0"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "a7d0acd3-2fd6-59be-805b-fc5c3e0d01e7",
-    "Name": "郊狼 · 气泡",
+    "Name": "气泡",
+    "Names": {
+      "en": "Bubble",
+      "zh-CN": "气泡"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 0.2,
     "Frequency": 22.22222222222222,
@@ -99,12 +115,24 @@
         "PulseWidth": 1
       }
     ],
-    "NameKey": "DefaultWave.Coyote.Bubble.Name"
+    "Source": {
+      "Provider": "dglab-kit",
+      "Collection": "coyote",
+      "Key": "BUBBLE",
+      "Repository": "https://github.com/dungeonlab-open/dglab-kit",
+      "Revision": "3e7ed447e387c2fa52f2c27353c27ff295b0bdeb",
+      "Path": "src/waveform/coyote.ts",
+      "License": "GPL-3.0"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "0450ba90-d32d-50f7-997f-9298efb4d054",
-    "Name": "郊狼 · 律动",
+    "Name": "律动",
+    "Names": {
+      "en": "Rhythm",
+      "zh-CN": "律动"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 1.3,
     "Frequency": 100,
@@ -370,12 +398,24 @@
         "PulseWidth": 0
       }
     ],
-    "NameKey": "DefaultWave.Coyote.Rhythm.Name"
+    "Source": {
+      "Provider": "dglab-kit",
+      "Collection": "coyote",
+      "Key": "RHYTHM",
+      "Repository": "https://github.com/dungeonlab-open/dglab-kit",
+      "Revision": "3e7ed447e387c2fa52f2c27353c27ff295b0bdeb",
+      "Path": "src/waveform/coyote.ts",
+      "License": "GPL-3.0"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "7e4e91d0-95ed-5929-a62b-c33c7b75f59f",
-    "Name": "郊狼 · 电波",
+    "Name": "电波",
+    "Names": {
+      "en": "Air Waves",
+      "zh-CN": "电波"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 1.3,
     "Frequency": 100,
@@ -641,12 +681,24 @@
         "PulseWidth": 0
       }
     ],
-    "NameKey": "DefaultWave.Coyote.AirWaves.Name"
+    "Source": {
+      "Provider": "dglab-kit",
+      "Collection": "coyote",
+      "Key": "AIR_WAVES",
+      "Repository": "https://github.com/dungeonlab-open/dglab-kit",
+      "Revision": "3e7ed447e387c2fa52f2c27353c27ff295b0bdeb",
+      "Path": "src/waveform/coyote.ts",
+      "License": "GPL-3.0"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "ca47576d-1aeb-556f-ae53-9c8b77c46ee6",
-    "Name": "郊狼 · 舞步",
+    "Name": "舞步",
+    "Names": {
+      "en": "Dance",
+      "zh-CN": "舞步"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 1.6,
     "Frequency": 100,
@@ -972,12 +1024,24 @@
         "PulseWidth": 1
       }
     ],
-    "NameKey": "DefaultWave.Coyote.Dance.Name"
+    "Source": {
+      "Provider": "dglab-kit",
+      "Collection": "coyote",
+      "Key": "DANCE",
+      "Repository": "https://github.com/dungeonlab-open/dglab-kit",
+      "Revision": "3e7ed447e387c2fa52f2c27353c27ff295b0bdeb",
+      "Path": "src/waveform/coyote.ts",
+      "License": "GPL-3.0"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "4c835ff3-ffb3-5dbf-8ea8-f5093a7def3a",
-    "Name": "郊狼 · 攀登",
+    "Name": "攀登",
+    "Names": {
+      "en": "Climb",
+      "zh-CN": "攀登"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 0.6,
     "Frequency": 20.833333333333332,
@@ -1103,12 +1167,24 @@
         "PulseWidth": 1
       }
     ],
-    "NameKey": "DefaultWave.Coyote.Climb.Name"
+    "Source": {
+      "Provider": "dglab-kit",
+      "Collection": "coyote",
+      "Key": "CLIMB",
+      "Repository": "https://github.com/dungeonlab-open/dglab-kit",
+      "Revision": "3e7ed447e387c2fa52f2c27353c27ff295b0bdeb",
+      "Path": "src/waveform/coyote.ts",
+      "License": "GPL-3.0"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "f16a857d-69bd-5195-8e9e-0c4889b33198",
-    "Name": "郊狼 · 树荫",
+    "Name": "树荫",
+    "Names": {
+      "en": "Shade",
+      "zh-CN": "树荫"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 0.2,
     "Frequency": 10,
@@ -1154,12 +1230,24 @@
         "PulseWidth": 1
       }
     ],
-    "NameKey": "DefaultWave.Coyote.Shade.Name"
+    "Source": {
+      "Provider": "dglab-kit",
+      "Collection": "coyote",
+      "Key": "SHADE",
+      "Repository": "https://github.com/dungeonlab-open/dglab-kit",
+      "Revision": "3e7ed447e387c2fa52f2c27353c27ff295b0bdeb",
+      "Path": "src/waveform/coyote.ts",
+      "License": "GPL-3.0"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "c95844d0-4455-5f7a-bebd-11e5f06a2c02",
-    "Name": "郊狼 · 脉冲",
+    "Name": "脉冲",
+    "Names": {
+      "en": "Pulse",
+      "zh-CN": "脉冲"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 1.6,
     "Frequency": 100,
@@ -1485,12 +1573,24 @@
         "PulseWidth": 1
       }
     ],
-    "NameKey": "DefaultWave.Coyote.Pulse.Name"
+    "Source": {
+      "Provider": "dglab-kit",
+      "Collection": "coyote",
+      "Key": "PULSE",
+      "Repository": "https://github.com/dungeonlab-open/dglab-kit",
+      "Revision": "3e7ed447e387c2fa52f2c27353c27ff295b0bdeb",
+      "Path": "src/waveform/coyote.ts",
+      "License": "GPL-3.0"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "b9fa652e-7ac4-5763-a3da-07187d3cf196",
-    "Name": "郊狼 · 呼吸",
+    "Name": "呼吸",
+    "Names": {
+      "en": "Breathing",
+      "zh-CN": "呼吸"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 1.2,
     "Frequency": 100,
@@ -1736,12 +1836,24 @@
         "PulseWidth": 0
       }
     ],
-    "NameKey": "DefaultWave.Coyote.Breathing.Name"
+    "Source": {
+      "Provider": "dglab-kit",
+      "Collection": "coyote",
+      "Key": "BREATHING",
+      "Repository": "https://github.com/dungeonlab-open/dglab-kit",
+      "Revision": "3e7ed447e387c2fa52f2c27353c27ff295b0bdeb",
+      "Path": "src/waveform/coyote.ts",
+      "License": "GPL-3.0"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "2c710ae0-6105-599c-92c7-97dbb31a5d22",
-    "Name": "郊狼 · 潮汐",
+    "Name": "潮汐",
+    "Names": {
+      "en": "Tide",
+      "zh-CN": "潮汐"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 2.3,
     "Frequency": 100,
@@ -2207,12 +2319,24 @@
         "PulseWidth": 0
       }
     ],
-    "NameKey": "DefaultWave.Coyote.Tide.Name"
+    "Source": {
+      "Provider": "dglab-kit",
+      "Collection": "coyote",
+      "Key": "TIDE",
+      "Repository": "https://github.com/dungeonlab-open/dglab-kit",
+      "Revision": "3e7ed447e387c2fa52f2c27353c27ff295b0bdeb",
+      "Path": "src/waveform/coyote.ts",
+      "License": "GPL-3.0"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "3d47f740-1e78-5bb8-b8f0-82ba632f7a4a",
-    "Name": "郊狼 · 连击",
+    "Name": "连击",
+    "Names": {
+      "en": "Pulsating",
+      "zh-CN": "连击"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 2.4,
     "Frequency": 100,
@@ -2698,12 +2822,24 @@
         "PulseWidth": 0
       }
     ],
-    "NameKey": "DefaultWave.Coyote.Pulsating.Name"
+    "Source": {
+      "Provider": "dglab-kit",
+      "Collection": "coyote",
+      "Key": "PULSATING",
+      "Repository": "https://github.com/dungeonlab-open/dglab-kit",
+      "Revision": "3e7ed447e387c2fa52f2c27353c27ff295b0bdeb",
+      "Path": "src/waveform/coyote.ts",
+      "License": "GPL-3.0"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "25bbecac-754d-5415-a54f-868fd48dfb89",
-    "Name": "郊狼 · 快速按捏",
+    "Name": "快速按捏",
+    "Names": {
+      "en": "Quick Rub",
+      "zh-CN": "快速按捏"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 4.6,
     "Frequency": 100,
@@ -3629,12 +3765,24 @@
         "PulseWidth": 0
       }
     ],
-    "NameKey": "DefaultWave.Coyote.QuickRub.Name"
+    "Source": {
+      "Provider": "dglab-kit",
+      "Collection": "coyote",
+      "Key": "QUICK_RUB",
+      "Repository": "https://github.com/dungeonlab-open/dglab-kit",
+      "Revision": "3e7ed447e387c2fa52f2c27353c27ff295b0bdeb",
+      "Path": "src/waveform/coyote.ts",
+      "License": "GPL-3.0"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "5b9da264-9edd-5208-85d1-523d82905a5a",
-    "Name": "郊狼 · 按捏渐强",
+    "Name": "按捏渐强",
+    "Names": {
+      "en": "GradualRub",
+      "zh-CN": "按捏渐强"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 2.3,
     "Frequency": 100,
@@ -4100,12 +4248,24 @@
         "PulseWidth": 0
       }
     ],
-    "NameKey": "DefaultWave.Coyote.GradualRub.Name"
+    "Source": {
+      "Provider": "dglab-kit",
+      "Collection": "coyote",
+      "Key": "GRADUALRUB",
+      "Repository": "https://github.com/dungeonlab-open/dglab-kit",
+      "Revision": "3e7ed447e387c2fa52f2c27353c27ff295b0bdeb",
+      "Path": "src/waveform/coyote.ts",
+      "License": "GPL-3.0"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "249d6d7b-306f-520f-b50b-01aff93540f3",
-    "Name": "郊狼 · 心跳节奏",
+    "Name": "心跳节奏",
+    "Names": {
+      "en": "Heartbeat",
+      "zh-CN": "心跳节奏"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 3.5,
     "Frequency": 6.25,
@@ -4811,12 +4971,24 @@
         "PulseWidth": 0
       }
     ],
-    "NameKey": "DefaultWave.Coyote.Heartbeat.Name"
+    "Source": {
+      "Provider": "dglab-kit",
+      "Collection": "coyote",
+      "Key": "HEARTBEAT",
+      "Repository": "https://github.com/dungeonlab-open/dglab-kit",
+      "Revision": "3e7ed447e387c2fa52f2c27353c27ff295b0bdeb",
+      "Path": "src/waveform/coyote.ts",
+      "License": "GPL-3.0"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "15c54e82-965f-5ca8-bac7-f317116c0957",
-    "Name": "郊狼 · 压缩",
+    "Name": "压缩",
+    "Names": {
+      "en": "Compress",
+      "zh-CN": "压缩"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 2.1,
     "Frequency": 13.513513513513514,
@@ -5242,12 +5414,24 @@
         "PulseWidth": 1
       }
     ],
-    "NameKey": "DefaultWave.Coyote.Compress.Name"
+    "Source": {
+      "Provider": "dglab-kit",
+      "Collection": "coyote",
+      "Key": "COMPRESS",
+      "Repository": "https://github.com/dungeonlab-open/dglab-kit",
+      "Revision": "3e7ed447e387c2fa52f2c27353c27ff295b0bdeb",
+      "Path": "src/waveform/coyote.ts",
+      "License": "GPL-3.0"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "b88466dd-8d4a-547c-b7c8-f4080d9c870e",
-    "Name": "郊狼 · 节奏步伐",
+    "Name": "节奏步伐",
+    "Names": {
+      "en": "Rhythmic",
+      "zh-CN": "节奏步伐"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 2.7,
     "Frequency": 100,
@@ -5793,12 +5977,24 @@
         "PulseWidth": 0
       }
     ],
-    "NameKey": "DefaultWave.Coyote.Rhythmic.Name"
+    "Source": {
+      "Provider": "dglab-kit",
+      "Collection": "coyote",
+      "Key": "RHYTHMIC",
+      "Repository": "https://github.com/dungeonlab-open/dglab-kit",
+      "Revision": "3e7ed447e387c2fa52f2c27353c27ff295b0bdeb",
+      "Path": "src/waveform/coyote.ts",
+      "License": "GPL-3.0"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "da6d1911-919c-5a75-9b51-507de8672943",
-    "Name": "郊狼 · 颗粒摩擦",
+    "Name": "颗粒摩擦",
+    "Names": {
+      "en": "Grainy",
+      "zh-CN": "颗粒摩擦"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 2.8,
     "Frequency": 100,
@@ -6364,12 +6560,24 @@
         "PulseWidth": 0
       }
     ],
-    "NameKey": "DefaultWave.Coyote.Grainy.Name"
+    "Source": {
+      "Provider": "dglab-kit",
+      "Collection": "coyote",
+      "Key": "GRAINY",
+      "Repository": "https://github.com/dungeonlab-open/dglab-kit",
+      "Revision": "3e7ed447e387c2fa52f2c27353c27ff295b0bdeb",
+      "Path": "src/waveform/coyote.ts",
+      "License": "GPL-3.0"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "67b5de43-3f2c-5ec7-b6fc-f1f539f43515",
-    "Name": "郊狼 · 渐变弹跳",
+    "Name": "渐变弹跳",
+    "Names": {
+      "en": "Bouncy",
+      "zh-CN": "渐变弹跳"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 5,
     "Frequency": 100,
@@ -7375,12 +7583,24 @@
         "PulseWidth": 0
       }
     ],
-    "NameKey": "DefaultWave.Coyote.Bouncy.Name"
+    "Source": {
+      "Provider": "dglab-kit",
+      "Collection": "coyote",
+      "Key": "BOUNCY",
+      "Repository": "https://github.com/dungeonlab-open/dglab-kit",
+      "Revision": "3e7ed447e387c2fa52f2c27353c27ff295b0bdeb",
+      "Path": "src/waveform/coyote.ts",
+      "License": "GPL-3.0"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "13ee241b-f7b0-5f85-9002-82d7209f251c",
-    "Name": "郊狼 · 波浪涟漪",
+    "Name": "波浪涟漪",
+    "Names": {
+      "en": "Ripple",
+      "zh-CN": "波浪涟漪"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 5.7,
     "Frequency": 100,
@@ -8526,12 +8746,24 @@
         "PulseWidth": 0
       }
     ],
-    "NameKey": "DefaultWave.Coyote.Ripple.Name"
+    "Source": {
+      "Provider": "dglab-kit",
+      "Collection": "coyote",
+      "Key": "RIPPLE",
+      "Repository": "https://github.com/dungeonlab-open/dglab-kit",
+      "Revision": "3e7ed447e387c2fa52f2c27353c27ff295b0bdeb",
+      "Path": "src/waveform/coyote.ts",
+      "License": "GPL-3.0"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "6deb5978-bb3a-57b7-bea8-88ad9fdde662",
-    "Name": "郊狼 · 雨水冲刷",
+    "Name": "雨水冲刷",
+    "Names": {
+      "en": "Rainfall",
+      "zh-CN": "雨水冲刷"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 7.8,
     "Frequency": 71.42857142857143,
@@ -10097,12 +10329,24 @@
         "PulseWidth": 0
       }
     ],
-    "NameKey": "DefaultWave.Coyote.Rainfall.Name"
+    "Source": {
+      "Provider": "dglab-kit",
+      "Collection": "coyote",
+      "Key": "RAINFALL",
+      "Repository": "https://github.com/dungeonlab-open/dglab-kit",
+      "Revision": "3e7ed447e387c2fa52f2c27353c27ff295b0bdeb",
+      "Path": "src/waveform/coyote.ts",
+      "License": "GPL-3.0"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "cbaedbe3-3b5d-5e71-9e0b-6253b454f0d7",
-    "Name": "郊狼 · 变速敲击",
+    "Name": "变速敲击",
+    "Names": {
+      "en": "Tempo Tap",
+      "zh-CN": "变速敲击"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 8.4,
     "Frequency": 41.666666666666664,
@@ -11788,12 +12032,24 @@
         "PulseWidth": 0
       }
     ],
-    "NameKey": "DefaultWave.Coyote.TempoTap.Name"
+    "Source": {
+      "Provider": "dglab-kit",
+      "Collection": "coyote",
+      "Key": "TEMPO_TAP",
+      "Repository": "https://github.com/dungeonlab-open/dglab-kit",
+      "Revision": "3e7ed447e387c2fa52f2c27353c27ff295b0bdeb",
+      "Path": "src/waveform/coyote.ts",
+      "License": "GPL-3.0"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "bc45d1af-00b8-566e-9536-7d721403dd74",
-    "Name": "郊狼 · 信号灯",
+    "Name": "信号灯",
+    "Names": {
+      "en": "Signal",
+      "zh-CN": "信号灯"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 4,
     "Frequency": 1.8181818181818181,
@@ -12599,12 +12855,24 @@
         "PulseWidth": 1
       }
     ],
-    "NameKey": "DefaultWave.Coyote.Signal.Name"
+    "Source": {
+      "Provider": "dglab-kit",
+      "Collection": "coyote",
+      "Key": "SIGNAL",
+      "Repository": "https://github.com/dungeonlab-open/dglab-kit",
+      "Revision": "3e7ed447e387c2fa52f2c27353c27ff295b0bdeb",
+      "Path": "src/waveform/coyote.ts",
+      "License": "GPL-3.0"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "c4dcecf7-db47-5528-9b6b-03c046ccc60d",
-    "Name": "郊狼 · 挑逗1",
+    "Name": "挑逗1",
+    "Names": {
+      "en": "Tease 1",
+      "zh-CN": "挑逗1"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 6.3,
     "Frequency": 100,
@@ -13870,12 +14138,24 @@
         "PulseWidth": 0
       }
     ],
-    "NameKey": "DefaultWave.Coyote.Tease1.Name"
+    "Source": {
+      "Provider": "dglab-kit",
+      "Collection": "coyote",
+      "Key": "TEASE_1",
+      "Repository": "https://github.com/dungeonlab-open/dglab-kit",
+      "Revision": "3e7ed447e387c2fa52f2c27353c27ff295b0bdeb",
+      "Path": "src/waveform/coyote.ts",
+      "License": "GPL-3.0"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "390abd6f-58f2-527b-8cd1-b953abcf4e42",
-    "Name": "郊狼 · 挑逗2",
+    "Name": "挑逗2",
+    "Names": {
+      "en": "Tease 2",
+      "zh-CN": "挑逗2"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 8.2,
     "Frequency": 27.027027027027028,
@@ -15521,6 +15801,14 @@
         "PulseWidth": 0
       }
     ],
-    "NameKey": "DefaultWave.Coyote.Tease2.Name"
+    "Source": {
+      "Provider": "dglab-kit",
+      "Collection": "coyote",
+      "Key": "TEASE_2",
+      "Repository": "https://github.com/dungeonlab-open/dglab-kit",
+      "Revision": "3e7ed447e387c2fa52f2c27353c27ff295b0bdeb",
+      "Path": "src/waveform/coyote.ts",
+      "License": "GPL-3.0"
+    }
   }
 ]

@@ -3,6 +3,10 @@
     "FormatVersion": 1,
     "Id": "d7470000-0000-4000-8001-000000004857",
     "Name": "潮汐",
+    "Names": {
+      "en": "Tide",
+      "zh-CN": "潮汐"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 1.2000000000000002,
     "Frequency": 100,
@@ -40,7 +44,7 @@
       {
         "Level": 1,
         "FrequencyHz": 86,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -68,13 +72,20 @@
         "PulseWidth": 0.01
       }
     ],
-    "NameKey": "DefaultWave.Ele4857.Name",
-    "SourceId": 4857
+    "Source": {
+      "Provider": "yokonex",
+      "Collection": "electrical",
+      "Key": "4857"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "d7470000-0000-4000-8001-000000004856",
     "Name": "连击",
+    "Names": {
+      "en": "Combo",
+      "zh-CN": "连击"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 1.6,
     "Frequency": 100,
@@ -82,7 +93,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -92,7 +103,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -122,7 +133,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -132,7 +143,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -160,13 +171,20 @@
         "PulseWidth": 0.01
       }
     ],
-    "NameKey": "DefaultWave.Ele4856.Name",
-    "SourceId": 4856
+    "Source": {
+      "Provider": "yokonex",
+      "Collection": "electrical",
+      "Key": "4856"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "d7470000-0000-4000-8001-000000004861",
     "Name": "压缩",
+    "Names": {
+      "en": "Compression",
+      "zh-CN": "压缩"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 2.1,
     "Frequency": 21,
@@ -174,118 +192,125 @@
       {
         "Level": 1,
         "FrequencyHz": 21,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 26,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 30,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 35,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 39,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 44,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 48,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 53,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 57,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 62,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 66,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 88,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       }
     ],
-    "NameKey": "DefaultWave.Ele4861.Name",
-    "SourceId": 4861
+    "Source": {
+      "Provider": "yokonex",
+      "Collection": "electrical",
+      "Key": "4861"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "d7470000-0000-4000-8001-000000004858",
     "Name": "快速按捏",
+    "Names": {
+      "en": "Rapid kneading",
+      "zh-CN": "快速按捏"
+    },
     "Shape": "Sampled",
-    "PeriodSeconds": 3.0,
+    "PeriodSeconds": 3,
     "Frequency": 100,
     "Samples": [
       {
@@ -296,7 +321,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -306,7 +331,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -316,7 +341,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -326,7 +351,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -336,7 +361,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -346,7 +371,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -356,7 +381,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -366,7 +391,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -376,7 +401,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -386,7 +411,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -396,7 +421,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -406,7 +431,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -416,7 +441,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -426,7 +451,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -439,13 +464,20 @@
         "PulseWidth": 0.01
       }
     ],
-    "NameKey": "DefaultWave.Ele4858.Name",
-    "SourceId": 4858
+    "Source": {
+      "Provider": "yokonex",
+      "Collection": "electrical",
+      "Key": "4858"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "d7470000-0000-4000-8001-000000004859",
     "Name": "按捏渐强",
+    "Names": {
+      "en": "Increasing kneading",
+      "zh-CN": "按捏渐强"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 1.2000000000000002,
     "Frequency": 100,
@@ -498,7 +530,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -511,13 +543,20 @@
         "PulseWidth": 0.01
       }
     ],
-    "NameKey": "DefaultWave.Ele4859.Name",
-    "SourceId": 4859
+    "Source": {
+      "Provider": "yokonex",
+      "Collection": "electrical",
+      "Key": "4859"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "d7470000-0000-4000-8001-000000004860",
     "Name": "心跳节奏",
+    "Names": {
+      "en": "Heartbeat",
+      "zh-CN": "心跳节奏"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 1.7000000000000002,
     "Frequency": 6,
@@ -525,12 +564,12 @@
       {
         "Level": 1,
         "FrequencyHz": 6,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 6,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -575,7 +614,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -608,13 +647,20 @@
         "PulseWidth": 0.01
       }
     ],
-    "NameKey": "DefaultWave.Ele4860.Name",
-    "SourceId": 4860
+    "Source": {
+      "Provider": "yokonex",
+      "Collection": "electrical",
+      "Key": "4860"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "d7470000-0000-4000-8001-000000004862",
     "Name": "节奏步伐",
+    "Names": {
+      "en": "Stepping rhythm",
+      "zh-CN": "节奏步伐"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 2.7,
     "Frequency": 100,
@@ -647,7 +693,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -672,7 +718,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -692,7 +738,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -707,7 +753,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -717,7 +763,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -727,7 +773,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -737,7 +783,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -747,7 +793,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -755,13 +801,20 @@
         "PulseWidth": 0.01
       }
     ],
-    "NameKey": "DefaultWave.Ele4862.Name",
-    "SourceId": 4862
+    "Source": {
+      "Provider": "yokonex",
+      "Collection": "electrical",
+      "Key": "4862"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "d7470000-0000-4000-8001-000000004853",
     "Name": "呼吸",
+    "Names": {
+      "en": "Breathing",
+      "zh-CN": "呼吸"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 1.1,
     "Frequency": 100,
@@ -794,17 +847,17 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -822,13 +875,20 @@
         "PulseWidth": 0.01
       }
     ],
-    "NameKey": "DefaultWave.Ele4853.Name",
-    "SourceId": 4853
+    "Source": {
+      "Provider": "yokonex",
+      "Collection": "electrical",
+      "Key": "4853"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "d7470000-0000-4000-8001-000000004900",
     "Name": "颗粒摩擦",
+    "Names": {
+      "en": "Granular friction",
+      "zh-CN": "颗粒摩擦"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 1.2000000000000002,
     "Frequency": 100,
@@ -836,7 +896,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -894,13 +954,20 @@
         "PulseWidth": 0.01
       }
     ],
-    "NameKey": "DefaultWave.Ele4900.Name",
-    "SourceId": 4900
+    "Source": {
+      "Provider": "yokonex",
+      "Collection": "electrical",
+      "Key": "4900"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "d7470000-0000-4000-8001-000000004864",
     "Name": "渐变弹跳",
+    "Names": {
+      "en": "Progressive bounce",
+      "zh-CN": "渐变弹跳"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 3.4000000000000004,
     "Frequency": 1,
@@ -923,7 +990,7 @@
       {
         "Level": 1,
         "FrequencyHz": 96,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -943,7 +1010,7 @@
       {
         "Level": 1,
         "FrequencyHz": 91,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -963,7 +1030,7 @@
       {
         "Level": 1,
         "FrequencyHz": 86,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -983,7 +1050,7 @@
       {
         "Level": 1,
         "FrequencyHz": 81,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -1003,7 +1070,7 @@
       {
         "Level": 1,
         "FrequencyHz": 73,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -1023,7 +1090,7 @@
       {
         "Level": 1,
         "FrequencyHz": 67,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -1043,7 +1110,7 @@
       {
         "Level": 1,
         "FrequencyHz": 61,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -1063,7 +1130,7 @@
       {
         "Level": 1,
         "FrequencyHz": 54,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -1076,13 +1143,20 @@
         "PulseWidth": 0.01
       }
     ],
-    "NameKey": "DefaultWave.Ele4864.Name",
-    "SourceId": 4864
+    "Source": {
+      "Provider": "yokonex",
+      "Collection": "electrical",
+      "Key": "4864"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "d7470000-0000-4000-8001-000000004865",
     "Name": "波浪涟漪",
+    "Names": {
+      "en": "Ripples",
+      "zh-CN": "波浪涟漪"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 4.1000000000000005,
     "Frequency": 1,
@@ -1100,7 +1174,7 @@
       {
         "Level": 1,
         "FrequencyHz": 100,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -1120,7 +1194,7 @@
       {
         "Level": 1,
         "FrequencyHz": 95,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -1140,7 +1214,7 @@
       {
         "Level": 1,
         "FrequencyHz": 90,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -1160,7 +1234,7 @@
       {
         "Level": 1,
         "FrequencyHz": 85,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -1180,7 +1254,7 @@
       {
         "Level": 1,
         "FrequencyHz": 80,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -1200,7 +1274,7 @@
       {
         "Level": 1,
         "FrequencyHz": 75,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -1220,7 +1294,7 @@
       {
         "Level": 1,
         "FrequencyHz": 70,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -1240,7 +1314,7 @@
       {
         "Level": 1,
         "FrequencyHz": 65,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -1260,7 +1334,7 @@
       {
         "Level": 1,
         "FrequencyHz": 60,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -1280,7 +1354,7 @@
       {
         "Level": 1,
         "FrequencyHz": 55,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -1293,13 +1367,20 @@
         "PulseWidth": 0.01
       }
     ],
-    "NameKey": "DefaultWave.Ele4865.Name",
-    "SourceId": 4865
+    "Source": {
+      "Provider": "yokonex",
+      "Collection": "electrical",
+      "Key": "4865"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "d7470000-0000-4000-8001-000000005102",
     "Name": "变速敲击",
+    "Names": {
+      "en": "Variable-speed tapping",
+      "zh-CN": "变速敲击"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 5.300000000000001,
     "Frequency": 80,
@@ -1307,52 +1388,17 @@
       {
         "Level": 1,
         "FrequencyHz": 80,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 80,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 80,
-        "PulseWidth": 1.0
-      },
-      {
-        "Level": 1,
-        "FrequencyHz": 1,
-        "PulseWidth": 0.01
-      },
-      {
-        "Level": 1,
-        "FrequencyHz": 1,
-        "PulseWidth": 0.01
-      },
-      {
-        "Level": 1,
-        "FrequencyHz": 1,
-        "PulseWidth": 0.01
-      },
-      {
-        "Level": 1,
-        "FrequencyHz": 1,
-        "PulseWidth": 0.01
-      },
-      {
-        "Level": 1,
-        "FrequencyHz": 80,
-        "PulseWidth": 1.0
-      },
-      {
-        "Level": 1,
-        "FrequencyHz": 80,
-        "PulseWidth": 1.0
-      },
-      {
-        "Level": 1,
-        "FrequencyHz": 80,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -1377,17 +1423,17 @@
       {
         "Level": 1,
         "FrequencyHz": 80,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 80,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 80,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -1412,17 +1458,52 @@
       {
         "Level": 1,
         "FrequencyHz": 80,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 80,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 80,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 1,
+        "PulseWidth": 0.01
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 1,
+        "PulseWidth": 0.01
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 1,
+        "PulseWidth": 0.01
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 1,
+        "PulseWidth": 0.01
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 80,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 80,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 80,
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -1447,122 +1528,122 @@
       {
         "Level": 1,
         "FrequencyHz": 45,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 45,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 45,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 45,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 45,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 45,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 45,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 45,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 45,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 45,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 45,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 45,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 45,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 45,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 45,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 45,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 45,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 45,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 45,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 45,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 45,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 45,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 45,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
         "FrequencyHz": 45,
-        "PulseWidth": 1.0
+        "PulseWidth": 1
       },
       {
         "Level": 1,
@@ -1570,13 +1651,20 @@
         "PulseWidth": 0.01
       }
     ],
-    "NameKey": "DefaultWave.Ele5102.Name",
-    "SourceId": 5102
+    "Source": {
+      "Provider": "yokonex",
+      "Collection": "electrical",
+      "Key": "5102"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "d7470000-0000-4000-8002-000000031309",
     "Name": "逆时针旋",
+    "Names": {
+      "en": "Counterclockwise rotation",
+      "zh-CN": "逆时针旋"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 6.300000000000001,
     "Frequency": 20,
@@ -1587,8 +1675,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.25,
-          1.0,
-          1.0
+          1,
+          1
         ]
       },
       {
@@ -2212,15 +2300,22 @@
         ]
       }
     ],
-    "NameKey": "DefaultWave.Motor31309.Name",
-    "SourceId": 31309
+    "Source": {
+      "Provider": "yokonex",
+      "Collection": "motor-f1",
+      "Key": "31309"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "d7470000-0000-4000-8002-000000031310",
     "Name": "真空口吸",
+    "Names": {
+      "en": "Vacuum suction",
+      "zh-CN": "真空口吸"
+    },
     "Shape": "Sampled",
-    "PeriodSeconds": 3.0,
+    "PeriodSeconds": 3,
     "Frequency": 20,
     "Samples": [
       {
@@ -2228,9 +2323,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -2518,19 +2613,26 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       }
     ],
-    "NameKey": "DefaultWave.Motor31310.Name",
-    "SourceId": 31310
+    "Source": {
+      "Provider": "yokonex",
+      "Collection": "motor-f1",
+      "Key": "31310"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "d7470000-0000-4000-8002-000000031311",
     "Name": "正反",
+    "Names": {
+      "en": "Forward and reverse",
+      "zh-CN": "正反"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 11.700000000000001,
     "Frequency": 20,
@@ -2540,9 +2642,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          1.0,
-          1.0,
-          1.0
+          1,
+          1,
+          1
         ]
       },
       {
@@ -2820,9 +2922,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -2830,9 +2932,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -2840,9 +2942,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -2850,9 +2952,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -3230,9 +3332,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -3590,9 +3692,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -3706,15 +3808,22 @@
         ]
       }
     ],
-    "NameKey": "DefaultWave.Motor31311.Name",
-    "SourceId": 31311
+    "Source": {
+      "Provider": "yokonex",
+      "Collection": "motor-f1",
+      "Key": "31311"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "d7470000-0000-4000-8002-000000031312",
     "Name": "出其不意",
+    "Names": {
+      "en": "Unexpected",
+      "zh-CN": "出其不意"
+    },
     "Shape": "Sampled",
-    "PeriodSeconds": 7.0,
+    "PeriodSeconds": 7,
     "Frequency": 20,
     "Samples": [
       {
@@ -3722,9 +3831,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -3812,9 +3921,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          1.0,
-          1.0,
-          1.0
+          1,
+          1,
+          1
         ]
       },
       {
@@ -3822,9 +3931,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          1.0,
-          1.0,
-          1.0
+          1,
+          1,
+          1
         ]
       },
       {
@@ -4402,9 +4511,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -4412,19 +4521,26 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       }
     ],
-    "NameKey": "DefaultWave.Motor31312.Name",
-    "SourceId": 31312
+    "Source": {
+      "Provider": "yokonex",
+      "Collection": "motor-f1",
+      "Key": "31312"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "d7470000-0000-4000-8002-000000031314",
     "Name": "火力全开",
+    "Names": {
+      "en": "Full power",
+      "zh-CN": "火力全开"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 19.900000000000002,
     "Frequency": 20,
@@ -4604,9 +4720,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -4614,9 +4730,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -4624,9 +4740,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -4634,9 +4750,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -4644,9 +4760,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -4654,9 +4770,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -4664,9 +4780,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -4674,9 +4790,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -4684,9 +4800,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -4694,9 +4810,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -4704,9 +4820,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -5134,9 +5250,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -5144,9 +5260,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -5154,9 +5270,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -5164,9 +5280,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -5174,9 +5290,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -5184,9 +5300,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -6384,9 +6500,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          1.0,
-          1.0,
-          1.0
+          1,
+          1,
+          1
         ]
       },
       {
@@ -6394,9 +6510,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          1.0,
-          1.0,
-          1.0
+          1,
+          1,
+          1
         ]
       },
       {
@@ -6404,9 +6520,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          1.0,
-          1.0,
-          1.0
+          1,
+          1,
+          1
         ]
       },
       {
@@ -6414,19 +6530,26 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          1.0,
-          1.0,
-          1.0
+          1,
+          1,
+          1
         ]
       }
     ],
-    "NameKey": "DefaultWave.Motor31314.Name",
-    "SourceId": 31314
+    "Source": {
+      "Provider": "yokonex",
+      "Collection": "motor-f1",
+      "Key": "31314"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "d7470000-0000-4000-8002-000000031315",
     "Name": "蓄力反攻",
+    "Names": {
+      "en": "Counterstroke",
+      "zh-CN": "蓄力反攻"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 19.1,
     "Frequency": 20,
@@ -6436,9 +6559,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
-          1.0
+          -1,
+          1,
+          1
         ]
       },
       {
@@ -6466,9 +6589,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -6496,9 +6619,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          1.0,
-          1.0,
-          1.0
+          1,
+          1,
+          1
         ]
       },
       {
@@ -6506,9 +6629,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          1.0,
-          1.0,
-          1.0
+          1,
+          1,
+          1
         ]
       },
       {
@@ -6516,9 +6639,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          1.0,
-          1.0,
-          1.0
+          1,
+          1,
+          1
         ]
       },
       {
@@ -6526,9 +6649,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          1.0,
-          1.0,
-          1.0
+          1,
+          1,
+          1
         ]
       },
       {
@@ -6536,9 +6659,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          1.0,
-          1.0,
-          1.0
+          1,
+          1,
+          1
         ]
       },
       {
@@ -6546,9 +6669,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          1.0,
-          1.0,
-          1.0
+          1,
+          1,
+          1
         ]
       },
       {
@@ -6826,9 +6949,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -6836,9 +6959,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -6846,9 +6969,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -6856,9 +6979,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -6866,9 +6989,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -6876,9 +6999,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -6886,9 +7009,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -6896,9 +7019,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -6906,9 +7029,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -8342,15 +8465,22 @@
         ]
       }
     ],
-    "NameKey": "DefaultWave.Motor31315.Name",
-    "SourceId": 31315
+    "Source": {
+      "Provider": "yokonex",
+      "Collection": "motor-f1",
+      "Key": "31315"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "d7470000-0000-4000-8002-000000031316",
     "Name": "三重节奏",
+    "Names": {
+      "en": "Triple rhythm",
+      "zh-CN": "三重节奏"
+    },
     "Shape": "Sampled",
-    "PeriodSeconds": 10.0,
+    "PeriodSeconds": 10,
     "Frequency": 20,
     "Samples": [
       {
@@ -8358,9 +8488,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -9318,9 +9448,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          1.0,
-          1.0,
-          1.0
+          1,
+          1,
+          1
         ]
       },
       {
@@ -9328,9 +9458,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          1.0,
-          1.0,
-          1.0
+          1,
+          1,
+          1
         ]
       },
       {
@@ -9338,9 +9468,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          1.0,
-          1.0,
-          1.0
+          1,
+          1,
+          1
         ]
       },
       {
@@ -9348,19 +9478,26 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          1.0,
-          1.0,
-          1.0
+          1,
+          1,
+          1
         ]
       }
     ],
-    "NameKey": "DefaultWave.Motor31316.Name",
-    "SourceId": 31316
+    "Source": {
+      "Provider": "yokonex",
+      "Collection": "motor-f1",
+      "Key": "31316"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "d7470000-0000-4000-8002-000000090585",
     "Name": "心跳共振",
+    "Names": {
+      "en": "Heartbeat resonance",
+      "zh-CN": "心跳共振"
+    },
     "Shape": "Sampled",
     "PeriodSeconds": 12.3,
     "Frequency": 20,
@@ -10596,15 +10733,22 @@
         ]
       }
     ],
-    "NameKey": "DefaultWave.Motor90585.Name",
-    "SourceId": 90585
+    "Source": {
+      "Provider": "yokonex",
+      "Collection": "motor-f1",
+      "Key": "90585"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "d7470000-0000-4000-8002-000000090591",
     "Name": "寸止",
+    "Names": {
+      "en": "Edging",
+      "zh-CN": "寸止"
+    },
     "Shape": "Sampled",
-    "PeriodSeconds": 5.0,
+    "PeriodSeconds": 5,
     "Frequency": 20,
     "Samples": [
       {
@@ -10613,8 +10757,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.4,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10623,8 +10767,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.4,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10633,8 +10777,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.4,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10643,8 +10787,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.4,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10653,8 +10797,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.35,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10663,8 +10807,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.35,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10673,8 +10817,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.35,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10683,8 +10827,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.35,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10693,8 +10837,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.35,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10703,8 +10847,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.35,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10713,8 +10857,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.3,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10723,8 +10867,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.3,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10733,8 +10877,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.3,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10743,8 +10887,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.3,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10753,8 +10897,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.3,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10763,8 +10907,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.3,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10773,8 +10917,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.25,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10783,8 +10927,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.25,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10793,8 +10937,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.25,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10803,8 +10947,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.25,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10813,8 +10957,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.25,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10823,8 +10967,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.25,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10833,8 +10977,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.2,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10843,8 +10987,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.2,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10853,8 +10997,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.2,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10863,8 +11007,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.2,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10873,8 +11017,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.2,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10883,8 +11027,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.2,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10893,8 +11037,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.15,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10903,8 +11047,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.15,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10913,8 +11057,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.15,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10923,8 +11067,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.15,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10933,8 +11077,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.15,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10943,8 +11087,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.15,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10953,8 +11097,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.1,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10963,8 +11107,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.1,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10973,8 +11117,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.1,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10983,8 +11127,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.1,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -10993,8 +11137,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.1,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -11003,8 +11147,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.1,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -11013,8 +11157,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.05,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -11023,8 +11167,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.05,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -11033,8 +11177,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.05,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -11043,8 +11187,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.05,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -11053,8 +11197,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.05,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -11063,8 +11207,8 @@
         "PulseWidth": 1,
         "Channels": [
           -0.05,
-          0.0,
-          0.0
+          0,
+          0
         ]
       },
       {
@@ -11072,9 +11216,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -11082,9 +11226,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -11092,9 +11236,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       },
       {
@@ -11102,21 +11246,28 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          0.0,
-          0.0,
-          0.0
+          0,
+          0,
+          0
         ]
       }
     ],
-    "NameKey": "DefaultWave.Motor90591.Name",
-    "SourceId": 90591
+    "Source": {
+      "Provider": "yokonex",
+      "Collection": "motor-f1",
+      "Key": "90591"
+    }
   },
   {
     "FormatVersion": 1,
     "Id": "d7470000-0000-4000-8002-000000090602",
     "Name": "吸",
+    "Names": {
+      "en": "Suction",
+      "zh-CN": "吸"
+    },
     "Shape": "Sampled",
-    "PeriodSeconds": 15.0,
+    "PeriodSeconds": 15,
     "Frequency": 20,
     "Samples": [
       {
@@ -11124,9 +11275,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
-          1.0
+          -1,
+          1,
+          1
         ]
       },
       {
@@ -11134,9 +11285,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
-          1.0
+          -1,
+          1,
+          1
         ]
       },
       {
@@ -11144,8 +11295,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.95
         ]
       },
@@ -11154,8 +11305,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.95
         ]
       },
@@ -11164,8 +11315,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.95
         ]
       },
@@ -11174,8 +11325,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.95
         ]
       },
@@ -11184,8 +11335,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.9
         ]
       },
@@ -11194,8 +11345,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.9
         ]
       },
@@ -11204,8 +11355,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.9
         ]
       },
@@ -11214,8 +11365,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.9
         ]
       },
@@ -11224,8 +11375,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.85
         ]
       },
@@ -11234,8 +11385,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.85
         ]
       },
@@ -11244,8 +11395,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.85
         ]
       },
@@ -11254,8 +11405,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.85
         ]
       },
@@ -11264,8 +11415,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.8
         ]
       },
@@ -11274,8 +11425,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.8
         ]
       },
@@ -11284,8 +11435,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.8
         ]
       },
@@ -11294,8 +11445,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.75
         ]
       },
@@ -11304,8 +11455,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.75
         ]
       },
@@ -11314,8 +11465,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.75
         ]
       },
@@ -11324,8 +11475,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.75
         ]
       },
@@ -11334,8 +11485,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.7
         ]
       },
@@ -11344,8 +11495,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.7
         ]
       },
@@ -11354,8 +11505,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.7
         ]
       },
@@ -11364,8 +11515,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.7
         ]
       },
@@ -11374,8 +11525,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.65
         ]
       },
@@ -11384,8 +11535,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.65
         ]
       },
@@ -11394,8 +11545,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.65
         ]
       },
@@ -11404,8 +11555,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.6
         ]
       },
@@ -11414,8 +11565,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.6
         ]
       },
@@ -11424,8 +11575,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.6
         ]
       },
@@ -11434,8 +11585,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.6
         ]
       },
@@ -11444,8 +11595,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.55
         ]
       },
@@ -11454,8 +11605,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.55
         ]
       },
@@ -11464,8 +11615,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.55
         ]
       },
@@ -11474,8 +11625,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.55
         ]
       },
@@ -11484,8 +11635,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.5
         ]
       },
@@ -11494,8 +11645,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.5
         ]
       },
@@ -11504,8 +11655,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.5
         ]
       },
@@ -11514,8 +11665,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.5
         ]
       },
@@ -11524,8 +11675,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.45
         ]
       },
@@ -11534,8 +11685,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.45
         ]
       },
@@ -11544,8 +11695,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.45
         ]
       },
@@ -11554,8 +11705,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.4
         ]
       },
@@ -11564,8 +11715,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.4
         ]
       },
@@ -11574,8 +11725,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.4
         ]
       },
@@ -11584,8 +11735,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.4
         ]
       },
@@ -11594,8 +11745,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.35
         ]
       },
@@ -11604,8 +11755,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.35
         ]
       },
@@ -11614,8 +11765,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.35
         ]
       },
@@ -11624,8 +11775,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.35
         ]
       },
@@ -11634,8 +11785,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.3
         ]
       },
@@ -11644,8 +11795,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.3
         ]
       },
@@ -11654,8 +11805,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.3
         ]
       },
@@ -11664,8 +11815,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.3
         ]
       },
@@ -11674,8 +11825,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.25
         ]
       },
@@ -11684,8 +11835,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.25
         ]
       },
@@ -11694,8 +11845,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.25
         ]
       },
@@ -11704,8 +11855,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.2
         ]
       },
@@ -11714,8 +11865,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.2
         ]
       },
@@ -11724,8 +11875,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.2
         ]
       },
@@ -11734,8 +11885,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.2
         ]
       },
@@ -11744,8 +11895,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.15
         ]
       },
@@ -11754,8 +11905,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.15
         ]
       },
@@ -11764,8 +11915,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.15
         ]
       },
@@ -11774,8 +11925,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.15
         ]
       },
@@ -11784,8 +11935,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.1
         ]
       },
@@ -11794,8 +11945,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.1
         ]
       },
@@ -11804,8 +11955,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.1
         ]
       },
@@ -11814,8 +11965,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.05
         ]
       },
@@ -11824,8 +11975,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.05
         ]
       },
@@ -11834,8 +11985,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.05
         ]
       },
@@ -11844,8 +11995,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.05
         ]
       },
@@ -11854,9 +12005,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
-          0.0
+          -1,
+          1,
+          0
         ]
       },
       {
@@ -11864,9 +12015,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
-          0.0
+          -1,
+          1,
+          0
         ]
       },
       {
@@ -11874,9 +12025,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
-          0.0
+          -1,
+          1,
+          0
         ]
       },
       {
@@ -11884,9 +12035,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
-          0.0
+          -1,
+          1,
+          0
         ]
       },
       {
@@ -11894,8 +12045,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.05
         ]
       },
@@ -11904,8 +12055,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.05
         ]
       },
@@ -11914,8 +12065,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.05
         ]
       },
@@ -11924,8 +12075,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.05
         ]
       },
@@ -11934,8 +12085,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.1
         ]
       },
@@ -11944,8 +12095,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.1
         ]
       },
@@ -11954,8 +12105,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.1
         ]
       },
@@ -11964,8 +12115,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.15
         ]
       },
@@ -11974,8 +12125,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.15
         ]
       },
@@ -11984,8 +12135,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.15
         ]
       },
@@ -11994,8 +12145,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.15
         ]
       },
@@ -12004,8 +12155,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.2
         ]
       },
@@ -12014,8 +12165,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.2
         ]
       },
@@ -12024,8 +12175,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.2
         ]
       },
@@ -12034,8 +12185,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.2
         ]
       },
@@ -12044,8 +12195,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.25
         ]
       },
@@ -12054,8 +12205,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.25
         ]
       },
@@ -12064,8 +12215,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.25
         ]
       },
@@ -12074,8 +12225,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.3
         ]
       },
@@ -12084,8 +12235,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.3
         ]
       },
@@ -12094,8 +12245,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.3
         ]
       },
@@ -12104,8 +12255,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.3
         ]
       },
@@ -12114,8 +12265,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.35
         ]
       },
@@ -12124,8 +12275,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.35
         ]
       },
@@ -12134,8 +12285,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.35
         ]
       },
@@ -12144,8 +12295,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.35
         ]
       },
@@ -12154,8 +12305,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.4
         ]
       },
@@ -12164,8 +12315,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.4
         ]
       },
@@ -12174,8 +12325,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.4
         ]
       },
@@ -12184,8 +12335,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.4
         ]
       },
@@ -12194,8 +12345,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.45
         ]
       },
@@ -12204,8 +12355,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.45
         ]
       },
@@ -12214,8 +12365,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.45
         ]
       },
@@ -12224,8 +12375,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.5
         ]
       },
@@ -12234,8 +12385,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.5
         ]
       },
@@ -12244,8 +12395,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.5
         ]
       },
@@ -12254,8 +12405,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.5
         ]
       },
@@ -12264,8 +12415,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.55
         ]
       },
@@ -12274,8 +12425,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.55
         ]
       },
@@ -12284,8 +12435,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.55
         ]
       },
@@ -12294,8 +12445,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.55
         ]
       },
@@ -12304,8 +12455,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.6
         ]
       },
@@ -12314,8 +12465,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.6
         ]
       },
@@ -12324,8 +12475,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.6
         ]
       },
@@ -12334,8 +12485,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.6
         ]
       },
@@ -12344,8 +12495,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.65
         ]
       },
@@ -12354,8 +12505,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.65
         ]
       },
@@ -12364,8 +12515,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.65
         ]
       },
@@ -12374,8 +12525,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.7
         ]
       },
@@ -12384,8 +12535,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.7
         ]
       },
@@ -12394,8 +12545,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.7
         ]
       },
@@ -12404,8 +12555,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.7
         ]
       },
@@ -12414,8 +12565,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.75
         ]
       },
@@ -12424,8 +12575,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.75
         ]
       },
@@ -12434,8 +12585,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.75
         ]
       },
@@ -12444,8 +12595,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.75
         ]
       },
@@ -12454,8 +12605,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.8
         ]
       },
@@ -12464,8 +12615,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.8
         ]
       },
@@ -12474,8 +12625,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.8
         ]
       },
@@ -12484,8 +12635,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.85
         ]
       },
@@ -12494,8 +12645,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.85
         ]
       },
@@ -12504,8 +12655,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.85
         ]
       },
@@ -12514,8 +12665,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.85
         ]
       },
@@ -12524,8 +12675,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.9
         ]
       },
@@ -12534,8 +12685,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.9
         ]
       },
@@ -12544,8 +12695,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.9
         ]
       },
@@ -12554,8 +12705,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.9
         ]
       },
@@ -12564,8 +12715,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.95
         ]
       },
@@ -12574,8 +12725,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.95
         ]
       },
@@ -12584,8 +12735,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.95
         ]
       },
@@ -12594,8 +12745,8 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
+          -1,
+          1,
           0.95
         ]
       },
@@ -12604,9 +12755,9 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
-          1.0
+          -1,
+          1,
+          1
         ]
       },
       {
@@ -12614,13 +12765,16 @@
         "FrequencyHz": 20,
         "PulseWidth": 1,
         "Channels": [
-          -1.0,
-          1.0,
-          1.0
+          -1,
+          1,
+          1
         ]
       }
     ],
-    "NameKey": "DefaultWave.Motor90602.Name",
-    "SourceId": 90602
+    "Source": {
+      "Provider": "yokonex",
+      "Collection": "motor-f1",
+      "Key": "90602"
+    }
   }
 ]

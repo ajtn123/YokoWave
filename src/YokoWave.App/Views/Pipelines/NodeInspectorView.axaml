@@ -175,7 +175,7 @@
     <ContentControl Content="{Binding}" />
     <ContentControl Content="{Binding Preview}">
       <ContentControl.ContentTemplate><DataTemplate x:DataType="items:WaveformItem">
-        <StackPanel Classes="field"><TextBlock Text="{Binding Name}" Classes="caption muted" /><controls:WaveformPlot Waveform="{Binding Asset}" Classes="thumbnail" /></StackPanel>
+        <StackPanel Classes="field"><ContentControl Content="{Binding}" ContentTemplate="{DynamicResource Template.WaveformOption}" /><controls:WaveformPlot Waveform="{Binding Asset}" Classes="thumbnail" /></StackPanel>
       </DataTemplate></ContentControl.ContentTemplate>
     </ContentControl>
     <TextBlock Text="{Binding StatusText}" Classes="caption muted" TextWrapping="Wrap" />

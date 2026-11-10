@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json.Serialization;
 using YokoWave.Core.Localization;
 
@@ -10,6 +11,8 @@ public sealed record WaveformAsset(
 {
     public const int MaximumSamples = 512;
     public static IReadOnlyList<WaveformAsset> BuiltIn => DefaultWaveformCatalog.Waveforms;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public IReadOnlyDictionary<string, string>? Names { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public WaveformSource? Source { get; init; }
     [JsonIgnore]
     public int ChannelCount => Shape == WaveShape.Sampled && Samples is { Length: > 0 }
         ? Samples.Max(sample => sample.Channels?.Length ?? 1) : 1;
@@ -18,6 +21,16 @@ public sealed record WaveformAsset(
     {
         if (!TryValidate(out string? errorKey))
             throw new LocalizedArgumentException(errorKey!);
+    }
+
+    public string GetName(CultureInfo culture)
+    {
+        for (var current = culture; current.Name.Length > 0; current = current.Parent)
+        {
+            if (Names?.TryGetValue(current.Name, out string? value) == true && !string.IsNullOrWhiteSpace(value))
+                return value;
+        }
+        return Name;
     }
 
     public bool TryValidate(out string? errorKey)
@@ -30,8 +43,13 @@ public sealed record WaveformAsset(
     {
         if (Id == Guid.Empty || string.IsNullOrWhiteSpace(Name) || Name.Length > 60)
             return "Error.WaveName";
+        if (Names is not null && (Names.Count is < 1 or > 32 || Names.Any(pair => string.IsNullOrWhiteSpace(pair.Key) || pair.Key.Length > 35 ||
+            string.IsNullOrWhiteSpace(pair.Value) || pair.Value.Length > 60)))
+            return "Error.WaveName";
         if (FormatVersion != 1)
             return "Error.UnsupportedWaveFormat";
+        if (Source is { IsValid: false })
+            return "Error.WaveSource";
         if (!Enum.IsDefined(Shape) || !double.IsFinite(PeriodSeconds) || PeriodSeconds is < 0.2 or > 60)
             return "Error.Period";
         if (!double.IsFinite(Frequency) || Frequency is < 1 or > 100)

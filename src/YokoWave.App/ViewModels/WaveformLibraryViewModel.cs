@@ -86,7 +86,7 @@ public sealed class WaveformLibraryViewModel : ObservableObject, IDisposable
         Waveforms.Add(item);
         SelectedWaveform = item;
         _changed();
-        _notify("Status.WaveSaved", [waveform.Name]);
+        _notify("Status.WaveSaved", [waveform.GetName(L10n.Current.Culture)]);
     }
     public async Task DeleteWaveAsync()
     {

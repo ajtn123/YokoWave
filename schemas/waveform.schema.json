@@ -21,8 +21,8 @@
     "Frequency": { "type": "number", "minimum": 1, "maximum": 100 },
     "Points": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/points" }] },
     "Samples": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/samples" }] },
-    "NameKey": { "type": "string", "minLength": 1, "description": "Optional built-in localization key." },
-    "SourceId": { "type": "integer", "minimum": 0, "description": "Optional source-data identifier; ignored during playback." }
+    "Names": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/names" }], "description": "Localized display names stored with the waveform. Name is the fallback." },
+    "Source": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/source" }], "description": "Original identity and provenance; not a device-specific playback cache." }
   },
   "allOf": [
     {
@@ -35,6 +35,27 @@
     }
   ],
   "$defs": {
+    "names": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 32,
+      "propertyNames": { "type": "string", "minLength": 1, "maxLength": 35, "pattern": "\\S" },
+      "additionalProperties": { "type": "string", "minLength": 1, "maxLength": 60, "pattern": "\\S" }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["Provider", "Collection"],
+      "properties": {
+        "Provider": { "type": "string", "minLength": 1, "maxLength": 80, "pattern": "\\S" },
+        "Collection": { "type": "string", "minLength": 1, "maxLength": 80, "pattern": "\\S" },
+        "Key": { "type": ["string", "null"], "minLength": 1, "maxLength": 256, "pattern": "\\S" },
+        "Repository": { "type": ["string", "null"], "minLength": 1, "maxLength": 2048, "format": "uri", "pattern": "^[Hh][Tt][Tt][Pp][Ss]?://" },
+        "Revision": { "type": ["string", "null"], "minLength": 1, "maxLength": 128, "pattern": "\\S" },
+        "Path": { "type": ["string", "null"], "minLength": 1, "maxLength": 512, "pattern": "\\S" },
+        "License": { "type": ["string", "null"], "minLength": 1, "maxLength": 128, "pattern": "\\S" }
+      }
+    },
     "ratio": { "type": "number", "minimum": 0, "maximum": 1 },
     "points": { "type": "array", "minItems": 2, "maxItems": 256, "items": { "$ref": "#/$defs/ratio" } },
     "samples": { "type": "array", "minItems": 2, "maxItems": 512, "items": { "$ref": "#/$defs/sample" } },

@@ -13,6 +13,9 @@
     <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
   </DataTemplate>
   <DataTemplate x:Key="Template.WaveformOption" x:DataType="vm:WaveformItem">
-    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+    <StackPanel Classes="compact" VerticalAlignment="Center">
+      <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+      <TextBlock Text="{Binding Origin}" Classes="fine-print muted" IsVisible="{Binding HasSource}" />
+    </StackPanel>
   </DataTemplate>
 </ResourceDictionary>

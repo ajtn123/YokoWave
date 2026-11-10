@@ -13,6 +13,8 @@ public sealed class WaveformEditorViewModel : ObservableObject
     private double _period = 4;
     private double _frequency = 20;
     private Guid? _editingId;
+    private WaveformAsset? _original;
+    private string _nameLanguage = L10n.Current.Language;
     public IReadOnlyList<ShapeItem> Shapes { get; } = Enum.GetValues<WaveShape>().Select(shape => new ShapeItem(shape)).ToArray();
     public WaveformSamplesEditorViewModel Samples { get; private set; }
     public string Name
@@ -93,6 +95,8 @@ public sealed class WaveformEditorViewModel : ObservableObject
     public void Clear()
     {
         _editingId = null;
+        _original = null;
+        _nameLanguage = L10n.Current.Language;
         Name = "";
         Samples = CreateSamples([new(0, 20), new(0, 20)]);
         Raise(nameof(Samples));
@@ -103,8 +107,10 @@ public sealed class WaveformEditorViewModel : ObservableObject
     public void Load(WaveformItem selected)
     {
         var waveform = selected.Asset;
+        _original = waveform;
+        _nameLanguage = L10n.Current.Language;
         _editingId = selected.IsBuiltIn ? null : waveform.Id;
-        Name = selected.IsBuiltIn ? L10n.Format("Wave.CopyName", waveform.Name) : waveform.Name;
+        Name = selected.IsBuiltIn ? L10n.Format("Wave.CopyName", selected.Name) : selected.Name;
         Shape = waveform.Shape;
         Samples = CreateSamples(waveform.Samples ?? [new(0, 20), new(0, 20)]);
         Raise(nameof(Samples));
@@ -118,7 +124,14 @@ public sealed class WaveformEditorViewModel : ObservableObject
         double[]? points = Shape == WaveShape.Custom ? PointsText.Split([',', '，', ' ', '\n'], StringSplitOptions.RemoveEmptyEntries)
             .Select(value => double.Parse(value, CultureInfo.InvariantCulture)).ToArray() : null;
         var samples = IsSampled ? Samples.Snapshot() : null;
-        return new(_editingId ?? Guid.NewGuid(), Name.Trim(), Shape, PeriodSeconds, FrequencyHz, points, samples);
+        var names = _original?.Names?.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+        if (names is not null)
+            names[_nameLanguage] = Name.Trim();
+        return new(_editingId ?? Guid.NewGuid(), Name.Trim(), Shape, PeriodSeconds, FrequencyHz, points, samples)
+        {
+            Names = names,
+            Source = _original?.Source
+        };
     }
 
     private WaveformSamplesEditorViewModel CreateSamples(IEnumerable<WaveformSample> samples) => new(samples, () => Raise(nameof(Preview)));

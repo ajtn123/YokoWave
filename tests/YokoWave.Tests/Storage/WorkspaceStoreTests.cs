@@ -14,7 +14,7 @@ public sealed class WorkspaceStoreTests
     {
         using var folder = new TestFolder();
         var store = new WorkspaceStore(folder.Path);
-        var custom = WaveformAsset.BuiltIn[0] with
+        var custom = WaveformAsset.BuiltIn.First(wave => wave.Source is not null) with
         {
             Id = Guid.NewGuid(),
             Name = "自定义"

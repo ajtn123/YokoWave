@@ -12,17 +12,17 @@ public static class DefaultWaveformCatalog
         PropertyNameCaseInsensitive = true,
         Converters = { new JsonStringEnumConverter() }
     };
-    private static readonly IReadOnlyDictionary<Guid, Definition> _definitions = Load();
+    private static readonly IReadOnlyDictionary<Guid, WaveformAsset> _definitions = Load();
     public static IReadOnlyList<WaveformAsset> Waveforms { get; } = new ReadOnlyCollection<WaveformAsset>(
-        _definitions.Values.Select(d => d.Asset).ToList());
+        _definitions.Values.ToList());
 
     public static bool Contains(Guid id) => _definitions.ContainsKey(id);
     public static string Name(Guid id) => _definitions.TryGetValue(id, out var definition)
-        ? L10n.Get(definition.NameKey) : throw new KeyNotFoundException();
+        ? definition.GetName(L10n.Current.Culture) : throw new KeyNotFoundException();
 
-    private static IReadOnlyDictionary<Guid, Definition> Load()
+    private static IReadOnlyDictionary<Guid, WaveformAsset> Load()
     {
-        List<Definition> entries = [];
+        List<WaveformAsset> entries = [];
         foreach (string? name in new[] { "yokonex-waveforms", "coyote-waveforms", "ovc-waveforms" })
         {
             using var stream = typeof(DefaultWaveformCatalog).Assembly.GetManifestResourceStream($"YokoWave.Core.Data.{name}.json")
@@ -32,16 +32,13 @@ public static class DefaultWaveformCatalog
             {
                 var waveform = item.Deserialize<WaveformAsset>(_options) ?? throw new InvalidDataException("Invalid default waveform.");
                 waveform.Validate();
-                string? nameKey = item.GetProperty("NameKey").GetString();
-                if (string.IsNullOrWhiteSpace(nameKey))
-                    throw new InvalidDataException("Default waveform name key is missing.");
-                entries.Add(new(waveform, nameKey));
+                if (waveform.Names?.ContainsKey("en") != true || !waveform.Names.ContainsKey("zh-CN") || waveform.Source is null)
+                    throw new InvalidDataException("Default waveform names or source are missing.");
+                entries.Add(waveform);
             }
         }
-        if (entries.Count == 0 || entries.Select(d => d.Asset.Id).Distinct().Count() != entries.Count)
+        if (entries.Count == 0 || entries.Select(d => d.Id).Distinct().Count() != entries.Count)
             throw new InvalidDataException("Default waveform identifiers must be unique.");
-        return new ReadOnlyDictionary<Guid, Definition>(entries.ToDictionary(d => d.Asset.Id));
+        return new ReadOnlyDictionary<Guid, WaveformAsset>(entries.ToDictionary(d => d.Id));
     }
-
-    private sealed record Definition(WaveformAsset Asset, string NameKey);
 }

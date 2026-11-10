@@ -57,7 +57,7 @@ dotnet run --project src/YokoWave.Desktop -- --smoke-test
 node --test tests/dinosaur/*.test.js
 ```
 
-所有翻译位于根目录 `locales/`，应用与每个模块分别维护 `en.json` / `zh-CN.json`；应用词典由 Core 嵌入，模块词典通过同源 HTTP 加载。
+应用与模块文案位于根目录 `locales/`，分别维护 `en.json` / `zh-CN.json`；应用词典由 Core 嵌入，模块词典通过同源 HTTP 加载。波形名称随资产存入其 JSON 的 `Names`，不使用应用词典键，见[波形格式](docs/waveforms.md)。
 
 ## 修改功能
 

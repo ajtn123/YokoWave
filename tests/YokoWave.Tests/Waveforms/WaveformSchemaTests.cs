@@ -45,6 +45,57 @@ public sealed class WaveformSchemaTests
     }
 
     [Theory]
+    [InlineData("Key", "\" \"")]
+    [InlineData("Repository", "\"not-a-url\"")]
+    [InlineData("Revision", "\" \"")]
+    public void SourceMetadataIsValidatedByTheSchemaAndImporter(string property, string json)
+    {
+        var (single, _) = Schemas();
+        var wave = DefaultWaveformCatalog.Waveforms.First(wave => wave.Source is not null);
+        var root = JsonNode.Parse(WaveformExchange.Export([wave]))!.AsArray()[0]!;
+        root["Source"]![property] = JsonNode.Parse(json);
+        Assert.False(single.Evaluate(JsonSerializer.SerializeToElement(root)).IsValid);
+        Assert.ThrowsAny<ArgumentException>(() => WaveformExchange.Import(new JsonArray(root.DeepClone()).ToJsonString()));
+    }
+
+    [Fact]
+    public void UnrecognizedSourceFieldsAreRejectedInsteadOfSilentlyLost()
+    {
+        var (single, _) = Schemas();
+        var wave = DefaultWaveformCatalog.Waveforms.First(wave => wave.Source is not null);
+        var root = JsonNode.Parse(WaveformExchange.Export([wave]))!.AsArray()[0]!;
+        root["Source"]!["UnknownField"] = 1;
+        Assert.False(single.Evaluate(JsonSerializer.SerializeToElement(root)).IsValid);
+        Assert.Throws<JsonException>(() => WaveformExchange.Import(new JsonArray(root.DeepClone()).ToJsonString()));
+    }
+
+    [Fact]
+    public void SourceProviderAndCollectionCanBeStoredWithoutAnExternalIdentifier()
+    {
+        var wave = DefaultWaveformCatalog.Waveforms[0] with { Source = new("example", "collection") };
+        var (single, _) = Schemas();
+        using var json = JsonDocument.Parse(WaveformExchange.Export([wave]));
+        Assert.True(single.Evaluate(json.RootElement[0]).IsValid);
+        var restored = Assert.Single(WaveformExchange.Import(json.RootElement.GetRawText()));
+        Assert.Equal("example", restored.Source!.Provider);
+        Assert.Equal("collection", restored.Source.Collection);
+        Assert.Null(restored.Source.Key);
+    }
+
+    [Theory]
+    [InlineData("{}")]
+    [InlineData("{\"en\":null}")]
+    [InlineData("{\"en\":\" \"}")]
+    public void LocalizedNamesAreValidatedByTheSchemaAndImporter(string names)
+    {
+        var (single, _) = Schemas();
+        var root = JsonNode.Parse(WaveformExchange.Export([DefaultWaveformCatalog.Waveforms[0]]))!.AsArray()[0]!;
+        root["Names"] = JsonNode.Parse(names);
+        Assert.False(single.Evaluate(JsonSerializer.SerializeToElement(root)).IsValid);
+        Assert.ThrowsAny<ArgumentException>(() => WaveformExchange.Import(new JsonArray(root.DeepClone()).ToJsonString()));
+    }
+
+    [Theory]
     [InlineData("FormatVersion", "2")]
     [InlineData("Id", "\"00000000-0000-0000-0000-000000000000\"")]
     [InlineData("Id", "\"invalid\"")]

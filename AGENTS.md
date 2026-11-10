@@ -22,6 +22,7 @@
 
 - 文字只表达功能、操作、状态、数值与限制。删除无有效信息的文字，不加宣传语；波形只显示名称、参数和预览。
 - 文案统一放在根目录 `locales/`；应用使用 `locales/app/{en,zh-CN}.json`，各模块使用 `locales/<module>/{en,zh-CN}.json`。每组两份同时修改，键和占位符一致。XAML 使用 `{l:Loc Key}`，C# 使用 `L10n.Get` / `L10n.Format`；切换语言保留状态和输入。
+- 波形名称属于资产数据，使用波形 JSON 的 `Names`（`en` / `zh-CN`）及回退 `Name`，不放进应用词典。名称保留源标签，可修正拼写，不添加设备名前缀或重复的原始标签；来源通过 `Source.Provider` / `Source.Collection` 在界面小字显示。
 - 继承系统无衬线字体，不引入字体包。颜色在 `Styles/Palette.axaml`，尺寸、间距、圆角在 `Styles/Metrics.axaml`；复用 `card`、`field` 等语义样式。
 - 浏览器模块的颜色和外观尺寸集中于模块样式表的 CSS 自定义属性，复用语义类，遵循系统字体与明暗主题。
 - 控件大多数属性保持同一行。Grid 使用共享间距，不用空白行列占位。菜单继承窗口字体。
