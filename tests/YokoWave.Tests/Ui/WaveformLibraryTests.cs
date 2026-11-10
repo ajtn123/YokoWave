@@ -41,7 +41,9 @@ public sealed class WaveformLibraryTests
             Assert.Single(view.GetLogicalDescendants().OfType<WaveformEditorView>());
             Assert.Single(view.GetLogicalDescendants().OfType<WaveformTransferView>());
             await vm.NavigateAsync("waves");
+            vm.Waveforms.SelectedWaveform = vm.Waveforms.Waveforms.MaxBy(wave => wave.Asset.Samples!.Length);
             var original = vm.Waveforms.SelectedWaveform!.Asset;
+            Assert.True(original.Samples!.Length > 256);
             Assert.False(vm.Waveforms.DeleteWaveCommand.CanExecute(null));
             Assert.False(Find<Button>(view, "DeleteWaveButton").IsEffectivelyEnabled);
             await Assert.ThrowsAnyAsync<InvalidOperationException>(vm.Waveforms.DeleteWaveAsync);
@@ -58,6 +60,23 @@ public sealed class WaveformLibraryTests
             UiArtifacts.Capture(window, "default-waveforms.png");
         }
         finally { window.Close(); }
+    }
+
+    [Fact]
+    public void SampleEditorPreservesLongBuiltInsAndStopsAddingAtTheSharedLimit()
+    {
+        var waveform = DefaultWaveformCatalog.Waveforms.MaxBy(wave => wave.Samples!.Length)!;
+        var editor = new WaveformEditorViewModel();
+        editor.Load(new(waveform));
+        Assert.Equivalent(waveform.Samples, editor.Samples.Snapshot());
+        while (editor.Samples.Rows.Count < WaveformAsset.MaximumSamples)
+        {
+            Assert.True(editor.Samples.AddCommand.CanExecute(null));
+            editor.Samples.AddCommand.Execute(null);
+        }
+        Assert.False(editor.Samples.AddCommand.CanExecute(null));
+        editor.Samples.AddCommand.Execute(null);
+        Assert.Equal(WaveformAsset.MaximumSamples, editor.Samples.Rows.Count);
     }
 
     private static T Find<T>(Control root, string name)

@@ -8,6 +8,7 @@ public sealed record WaveformAsset(
     [property: JsonRequired] double Frequency, double[]? Points = null, WaveformSample[]? Samples = null,
     [property: JsonRequired] int FormatVersion = 1)
 {
+    public const int MaximumSamples = 512;
     public static IReadOnlyList<WaveformAsset> BuiltIn => DefaultWaveformCatalog.Waveforms;
     [JsonIgnore]
     public int ChannelCount => Shape == WaveShape.Sampled && Samples is { Length: > 0 }
@@ -41,7 +42,7 @@ public sealed record WaveformAsset(
             return "Error.Points";
         }
 
-        if (Shape == WaveShape.Sampled && (Samples is null || Samples.Length is < 2 or > 256 || Samples.Any(sample =>
+        if (Shape == WaveShape.Sampled && (Samples is null || Samples.Length is < 2 or > MaximumSamples || Samples.Any(sample =>
             sample is null || !sample.IsValid)))
         {
             return "Error.Samples";

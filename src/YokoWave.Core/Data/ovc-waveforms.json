@@ -1,0 +1,9122 @@
+[
+  {
+    "FormatVersion": 1,
+    "Id": "fbefd8ab-0503-5481-b26c-0f1be75cf93a",
+    "Name": "负鼠 · 闹钟",
+    "Shape": "Sampled",
+    "PeriodSeconds": 2,
+    "Frequency": 100,
+    "Samples": [
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      }
+    ],
+    "NameKey": "DefaultWave.Opossum.Alarm.Name"
+  },
+  {
+    "FormatVersion": 1,
+    "Id": "73b77da3-3990-5ee5-ac27-eac7af49e3c8",
+    "Name": "负鼠 · 精准打击",
+    "Shape": "Sampled",
+    "PeriodSeconds": 0.3,
+    "Frequency": 100,
+    "Samples": [
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      }
+    ],
+    "NameKey": "DefaultWave.Opossum.Pinpoint.Name"
+  },
+  {
+    "FormatVersion": 1,
+    "Id": "b6d4cf6a-0bb5-5b48-aa2b-f3cc1a76af02",
+    "Name": "负鼠 · 暗涌",
+    "Shape": "Sampled",
+    "PeriodSeconds": 1.4,
+    "Frequency": 100,
+    "Samples": [
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      }
+    ],
+    "NameKey": "DefaultWave.Opossum.Undertow.Name"
+  },
+  {
+    "FormatVersion": 1,
+    "Id": "641d1ea2-dd54-57c9-a860-f96314eb8e13",
+    "Name": "负鼠 · 舒脉",
+    "Shape": "Sampled",
+    "PeriodSeconds": 1.8,
+    "Frequency": 100,
+    "Samples": [
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.75
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.75
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.75
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.75
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.75
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.75
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.75
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.75
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      }
+    ],
+    "NameKey": "DefaultWave.Opossum.Soothe.Name"
+  },
+  {
+    "FormatVersion": 1,
+    "Id": "78bb4c32-d20f-569c-97c6-e9c398e3c4af",
+    "Name": "负鼠 · 梯形波动",
+    "Shape": "Sampled",
+    "PeriodSeconds": 2,
+    "Frequency": 100,
+    "Samples": [
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.2
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.2
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.2
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.2
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.6
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.6
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.6
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.6
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.8
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.8
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.8
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.8
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.8
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.8
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.8
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.8
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.6
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.6
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.6
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.6
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.2
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.2
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.2
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.2
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      }
+    ],
+    "NameKey": "DefaultWave.Opossum.Trapezoid.Name"
+  },
+  {
+    "FormatVersion": 1,
+    "Id": "aa4dc202-ad54-51bd-bdc2-3df20b7755ad",
+    "Name": "负鼠 · 机车声浪",
+    "Shape": "Sampled",
+    "PeriodSeconds": 3.5,
+    "Frequency": 100,
+    "Samples": [
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.9
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.9
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.9
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.9
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.81
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.81
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.81
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.81
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.72
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.72
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.72
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.72
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.63
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.63
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.63
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.63
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.54
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.54
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.54
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.54
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.45
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.45
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.45
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.45
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.88
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.88
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.88
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.88
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.76
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.76
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.76
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.76
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.64
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.64
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.64
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.64
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.52
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.52
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.52
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.52
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.88
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.88
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.88
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.88
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.76
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.76
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.76
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.76
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.64
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.64
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.64
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.64
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.52
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.52
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.52
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.52
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.8
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.8
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.8
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.8
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.6
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.6
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.6
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.6
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      }
+    ],
+    "NameKey": "DefaultWave.Opossum.EngineWave.Name"
+  },
+  {
+    "FormatVersion": 1,
+    "Id": "dd94f6ef-de08-5a8e-8544-c1a3534f27c2",
+    "Name": "负鼠 · 余震",
+    "Shape": "Sampled",
+    "PeriodSeconds": 3.7,
+    "Frequency": 100,
+    "Samples": [
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.2
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.2
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.2
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.2
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.45
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.45
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.45
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.45
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.73
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.73
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.73
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.73
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.87
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.87
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.87
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.87
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.2
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.2
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.2
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.2
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.45
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.45
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.45
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.45
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.73
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.73
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.73
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.73
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.87
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.87
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.87
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.87
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      }
+    ],
+    "NameKey": "DefaultWave.Opossum.Aftershock.Name"
+  },
+  {
+    "FormatVersion": 1,
+    "Id": "9a129c41-ece5-58e4-979a-b6ad03f88ef9",
+    "Name": "负鼠 · 持续冲击",
+    "Shape": "Sampled",
+    "PeriodSeconds": 1.4,
+    "Frequency": 100,
+    "Samples": [
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.45
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.45
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.45
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.45
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.75
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.75
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.75
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.75
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.81
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.81
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.81
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.81
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.87
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.87
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.87
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.87
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.93
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.93
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.93
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.93
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      }
+    ],
+    "NameKey": "DefaultWave.Opossum.SteadyHit.Name"
+  },
+  {
+    "FormatVersion": 1,
+    "Id": "31c1f0cc-fd7d-5141-bf7f-26aad99482c5",
+    "Name": "负鼠 · 曲线压缩",
+    "Shape": "Sampled",
+    "PeriodSeconds": 3.2,
+    "Frequency": 100,
+    "Samples": [
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.05
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.05
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.05
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.05
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.45
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.45
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.45
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.45
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.72
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.72
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.72
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.72
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.05
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.05
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.05
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.05
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.2
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.2
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.2
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.2
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.4
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.05
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.05
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.05
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.05
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.3
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.3
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.3
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.3
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.05
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.05
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.05
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.05
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.52
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.52
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.52
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.52
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      }
+    ],
+    "NameKey": "DefaultWave.Opossum.CurvePress.Name"
+  },
+  {
+    "FormatVersion": 1,
+    "Id": "237896ff-98b3-5cd1-9a27-c909194a8c4a",
+    "Name": "负鼠 · 脉搏",
+    "Shape": "Sampled",
+    "PeriodSeconds": 2.4,
+    "Frequency": 100,
+    "Samples": [
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.33
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.33
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.33
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.33
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.66
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.66
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.66
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.66
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.33
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.33
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.33
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.33
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.66
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.66
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.66
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.66
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.33
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.33
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.33
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.33
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.66
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.66
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.66
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.66
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      }
+    ],
+    "NameKey": "DefaultWave.Opossum.Beat.Name"
+  },
+  {
+    "FormatVersion": 1,
+    "Id": "9492273f-73fb-5e8e-a13b-020c00e14fdb",
+    "Name": "负鼠 · 回环扩散",
+    "Shape": "Sampled",
+    "PeriodSeconds": 1.9,
+    "Frequency": 100,
+    "Samples": [
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.75
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.75
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.75
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.75
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.15
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.15
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.15
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.15
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.15
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.15
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.15
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.15
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.15
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.15
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.15
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.15
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.75
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.75
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.75
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.75
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      }
+    ],
+    "NameKey": "DefaultWave.Opossum.LoopSpread.Name"
+  },
+  {
+    "FormatVersion": 1,
+    "Id": "03e020ee-ada8-5241-981b-772f812ddf0c",
+    "Name": "负鼠 · 间歇节律",
+    "Shape": "Sampled",
+    "PeriodSeconds": 1.7,
+    "Frequency": 100,
+    "Samples": [
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.55
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.55
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.55
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.55
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.55
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.55
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.55
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.55
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.55
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.55
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.55
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.55
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      }
+    ],
+    "NameKey": "DefaultWave.Opossum.Intermittent.Name"
+  },
+  {
+    "FormatVersion": 1,
+    "Id": "abb5dd16-0c86-5731-b2d1-db861016f66b",
+    "Name": "负鼠 · 踏浪起伏",
+    "Shape": "Sampled",
+    "PeriodSeconds": 1.3,
+    "Frequency": 100,
+    "Samples": [
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.55
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.55
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.55
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.55
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.8
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.8
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.8
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.8
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.9
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.9
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.9
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.9
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.95
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.95
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.95
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.95
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.95
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.95
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.95
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.95
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.9
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.9
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.9
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.9
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.8
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.8
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.8
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.8
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.55
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.55
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.55
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.55
+      }
+    ],
+    "NameKey": "DefaultWave.Opossum.SurfWave.Name"
+  },
+  {
+    "FormatVersion": 1,
+    "Id": "7088c644-0266-57b1-aae3-8b744d645eb0",
+    "Name": "负鼠 · 循环推进",
+    "Shape": "Sampled",
+    "PeriodSeconds": 1.3,
+    "Frequency": 100,
+    "Samples": [
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.3
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.3
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.3
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.3
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.3
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.3
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.3
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.3
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.3
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.3
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.3
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.3
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.3
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.3
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.3
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.3
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.3
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.3
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.3
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.3
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.3
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.3
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.3
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.3
+      }
+    ],
+    "NameKey": "DefaultWave.Opossum.LoopPush.Name"
+  },
+  {
+    "FormatVersion": 1,
+    "Id": "f0cb3785-3dae-5d91-bcad-82dc9d184368",
+    "Name": "负鼠 · 树冠脉冲",
+    "Shape": "Sampled",
+    "PeriodSeconds": 0.8,
+    "Frequency": 100,
+    "Samples": [
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.33
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.33
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.33
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.33
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.66
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.66
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.66
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.66
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.66
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.66
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.66
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.66
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.33
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.33
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.33
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.33
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      }
+    ],
+    "NameKey": "DefaultWave.Opossum.Canopy.Name"
+  },
+  {
+    "FormatVersion": 1,
+    "Id": "ecf8ae87-3d1d-50c0-84a7-c8026664e66c",
+    "Name": "负鼠 · 愉悦攀登",
+    "Shape": "Sampled",
+    "PeriodSeconds": 2.8,
+    "Frequency": 100,
+    "Samples": [
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.25
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      }
+    ],
+    "NameKey": "DefaultWave.Opossum.JoyClimb.Name"
+  },
+  {
+    "FormatVersion": 1,
+    "Id": "c5c147c3-147f-52bd-8c55-394609c61a1a",
+    "Name": "负鼠 · 持续降速",
+    "Shape": "Sampled",
+    "PeriodSeconds": 1,
+    "Frequency": 100,
+    "Samples": [
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.87
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.87
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.87
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.87
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.75
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.75
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.75
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.75
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.65
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.45
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.45
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.45
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.45
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.2
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.2
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.2
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.2
+      }
+    ],
+    "NameKey": "DefaultWave.Opossum.Decel.Name"
+  },
+  {
+    "FormatVersion": 1,
+    "Id": "3058b6ae-e788-5763-90f4-2df27f0ce37e",
+    "Name": "负鼠 · 随机节奏",
+    "Shape": "Sampled",
+    "PeriodSeconds": 5.9,
+    "Frequency": 100,
+    "Samples": [
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.5
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.7
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      }
+    ],
+    "NameKey": "DefaultWave.Opossum.Random.Name"
+  },
+  {
+    "FormatVersion": 1,
+    "Id": "29846f3b-bfec-5e40-8600-adc6c06278e3",
+    "Name": "负鼠 · 跳跳糖",
+    "Shape": "Sampled",
+    "PeriodSeconds": 1.6,
+    "Frequency": 100,
+    "Samples": [
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.35
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.35
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.35
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.35
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.35
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.35
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.35
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.35
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.35
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.35
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.35
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.35
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.35
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.35
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.35
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0.35
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      }
+    ],
+    "NameKey": "DefaultWave.Opossum.PopCandy.Name"
+  },
+  {
+    "FormatVersion": 1,
+    "Id": "c49f260a-bc2d-50a1-8911-80e5f11bc02a",
+    "Name": "负鼠 · 相位偏移",
+    "Shape": "Sampled",
+    "PeriodSeconds": 4.5,
+    "Frequency": 100,
+    "Samples": [
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 1
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      },
+      {
+        "Level": 1,
+        "FrequencyHz": 100,
+        "PulseWidth": 0
+      }
+    ],
+    "NameKey": "DefaultWave.Opossum.PhaseShift.Name"
+  }
+]

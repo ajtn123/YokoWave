@@ -15,7 +15,7 @@
 
 源通道数量取采样序列中 `Channels` 数组的最大长度；整条波形没有通道数组时只定义 A，生成曲线也只定义 A。节点分别显示已定义通道的幅度端口，频率与脉宽共用。没有独立通道数据的波形可以将 A 端口连接到多个目标。
 
-`Level`、`FrequencyHz`、`PulseWidth` 必须显式存在于采样 JSON 中。未知版本或缺少必要字段直接拒绝，不把旧协议字段默认为零。所有数值必须有限，单条最多 256 帧或插值点，周期为 0.2–60 秒。
+`Level`、`FrequencyHz`、`PulseWidth` 必须显式存在于采样 JSON 中。未知版本或缺少必要字段直接拒绝，不把旧协议字段默认为零。所有数值必须有限，单条最多 512 个采样或 256 个插值点，周期为 0.2–60 秒。采样上限由 `WaveformAsset.MaximumSamples` 定义，编辑器与导入校验共用，Schema 保持一致。
 
 ```json
 [
@@ -44,15 +44,18 @@
 
 ## 默认数据及转换来源
 
-两个嵌入资源与普通导入导出使用完全相同的波形结构，可直接通过普通波形导入器读取。额外的 `NameKey` 用于本地化，`SourceId` 仅用于来源核对，不参与设备编码。稳定 ID、采样数和时间间隔保持不变。
+三个嵌入资源 `yokonex-waveforms.json`、`coyote-waveforms.json`、`ovc-waveforms.json` 与普通导入导出使用完全相同的波形结构，可直接通过普通波形导入器读取。额外的 `NameKey` 用于本地化，YOKONEX 的 `SourceId` 仅用于来源核对，不参与设备编码。YOKONEX 保留原稳定 ID；郊狼与负鼠的标识由来源系列及枚举名确定，不依赖显示名称或排列位置。
 
 | 来源 | 数量／采样 | 转换 |
 | --- | --- | --- |
 | 原应用电击系统波形 | 12 条 | `Level=1`，频率 PL 按 Hz 保存，TL 除以 100 作为相对脉宽；协议无效的 0 Hz 归为最低 1 Hz，与原发送路径一致 |
 | 原应用电机 f1 系统波形 | 10 条 | `Level=1`、`PulseWidth=1`，三路有符号值除以 20 保存为 `Channels`；源数据没有脉冲频率，使用默认 20 Hz |
-| 郊狼公开呼吸／潮汐示例 | 2 条，48／92 个采样 | 周期毫秒转换为 `1000 / period` Hz；幅度除以 100，`Level=1`；每组 100 ms 展开为四个 25 ms 采样 |
+| dglab-kit 郊狼波形 | 24 条，3,052 个采样 | 压缩周期解码为毫秒后转换为 `1000 / period` Hz；幅度除以 100，`Level=1`；每组 100 ms 展开为四个 25 ms 采样 |
+| dglab-kit 负鼠波形 | 20 条，1,780 个采样 | 与郊狼原始波形格式相同，保存全部四个采样的频率和幅度；实际震动输出忽略频率 |
 
-原系统数据共 22 条（1,379 帧），未收录用户分享波形及 f2 分类波形。郊狼两条示例来自厂商的 [V3 波形示例](https://github.com/dungeonlab-open/dglab-bluetooth-protocol/blob/main/coyote/v3/example_cn.md)，不代表其全部系统波形。总计 24 条、1,519 帧，均不可删除或覆盖，可复制后编辑。
+YOKONEX 原系统数据共 22 条（1,379 帧），未收录用户分享波形及 f2 分类波形。郊狼和负鼠收录 [dglab-kit coyote.ts](https://github.com/dungeonlab-open/dglab-kit/blob/3e7ed447e387c2fa52f2c27353c27ff295b0bdeb/src/waveform/coyote.ts) 与 [ovc.ts](https://github.com/dungeonlab-open/dglab-kit/blob/3e7ed447e387c2fa52f2c27353c27ff295b0bdeb/src/waveform/ovc.ts) 的全部波形，未截断或降采样。最长序列为 336 个采样。总计 66 条、6,211 个采样，均不可删除或覆盖，可复制后编辑。转换数据及标签的来源许可见[第三方数据声明](../THIRD-PARTY-NOTICES.md)。
+
+回归测试将全部郊狼和负鼠采样按原时间顺序重新编码，使用上游原始帧的 SHA-256 校验完整内容；同时验证 Schema、双语名称、最长序列的复制编辑，以及每个已支持输出驱动对整个内置库的播放转换。
 
 YOKONEX 频率和脉冲时间单位依据厂商 [V1／V2 蓝牙文档](https://github.com/YCY-YOKONEX/YCY-YOKONEX-OpenSource/tree/main/Bluetooth)。波形数据内置，无需登录或联网，应用不读取本地参考账号凭据。
 

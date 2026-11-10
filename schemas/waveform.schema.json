@@ -37,7 +37,7 @@
   "$defs": {
     "ratio": { "type": "number", "minimum": 0, "maximum": 1 },
     "points": { "type": "array", "minItems": 2, "maxItems": 256, "items": { "$ref": "#/$defs/ratio" } },
-    "samples": { "type": "array", "minItems": 2, "maxItems": 256, "items": { "$ref": "#/$defs/sample" } },
+    "samples": { "type": "array", "minItems": 2, "maxItems": 512, "items": { "$ref": "#/$defs/sample" } },
     "sample": {
       "type": "object",
       "additionalProperties": false,

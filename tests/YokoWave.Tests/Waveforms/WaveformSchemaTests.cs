@@ -11,9 +11,9 @@ public sealed class WaveformSchemaTests
     public void SchemasAcceptAllBuiltInsExportedShapesAndEmptyStorageWithoutNetworkResolution()
     {
         var (single, collection) = Schemas();
-        foreach (string? resource in new[] { "default-waveforms", "dglab-waveforms" })
+        foreach (string resource in typeof(DefaultWaveformCatalog).Assembly.GetManifestResourceNames().Where(name => name.StartsWith("YokoWave.Core.Data.", StringComparison.Ordinal)))
         {
-            using var stream = typeof(DefaultWaveformCatalog).Assembly.GetManifestResourceStream($"YokoWave.Core.Data.{resource}.json");
+            using var stream = typeof(DefaultWaveformCatalog).Assembly.GetManifestResourceStream(resource);
             using var document = JsonDocument.Parse(stream!);
             Assert.True(collection.Evaluate(document.RootElement).IsValid);
             Assert.All(document.RootElement.EnumerateArray(), wave => Assert.True(single.Evaluate(wave).IsValid));
@@ -25,6 +25,23 @@ public sealed class WaveformSchemaTests
         Assert.All(exported.RootElement.EnumerateArray(), wave => Assert.False(wave.TryGetProperty("ChannelCount", out _)));
         using var empty = JsonDocument.Parse("[]");
         Assert.True(collection.Evaluate(empty.RootElement).IsValid);
+    }
+
+    [Theory]
+    [InlineData(336, true)]
+    [InlineData(512, true)]
+    [InlineData(513, false)]
+    public void SchemaAndAssetValidationAgreeOnExtendedSampleCounts(int count, bool valid)
+    {
+        var wave = DefaultWaveformCatalog.Waveforms[0] with { Samples = Enumerable.Repeat(new WaveformSample(1, 20, .5), count).ToArray() };
+        var (single, _) = Schemas();
+        using var exported = JsonDocument.Parse(WaveformExchange.Export([wave]));
+        Assert.Equal(valid, wave.TryValidate(out _));
+        Assert.Equal(valid, single.Evaluate(exported.RootElement[0]).IsValid);
+        if (valid)
+            Assert.Equal(count, Assert.Single(WaveformExchange.Import(exported.RootElement.GetRawText())).Samples!.Length);
+        else
+            Assert.ThrowsAny<ArgumentException>(() => WaveformExchange.Import(exported.RootElement.GetRawText()));
     }
 
     [Theory]

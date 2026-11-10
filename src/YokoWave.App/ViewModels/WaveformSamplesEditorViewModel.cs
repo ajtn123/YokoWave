@@ -65,7 +65,7 @@ public sealed class WaveformSampleRow : ObservableObject
 }
 
 public sealed class WaveformSamplesEditorViewModel(IEnumerable<WaveformSample> samples, Action changed)
-    : OrderedRowsEditorViewModel<WaveformSampleRow>(samples.Select(s => new WaveformSampleRow(s, changed)), () => new(new(0, 20, 1), changed), 2, 256, () => true, changed)
+    : OrderedRowsEditorViewModel<WaveformSampleRow>(samples.Select(s => new WaveformSampleRow(s, changed)), () => new(new(0, 20, 1), changed), 2, WaveformAsset.MaximumSamples, () => true, changed)
 {
     public WaveformSample[] Snapshot() => Rows.Select(r => r.Snapshot()).ToArray();
 }

@@ -23,7 +23,7 @@ public static class DefaultWaveformCatalog
     private static IReadOnlyDictionary<Guid, Definition> Load()
     {
         List<Definition> entries = [];
-        foreach (string? name in new[] { "default-waveforms", "dglab-waveforms" })
+        foreach (string? name in new[] { "yokonex-waveforms", "coyote-waveforms", "ovc-waveforms" })
         {
             using var stream = typeof(DefaultWaveformCatalog).Assembly.GetManifestResourceStream($"YokoWave.Core.Data.{name}.json")
                 ?? throw new InvalidDataException("Default waveform catalog is missing.");
