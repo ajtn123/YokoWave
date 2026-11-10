@@ -20,7 +20,6 @@ dotnet_separate_import_directive_groups = false
 csharp_new_line_before_open_brace = all
 csharp_preserve_single_line_blocks = true
 csharp_preserve_single_line_statements = false
-csharp_prefer_braces = when_multiline:warning
 csharp_style_namespace_declarations = file_scoped:warning
 csharp_style_var_for_built_in_types = false:warning
 csharp_style_var_when_type_is_apparent = true:warning
