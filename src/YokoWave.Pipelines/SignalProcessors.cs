@@ -177,8 +177,9 @@ internal sealed class SensorProcessor : ISignalProcessor
         Publish("gyroscopeY", data?.GyroscopeAxes?.Y, captured);
         Publish("gyroscopeZ", data?.GyroscopeAxes?.Z, captured);
         var eventAt = data?.EventCapturedAt ?? captured;
-        Publish("eventId", data?.EventId, eventAt, eventAt?.UtcTicks ?? 0);
-        Publish("eventActive", data?.EventActive is { } active ? active ? 1 : 0 : null, eventAt, eventAt?.UtcTicks ?? 0);
+        long eventSequence = data?.EventSequence ?? eventAt?.UtcTicks ?? 0;
+        Publish("eventId", data?.EventId, eventAt, eventSequence);
+        Publish("eventActive", data?.EventActive is { } active ? active ? 1 : 0 : null, eventAt, eventSequence);
         Publish("parameter", data?.Parameter, captured);
         Publish("modelId", data?.ModelId, captured);
         Publish("modeA", data?.ModeA, captured);

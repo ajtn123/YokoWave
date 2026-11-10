@@ -18,6 +18,7 @@ public sealed class DgLabV4Transport : IDeviceTransport, IDeviceStatusSource, ID
     private readonly ConcurrentDictionary<string, byte> _connected = new();
     private readonly ConcurrentDictionary<long, Task> _tasks = new();
     private readonly ConcurrentDictionary<string, DeviceDescriptor> _discovered = new();
+    private readonly ConcurrentDictionary<string, long> _feedbackSequences = new();
     private long _taskId;
     private int _disposed;
     public string DisplayName => L10n.Get("DgLab.Title");
@@ -45,6 +46,7 @@ public sealed class DgLabV4Transport : IDeviceTransport, IDeviceStatusSource, ID
         {
             Error = error ?? new LocalizedIOException("Error.RemoteDisconnected");
             _catalog.Clear();
+            _feedbackSequences.Clear();
             DevicesChanged?.Invoke();
         };
     }
@@ -165,11 +167,18 @@ public sealed class DgLabV4Transport : IDeviceTransport, IDeviceStatusSource, ID
         }
         else if (type == "client_disconnected")
         {
-            _catalog.RemoveApp(DgLabV4Protocol.String(frame, "clientId"));
+            string id = DgLabV4Protocol.String(frame, "clientId");
+            _catalog.RemoveApp(id);
+            _feedbackSequences.TryRemove(id, out _);
         }
         else if (type == "error" && frame.TryGetProperty("clientId", out var failed) && failed.ValueKind == JsonValueKind.String)
         {
             _catalog.RemoveApp(failed.GetString()!);
+        }
+        else if (type == "error" && frame.TryGetProperty("code", out var code) && code.ValueKind == JsonValueKind.String)
+        {
+            Error = new DgLabV4Exception(code.GetString()!);
+            DevicesChanged?.Invoke();
         }
         else if (type == "message")
         {
@@ -194,8 +203,9 @@ public sealed class DgLabV4Transport : IDeviceTransport, IDeviceStatusSource, ID
                 else if (action.GetString() == "custom.action" && data.TryGetProperty("action", out var number) && number.ValueKind == JsonValueKind.Number &&
                     number.TryGetInt32(out int value) && value is >= 0 and <= 9)
                 {
+                    long sequence = _feedbackSequences.AddOrUpdate(app, 1, (_, previous) => previous + 1);
                     foreach (var slot in _catalog.Snapshot().Where(slot => slot.AppId == app && _connected.ContainsKey(slot.Id)))
-                        StatusChanged?.Invoke(this, new(slot.Id, telemetry: new(EventId: value, EventActive: true, EventCapturedAt: _clock.GetUtcNow())));
+                        StatusChanged?.Invoke(this, new(slot.Id, telemetry: new(EventId: value, EventActive: true, EventCapturedAt: _clock.GetUtcNow(), EventSequence: sequence)));
                 }
             }
         }

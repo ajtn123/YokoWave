@@ -5,6 +5,7 @@ using YokoWave.Pipelines;
 using YokoWave.Remote;
 using YokoWave.Remote.DgLab.V4;
 using YokoWave.Tests.Support.Bluetooth;
+using YokoWave.Tests.Support.Remote;
 
 namespace YokoWave.Tests.Remote;
 
@@ -220,5 +221,51 @@ public sealed class DgLabV4PipelineTests
         Assert.Single(services.Endpoints);
         await session.StopAsync();
         Assert.Empty(services.Endpoints);
+    }
+
+    [Fact]
+    public async Task ControllerDisconnectedNotificationStopsOutputsWithoutWaitingForSocketClosure()
+    {
+        var adapter = new HardwareGattAdapter(BluetoothProtocol.CoyoteV3);
+        await using var devices = new DeviceController(new BluetoothDeviceTransport(adapter));
+        var device = Assert.Single(await devices.ScanAsync(Ct));
+        await devices.ConnectAsync(device, Ct);
+        var slotReady = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var disconnect = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        int serverClosed = 0;
+        await using var server = await ScriptedWebSocketServer.CreateAsync(async (socket, cancellationToken) =>
+        {
+            await ScriptedWebSocketServer.SendAsync(socket, new { type = "hello", clientId = "app" }, cancellationToken);
+            await ScriptedWebSocketServer.SendAsync(socket, new { type = "controller_attached", clientId = "controller" }, cancellationToken);
+            string slot = await slotReady.Task.WaitAsync(cancellationToken);
+            await ScriptedWebSocketServer.SendAsync(socket, new { type = "message", data = new { t = "req", reqId = "1", m = "device.op", data = new { s = slot, t = 4, c = 0, v = 80 } } }, cancellationToken);
+            await disconnect.Task.WaitAsync(cancellationToken);
+            await ScriptedWebSocketServer.SendAsync(socket, new { type = "controller_disconnected", clientId = "controller" }, cancellationToken);
+            try
+            {
+                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            }
+            finally
+            {
+                Interlocked.Exchange(ref serverClosed, 1);
+            }
+        });
+        var builder = new PipelineBuilder("V4 terminal notification");
+        var input = builder.Add(DgLabV4Nodes.App, new DgLabV4AppNode(device.Id, server.Url.ToString(), "controller"));
+        var output = builder.Add(BuiltInNodes.RouterOutput, new RouterOutputNode(device.Id, .4));
+        foreach (var port in BuiltInNodes.FramePorts())
+            builder.Connect(input, port.Id, output, port.Id);
+        await using var session = new PipelineSession(devices);
+        await session.StartAsync(new PipelineCompiler(RemotePipelineNodes.Register(BuiltInNodes.CreateRegistry())).Compile(builder.Build(), [],
+            new Dictionary<string, DeviceDescriptor> { [device.Id] = device }));
+        slotReady.SetResult(input.Id.ToString("N"));
+        await AsyncAssert.EventuallyAsync(() => devices.Connections[device.Id].Output.ChannelA == 40);
+
+        disconnect.SetResult();
+        await AsyncAssert.EventuallyAsync(() => session.State == PipelineState.Idle);
+        Assert.IsAssignableFrom<IOException>(session.Error);
+        Assert.Equal(0, devices.Connections[device.Id].Output.ChannelA);
+        Assert.Null(devices.DeviceOwner(device.Id));
+        Assert.Equal(0, Volatile.Read(ref serverClosed));
     }
 }

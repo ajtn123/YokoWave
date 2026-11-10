@@ -32,7 +32,7 @@ public sealed class DgLabV4Peer : IAsyncDisposable
         if (_wire is not null)
             throw new LocalizedOperationException("Error.AlreadyRunning");
         var socket = new ClientWebSocket();
-        _controlled = uri.Query.Length > 0;
+        _controlled = !string.IsNullOrEmpty(DgLabV4Protocol.TargetController(uri.Query));
         socket.Options.KeepAliveInterval = TimeSpan.FromSeconds(10);
         socket.Options.KeepAliveTimeout = TimeSpan.FromSeconds(30);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -118,15 +118,25 @@ public sealed class DgLabV4Peer : IAsyncDisposable
 
     private void Receive(JsonElement frame)
     {
-        string type = DgLabV4Protocol.String(frame, "type");
+        string? type = Text(frame, "type");
+        if (type is null)
+            return;
         if (type == "hello")
         {
+            if (ClientId.Length > 0)
+                return;
             ClientId = DgLabV4Protocol.String(frame, "clientId");
+            if (ClientId.Length is < 1 or > 256)
+                throw new DgLabV4Exception("invalid_params");
             _hello.TrySetResult(ClientId);
         }
         else if (type == "controller_attached")
         {
+            if (!_controlled || ControllerId is not null)
+                return;
             ControllerId = DgLabV4Protocol.String(frame, "clientId");
+            if (ControllerId.Length is < 1 or > 256)
+                throw new DgLabV4Exception("invalid_params");
             _attached.TrySetResult();
         }
         else if (type == "client_disconnected")
@@ -139,11 +149,17 @@ public sealed class DgLabV4Peer : IAsyncDisposable
         }
         else if (type == "error")
         {
-            var error = new DgLabV4Exception(DgLabV4Protocol.String(frame, "code"));
+            if (Text(frame, "code") is not { Length: > 0 } code)
+                return;
+            var error = new DgLabV4Exception(code);
             if (frame.TryGetProperty("clientId", out var target) && target.ValueKind == JsonValueKind.String)
                 Reject(target.GetString(), error);
-            else
+            else if (_controlled && code == "controller_not_found")
                 _wire?.Abort(error);
+        }
+        else if (type == "idle_timeout" || _controlled && type == "controller_disconnected")
+        {
+            _wire?.Abort(new LocalizedIOException("Error.RemoteDisconnected"));
         }
         else if (type == "ping")
         {
@@ -154,35 +170,57 @@ public sealed class DgLabV4Peer : IAsyncDisposable
 
     private void ReceiveData(JsonElement frame)
     {
-        string source = frame.TryGetProperty("clientId", out var client) ? client.GetString() ?? "" : ControllerId ?? "";
-        var data = DgLabV4Protocol.Data(frame);
-        if (data.ValueKind != JsonValueKind.Object || !data.TryGetProperty("t", out var kind))
+        string? source = Text(frame, "clientId") ?? ControllerId;
+        if (source is null)
             return;
-        string? type = kind.GetString();
+        var data = DgLabV4Protocol.Data(frame);
+        if (data.ValueKind != JsonValueKind.Object)
+            return;
+        string? type = Text(data, "t");
         if (type == "resp")
+            ReceiveResponse(source, data);
+        else if (type == "req")
+            ReceiveRequest(source, data);
+    }
+
+    private void ReceiveResponse(string source, JsonElement data)
+    {
+        if (Text(data, "reqId") is not { Length: > 0 and <= 256 } id || !_pending.TryRemove((source, id), out var completion))
+            return;
+        if (data.TryGetProperty("error", out var error) && error.ValueKind is not JsonValueKind.Null)
         {
-            string id = DgLabV4Protocol.String(data, "reqId");
-            if (_pending.TryRemove((source, id), out var completion))
+            if (error.ValueKind != JsonValueKind.String)
             {
-                if (data.TryGetProperty("error", out var error))
-                    completion.TrySetException(new DgLabV4Exception(error.GetString() ?? "internal_error"));
-                else
-                    completion.TrySetResult(data.TryGetProperty("result", out var result) ? result.Clone() : RemoteProtocol.Element(new { }));
+                completion.TrySetException(new DgLabV4Exception("invalid_params"));
+                return;
+            }
+            if (error.GetString() is { Length: > 0 } code)
+            {
+                completion.TrySetException(new DgLabV4Exception(code));
+                return;
             }
         }
-        else if (type == "req")
-        {
-            string id = DgLabV4Protocol.String(data, "reqId");
-            string method = DgLabV4Protocol.String(data, "m");
-            if (id.Length is < 1 or > 256)
-                throw new DgLabV4Exception("invalid_params");
-            var request = new DgLabV4Request(source, id, method, DgLabV4Protocol.Data(data).Clone());
-            if (Requested is { } handler)
-                handler(request);
-            else
-                Respond(request, error: "method_not_found");
-        }
+        completion.TrySetResult(data.TryGetProperty("result", out var result) ? result.Clone() : RemoteProtocol.Element(new { }));
     }
+
+    private void ReceiveRequest(string source, JsonElement data)
+    {
+        if (Text(data, "reqId") is not { Length: > 0 and <= 256 } id)
+            return;
+        string? method = Text(data, "m");
+        var request = new DgLabV4Request(source, id, method ?? "", DgLabV4Protocol.Data(data).Clone());
+        if (method is not { Length: > 0 and <= 256 })
+        {
+            Respond(request, error: "invalid_params");
+            return;
+        }
+        if (Requested is { } handler)
+            handler(request);
+        else
+            Respond(request, error: "method_not_found");
+    }
+
+    private static string? Text(JsonElement value, string key) => value.TryGetProperty(key, out var member) && member.ValueKind == JsonValueKind.String ? member.GetString() : null;
 
     private async Task ObserveAsync()
     {

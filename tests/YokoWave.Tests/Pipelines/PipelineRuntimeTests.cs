@@ -198,6 +198,50 @@ public sealed class PipelineRuntimeTests
         Assert.True(ReadLevel(new(plan, new HashSet<string> { "out" })) > 0);
     }
 
+    [Fact]
+    public void SensorFeedbackSequenceSurvivesTelemetryMergesWithoutChangingItsCaptureTime()
+    {
+        var now = EvaluationTime;
+        var capture = new SignalCaptureProcessor();
+        var registry = BuiltInNodes.CreateRegistry().Register(new NodeRegistration<SignalCaptureNode>("test.capture", "Pipeline.Port.Value",
+            [NodePort.Input("eventId", "Pipeline.Port.eventId", 0, 9), NodePort.Input("eventActive", "Pipeline.Port.eventActive", 0, 1)],
+            _ => true, (_, _) => capture));
+        var graph = new PipelineBuilder("Feedback identity");
+        var sensor = graph.Add(BuiltInNodes.Sensor, new SensorNode("sensor"));
+        var sink = graph.Add("test.capture", new SignalCaptureNode());
+        graph.Connect(sensor, "eventId", sink, "eventId");
+        graph.Connect(sensor, "eventActive", sink, "eventActive");
+        var runtime = new PipelineRuntime(new PipelineCompiler(registry).Compile(graph.Build(), []), new HashSet<string>());
+        var telemetry = new DeviceTelemetry(EventId: 5, EventActive: true, EventCapturedAt: now, EventSequence: 1);
+        for (long sequence = 1; sequence <= 2; sequence++)
+        {
+            telemetry = telemetry.Merge(new(EventSequence: sequence)).Merge(new(IntensityA: 20));
+            runtime.Inputs.Sensors[sensor.Id] = new(new("sensor", "sensor", DeviceKind.Sensor, 80, -40), null, null, telemetry, now, false);
+            runtime.Evaluate(TimeSpan.Zero, now);
+            Assert.Equal(sequence, capture.EventId.Sequence);
+            Assert.Equal(sequence, capture.EventActive.Sequence);
+            Assert.Equal(5, Assert.Single(capture.EventId.Samples));
+            Assert.Equal(1, Assert.Single(capture.EventActive.Samples));
+            Assert.Equal(now.AddSeconds(2), capture.EventId.ValidUntil);
+        }
+        runtime.Evaluate(TimeSpan.FromSeconds(3), now.AddSeconds(3));
+        Assert.Equal(NumericSignal.Missing, capture.EventId);
+        Assert.Equal(NumericSignal.Missing, capture.EventActive);
+    }
+
+    private sealed record SignalCaptureNode;
+    private sealed class SignalCaptureProcessor : ISignalProcessor
+    {
+        public NumericSignal EventId { get; private set; } = NumericSignal.Missing;
+        public NumericSignal EventActive { get; private set; } = NumericSignal.Missing;
+
+        public void Evaluate(NodeEvaluationContext context)
+        {
+            EventId = context.Input("eventId");
+            EventActive = context.Input("eventActive");
+        }
+    }
+
     private sealed record TestInputNode;
     private sealed class TestInputProcessor(Func<NumericSignal> read) : ISignalProcessor
     {

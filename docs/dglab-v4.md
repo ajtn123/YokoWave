@@ -2,7 +2,7 @@
 
 实现遵循官方 [dglab-websocket-server main](https://github.com/dungeonlab-open/dglab-websocket-server/tree/main) 的中继契约和 [dglab-kit V4 说明](https://github.com/dungeonlab-open/dglab-kit/blob/main/README_CN.md)。V3 WebSocket 不在此接入范围内；V4 消息中的 V2／V3 波形数据均支持。
 
-## 三种入口
+## 接入入口
 
 | 入口 | 行为 |
 | --- | --- |
@@ -34,13 +34,15 @@
 
 设备详情的「DG-LAB App 状态」以只读行显示已定义的标签、通道状态、模式、更新时间／值、标记颜色、连接状态、冷启动系数、强度上限、舒适上限与自适应参数、灵猫边控状态。没有上报的字段省略，未知扩展字段仍留在目录；不会将缺失测量伪装成零。V4 没有修改这些 App 专属参数的公开 RPC，不能将读取状态理解为远程设置接口。YokoWave 被控端只上报自身已知的状态，输出仍由图中普通节点决定。
 
-压力与反馈各自记录采集时间；电量、连接或其他状态更新不刷新旧测量。压力相同但 `updateTime` 变化仍计为新采样。被控灵猫节点会启用采集，按实际采集时间发送更新，并在停止时关闭采集；缺失／过期输入由现有管线归零等待。动作 `custom.action` 的 0–9 编号进入设备传感器事件端口；被控节点的「动作」与「触发」数值输入在触发上升沿发送反馈。
+压力与反馈各自记录采集时间；电量、连接或其他状态更新不刷新旧测量。压力相同但 `updateTime` 变化仍计为新采样。被控灵猫节点会启用采集，按实际采集时间发送更新，并在停止时关闭采集；缺失／过期输入由现有管线归零等待。动作 `custom.action` 的 0–9 编号进入设备传感器事件端口；同一 App 的每次动作有独立递增序号，即使编号和采集时间相同也可区分。传感器节点保留该序号，普通状态合并不改变它；每个图时钟读取最新动作，不保存两次求值之间的完整事件队列。被控节点的「动作」与「触发」数值输入在触发上升沿发送反馈。
 
 ## 消息与任务
 
-V4 不使用 JSON-RPC。中继分配 `hello.clientId`；App 以 `?tid=<控制方 ID>` 接入。控制方发给指定 App 的消息包含 `clientId`，App 上行消息由中继添加其真实 ID。跨控制方路由会被拒绝。
+V4 不使用 JSON-RPC。中继分配 `hello.clientId`；App 以 `?tid=<控制方 ID>` 接入，同时接受上游中继支持的 `targetId` 参数。二者同时存在时 `targetId` 优先，显式空值表示控制方；其他查询参数不改变角色。YokoWave 生成的配对地址使用 `tid`。控制方发给指定 App 的消息包含 `clientId`，App 上行消息由中继添加其真实 ID。跨控制方路由会被拒绝。
 
 内部请求为 `{t:"req", reqId, m, data?}`，响应为 `{t:"resp", reqId, result}` 或 `error`。支持 `ping`、`devices.get`、`device.op`、`device.op.clear`；未知方法、无效参数及重复的在途请求 ID 返回协议错误。错误码在界面本地化。任务响应在任务结束时返回，等待长任务不会阻塞其他请求、清理或网络接收。
+
+中继的 `bad_request` 等非终止错误不取消其他在途请求。任意业务负载与不完整 RPC 不会断开所有 App；能匹配到请求的非法响应只拒绝该请求，无效设备目录事件只移除上报方的目录。收到 `idle_timeout` 或被控端收到 `controller_disconnected` 即终止本地连接并通知所属会话停止、归零和释放设备，不依赖中继随后及时发送关闭帧。
 
 | device.op 的 t | 行为 |
 | --- | --- |
@@ -59,7 +61,7 @@ V4 不使用 JSON-RPC。中继分配 `hello.clientId`；App 以 `?tid=<控制方
 
 `DgLabV4Controller` 为 `devices.get`、App 级 ping、四类操作及三种清理范围提供可复用的强类型方法。有限操作的默认等待时间考虑任务时长；无时长临时任务默认等待到完成、清理或断连。调用者可设置等待上限或取消等待，取消已经发出的等待不等同于清理远端任务；需要停止任务时调用 Clear。已取消的令牌或非法等待参数在发送前拒绝。
 
-实现边界：单条文本消息最多 1 MiB、深度 32；每个连接最多 256 个普通在途请求，另留 1 个即时替换及 4 个清理请求位置，每个插槽最多 256 个任务，每个 App 最多 128 个插槽；一条波形最多 500 帧，显式持续时间最多两小时。中继最多 256 条连接，支持 JSON 心跳、原生 ping/pong、空闲关闭及关闭码 4000／4001／4002。它遵循上游对无效 JSON／未知帧的忽略行为，并保留消息的任意 JSON 负载。
+实现边界：单条 JSON 消息最多 1 MiB、深度 32；每个连接最多 256 个普通在途请求，另留 1 个即时替换及 4 个清理请求位置，每个插槽最多 256 个任务，每个 App 最多 128 个插槽；一条波形最多 500 帧，显式持续时间最多两小时。中继最多 256 条连接，支持 JSON 心跳、原生 ping/pong、空闲关闭及关闭码 4000／4001／4002。它遵循上游对无效 JSON／未知帧的忽略行为，接受文本或二进制帧中的 UTF-8 JSON，再以文本帧转发，并保留消息的任意 JSON 负载。
 
 ## 职责与验证
 
@@ -73,4 +75,21 @@ V4 不使用 JSON-RPC。中继分配 `hello.clientId`；App 以 `?tid=<控制方
 
 处理器不执行 I/O，资源参与者负责连接与清理。中继只转发，不执行设备任务。全部玩法仍使用一套 `PipelineSession`。
 
-自动测试覆盖数值／十六进制双版本波形、四类任务、优先级、帧内时长、满队列清理与替换、目录修订及原子更新、数据有效期、多 App 隔离、超过默认 RPC 超时的任务、暂停／恢复／失败重启、传感器共享、两端限幅、WSS 信任、监听器生命周期、双语状态显示和参数自动保存。另已用官方 `dglab-kit 1.0.5` 经真实回环中继完成设备发现、相对强度、临时强度、波形、清理、零重置和反馈互通；接收端为无硬件测试管线。官方手机 App 的强度尺度、优先级组合和真实物理输出仍需联调验证。
+### 公开契约核对
+
+2026-11-10 核对上游 main：中继 [`bf6fdd1`](https://github.com/dungeonlab-open/dglab-websocket-server/tree/bf6fdd1625d8a76eafc97c38c660c6a3fd71c1d1)，SDK [`3e7ed44`](https://github.com/dungeonlab-open/dglab-kit/tree/3e7ed447e387c2fa52f2c27353c27ff295b0bdeb)。以下覆盖公开 V4 消息与操作；App 内部功能不能仅凭其状态字段推断为远程 RPC。
+
+| 契约 | 实现入口 | 回归验证 |
+| --- | --- | --- |
+| 配对、`tid` / `targetId`、多 App 路由与来源隔离 | `DgLabV4Relay` / `DgLabV4Peer` | `DgLabV4NetworkTests`：参数优先级、空参数、未知控制方与跨控制方拒绝 |
+| hello、接入／断开、心跳、ping/pong、空闲关闭及关闭码 | `DgLabV4Relay` / `DgLabV4Peer` | `DgLabV4NetworkTests`：心跳、空闲、终止通知无需关闭帧；`DgLabV4PipelineTests`：通知后输出归零并释放占用 |
+| `devices.get`、App 级 `ping` | `DgLabV4Controller` / `DgLabV4AppRouter` | `DgLabV4ControllerTests`：实际回环调用 |
+| `device.op` 的 0、3、4、7；A / B；三种优先级、FIFO、`d`、`im`、四种完成原因 | `DgLabV4Controller` / `DgLabV4Scheduler` | `DgLabV4ProtocolTests`、`DgLabV4ControllerTests`、`DgLabV4PipelineTests`：独立调度、替换、取消、帧内时长及长任务响应 |
+| V2 / V3 数值与十六进制波形、`ver` / `seq` | `DgLabV4Pulse` / `DgLabV4Operation` | `DgLabV4ProtocolTests`、`DgLabV4ControllerTests`：双格式与双版本，非法输入拒绝 |
+| `device.op.clear` 全部／插槽／通道 | `DgLabV4Controller` / `DgLabV4AppRouter` | `DgLabV4ControllerTests`、`DgLabV4NetworkTests`：范围校验、暂停与队列满时仍可清理 |
+| `devices.snapshot`、`devices.patch`、`slots.patch` | `DgLabV4DeviceCatalog` / `DgLabV4AppSlot` | `DgLabV4ProtocolTests`、`DgLabV4NetworkTests`：替换、深合并、旧查询、原子更新与无效条目隔离 |
+| `custom.action` 0–9 | `DgLabV4Transport` / `DgLabV4InputProcessor` | `DgLabV4NetworkTests`：范围和重复动作序号；`PipelineRuntimeTests`：事件时间与序号合并／失效；`DgLabV4PipelineTests`：反馈上行 |
+| 郊狼 V2 / V3、负鼠、灵猫的公开状态 | `DgLabV4Models` / `DgLabV4Slot` / `DgLabDeviceStateViewModel` | `DgLabV4ProtocolTests`、`DgLabV4UiTests`：型号能力、量程、测量新鲜度、只读字段与中英文显示 |
+| WS / WSS、路径、文本／二进制 JSON 透传、异常与资源清理 | `JsonWebSocket` / `DgLabV4Relay` / App 资源参与者 | `DgLabV4NetworkTests`：证书信任、任意 JSON、畸形业务帧及非终止错误；`DgLabV4PipelineTests`：监听器生命周期与两端限幅 |
+
+另已用官方 `dglab-kit 1.0.5` 经真实回环中继完成设备发现、相对强度、临时强度、波形、清理、零重置和反馈互通；接收端为无硬件测试管线。公开契约已有对应实现和测试；官方手机 App 的强度尺度、优先级组合和真实物理输出仍需联调验证。

@@ -111,9 +111,9 @@ public sealed class DgLabV4Relay(DgLabV4RelaySettings settings, TimeProvider? cl
             context.Response.StatusCode = 426;
             return;
         }
-        string? controllerId = context.Request.Query["tid"].FirstOrDefault();
+        string? controllerId = DgLabV4Protocol.TargetController(context.Request.QueryString.Value ?? "");
         using var socket = await context.WebSockets.AcceptWebSocketAsync().ConfigureAwait(false);
-        await using var wire = new JsonWebSocket(socket, ignoreInvalidJson: true);
+        await using var wire = new JsonWebSocket(socket, tolerantInput: true);
         RelayConnection connection;
         bool attached;
         lock (_gate)

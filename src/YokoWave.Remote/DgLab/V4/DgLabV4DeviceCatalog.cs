@@ -182,6 +182,8 @@ public sealed class DgLabV4DeviceCatalog(Guid endpoint, TimeProvider? clock = nu
 
     private static JsonElement[] Array(JsonElement data, string property, bool required)
     {
+        if (data.ValueKind != JsonValueKind.Object)
+            throw new DgLabV4Exception("invalid_params");
         if (!data.TryGetProperty(property, out var value) && !required)
             return [];
         if (value.ValueKind != JsonValueKind.Array || value.GetArrayLength() > 128)

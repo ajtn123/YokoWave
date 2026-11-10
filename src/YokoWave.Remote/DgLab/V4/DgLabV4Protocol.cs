@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.WebUtilities;
 using YokoWave.Core.Localization;
 
 namespace YokoWave.Remote.DgLab.V4;
@@ -48,7 +49,13 @@ public sealed record DgLabV4Operation(
 
 public static class DgLabV4Protocol
 {
-    public static string String(JsonElement value, string key) => value.TryGetProperty(key, out var field) && field.ValueKind == JsonValueKind.String
+    internal static string? TargetController(string query)
+    {
+        var parameters = QueryHelpers.ParseQuery(query);
+        return parameters.GetValueOrDefault("targetId").FirstOrDefault() ?? parameters.GetValueOrDefault("tid").FirstOrDefault();
+    }
+
+    public static string String(JsonElement value, string key) => value.ValueKind == JsonValueKind.Object && value.TryGetProperty(key, out var field) && field.ValueKind == JsonValueKind.String
         ? field.GetString()! : throw new DgLabV4Exception("invalid_params");
     public static JsonElement Data(JsonElement frame) => frame.TryGetProperty("data", out var data)
         ? data : RemoteProtocol.Element(new { });

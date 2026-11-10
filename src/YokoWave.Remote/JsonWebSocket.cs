@@ -5,8 +5,8 @@ using YokoWave.Core.Localization;
 
 namespace YokoWave.Remote;
 
-/// <summary>Bounded JSON text framing shared by protocol peers; one reader and one writer own the socket.</summary>
-internal sealed class JsonWebSocket(WebSocket socket, bool ignoreInvalidJson = false) : IAsyncDisposable
+/// <summary>Bounded JSON framing; relay input also accepts binary JSON and ignores invalid JSON. One reader and writer own the socket.</summary>
+internal sealed class JsonWebSocket(WebSocket socket, bool tolerantInput = false) : IAsyncDisposable
 {
     private readonly CancellationTokenSource _lifetime = new();
     private readonly TaskCompletionSource _completed = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -102,7 +102,8 @@ internal sealed class JsonWebSocket(WebSocket socket, bool ignoreInvalidJson = f
                     result = await socket.ReceiveAsync(buffer.AsMemory(), _lifetime.Token).ConfigureAwait(false);
                     if (result.MessageType == WebSocketMessageType.Close)
                         return;
-                    if (result.MessageType != WebSocketMessageType.Text || message.Length + result.Count > RemoteProtocol.MaximumMessageBytes)
+                    bool accepted = result.MessageType == WebSocketMessageType.Text || tolerantInput && result.MessageType == WebSocketMessageType.Binary;
+                    if (!accepted || message.Length + result.Count > RemoteProtocol.MaximumMessageBytes)
                         throw new LocalizedIOException("Error.RemoteMessageSize");
                     message.Write(buffer, 0, result.Count);
                 } while (!result.EndOfMessage);
@@ -129,7 +130,7 @@ internal sealed class JsonWebSocket(WebSocket socket, bool ignoreInvalidJson = f
         {
             document = JsonDocument.Parse(message, new JsonDocumentOptions { MaxDepth = 32 });
         }
-        catch (JsonException) when (ignoreInvalidJson)
+        catch (JsonException) when (tolerantInput)
         {
             // The V4 relay ignores invalid JSON; typed peers remain strict.
             return null;
@@ -137,7 +138,7 @@ internal sealed class JsonWebSocket(WebSocket socket, bool ignoreInvalidJson = f
         if (document.RootElement.ValueKind == JsonValueKind.Object)
             return document;
         document.Dispose();
-        if (ignoreInvalidJson)
+        if (tolerantInput)
             return null;
         throw new LocalizedIOException("Error.RemoteRequest");
     }
