@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using YokoWave.Core;
 using YokoWave.Core.Bluetooth;
+using YokoWave.Core.Localization;
 using YokoWave.Tests.Support.Bluetooth;
 
 namespace YokoWave.Tests.Bluetooth;
@@ -53,8 +54,8 @@ public sealed class BluetoothConnectionTests
         Assert.Null(device.Battery);
         await controller.ConnectAsync(device, TestContext.Current.CancellationToken);
         var link = adapter.Links[device.Id];
-        Assert.Equal(V1Protocol.AuxiliaryMotor(AuxiliaryMotorMode.Off), link.Writes[0]);
-        Assert.Equal(V2Protocol.Stop(), link.Writes[1]);
+        Assert.Equal(V2Protocol.Stop(), link.Writes[0]);
+        Assert.DoesNotContain(link.Writes, packet => packet[1] == 0x12);
         Assert.All(link.Writes.Where(p => p[1] == 0x11), packet => Assert.Equal(V2Protocol.Stop(), packet));
         await AsyncAssert.EventuallyAsync(() => controller.Connections[device.Id].Device.Battery == 82);
         Assert.Equal(ElectrodeContact.NotConnected, controller.Connections[device.Id].ContactA);
@@ -92,6 +93,94 @@ public sealed class BluetoothConnectionTests
         var device = Assert.Single(await controller.ScanAsync(TestContext.Current.CancellationToken));
         await Assert.ThrowsAsync<IOException>(() => controller.ConnectAsync(device, cancellationToken: TestContext.Current.CancellationToken));
         Assert.Empty(controller.Connections);
+        Assert.True(adapter.Links[device.Id].Closed);
+    }
+
+    [Fact]
+    public async Task ElectricalConnectionAndZeroOutputDoNotRequireAnUnusedAuxiliaryMotorCommand()
+    {
+        var adapter = new FakeBluetoothAdapter { Rejection = packet => packet[1] == 0x12 ? (byte)3 : null };
+        await using var controller = new DeviceController(new BluetoothDeviceTransport(adapter));
+        var device = Assert.Single(await controller.ScanAsync(TestContext.Current.CancellationToken));
+        await controller.ConnectAsync(device, TestContext.Current.CancellationToken);
+        await controller.SendAsync(device.Id, new(0, 0, 20), TestContext.Current.CancellationToken);
+        await controller.DisconnectAsync(device.Id, TestContext.Current.CancellationToken);
+
+        var link = adapter.Links[device.Id];
+        Assert.True(link.Closed);
+        Assert.DoesNotContain(link.Writes, packet => packet[1] == 0x12);
+        Assert.All(link.Writes.Where(packet => packet[1] == 0x11), packet => Assert.Equal(V2Protocol.Stop(), packet));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task EnabledAuxiliaryMotorIsStoppedBeforeElectricalOutputEvenWhenItsStopWriteFails(bool reported)
+    {
+        var adapter = new FakeBluetoothAdapter();
+        await using var transport = new BluetoothDeviceTransport(adapter);
+        var device = Assert.Single(await transport.ScanAsync(TestContext.Current.CancellationToken));
+        await transport.ConnectAsync(device, TestContext.Current.CancellationToken);
+        var link = adapter.Links[device.Id];
+        if (reported)
+        {
+            link.Notify(V1Protocol.WithChecksum([0x35, 0x71, 3, (byte)AuxiliaryMotorMode.On]));
+        }
+        else
+        {
+            await transport.SendAsync(device.Id, new(0, 0, 20, Hardware: new(AuxiliaryMotor: AuxiliaryMotorMode.On)), TestContext.Current.CancellationToken);
+            link.Notify(V1Protocol.WithChecksum([0x35, 0x71, 3, (byte)AuxiliaryMotorMode.Off]));
+        }
+        link.FailNextWrite = true;
+        int before = link.Writes.Count;
+
+        await Assert.ThrowsAsync<IOException>(() => transport.SendAsync(device.Id, OutputFrame.Zero, TestContext.Current.CancellationToken));
+
+        Assert.Equal(V2Protocol.Stop(), link.Writes[before]);
+        await transport.SendAsync(device.Id, OutputFrame.Zero, TestContext.Current.CancellationToken);
+        Assert.Equal(V1Protocol.AuxiliaryMotor(AuxiliaryMotorMode.Off), link.Writes[^2]);
+        Assert.Equal(V2Protocol.Stop(), link.Writes[^1]);
+    }
+
+    [Theory]
+    [InlineData(0x11)]
+    [InlineData(0x71)]
+    public async Task InitializationRejectionClosesTheLinkPreservesTheCodeAndAllowsFreshReconnection(int command)
+    {
+        bool reject = true;
+        var adapter = new FakeBluetoothAdapter { Rejection = packet => reject && packet[1] == command ? (byte)3 : null };
+        await using var controller = new DeviceController(new BluetoothDeviceTransport(adapter));
+        var device = Assert.Single(await controller.ScanAsync(TestContext.Current.CancellationToken));
+
+        var error = await Assert.ThrowsAsync<LocalizedOperationException>(() => controller.ConnectAsync(device, TestContext.Current.CancellationToken));
+
+        Assert.Equal("Error.BluetoothRejected", error.LocalizedMessage.Key);
+        Assert.Equal((byte)3, error.LocalizedMessage.Arguments[0]);
+        Assert.Contains(L10n.Get("ProtocolError.3"), error.Message);
+        Assert.Empty(controller.Connections);
+        var failed = adapter.Links[device.Id];
+        Assert.True(failed.Closed);
+        reject = false;
+        await controller.ConnectAsync(device, TestContext.Current.CancellationToken);
+        Assert.NotSame(failed, adapter.Links[device.Id]);
+        Assert.Single(controller.Connections);
+        await controller.SendAsync(device.Id, new(20, 0, 20), TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
+    public async Task RejectionWhileAwaitingInitialStatusReportsTheDeviceErrorInsteadOfTimingOut()
+    {
+        var adapter = new FakeBluetoothAdapter { ReplyToQueries = false };
+        await using var transport = new BluetoothDeviceTransport(adapter);
+        var device = Assert.Single(await transport.ScanAsync(TestContext.Current.CancellationToken));
+        var connect = transport.ConnectAsync(device, TestContext.Current.CancellationToken);
+        await AsyncAssert.EventuallyAsync(() => adapter.Links.TryGetValue(device.Id, out var link) &&
+            link.Writes.Any(packet => packet.SequenceEqual(V1Protocol.Query(2))));
+        adapter.Links[device.Id].Notify(V1Protocol.WithChecksum([0x35, 0x71, 0x55, 4]));
+
+        var error = await Assert.ThrowsAsync<LocalizedOperationException>(() => connect.WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken));
+
+        Assert.Equal((byte)4, error.LocalizedMessage.Arguments[0]);
         Assert.True(adapter.Links[device.Id].Closed);
     }
 

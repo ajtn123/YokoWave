@@ -126,7 +126,7 @@
   "Error.BluetoothDisconnected": "蓝牙连接已丢失。",
   "Error.BluetoothOff": "蓝牙未开启。请在系统设置中打开蓝牙后重新扫描。",
   "Error.BluetoothPlatform": "当前平台尚未实现蓝牙后端。实机连接目前支持 Windows。",
-  "Error.BluetoothRejected": "设备拒绝了指令，已停止会话。",
+  "Error.BluetoothRejected": "设备拒绝了指令（错误码 {0}：{1}）。请断开后重新连接。",
   "Error.BluetoothRescan": "请重新扫描后连接此设备。",
   "Error.BluetoothScan": "蓝牙扫描异常终止，请检查适配器和权限。",
   "Error.BluetoothService": "所需蓝牙服务或特征不可用。",

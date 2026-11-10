@@ -126,7 +126,7 @@
   "Error.BluetoothDisconnected": "The Bluetooth connection was lost.",
   "Error.BluetoothOff": "Bluetooth is off. Turn it on in system settings and scan again.",
   "Error.BluetoothPlatform": "This platform has no Bluetooth backend yet. Hardware connections currently support Windows.",
-  "Error.BluetoothRejected": "The device rejected a command. The session was stopped.",
+  "Error.BluetoothRejected": "The device rejected a command (code {0}: {1}). Disconnect and reconnect before retrying.",
   "Error.BluetoothRescan": "Scan again before connecting to this device.",
   "Error.BluetoothScan": "Bluetooth scanning stopped with an error. Check the adapter and permissions.",
   "Error.BluetoothService": "The required Bluetooth service or characteristic is unavailable.",

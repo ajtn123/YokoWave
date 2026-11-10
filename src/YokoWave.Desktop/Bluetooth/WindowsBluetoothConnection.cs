@@ -15,6 +15,7 @@ internal sealed class WindowsBluetoothConnection : IBluetoothConnection
     private readonly GattSession? _session;
     private readonly BluetoothDeviceProfile _profile;
     private readonly IReadOnlyDictionary<GattAddress, GattCharacteristic> _attributes;
+    private readonly Action<string>? _diagnostic;
     private readonly List<(GattCharacteristic Characteristic, Windows.Foundation.TypedEventHandler<GattCharacteristic, GattValueChangedEventArgs> Handler)> _notifications = [];
     private readonly SemaphoreSlim _gate = new(1, 1);
     private volatile bool _ready;
@@ -29,13 +30,14 @@ internal sealed class WindowsBluetoothConnection : IBluetoothConnection
     public event Action<GattNotification>? AdditionalNotificationReceived;
     public event Action? Disconnected;
     public WindowsBluetoothConnection(BluetoothLEDevice device, IReadOnlyList<GattDeviceService> services, GattSession? session,
-        BluetoothDeviceProfile profile, IReadOnlyDictionary<GattAddress, GattCharacteristic> attributes)
+        BluetoothDeviceProfile profile, IReadOnlyDictionary<GattAddress, GattCharacteristic> attributes, Action<string>? diagnostic = null)
     {
         _device = device;
         _services = services;
         _session = session;
         _profile = profile;
         _attributes = attributes;
+        _diagnostic = diagnostic;
         _device.ConnectionStatusChanged += OnConnectionChanged;
     }
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -51,6 +53,7 @@ internal sealed class WindowsBluetoothConnection : IBluetoothConnection
                 using var reader = DataReader.FromBuffer(args.CharacteristicValue);
                 byte[] bytes = new byte[args.CharacteristicValue.Length];
                 reader.ReadBytes(bytes);
+                _diagnostic?.Invoke($"GATT RX {_profile.Protocol} {endpoint.Address.Characteristic}: {Convert.ToHexString(bytes)}");
                 if (endpoint.Address == _profile.Notify)
                     NotificationReceived?.Invoke(bytes);
                 else
@@ -182,6 +185,7 @@ internal sealed class WindowsBluetoothConnection : IBluetoothConnection
             var buffer = writer.DetachBuffer();
             try
             {
+                _diagnostic?.Invoke($"GATT TX {_profile.Protocol} {address.Characteristic}: {Convert.ToHexString(packet)}");
                 var result = await characteristic.WriteValueWithResultAsync(buffer, option).AsTask(timeout.Token);
                 if (result.Status != GattCommunicationStatus.Success)
                 {

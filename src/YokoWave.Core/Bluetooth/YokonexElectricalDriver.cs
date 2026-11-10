@@ -28,8 +28,12 @@ internal sealed class YokonexElectricalDriver(string id, BluetoothDeviceProfile 
     public override async Task InitializeAsync(CancellationToken cancellationToken)
     {
         await StopAsync(cancellationToken).ConfigureAwait(false);
+        ThrowIfFaulted();
         foreach (byte type in new byte[] { 4, 1, 2 })
+        {
             await WriteAsync(V1Protocol.Query(type), cancellationToken).ConfigureAwait(false);
+            ThrowIfFaulted();
+        }
         await ConfirmAsync(_zero.Task, cancellationToken).ConfigureAwait(false);
     }
     public override async Task StopAsync(CancellationToken cancellationToken)
@@ -39,8 +43,11 @@ internal sealed class YokonexElectricalDriver(string id, BluetoothDeviceProfile 
         Exception? motorError = null;
         try
         {
-            await WriteAsync(V1Protocol.AuxiliaryMotor(AuxiliaryMotorMode.Off), cancellationToken).ConfigureAwait(false);
-            _auxiliaryMotor = AuxiliaryMotorMode.Off;
+            if (_auxiliaryMotor != AuxiliaryMotorMode.Off)
+            {
+                await WriteAsync(V1Protocol.AuxiliaryMotor(AuxiliaryMotorMode.Off), cancellationToken).ConfigureAwait(false);
+                _auxiliaryMotor = AuxiliaryMotorMode.Off;
+            }
         }
         catch (Exception error)
         {
@@ -93,7 +100,8 @@ internal sealed class YokonexElectricalDriver(string id, BluetoothDeviceProfile 
         if (status.ErrorCode is > 0)
         {
             Publish(new(Id, telemetry: new(ProtocolErrorCode: status.ErrorCode)));
-            Reject("Error.BluetoothRejected");
+            Reject(new("Error.BluetoothRejected", [status.ErrorCode.Value,
+                new LocalizedMessage($"ProtocolError.{(status.ErrorCode is >= 1 and <= 5 ? status.ErrorCode.Value.ToString() : "Unknown")}", [])]));
             return;
         }
         if (status.OutputAEnabled is false)
@@ -110,6 +118,9 @@ internal sealed class YokonexElectricalDriver(string id, BluetoothDeviceProfile 
         }
         if (status.LightEnabled is { } light)
             _light.TrySetResult(light);
+        // A delayed off report must not cancel a newer request that still requires an explicit stop.
+        if (status.AuxiliaryMotor is { } auxiliary && auxiliary != AuxiliaryMotorMode.Off)
+            _auxiliaryMotor = auxiliary;
         Publish(new(Id, status.Battery, status.ContactA, status.ContactB, status.OutputAEnabled, status.OutputBEnabled,
             status.HardwareVersion, status.SoftwareVersion, status.LightEnabled, status.MotionAngle, status.Steps,
             telemetry: new(IntensityA: status.IntensityA, IntensityB: status.IntensityB, ModeA: status.ModeA,

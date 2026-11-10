@@ -15,7 +15,14 @@ public sealed class LocalizationTests
         {
             L10n.Current.SetLanguage(language);
             var cause = new ArgumentException("Original backend failure");
-            Exception[] errors = [new LocalizedArgumentException("Error.AudioSettings", cause), new LocalizedOperationException("Error.AudioInputFailed", cause), new LocalizedIOException("Error.BluetoothWrite", cause), new LocalizedAggregateException("Error.StopUnconfirmed", [cause])];
+            Exception[] errors =
+            [
+                new LocalizedArgumentException("Error.AudioSettings", cause),
+                new LocalizedOperationException("Error.AudioInputFailed", cause),
+                new LocalizedOperationException(new LocalizedMessage("Error.BluetoothRejected", [3, new LocalizedMessage("ProtocolError.3", [])]), cause),
+                new LocalizedIOException("Error.BluetoothWrite", cause),
+                new LocalizedAggregateException("Error.StopUnconfirmed", [cause])
+            ];
             foreach (var error in errors)
             {
                 Assert.Same(cause, error.InnerException);

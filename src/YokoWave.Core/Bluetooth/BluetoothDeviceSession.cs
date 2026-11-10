@@ -44,6 +44,7 @@ internal sealed class BluetoothDeviceSession
         try
         {
             await _driver.InitializeAsync(cancellationToken).ConfigureAwait(false);
+            _driver.ThrowIfFaulted();
             _publish(new(_device.Id, telemetry: new(MaximumWriteLength: _link.MaximumWriteLength)));
             _initialized.TrySetResult();
         }

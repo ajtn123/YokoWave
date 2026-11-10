@@ -12,11 +12,16 @@ public sealed class LocalizedArgumentException(string key, Exception? innerExcep
     public override string Message => LocalizedMessage.Value;
 }
 
-public sealed class LocalizedOperationException(string key, Exception? innerException = null)
-    : InvalidOperationException(L10n.Get(key), innerException), ILocalizedError
+public sealed class LocalizedOperationException : InvalidOperationException, ILocalizedError
 {
-    public LocalizedMessage LocalizedMessage { get; } = new(key, []);
+    public LocalizedMessage LocalizedMessage { get; }
     public override string Message => LocalizedMessage.Value;
+
+    public LocalizedOperationException(string key, Exception? innerException = null) : this(new LocalizedMessage(key, []), innerException) { }
+    public LocalizedOperationException(LocalizedMessage message, Exception? innerException = null) : base(message.Value, innerException)
+    {
+        LocalizedMessage = message;
+    }
 }
 
 public sealed class LocalizedIOException(string key, Exception? innerException = null)

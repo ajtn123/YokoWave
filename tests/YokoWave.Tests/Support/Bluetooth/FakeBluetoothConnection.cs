@@ -7,6 +7,7 @@ internal sealed class FakeBluetoothConnection : IBluetoothConnection
     public bool ReplyToFeatures { get; set; } = true;
     public bool LightEnabled { get; private set; } = true;
     public bool ReplyToQueries { get; init; }
+    public Func<byte[], byte?>? Rejection { get; init; }
     public bool FailNextWrite { get; set; }
     public bool FailWrites { get; set; }
     public bool FailDispose { get; set; }
@@ -29,6 +30,11 @@ internal sealed class FakeBluetoothConnection : IBluetoothConnection
         }
 
         Writes.Add(packet.ToArray());
+        if (Rejection?.Invoke(packet) is { } code)
+        {
+            Notify(V1Protocol.WithChecksum([0x35, 0x71, 0x55, code]));
+            return Task.CompletedTask;
+        }
         if (ReplyToFeatures && packet.SequenceEqual(V2Protocol.QueryVersion()))
             Notify(V1Protocol.WithChecksum([0x36, 0x13, 1, 2]));
         if (ReplyToFeatures && packet[1] == 0x15)

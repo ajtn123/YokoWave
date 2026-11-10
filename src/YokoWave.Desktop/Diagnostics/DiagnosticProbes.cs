@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using YokoWave.Core.Bluetooth;
 using YokoWave.Desktop.Bluetooth;
 
@@ -44,7 +45,13 @@ internal static class DiagnosticProbes
             var adapter = BluetoothAdapterProvider.Create();
 #endif
             await using var transport = new BluetoothDeviceTransport(adapter);
-            transport.StatusChanged += (_, update) => Console.WriteLine($"Status: battery={update.Battery}, A={update.ContactA}, B={update.ContactB}, outputA={update.OutputAEnabled}, outputB={update.OutputBEnabled}");
+            transport.StatusChanged += (_, update) => Console.WriteLine($"Status: battery={update.Battery}, A={update.ContactA}, B={update.ContactB}, outputA={update.OutputAEnabled}, outputB={update.OutputBEnabled}, protocolError={update.Telemetry?.ProtocolErrorCode}");
+            ConcurrentQueue<Exception> faults = new();
+            transport.Faulted += (_, fault) =>
+            {
+                faults.Enqueue(fault.Error);
+                Console.Error.WriteLine($"Bluetooth fault: {fault.Error}");
+            };
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(35));
             var devices = (await transport.ScanAsync(timeout.Token)).Where(device => profile is null || string.Equals(device.ProtocolId, profile, StringComparison.OrdinalIgnoreCase)).ToArray();
             Console.WriteLine($"Bluetooth devices found: {devices.Length}");
@@ -80,6 +87,8 @@ internal static class DiagnosticProbes
                 }
                 await Task.Delay(1500, timeout.Token);
                 await controller.DisconnectAsync(devices[0].Id, timeout.Token);
+                if (!faults.IsEmpty)
+                    throw new AggregateException(faults);
             }
             return 0;
         }

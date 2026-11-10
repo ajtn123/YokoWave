@@ -91,7 +91,7 @@ internal sealed class WindowsBluetoothAdapter : IBluetoothAdapter
             var attributes = await new WindowsGattResolver(device, ownedServices).ResolveAsync(profile, token);
             foreach (var (endpoint, characteristic) in attributes)
                 Diagnostic?.Invoke($"GATT {profile.Protocol}: service={endpoint.Service}, characteristic={endpoint.Characteristic}, properties={characteristic.CharacteristicProperties}, MTU={session?.MaxPduSize}");
-            connection = new(device, ownedServices, session, profile, attributes);
+            connection = new(device, ownedServices, session, profile, attributes, Diagnostic);
             await connection.StartAsync(token);
             return connection;
         }

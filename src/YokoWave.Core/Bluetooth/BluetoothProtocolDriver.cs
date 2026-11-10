@@ -5,6 +5,7 @@ namespace YokoWave.Core.Bluetooth;
 internal abstract class BluetoothProtocolDriver(string id, BluetoothDeviceProfile profile, IBluetoothConnection link,
     Action<DeviceStatusUpdate> publish, Action<Exception> fault)
 {
+    private readonly TaskCompletionSource _rejected = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private Exception? _fault;
     private DeviceCommandHandlers? _commands;
 
@@ -27,11 +28,19 @@ internal abstract class BluetoothProtocolDriver(string id, BluetoothDeviceProfil
             throw new LocalizedOperationException("Error.DeviceFeatures");
         return (_commands ??= CreateCommandHandlers()).ExecuteAsync(command, cancellationToken);
     }
-    protected void Reject(string key)
+    protected void Reject(LocalizedMessage message)
     {
-        var error = new LocalizedOperationException(key);
+        var error = new LocalizedOperationException(message);
         if (Interlocked.CompareExchange(ref _fault, error, null) is null)
+        {
+            _rejected.TrySetResult();
             fault(error);
+        }
+    }
+    public void ThrowIfFaulted()
+    {
+        if (Volatile.Read(ref _fault) is { } error)
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error).Throw();
     }
     public void Check(OutputFrame frame)
     {
@@ -50,10 +59,10 @@ internal abstract class BluetoothProtocolDriver(string id, BluetoothDeviceProfil
 
         if (Profile.Domain == OutputDomain.Input && (frame.ChannelA > 0 || frame.ChannelB > 0 || frame.ChannelC > 0 || frame.Pump is not null))
             throw new LocalizedOperationException("Error.SensorOnly");
-        if (_fault is { } error && (frame.ChannelA > 0 || frame.ChannelB > 0 || frame.ChannelC > 0 ||
-            frame.Hardware is { AuxiliaryMotor: not AuxiliaryMotorMode.Off } || frame.Pump is { Direction: not PumpDirection.Off } or { Water: true }))
+        if (frame.ChannelA > 0 || frame.ChannelB > 0 || frame.ChannelC > 0 ||
+            frame.Hardware is { AuxiliaryMotor: not AuxiliaryMotorMode.Off } || frame.Pump is { Direction: not PumpDirection.Off } or { Water: true })
         {
-            throw error;
+            ThrowIfFaulted();
         }
 
         frame.ValidateSamples();
@@ -64,11 +73,13 @@ internal abstract class BluetoothProtocolDriver(string id, BluetoothDeviceProfil
         if (await Link.ReadAsync(address, cancellationToken).ConfigureAwait(false) is { } data)
             OnNotification(new(address, data));
     }
-    protected static async Task ConfirmAsync(Task ready, CancellationToken cancellationToken, string key = "Error.BluetoothState")
+    protected async Task ConfirmAsync(Task ready, CancellationToken cancellationToken, string key = "Error.BluetoothState")
     {
         try
         {
-            await ready.WaitAsync(TimeSpan.FromSeconds(3), cancellationToken).ConfigureAwait(false);
+            var completed = await Task.WhenAny(ready, _rejected.Task).WaitAsync(TimeSpan.FromSeconds(3), cancellationToken).ConfigureAwait(false);
+            ThrowIfFaulted();
+            await completed.ConfigureAwait(false);
         }
         catch (TimeoutException error)
         {

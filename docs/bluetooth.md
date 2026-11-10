@@ -56,7 +56,7 @@ Windows BLE / GATT 后端最低支持 Windows 10 2004。Core 的 `IBluetoothAdap
 
 ## 确认、并发与错误
 
-每条连接的驱动维护独立缓存和确认状态，命令、输出和后台屏幕同步共用同一设备门。停止分别尝试辅助马达与主输出，保留全部错误。马达型号回复只确认协议／通道，不保证物理停止；负鼠也不保证零值重复回复。原生写入成功只说明系统接受指令。
+每条连接的驱动维护独立缓存和确认状态，命令、输出和后台屏幕同步共用同一设备门。辅助马达按本会话的启用请求或设备回报状态关闭，不在连接及每次归零时发送未使用的马达指令；即使马达关闭写入失败，仍尝试电击归零并保留全部错误。初始化收到拒绝时立即失败并清理链接，不将已锁定故障的驱动作为成功连接。拒绝信息保留设备错误码及本地化原因。马达型号回复只确认协议／通道，不保证物理停止；负鼠也不保证零值重复回复。原生写入成功只说明系统接受指令。
 
 Windows 使用 `WriteValueWithResultAsync`，根据实际特征权限选择写入模式并验证容量。异常保留 HRESULT、包长、权限及 ATT 状态。原生写入与释放串行，初始化失败释放链路；同时保留驱动关闭错误与原生释放错误。
 
@@ -79,7 +79,7 @@ dotnet run --project src/YokoWave.Desktop -- --bluetooth-probe --connect --zero-
 dotnet run --project src/YokoWave.Desktop -- --audio-probe /path/to/audio.wav
 ```
 
-实现位于 Desktop/Diagnostics/DiagnosticProbes.cs。常规验证见 [CONTRIBUTING](../CONTRIBUTING.md#验证)。
+实现位于 Desktop/Diagnostics/DiagnosticProbes.cs。探针输出 GATT 收发字节与设备协议错误码；异步拒绝也使探针失败，不因归零状态回复而报告成功。字节日志仅在显式诊断模式启用。常规验证见 [CONTRIBUTING](../CONTRIBUTING.md#验证)。
 
 ## 来源与验证范围
 
