@@ -1,14 +1,14 @@
 # 统一波形格式
 
-默认波形、自定义波形、滑动录制和 JSON 导入导出都使用 `FormatVersion: 1`，只保存通用采样参数。设备协议转换只在播放时执行，不修改波形和玩法预设。
+默认波形、自定义波形、滑动录制和 JSON 导入导出都使用 `FormatVersion: 1`，只保存通用采样参数。设备协议转换只在播放时执行，不修改资产和图模板。用户编辑步骤位于应用内「帮助」。
 
 ## 数据格式
 
-顶层仍为波形数组。每条波形包含 `Id`、`Name`、`FormatVersion`、`Shape`、`PeriodSeconds`、`Frequency`，以及自定义插值点 `Points` 或采样序列 `Samples`。`Frequency` 是生成曲线的频率，单位 Hz。采样序列的帧间隔为 `PeriodSeconds / Samples.Length`，每帧保持到下一帧。
+顶层为波形数组。每条波形包含 `Id`、`Name`、`FormatVersion`、`Shape`、`PeriodSeconds`、`Frequency`，以及自定义插值点 `Points` 或采样序列 `Samples`。`Frequency` 是生成曲线的频率，单位 Hz。采样序列的帧间隔为 `PeriodSeconds / Samples.Length`，每帧保持到下一帧。
 
 | 采样字段 | 范围 | 含义 |
 | --- | --- | --- |
-| `Level` | 0–1 | 相对于玩法基础强度的包络 |
+| `Level` | 0–1 | 相对于输入强度的包络 |
 | `FrequencyHz` | 1–100 Hz | 脉冲频率 |
 | `PulseWidth` | 0–1 | 相对脉宽／波形幅度，不代表跨设备校准的物理量 |
 | `Channels` | 可省略，1–3 个 −1–1 数值 | 各源通道的有符号倍率；省略表示本帧对已定义通道的倍率为 1，数组中未提供的通道为 0 |
@@ -68,6 +68,6 @@ YOKONEX 频率和脉冲时间单位依据厂商 [V1／V2 蓝牙文档](https://g
 
 ## 存储
 
-`waveforms.json` 仅保存统一格式的自定义波形，玩法只引用波形 ID；不保存按设备转换的副本。配置和会话存储继续使用紧凑 JSON，导出文件可以缩进便于编辑。
+`waveforms.json` 仅保存统一格式的自定义波形，玩法只引用波形 ID；不保存按设备转换的副本。本地存储使用紧凑 JSON，导出文件可以缩进便于编辑。
 
-工作区版本由 `WorkspaceData.CurrentSchema` 定义。开发阶段不迁移旧版 Schema，格式不匹配时只重置已知应用数据文件，保留同目录其他文件。导入导出统一使用当前格式。参考 APK、原始 PDF、提取源码、研究脚本和账号凭据始终留在 Git 忽略的本地目录。
+文件所有权、版本重置与损坏保护见[本地存储](storage.md)。参考资料和凭据不属于波形资产或发布内容。

@@ -1,6 +1,6 @@
 # 测试
 
-`tests/YokoWave.Tests` 使用 xUnit v3。目录与命名空间按行为领域组织，同一功能的纯逻辑、协议和界面检查分别放到对应领域。
+`tests/YokoWave.Tests` 使用 xUnit v3。开发流程见 [CONTRIBUTING.md](../CONTRIBUTING.md)，生产模块位置见[源码地图](source-map.md)。目录与命名空间按行为领域组织，同一功能的纯逻辑、协议和界面检查分别放到对应领域。
 
 | 目录 | 验证范围 |
 | --- | --- |

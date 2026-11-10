@@ -1,34 +1,43 @@
-# JSON 本地化
+# 界面与 JSON 本地化
 
-支持 `en` 和 `zh-CN`。翻译文件为 `src/YokoWave.Core/Locales/en.json` 与 `zh-CN.json`，作为嵌入资源随应用发布，无需部署外部词典，也不生成 `.resx` 或 XML 翻译资源。
+## 词典与动态文本
 
-[Avalonia 本地化文档](https://docs.avaloniaui.net/docs/app-development/localizing) 使用 ResX 示例，并说明运行时切换可使用 `INotifyPropertyChanged` 服务。本项目采用同一绑定更新机制，词典读取由 `System.Text.Json` 完成。
+`src/YokoWave.Core/Locales/en.json` 和 `zh-CN.json` 是嵌入资源，通过 `System.Text.Json` 读取，不使用 ResX。`JsonLocalizer` 实现属性通知，`LocExtension` 将 XAML 的资源键绑定到该服务。
 
-## 使用
+首次启动按系统界面语言选择：中文映射为 `zh-CN`，其他语言回退为 `en`。`SettingsViewModel` 切换语言后立即更新现有绑定并保存设置；页面、节点、设备连接与用户输入保持原对象。用户名称不翻译，原生对话框按钮和外部异常由平台决定。
 
-设置页的语言选择器立即刷新现有视图，并将语言代码保存到 `settings.json`。首次启动根据系统界面语言选择；中文语言映射为 `zh-CN`，其他语言回退到 `en`。开发阶段不执行旧工作区迁移，格式不匹配时重置。
+缺少当前语言的键时回退英文，英文也缺少则显示 `[Key]`。词典读取拒绝重复键和非字符串值，不在运行时下载翻译。
 
-切换语言更新页面、导航、按钮、提示、默认波形、应用错误及状态记录，不重建工作台，不重置设备连接与输出配置。自定义波形名称和其他用户内容不会被翻译。操作系统原生对话框自身的按钮及外部异常详情由相应平台提供。
+```xml
+<TextBlock Text="{l:Loc Wave.Save}" />
+```
 
-会话结束原因保存为稳定的资源键，显示时再翻译。读取中文或英文原因文本时匹配词典并翻译；未知的自定义原因保留原文。记录包含波形 ID，便于切换语言后显示内置波形名称；自定义名称保持原样。
+```csharp
+var label = L10n.Get("Wave.Save");
+var countLabel = L10n.Format("Device.LinkedCount", count);
+```
 
-## 添加文案
+占位符为 `{0}`、`{1}` 等，两份词典的键和参数必须一致。`LocalizedMessage` 保存键与参数；已有状态及本地化异常在显示时取当前语言，同时保留原始错误。会话原因保存稳定资源键，未知的用户原因保留原文。内置波形使用 `NameKey` 指向 `DefaultWave.*.Name`，自定义资产保留名称。
 
-1. 在两份 JSON 中添加相同键名，使用功能性文字。
-2. XAML 使用 `{l:Loc Wave.Save}`，C# 使用 `L10n.Get("Wave.Save")`。
-3. 有参数的文本使用 `{0}`、`{1}` 等格式，并调用 `L10n.Format("Device.LinkedCount", count)`。两种语言的占位参数必须一致。
-4. 执行 `scripts/verify.ps1`，检查词典一致性、格式参数以及实际界面的切换和保存行为。
+## 页面与共享组件
 
-词典缺少当前语言的键时回退英文；英文也缺少时显示 `[Key]`，便于发现遗漏。加载嵌入词典时拒绝重复键和非字符串值。应用没有运行时下载翻译文件的行为。
+页面直接绑定所属 ViewModel。设备卡片、连接列表、硬件详情、协议表单、序列操作、节点计时和已发送条复用独立组件。字段按设备能力和通道掩码生成，配置通过对应表单编辑。节点参数更新保留字段实例；语言变化只刷新展示属性。
 
-## 实现位置
+XAML 使用语义样式和动态资源：
 
-- `JsonLocalizer`：词典读取、语言选择、格式化、回退和属性通知。
-- `LocExtension`：将 XAML 资源键绑定到本地化服务。
-- `MainViewModel`：语言设置保存及动态属性刷新。
-- `LocalizedMessage`：保留消息键和参数，使已有状态及动态记录随语言更新。
-- `LocalizedErrors`：应用校验和设备错误的本地化信息，保留原异常类型关系。
+- `Styles/Palette.axaml`：主题色和语义画刷。
+- `Styles/Metrics.axaml`：字号、尺寸、间距、内边距与圆角。
+- `Typography` / `Layout`：文本层次和布局语义。
+- `Controls` / `Components` / `Pipelines` / `ItemTemplates`：控件、复用组件及图编辑器样式。
 
-JSON 只存储翻译文字。界面仍使用 Avalonia XAML，颜色仍集中在 `Styles/Palette.axaml`，语言切换不会改变系统主题或强调色。
+默认跟随系统明暗主题；平台提供时 FluentTheme 更新强调色，否则使用 Avalonia 默认值。字体继承系统无衬线，不引入字体包；上下文菜单继承窗口字体。自绘控件缓存几何和画笔，并在参数、尺寸及主题资源变化时失效。图标源为 Assets/YokoWave.svg，ICO 用于窗口及 Windows EXE。
 
-默认波形数据的 `nameKey` 对应两份词典中的 `DefaultWave.*.Name`。增加默认波形时必须同步添加中英文名称，测试会校验每个数据条目的翻译键。
+## 用户手册
+
+用户手册是 `Views/Pages/HelpView.axaml`，正文统一使用两份词典中的 `Help.*`。快速开始直接显示，其余主题可展开阅读；主题顺序按连接、图编辑、输出与定时、波形、输入、协议、远程、停止及数据排查组织。
+
+帮助只描述用户可执行的步骤、状态和限制，不列源码类型或协议包字段。实现说明保留在 docs，开发命令保留在 CONTRIBUTING。修改用户行为时同步更新帮助的中英文段落；切换语言不重置已展开主题。
+
+## 验证
+
+词典测试核对键、非空值、占位参数、回退和异常；Headless 测试验证语言／主题切换后的绑定、布局和编辑状态。运行命令见[开发指南](../CONTRIBUTING.md#验证)及[测试说明](testing.md)。

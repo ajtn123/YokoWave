@@ -5,109 +5,114 @@
   <StackPanel Classes="section reading">
     <Border Classes="card">
       <StackPanel Classes="items">
-        <TextBlock Text="{l:Loc Template.WebSocketServer}" Classes="section-title" />
-        <TextBlock Text="{l:Loc Remote.ServerHelp}" Classes="help" />
-        <TextBlock Text="{l:Loc Remote.ClientHelp}" Classes="muted help" />
+        <TextBlock Text="{l:Loc Help.QuickStart.Title}" Classes="card-title" />
+        <TextBlock Text="{l:Loc Help.QuickStart.Connect}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.QuickStart.Create}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.QuickStart.Run}" Classes="help" />
       </StackPanel>
     </Border>
-    <Border Classes="card">
+    <Expander x:Name="DevicesHelpTopic" HorizontalAlignment="Stretch">
+      <Expander.Header><TextBlock Text="{l:Loc Help.Devices.Title}" Classes="card-title help" /></Expander.Header>
       <StackPanel Classes="items">
-        <TextBlock Text="{l:Loc Help.HardwareTitle}" Classes="section-title" />
-        <TextBlock Text="{l:Loc Help.Hardware}" Classes="help" />
-        <TextBlock Text="{l:Loc Help.HardwareWaves}" Classes="muted help" />
-        <TextBlock Text="{l:Loc Help.Sensors}" Classes="muted help" />
+        <TextBlock Text="{l:Loc Help.Devices.Connect}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Devices.AutoConnect}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Devices.Models}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Devices.Hardware}" Classes="help" />
       </StackPanel>
-    </Border>
-    <Border Classes="card">
+    </Expander>
+    <Expander x:Name="GraphHelpTopic" HorizontalAlignment="Stretch">
+      <Expander.Header><TextBlock Text="{l:Loc Help.Graph.Title}" Classes="card-title help" /></Expander.Header>
       <StackPanel Classes="items">
-        <TextBlock Text="{l:Loc Template.Pump}" Classes="section-title" />
-        <TextBlock Text="{l:Loc Pump.Help}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Graph.Groups}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Graph.Nodes}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Graph.Disconnect}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Graph.Templates}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Graph.Saving}" Classes="help" />
       </StackPanel>
-    </Border>
-    <Border Classes="card">
+    </Expander>
+    <Expander x:Name="OutputHelpTopic" HorizontalAlignment="Stretch">
+      <Expander.Header><TextBlock Text="{l:Loc Help.Output.Title}" Classes="card-title help" /></Expander.Header>
       <StackPanel Classes="items">
-        <TextBlock Text="{l:Loc Help.StopTitle}" Classes="section-title" />
-        <TextBlock x:Name="HelpStopInfoText" Text="{l:Loc Help.StopBehavior}" Classes="help" />
-        <TextBlock Text="{l:Loc Help.Disconnection}" Classes="muted help" />
+        <TextBlock Text="{l:Loc Help.Output.Values}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Output.Readings}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Output.Timer}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Output.TimerLimit}" Classes="help" />
       </StackPanel>
-    </Border>
-    <Border Classes="card">
+    </Expander>
+    <Expander x:Name="WaveformsHelpTopic" HorizontalAlignment="Stretch">
+      <Expander.Header><TextBlock Text="{l:Loc Help.Waveforms.Title}" Classes="card-title help" /></Expander.Header>
       <StackPanel Classes="items">
-        <TextBlock Text="{l:Loc Help.ConnectTitle}" Classes="section-title" />
-        <TextBlock Text="{l:Loc Help.Connect}" Classes="help" />
-        <TextBlock Text="{l:Loc Help.Discovery}" Classes="muted help" />
+        <TextBlock Text="{l:Loc Help.Waveforms.Library}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Waveforms.Channels}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Waveforms.Playlist}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Waveforms.Live}" Classes="help" />
       </StackPanel>
-    </Border>
-    <Border Classes="card">
+    </Expander>
+    <Expander x:Name="InputsHelpTopic" HorizontalAlignment="Stretch">
+      <Expander.Header><TextBlock Text="{l:Loc Help.Inputs.Title}" Classes="card-title help" /></Expander.Header>
       <StackPanel Classes="items">
-        <TextBlock Text="{l:Loc Help.OutputTitle}" Classes="section-title" />
-        <TextBlock Text="{l:Loc Help.Output}" Classes="help" />
-        <TextBlock Text="{l:Loc Help.Readings}" Classes="muted help" />
+        <TextBlock Text="{l:Loc Help.Inputs.StrengthTitle}" Classes="card-title" />
+        <TextBlock Text="{l:Loc Help.Inputs.Strength}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Inputs.TouchTitle}" Classes="card-title" />
+        <TextBlock Text="{l:Loc Help.Inputs.Touch}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Inputs.AudioTitle}" Classes="card-title" />
+        <TextBlock Text="{l:Loc Help.Inputs.AudioSource}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Inputs.AudioWaiting}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Inputs.RestraintTitle}" Classes="card-title" />
+        <TextBlock Text="{l:Loc Help.Inputs.Restraint}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Inputs.ExerciseTitle}" Classes="card-title" />
+        <TextBlock Text="{l:Loc Help.Inputs.Exercise}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Inputs.SleepTitle}" Classes="card-title" />
+        <TextBlock Text="{l:Loc Help.Inputs.Sleep}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Inputs.Simulation}" Classes="help" />
       </StackPanel>
-    </Border>
-    <Border Classes="card">
+    </Expander>
+    <Expander x:Name="NativeHelpTopic" HorizontalAlignment="Stretch">
+      <Expander.Header><TextBlock Text="{l:Loc Help.Native.Title}" Classes="card-title help" /></Expander.Header>
       <StackPanel Classes="items">
-        <TextBlock Text="{l:Loc Help.TimerTitle}" Classes="section-title" />
-        <TextBlock Text="{l:Loc Help.Timer}" Classes="help" />
-        <TextBlock Text="{l:Loc Help.TimerLimit}" Classes="muted help" />
+        <TextBlock Text="{l:Loc Help.Native.Programs}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Native.Pump}" Classes="help" />
       </StackPanel>
-    </Border>
-    <Border Classes="card">
+    </Expander>
+    <Expander x:Name="ProtocolHelpTopic" HorizontalAlignment="Stretch">
+      <Expander.Header><TextBlock Text="{l:Loc Help.Protocol.Title}" Classes="card-title help" /></Expander.Header>
       <StackPanel Classes="items">
-        <TextBlock Text="{l:Loc Help.LinkedTitle}" Classes="section-title" />
-        <TextBlock Text="{l:Loc Help.Linked}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Protocol.Commands}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Protocol.Sensors}" Classes="help" />
       </StackPanel>
-    </Border>
-    <Border Classes="card">
+    </Expander>
+    <Expander x:Name="RemoteHelpTopic" HorizontalAlignment="Stretch">
+      <Expander.Header><TextBlock Text="{l:Loc Help.Remote.Title}" Classes="card-title help" /></Expander.Header>
       <StackPanel Classes="items">
-        <TextBlock Text="{l:Loc Help.WavesTitle}" Classes="section-title" />
-        <TextBlock Text="{l:Loc Help.LiveWave}" Classes="help" />
-        <TextBlock Text="{l:Loc Help.Playback}" Classes="help" />
-        <TextBlock Text="{l:Loc Help.Waves}" Classes="muted help" />
+        <TextBlock Text="{l:Loc Help.Remote.Server}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Remote.Kinds}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Remote.Client}" Classes="help" />
       </StackPanel>
-    </Border>
-    <Border Classes="card">
+    </Expander>
+    <Expander x:Name="StopHelpTopic" HorizontalAlignment="Stretch">
+      <Expander.Header><TextBlock Text="{l:Loc Help.Stop.Title}" Classes="card-title help" /></Expander.Header>
       <StackPanel Classes="items">
-        <TextBlock Text="{l:Loc Help.StorageTitle}" Classes="section-title" />
-        <TextBlock Text="{l:Loc Help.Storage}" Classes="help" />
+        <TextBlock x:Name="HelpStopInfoText" Text="{l:Loc Help.Stop.Behavior}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Stop.Failure}" Classes="help" />
       </StackPanel>
-    </Border>
-    <Border Classes="card">
+    </Expander>
+    <Expander x:Name="DataHelpTopic" HorizontalAlignment="Stretch">
+      <Expander.Header><TextBlock Text="{l:Loc Help.Data.Title}" Classes="card-title help" /></Expander.Header>
       <StackPanel Classes="items">
-        <TextBlock Text="{l:Loc Estim.StrengthProgram}" Classes="section-title" />
-        <TextBlock Text="{l:Loc Help.StrengthProgram}" Classes="help" />
-        <TextBlock Text="{l:Loc Help.DeviceFeatures}" Classes="muted help" />
+        <TextBlock Text="{l:Loc Help.Data.Settings}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Data.Storage}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Data.Clear}" Classes="help" />
       </StackPanel>
-    </Border>
-    <Border Classes="card">
+    </Expander>
+    <Expander x:Name="TroubleshootingHelpTopic" HorizontalAlignment="Stretch">
+      <Expander.Header><TextBlock Text="{l:Loc Help.Troubleshooting.Title}" Classes="card-title help" /></Expander.Header>
       <StackPanel Classes="items">
-        <TextBlock Text="{l:Loc Touch.Title}" Classes="section-title" />
-        <TextBlock Text="{l:Loc Help.Touch}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Troubleshooting.Scan}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Troubleshooting.Output}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Troubleshooting.Audio}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Troubleshooting.Remote}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Troubleshooting.Storage}" Classes="help" />
       </StackPanel>
-    </Border>
-    <Border Classes="card">
-      <StackPanel Classes="items">
-        <TextBlock Text="{l:Loc Template.Audio}" Classes="section-title" />
-        <TextBlock Text="{l:Loc Help.AudioControl}" Classes="help" />
-      </StackPanel>
-    </Border>
-    <Border Classes="card">
-      <StackPanel Classes="items">
-        <TextBlock Text="{l:Loc Template.Restraint}" Classes="section-title" />
-        <TextBlock Text="{l:Loc Help.Restraint}" Classes="help" />
-      </StackPanel>
-    </Border>
-    <Border Classes="card">
-      <StackPanel Classes="items">
-        <TextBlock Text="{l:Loc Template.Exercise}" Classes="section-title" />
-        <TextBlock Text="{l:Loc Help.Exercise}" Classes="help" />
-      </StackPanel>
-    </Border>
-    <Border Classes="card">
-      <StackPanel Classes="items">
-        <TextBlock Text="{l:Loc Template.SleepDeprivation}" Classes="section-title" />
-        <TextBlock Text="{l:Loc Help.Sleep}" Classes="help" />
-      </StackPanel>
-    </Border>
+    </Expander>
   </StackPanel>
 </UserControl>

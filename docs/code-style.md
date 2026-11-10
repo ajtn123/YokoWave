@@ -1,6 +1,6 @@
 # 代码风格
 
-本规范适用于手写 C#、Avalonia XAML 和测试代码。架构与业务约束见 [AGENTS.md](../AGENTS.md) 和 [架构说明](architecture.md)；自动生成代码、外部协议标识和框架要求的签名遵循各自约定。
+本规范适用于手写 C#、Avalonia XAML 和测试代码。开发流程见 [CONTRIBUTING.md](../CONTRIBUTING.md)，职责边界见[架构](architecture.md)，代理约束见 [AGENTS.md](../AGENTS.md)。自动生成代码、外部协议标识和框架要求的签名遵循各自约定。
 
 新增与重构代码遵循本规范。修改已有代码时统一所涉及的职责范围，避免将无关的全文件格式化混入功能提交。`.editorconfig` 定义可自动检查的格式与命名规则，本文定义需要结合语义判断的部分。
 

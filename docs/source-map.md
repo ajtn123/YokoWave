@@ -1,0 +1,59 @@
+# 源码地图
+
+项目使用文件范围命名空间，目录与命名空间对应。入口与依赖见[架构](architecture.md)。
+
+```text
+src/
+  YokoWave.Core/          设备、能力、协议、统一资产和工作区存储
+    Bluetooth/           协议识别、驱动、编码、通知与 GATT 抽象
+    Data/                规范化内置波形
+    Localization/        JSON 词典、本地化消息与异常
+    Locales/             en.json / zh-CN.json
+  YokoWave.Pipelines/     纯 .NET 图定义、编译、处理器和会话
+  YokoWave.Remote/        WebSocket RPC、租约、设备客户端与资源节点
+  YokoWave.App/           Avalonia 界面
+    ViewModels/          设备、设置、波形、历史及共享编辑模型
+      Pipelines/         图工作区、节点编辑器、历史与设备分组
+    Views/
+      Pages/             设备、波形、历史、设置、帮助及确认窗口
+      Components/        设备卡片、硬件／协议表单、序列及波形编辑
+      Pipelines/         画布、参数面板、计时、设备分组与连线交互
+    Controls/            触控面板、按住增强、波形绘图
+    Styles/              颜色、尺寸、排版和共享语义样式
+    Assets/              SVG 图标与窗口／EXE 使用的 ICO
+  YokoWave.Desktop/       桌面入口与平台实现
+    Bluetooth/           Windows BLE、GATT 发现和链路
+    Audio/               MiniAudio 输入与媒体播放
+    Diagnostics/         原生蓝牙／音频探针
+tests/YokoWave.Tests/    按领域组织的 xUnit 和 Headless 测试
+  Support/               图工厂、传输替身、隔离目录及 UI 操作
+schemas/                 单波形与波形数组的 JSON Schema
+scripts/                 风格、验证及覆盖率脚本
+```
+
+## 修改入口
+
+下列文件表达职责边界，不是需要同步修改的固定清单；沿实际调用关系追踪实现。
+
+| 行为 | 主要位置 |
+| --- | --- |
+| 应用启动、平台工厂 | [Desktop/Program.cs](../src/YokoWave.Desktop/Program.cs)、[App.axaml.cs](../src/YokoWave.App/App.axaml.cs) |
+| 页面组合、保存与关闭 | [MainViewModel](../src/YokoWave.App/ViewModels/MainViewModel.cs)、[MainView](../src/YokoWave.App/Views/MainView.axaml) |
+| 设备锁、占用和输出状态 | [DeviceController](../src/YokoWave.Core/DeviceController.cs)、[DeviceConnection](../src/YokoWave.Core/DeviceConnection.cs)、[DeviceOperationLocks](../src/YokoWave.Core/DeviceOperationLocks.cs) |
+| 来源路由与重连 | [RoutedDeviceTransport](../src/YokoWave.Core/RoutedDeviceTransport.cs)、[DeviceAutoConnector](../src/YokoWave.Core/DeviceAutoConnector.cs)、[DevicesPaneViewModel](../src/YokoWave.App/ViewModels/DevicesPaneViewModel.cs) |
+| 协议识别和驱动选择 | [BluetoothDeviceProfile](../src/YokoWave.Core/Bluetooth/BluetoothDeviceProfile.cs)、[DeviceCapabilities](../src/YokoWave.Core/Bluetooth/DeviceCapabilities.cs)、[BluetoothProtocolDriverFactory](../src/YokoWave.Core/Bluetooth/BluetoothProtocolDriverFactory.cs) |
+| 蓝牙单链路生命周期 | [BluetoothDeviceSession](../src/YokoWave.Core/Bluetooth/BluetoothDeviceSession.cs)、[WindowsBluetoothConnection](../src/YokoWave.Desktop/Bluetooth/WindowsBluetoothConnection.cs) |
+| 图契约和注册 | [PipelineDocument](../src/YokoWave.Pipelines/PipelineDocument.cs)、[NodeTypeRegistry](../src/YokoWave.Pipelines/NodeTypeRegistry.cs)、[FeatureNodes](../src/YokoWave.Pipelines/FeatureNodes.cs) |
+| 图编译、求值和提交 | [PipelineCompiler](../src/YokoWave.Pipelines/PipelineCompiler.cs)、[PipelineRuntime](../src/YokoWave.Pipelines/PipelineRuntime.cs)、[PipelineSession](../src/YokoWave.Pipelines/PipelineSession.cs)、[PipelineOutputDispatcher](../src/YokoWave.Pipelines/PipelineOutputDispatcher.cs) |
+| 内置与网络模板 | [PipelineTemplates](../src/YokoWave.Pipelines/PipelineTemplates.cs)、[RemotePipelineNodes](../src/YokoWave.Remote/RemotePipelineNodes.cs) |
+| 图编辑、分组和历史 | [PipelineEditorViewModel](../src/YokoWave.App/ViewModels/Pipelines/PipelineEditorViewModel.cs)、[PipelineDeviceGroupsViewModel](../src/YokoWave.App/ViewModels/Pipelines/PipelineDeviceGroupsViewModel.cs)、[PipelineEditHistory](../src/YokoWave.App/ViewModels/Pipelines/PipelineEditHistory.cs) |
+| RPC 和租约 | [WebSocketRpcPeer](../src/YokoWave.Remote/WebSocketRpcPeer.cs)、[RemoteExportSession](../src/YokoWave.Remote/RemoteExportSession.cs)、[RemoteClientConnection](../src/YokoWave.Remote/RemoteClientConnection.cs) |
+| 波形资产、生成和交换 | [WaveformAsset](../src/YokoWave.Core/WaveformAsset.cs)、[WaveformGenerator](../src/YokoWave.Core/WaveformGenerator.cs)、[WaveformExchange](../src/YokoWave.Core/WaveformExchange.cs) |
+| 本地数据 | [WorkspaceStore](../src/YokoWave.Core/WorkspaceStore.cs)、[SessionJournal](../src/YokoWave.Core/SessionJournal.cs)、[PipelineStore](../src/YokoWave.Pipelines/PipelineStore.cs) |
+| 用户手册 | [HelpView.axaml](../src/YokoWave.App/Views/Pages/HelpView.axaml)，正文在 [en.json](../src/YokoWave.Core/Locales/en.json) / [zh-CN.json](../src/YokoWave.Core/Locales/zh-CN.json) 的 `Help.*` |
+
+## 界面资源
+
+`Palette.axaml` 只负责颜色，`Metrics.axaml` 负责尺寸、间距和圆角。`Typography`、`Layout`、`Controls`、`Components`、`Pipelines` 与 `ItemTemplates` 按职责组合共享样式；页面和自绘控件消费动态资源。SVG 是图标源，ICO 由桌面项目的 `ApplicationIcon` 嵌入 EXE，并用于窗口图标。
+
+测试目录与替身职责见[测试说明](testing.md)。新增文件放入拥有该行为的模块，不建立无具体职责的 Utils / Common 层。
