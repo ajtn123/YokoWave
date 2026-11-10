@@ -101,7 +101,7 @@ public sealed class ProtocolFeaturesViewModel : ObservableObject
         {
             _deviceId = device?.Id;
             _profile = device?.Profile;
-            Commands = AllCommands.Where(command => device?.Profile?.Supports(command.Capability) == true).ToArray();
+            Commands = AllCommands.Where(command => device?.Supports(command.Capability) == true).ToArray();
             Raise(nameof(Commands));
             var command = Commands.FirstOrDefault();
             if (_selected == command)

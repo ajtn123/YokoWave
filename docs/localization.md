@@ -25,6 +25,8 @@ var countLabel = L10n.Format("Device.LinkedCount", count);
 
 页面直接绑定所属 ViewModel。设备卡片、连接列表、硬件详情、协议表单、序列操作、节点计时和已发送条复用独立组件。字段按设备能力和通道掩码生成，配置通过对应表单编辑。节点参数更新保留字段实例；语言变化只刷新展示属性。
 
+V4 配对二维码由 QRCoder 在内存中生成，`PairingCodeView` 显示二维码、链接与配对步骤；语言变化复用已有图像，断开来源时清除并释放图像。
+
 XAML 使用语义样式和动态资源：
 
 - `Styles/Palette.axaml`：主题色和语义画刷。

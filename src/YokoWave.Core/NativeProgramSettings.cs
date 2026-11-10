@@ -63,7 +63,7 @@ public sealed record NativeProgramSettings(NativeProgramKind Kind = NativeProgra
         }
     }
     public NativeProgramSettings Snapshot() => this with { BufferA = BufferA?.ToArray(), BufferB = BufferB?.ToArray() };
-    public bool Accepts(DeviceDescriptor device) => device.Profile is { } profile ? profile.Supports(RequiredCapability)
+    public bool Accepts(DeviceDescriptor device) => device.Profile is not null || device.AccessCapabilities.HasValue ? device.Supports(RequiredCapability)
         : Kind == NativeProgramKind.MotorPreset ? device.Kind == DeviceKind.Vibration : device.Kind == DeviceKind.DualChannel;
 }
 public sealed record NativeProgramOutput(NativeProgramSettings Settings, double ElapsedSeconds, double? RemainingSeconds)
@@ -93,8 +93,8 @@ public sealed record HardwareOutputSettings(double ChannelALimit = 100, double C
     }
     public bool Accepts(DeviceDescriptor device, bool needsMotion)
     {
-        if (AuxiliaryMotor != AuxiliaryMotorMode.Off && (needsMotion || device.Profile is { } p && !p.Supports(DeviceCapability.AuxiliaryMotor)))
+        if (AuxiliaryMotor != AuxiliaryMotorMode.Off && (needsMotion || (device.Profile is not null || device.AccessCapabilities.HasValue) && !device.Supports(DeviceCapability.AuxiliaryMotor)))
             return false;
-        return !RelativeStrength || device.Profile?.Supports(DeviceCapability.RelativeStrength) != false;
+        return !RelativeStrength || device.Profile is null && !device.AccessCapabilities.HasValue || device.Supports(DeviceCapability.RelativeStrength);
     }
 }

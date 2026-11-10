@@ -63,7 +63,7 @@ public sealed class PipelineEditorViewModel : ObservableObject, IAsyncDisposable
     public bool CanEdit => !Session.HoldsResources && !Nodes.OfType<AudioNodeEditorViewModel>().Any(n => n.IsCalibrating);
     public bool CanUndo => CanEdit && _history.CanUndo(BindingsAvailable);
     public bool CanRedo => CanEdit && _history.CanRedo(BindingsAvailable);
-    public bool CanStart => CanEdit && Diagnostics.Count == 0 && ReferencedDeviceIds.Count > 0 && ReferencedDeviceIds.All(id =>
+    public bool CanStart => CanEdit && Diagnostics.Count == 0 && (ReferencedDeviceIds.Count > 0 || SubgraphExpansion.Expand(ToDocument()).Nodes.Any(node => Registry.Get(node.Type).IsService)) && ReferencedDeviceIds.All(id =>
         CanBindDevice?.Invoke(id) != false && _controller.Connections.ContainsKey(id) && !_controller.IsDeviceBusy(id));
     public bool CanStop => Session.HoldsResources;
     public bool CanDeleteSelection => CanEdit && SelectedNodes.Count > 0;

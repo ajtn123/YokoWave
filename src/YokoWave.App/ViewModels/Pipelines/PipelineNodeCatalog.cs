@@ -2,6 +2,7 @@ using YokoWave.Core.Bluetooth;
 using YokoWave.Core.Localization;
 using YokoWave.Pipelines;
 using YokoWave.Remote;
+using YokoWave.Remote.DgLab.V4;
 
 namespace YokoWave.App.ViewModels.Pipelines;
 
@@ -60,6 +61,8 @@ public sealed class PipelineNodeCatalog
         _editors[BuiltInNodes.PumpTimer] = (e, d) => new PumpTimerEditorViewModel(e, d);
         Register(RemotePipelineNodes.GattServer, _ => NodeDefinition.Create(RemotePipelineNodes.GattServer, new GattServerNode(["$device"], new())), (e, d) => new ServerNodeEditorViewModel(e, d));
         Register(RemotePipelineNodes.ControlServer, _ => NodeDefinition.Create(RemotePipelineNodes.ControlServer, new ControlServerNode("$device", new())), (e, d) => new ServerNodeEditorViewModel(e, d));
+        Register(DgLabV4Nodes.App, _ => NodeDefinition.Create(DgLabV4Nodes.App, new DgLabV4AppNode("$device")), (e, d) => new DgLabAppEditorViewModel(e, d));
+        Register(DgLabV4Nodes.Relay, _ => NodeDefinition.Create(DgLabV4Nodes.Relay, new DgLabV4RelayNode(new())), (e, d) => new DgLabRelayEditorViewModel(e, d));
     }
     public NodeEditorViewModel Create(PipelineEditorViewModel editor, NodeDefinition definition) => _editors.TryGetValue(definition.Type, out var factory)
         ? factory(editor, definition) : new ConfigurationNodeViewModel(editor, definition);

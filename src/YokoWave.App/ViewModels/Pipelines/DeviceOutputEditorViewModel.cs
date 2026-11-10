@@ -12,7 +12,7 @@ public abstract class DeviceOutputEditorViewModel : NodeEditorViewModel
         ? Enumerable.Range(0, 3).Where(device.HasChannel) : [];
     public override string Summary => SelectedDevice?.Name ?? DeviceId;
     public string DeviceId => _deviceId;
-    public ObservableCollection<PipelineDeviceOption> Devices => Editor.Devices;
+    public virtual IReadOnlyList<PipelineDeviceOption> Devices => Editor.Devices;
     public PipelineDeviceOption? SelectedDevice
     {
         get => Devices.FirstOrDefault(d => d.Id == _deviceId);
@@ -30,7 +30,11 @@ public abstract class DeviceOutputEditorViewModel : NodeEditorViewModel
         }
     }
     protected DeviceOutputEditorViewModel(PipelineEditorViewModel editor, NodeDefinition definition, string deviceId) : base(editor, definition) => _deviceId = deviceId;
-    internal virtual void RefreshDevices() => Raise(nameof(SelectedDevice));
+    internal virtual void RefreshDevices()
+    {
+        Raise(nameof(Devices));
+        Raise(nameof(SelectedDevice));
+    }
     public override void RefreshLocalization()
     {
         base.RefreshLocalization();

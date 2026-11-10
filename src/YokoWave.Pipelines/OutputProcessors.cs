@@ -75,6 +75,11 @@ public sealed class FrameSignalProcessor : ISignalProcessor
     {
         if (!context.Inputs.Frames.TryGetValue(context.NodeId, out var frame))
             return;
+        Write(context, frame);
+    }
+
+    public static void Write(NodeEvaluationContext context, OutputFrame frame)
+    {
         context.IntentOutput("intent", frame);
         for (int channel = 0; channel < 3; channel++)
         {

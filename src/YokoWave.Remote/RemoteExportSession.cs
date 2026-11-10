@@ -252,7 +252,7 @@ public sealed class RemoteExportSession : IAsyncDisposable
             throw new RemoteRpcException(-32004, "Error.NotConnected");
         var device = connection.Device;
         return new(exported, device.Name, device.Kind, device.ProtocolId!, device.ChannelMask ?? (1 << device.ChannelCount) - 1,
-            device.Profile!.Capabilities, device.Battery, device.Signal, device.Simulated == true);
+            device.Capabilities, device.Battery, device.Signal, device.Simulated == true);
     }
     private async Task<RemoteLease> AcquireAsync(RemotePeerSession peer, JsonElement parameters, CancellationToken cancellationToken)
     {

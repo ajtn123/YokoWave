@@ -73,16 +73,19 @@ public sealed class PipelineCompiler(NodeTypeRegistry registry)
                 if (bindings.Any(b => b.ConflictsWith(binding)))
                     errors.Add(new("Pipeline.Error.DuplicateOutput", node.Id));
                 bindings.Add(binding);
-                if (devices is not null && (!devices.TryGetValue(binding.DeviceId, out var device) || !Accepts(binding, device) || !AcceptsConfiguration(node.Configuration, device)))
+                if (devices is not null && (!devices.TryGetValue(binding.DeviceId, out var device) || !Accepts(binding, device) ||
+                    !AcceptsConfiguration(node.Configuration, device) || !node.Registration.AcceptsDevice(node.Configuration, device)))
+                {
                     errors.Add(new("Pipeline.Error.Device", node.Id));
+                }
             }
         }
         return bindings.ToArray();
     }
     public static bool Accepts(DeviceOutputBinding binding, DeviceDescriptor device) => device.IsSupported && binding.Kind switch
     {
-        OutputBindingKind.Sensor => device.IsInput || device.Profile?.Motion == true || device.Profile?.Supports(DeviceCapability.SensorStream) == true ||
-            device.Profile?.Supports(DeviceCapability.StatusQuery) == true || device.Simulated == true || device.ProtocolId is null,
+        OutputBindingKind.Sensor => device.IsInput || device.Supports(DeviceCapability.Motion) == true || device.Supports(DeviceCapability.SensorStream) == true ||
+            device.Supports(DeviceCapability.StatusQuery) == true || device.Simulated == true || device.ProtocolId is null,
         OutputBindingKind.Command => true,
         OutputBindingKind.Export => device.Origin == DeviceOrigin.Local,
         OutputBindingKind.Pump => device.Kind == DeviceKind.Pump,
@@ -218,7 +221,7 @@ public sealed class PipelineCompiler(NodeTypeRegistry registry)
     private static bool AcceptsConfiguration(object config, DeviceDescriptor device) => config switch
     {
         NativeOutputNode native => (native.Settings ?? new()).Accepts(device),
-        CommandNode command => device.Profile?.Supports(command.Command.Capability) == true,
+        CommandNode command => device.Supports(command.Command.Capability) == true,
         _ => true
     };
 }

@@ -158,7 +158,7 @@ internal sealed class SensorProcessor : ISignalProcessor
         Publish("steps", connection.Motion?.Steps ?? connection.Steps, connection.Motion?.CapturedAt ?? connection.TelemetryCapturedAt);
         var data = connection.Telemetry;
         var captured = connection.TelemetryCapturedAt;
-        Publish("pressure", data?.PressureKpa, captured);
+        Publish("pressure", data?.PressureKpa, data?.PressureCapturedAt ?? captured);
         Publish("pressureA", data?.PressureA, captured);
         Publish("pressureB", data?.PressureB, captured);
         Publish("pressed", data?.Pressed is { } pressed ? pressed ? 1 : 0 : null, captured);
@@ -176,8 +176,9 @@ internal sealed class SensorProcessor : ISignalProcessor
         Publish("gyroscopeX", data?.GyroscopeAxes?.X, captured);
         Publish("gyroscopeY", data?.GyroscopeAxes?.Y, captured);
         Publish("gyroscopeZ", data?.GyroscopeAxes?.Z, captured);
-        Publish("eventId", data?.EventId, captured);
-        Publish("eventActive", data?.EventActive is { } active ? active ? 1 : 0 : null, captured);
+        var eventAt = data?.EventCapturedAt ?? captured;
+        Publish("eventId", data?.EventId, eventAt, eventAt?.UtcTicks ?? 0);
+        Publish("eventActive", data?.EventActive is { } active ? active ? 1 : 0 : null, eventAt, eventAt?.UtcTicks ?? 0);
         Publish("parameter", data?.Parameter, captured);
         Publish("modelId", data?.ModelId, captured);
         Publish("modeA", data?.ModeA, captured);

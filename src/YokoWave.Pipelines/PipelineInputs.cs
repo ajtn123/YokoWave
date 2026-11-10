@@ -44,6 +44,8 @@ public sealed class PipelineInputs
     public Dictionary<Guid, AudioFeatureFrame?> Audio { get; } = [];
     public Dictionary<Guid, SensorSnapshot> Sensors { get; } = [];
     public ConcurrentDictionary<Guid, OutputFrame> Frames { get; } = new();
+    public ConcurrentDictionary<Guid, ConcurrentQueue<NodeControl>> Controls { get; } = new();
+    public ConcurrentDictionary<Guid, ConcurrentQueue<NodeControl>> Results { get; } = new();
 }
 
 public sealed class PipelineServices(IAudioInputFactory? audio = null)
@@ -104,12 +106,12 @@ internal sealed class SensorParticipant(NodeRunContext context, SensorNode setti
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         var device = context.Devices.Connections[settings.DeviceId].Device;
-        if (device.Profile?.Motion == true)
+        if (device.Supports(DeviceCapability.Motion) == true)
             await context.Devices.StartMotionOwnedAsync(context.OwnerId, device.Id).ConfigureAwait(false);
-        else if (device.Profile?.Supports(DeviceCapability.SensorStream) == true)
+        else if (device.Supports(DeviceCapability.SensorStream) == true)
             await context.Devices.ExecuteCommandAsync(device.Id, new ConfigureSensorStream(true), context.OwnerId, cancellationToken).ConfigureAwait(false);
         else
-            _poll = device.Profile?.Supports(DeviceCapability.StatusQuery) == true;
+            _poll = device.Supports(DeviceCapability.StatusQuery) == true;
     }
     public async ValueTask CaptureAsync(PipelineInputs inputs, CancellationToken cancellationToken)
     {

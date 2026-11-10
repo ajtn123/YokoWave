@@ -111,8 +111,8 @@
                 <DataTemplate x:DataType="vm:PipelineEndpointViewModel">
                   <StackPanel Classes="field">
                     <SelectableTextBlock Text="{Binding Url}" TextWrapping="Wrap" />
-                    <TextBlock Text="{l:Loc Remote.Token}" Classes="caption muted" />
-                    <SelectableTextBlock Text="{Binding Token}" TextWrapping="Wrap" />
+                    <TextBlock Text="{l:Loc Remote.Token}" Classes="caption muted" IsVisible="{Binding HasToken}" />
+                    <SelectableTextBlock Text="{Binding Token}" TextWrapping="Wrap" IsVisible="{Binding HasToken}" />
                   </StackPanel>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>

@@ -35,7 +35,7 @@ public sealed class WebSocketControlTransport : IDeviceTransport, IDeviceStatusS
         foreach (var device in devices)
             _devices[_connection.Key(device.Id)] = device;
         return _devices.Select(p => new DeviceDescriptor(p.Key, p.Value.Name, p.Value.Kind, p.Value.Battery, p.Value.Signal,
-            p.Value.ProtocolId, p.Value.ChannelMask, DeviceOrigin.Remote, p.Value.Simulated)).ToArray();
+            p.Value.ProtocolId, p.Value.ChannelMask, DeviceOrigin.Remote, p.Value.Simulated, p.Value.Capabilities)).ToArray();
     }
     public async Task ConnectAsync(DeviceDescriptor device, CancellationToken cancellationToken = default)
     {
@@ -154,9 +154,27 @@ public sealed class WebSocketControlTransport : IDeviceTransport, IDeviceStatusS
     {
         if (!_links.TryGetValue(id, out var link))
             return;
+        var telemetry = status.Telemetry;
+        if (telemetry is not null)
+        {
+            telemetry = telemetry with
+            {
+                PressureCapturedAt = CapturedAt(status.PressureClockMilliseconds),
+                EventCapturedAt = CapturedAt(status.EventClockMilliseconds)
+            };
+        }
         StatusChanged?.Invoke(this, new(id, status.Battery,
             status.ContactA, status.ContactB, lightEnabled: status.LightEnabled, motionAngle: status.Motion?.Angle,
-            steps: status.Motion?.Steps, telemetry: status.Telemetry, hardwareVersion: status.HardwareVersion, softwareVersion: status.SoftwareVersion,
+            steps: status.Motion?.Steps, telemetry: telemetry, hardwareVersion: status.HardwareVersion, softwareVersion: status.SoftwareVersion,
             motionAge: link.InputAge(status.MotionClockMilliseconds), telemetryAge: link.InputAge(status.TelemetryClockMilliseconds)));
+
+        DateTimeOffset? CapturedAt(long? timestamp)
+        {
+            if (timestamp is null)
+                return null;
+            var now = DateTimeOffset.UtcNow;
+            var age = link.InputAge(timestamp);
+            return age > now - DateTimeOffset.MinValue ? DateTimeOffset.MinValue : now - age;
+        }
     }
 }

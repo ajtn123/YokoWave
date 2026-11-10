@@ -65,7 +65,7 @@ public sealed class DeviceHardwareOptionsViewModel : ObservableObject
             mode.RefreshLocalization();
         Raise(nameof(AuxiliaryMode));
     }
-    private bool Supports(DeviceCapability capability) => _device.Profile?.Supports(capability) == true;
+    private bool Supports(DeviceCapability capability) => _device.Supports(capability) == true;
     private void Update(DeviceOutputSettings settings)
     {
         if (!CanEdit || settings == _settings)

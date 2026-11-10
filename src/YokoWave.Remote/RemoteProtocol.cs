@@ -19,7 +19,8 @@ public sealed record RemoteGattDescription(RemoteDevice Device, GattAttribute[] 
 public sealed record RemoteGattNotification(Guid Lease, string DeviceId, GattNotification Notification, long ClockMilliseconds);
 public sealed record RemoteStatus(string DeviceId, DeviceTelemetry? Telemetry, int? Battery, MotionReading? Motion,
     ElectrodeContact ContactA, ElectrodeContact ContactB, bool? LightEnabled, byte? HardwareVersion = null, byte? SoftwareVersion = null,
-    long? TelemetryClockMilliseconds = null, long? MotionClockMilliseconds = null);
+    long? TelemetryClockMilliseconds = null, long? MotionClockMilliseconds = null,
+    long? PressureClockMilliseconds = null, long? EventClockMilliseconds = null);
 public enum RemotePlaybackKind
 {
     Waveform, NativeProgram, Pump

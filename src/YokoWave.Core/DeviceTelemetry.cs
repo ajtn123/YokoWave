@@ -23,7 +23,8 @@ public sealed record DeviceTelemetry(double? PressureKpa = null, int? PressureA 
     int? IndicatorColor = null, int? Sequence = null, bool? EventActive = null,
     PawCalibration? Calibration = null, IReadOnlyList<PawEventState>? PawEvents = null,
     int? MaximumWriteLength = null, PumpDirection? Peristaltic = null, bool? WaterPump = null,
-    CoyotePulse? PulseA = null, CoyotePulse? PulseB = null, byte? ProtocolErrorCode = null)
+    CoyotePulse? PulseA = null, CoyotePulse? PulseB = null, byte? ProtocolErrorCode = null,
+    DateTimeOffset? PressureCapturedAt = null, DateTimeOffset? EventCapturedAt = null)
 {
     public double? VoltageVolts => VoltageRaw is >= 0 and <= 255 ? PawProtocol.Voltage(VoltageRaw.Value) : null;
     public DeviceTelemetry Merge(DeviceTelemetry update) => this with
@@ -59,6 +60,8 @@ public sealed record DeviceTelemetry(double? PressureKpa = null, int? PressureA 
         WaterPump = update.WaterPump ?? WaterPump,
         PulseA = update.PulseA ?? PulseA,
         PulseB = update.PulseB ?? PulseB,
-        ProtocolErrorCode = update.ProtocolErrorCode ?? ProtocolErrorCode
+        ProtocolErrorCode = update.ProtocolErrorCode ?? ProtocolErrorCode,
+        PressureCapturedAt = update.PressureCapturedAt ?? PressureCapturedAt,
+        EventCapturedAt = update.EventCapturedAt ?? EventCapturedAt
     };
 }

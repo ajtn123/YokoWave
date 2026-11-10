@@ -83,7 +83,7 @@ public sealed class DevicesPaneViewModel : ObservableObject, IAsyncDisposable
     public bool HasElectrodeReadings => ShowContacts && SelectedConnected && SelectedDevice?.Device.Profile?.Contacts == true;
     public string ReadingsLabel => L10n.Get(SelectedDevice?.Device.Simulated == true ? "Device.Readings" : "Device.HardwareReadings");
     private DeviceConnection? Connection => _controller.Connections.GetValueOrDefault(SelectedDevice?.Id ?? "");
-    public bool HasDeviceFeatures => SelectedDevice?.Device.Profile?.Light == true;
+    public bool HasDeviceFeatures => SelectedDevice?.Device.Supports(Core.Bluetooth.DeviceCapability.Light) == true;
     public bool CanReadDeviceFeatures => SelectedConnected && HasDeviceFeatures && !_featuresBusy && !_controller.IsDeviceBusy(SelectedDevice!.Id);
     public bool CanControlLight => CanReadDeviceFeatures && Connection is { HardwareVersion: > 0, SoftwareVersion: > 0, LightEnabled: not null };
     public string FirmwareLabel => L10n.Format("Device.Firmware", Connection?.HardwareVersion?.ToString() ?? "—", Connection?.SoftwareVersion?.ToString() ?? "—");
@@ -294,6 +294,14 @@ public sealed class DevicesPaneViewModel : ObservableObject, IAsyncDisposable
         }
         await _operations.WaitAsync();
         _operations.Release();
+        try
+        {
+            await RemoteSources.DisposeAsync();
+        }
+        catch (Exception error)
+        {
+            errors.Add(error);
+        }
         try
         {
             await FlushPreferencesAsync();

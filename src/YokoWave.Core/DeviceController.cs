@@ -203,7 +203,7 @@ public sealed class DeviceController : IAsyncDisposable
             if (DeviceOwner(id) != owner)
                 throw new LocalizedOperationException("Error.DeviceInUse");
             var connection = Get(id);
-            if (!AreSimulated([id]) && connection.Device.Profile?.Motion != true)
+            if (!AreSimulated([id]) && connection.Device.Supports(DeviceCapability.Motion) != true)
                 throw new LocalizedOperationException("Error.MotionUnavailable");
             if (GetOutputSettings(id).Hardware?.Accepts(connection.Device, needsMotion: true) == false)
                 throw new LocalizedOperationException("Error.ProtocolSettings");
@@ -249,7 +249,7 @@ public sealed class DeviceController : IAsyncDisposable
             var connection = Get(id);
             if (IsDeviceBusy(id))
                 throw new LocalizedOperationException("Error.DeviceInUse");
-            if (connection.Device.Profile?.Light != true || _transport is not IElectricalDeviceFeatures features)
+            if (connection.Device.Supports(DeviceCapability.Light) != true || _transport is not IElectricalDeviceFeatures features)
                 throw new LocalizedOperationException("Error.DeviceFeatures");
             var state = await features.RefreshFeaturesAsync(id, cancellationToken).ConfigureAwait(false);
             connection.ApplyFeatures(state);
@@ -266,7 +266,7 @@ public sealed class DeviceController : IAsyncDisposable
             var connection = Get(id);
             if (!command.ReadOnly && DeviceOwner(id) is { } current && current != owner)
                 throw new LocalizedOperationException("Error.DeviceInUse");
-            if (connection.Device.Profile?.Supports(command.Capability) != true || _transport is not IDeviceCommandTransport transport)
+            if (connection.Device.Supports(command.Capability) != true || _transport is not IDeviceCommandTransport transport)
                 throw new LocalizedOperationException("Error.DeviceFeatures");
             if (command is ConfigureMotionStream { Enabled: true } && GetOutputSettings(id).Hardware?.Accepts(connection.Device, needsMotion: true) == false)
                 throw new LocalizedOperationException("Error.ProtocolSettings");
@@ -297,7 +297,7 @@ public sealed class DeviceController : IAsyncDisposable
             var connection = Get(id);
             if (IsDeviceBusy(id))
                 throw new LocalizedOperationException("Error.DeviceInUse");
-            if (connection.Device.Profile?.Light != true || connection.HardwareVersion is not > 0 || connection.SoftwareVersion is not > 0 ||
+            if (connection.Device.Supports(DeviceCapability.Light) != true || connection.HardwareVersion is not > 0 || connection.SoftwareVersion is not > 0 ||
                 _transport is not IElectricalDeviceFeatures features)
             {
                 throw new LocalizedOperationException("Error.DeviceFeatures");
@@ -557,7 +557,7 @@ public sealed class DeviceController : IAsyncDisposable
         {
             errors.Add(error);
         }
-        if (connection.Device.IsInput && connection.Device.Profile?.Supports(DeviceCapability.SensorStream) == true)
+        if (connection.Device.IsInput && connection.Device.Supports(DeviceCapability.SensorStream) == true)
         {
             try
             {

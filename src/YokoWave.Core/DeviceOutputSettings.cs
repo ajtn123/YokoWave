@@ -12,6 +12,6 @@ public sealed record DeviceOutputSettings(string DeviceId, bool Gentle = false, 
         Hardware?.Validate();
     }
     public bool Accepts(DeviceDescriptor device, bool motion = false) => Hardware?.Accepts(device, motion) != false &&
-        (Balances is null || device.Profile?.Supports(DeviceCapability.Balance) == true) &&
-        (Hardware is not { ChannelALimit: not 100 } and not { ChannelBLimit: not 100 } || device.Profile?.Supports(DeviceCapability.ChannelLimits) == true);
+        (Balances is null || device.Supports(DeviceCapability.Balance) == true) &&
+        (Hardware is not { ChannelALimit: not 100 } and not { ChannelBLimit: not 100 } || device.Supports(DeviceCapability.ChannelLimits) == true);
 }

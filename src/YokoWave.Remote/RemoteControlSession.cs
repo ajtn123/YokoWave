@@ -14,7 +14,7 @@ internal sealed class RemoteControlSession(DeviceController devices, Guid owner,
     private OutputFrame _frame = OutputFrame.Zero;
     private readonly HashSet<string> _subscriptions = [];
     private readonly Dictionary<string, RemoteStatus> _lastStatus = [];
-    private readonly Dictionary<(string Device, bool Motion), (DateTimeOffset Captured, long Clock)> _captureTimes = [];
+    private readonly Dictionary<(string Device, string Field), (DateTimeOffset Captured, long Clock)> _captureTimes = [];
     private DeviceDescriptor[] Devices => targets.Values.Select(id => devices.Connections[id].Device).ToArray();
     public async Task<object?> ExecuteAsync(string method, JsonElement parameters, CancellationToken cancellationToken)
     {
@@ -158,15 +158,17 @@ internal sealed class RemoteControlSession(DeviceController devices, Guid owner,
     {
         if (!targets.TryGetValue(exported, out string? id) || !(statusDevices ?? devices).Connections.TryGetValue(id, out var connection))
             throw new RemoteRpcException(-32004, "Error.NotConnected");
-        return new(exported, connection.Telemetry, connection.Device.Battery, connection.Motion, connection.ContactA, connection.ContactB, connection.LightEnabled,
+        var telemetry = connection.Telemetry;
+        return new(exported, telemetry is null ? null : telemetry with { PressureCapturedAt = null, EventCapturedAt = null }, connection.Device.Battery, connection.Motion, connection.ContactA, connection.ContactB, connection.LightEnabled,
             connection.HardwareVersion, connection.SoftwareVersion,
-            CaptureClock(exported, false, connection.TelemetryCapturedAt), CaptureClock(exported, true, connection.Motion?.CapturedAt));
+            CaptureClock(exported, "telemetry", connection.TelemetryCapturedAt), CaptureClock(exported, "motion", connection.Motion?.CapturedAt),
+            CaptureClock(exported, "pressure", telemetry?.PressureCapturedAt), CaptureClock(exported, "event", telemetry?.EventCapturedAt));
     }
-    private long? CaptureClock(string device, bool motion, DateTimeOffset? capturedAt)
+    private long? CaptureClock(string device, string field, DateTimeOffset? capturedAt)
     {
         if (capturedAt is not { } captured)
             return null;
-        var key = (device, motion);
+        var key = (device, field);
         if (_captureTimes.TryGetValue(key, out var previous) && previous.Captured == captured)
             return previous.Clock;
         var age = (statusDevices ?? devices).Clock.GetUtcNow() - captured;

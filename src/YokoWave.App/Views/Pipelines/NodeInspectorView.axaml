@@ -108,6 +108,35 @@
         <Button Content="{l:Loc Pipeline.Calibrate}" Command="{Binding CalibrateAudioCommand}" />
       </StackPanel>
     </DataTemplate>
+    <DataTemplate DataType="vm:DgLabAppEditorViewModel">
+      <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
+        <TextBlock Text="{l:Loc Pipeline.Device}" Classes="field-label" />
+        <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}" ItemTemplate="{DynamicResource Template.DeviceOption}" />
+        <TextBlock Text="{l:Loc DgLab.RelayUrl}" Classes="field-label" />
+        <TextBox Text="{Binding Url}" MaxLength="2048" />
+        <TextBlock Text="{l:Loc DgLab.ControllerId}" Classes="field-label" />
+        <TextBox Text="{Binding ControllerId}" MaxLength="256" />
+        <TextBlock Text="{l:Loc DgLab.ControllerHelp}" Classes="help caption muted" />
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate DataType="vm:DgLabRelayEditorViewModel">
+      <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
+        <TextBlock Text="{l:Loc Remote.Address}" Classes="field-label" />
+        <TextBox Text="{Binding Address}" />
+        <TextBlock Text="{l:Loc Remote.Port}" Classes="field-label" />
+        <NumericUpDown Value="{Binding Port}" Minimum="0" Maximum="65535" />
+        <TextBlock Text="{l:Loc DgLab.Path}" Classes="field-label" />
+        <TextBox Text="{Binding Path}" MaxLength="128" />
+        <TextBlock Text="{l:Loc DgLab.Heartbeat}" Classes="field-label" />
+        <NumericUpDown Value="{Binding HeartbeatMilliseconds}" Minimum="100" Maximum="300000" Increment="1000" />
+        <TextBlock Text="{l:Loc DgLab.IdleTimeout}" Classes="field-label" />
+        <NumericUpDown Value="{Binding IdleMilliseconds}" Minimum="100" Maximum="3600000" Increment="1000" />
+        <TextBlock Text="{l:Loc Remote.Certificate}" Classes="field-label" />
+        <TextBox Text="{Binding CertificatePath}" />
+        <TextBox Text="{Binding CertificatePassword}" PasswordChar="●" PlaceholderText="{l:Loc Pipeline.CertificatePassword}" />
+        <TextBlock Text="{l:Loc DgLab.RelayHelp}" Classes="help caption muted" />
+      </StackPanel>
+    </DataTemplate>
     <DataTemplate DataType="vm:ServerNodeEditorViewModel">
       <StackPanel Classes="field">
         <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">

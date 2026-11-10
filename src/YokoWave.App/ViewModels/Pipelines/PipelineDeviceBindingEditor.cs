@@ -33,10 +33,10 @@ internal static class PipelineDeviceBindingEditor
             bool compatible = configuration switch
             {
                 NativeOutputNode native => (native.Settings ?? new()).Accepts(device),
-                CommandNode command => device.Profile?.Supports(command.Command.Capability) == true,
+                CommandNode command => device.Supports(command.Command.Capability) == true,
                 _ => true
             };
-            var slots = registration.Resources(configuration).Where(b => compatible && IsEmpty(b.DeviceId) && PipelineCompiler.Accepts(b, device)).ToArray();
+            var slots = registration.Resources(configuration).Where(b => compatible && registration.AcceptsDevice(configuration, device) && IsEmpty(b.DeviceId) && PipelineCompiler.Accepts(b, device)).ToArray();
             var targets = slots.Select(binding => binding with { DeviceId = device.Id }).ToArray();
             if (targets.Any(target => claimed.Any(binding => binding.ConflictsWith(target))))
                 return node;

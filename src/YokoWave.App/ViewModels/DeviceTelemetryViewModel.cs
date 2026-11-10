@@ -10,7 +10,7 @@ public sealed class DeviceTelemetryViewModel : ObservableObject
     private string? _deviceId;
     private DeviceConnection? Connection => _deviceId is { } id && _controller.Connections.TryGetValue(id, out var connection) ? connection : null;
     public bool IsVisible => Connection?.Device.Profile is not null;
-    public bool CanResetPressure => Connection?.Device.Profile?.Supports(DeviceCapability.PressureReset) == true && !_controller.IsDeviceBusy(_deviceId!);
+    public bool CanResetPressure => Connection?.Device.Supports(DeviceCapability.PressureReset) == true && !_controller.IsDeviceBusy(_deviceId!);
     public string Timestamp => Connection?.TelemetryCapturedAt is { } at
         ? L10n.Format("Telemetry.Updated", at.ToLocalTime().ToString("HH:mm:ss")) : L10n.Get("Input.Waiting");
     public AsyncCommand ResetPressureCommand { get; }

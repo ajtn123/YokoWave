@@ -4,6 +4,8 @@
 
 用户配置步骤位于应用内「帮助」，这里定义网络边界与接口契约。
 
+本文描述 YokoWave 的 `yokowave.v2` 协议。DG-LAB App 使用独立的 [V4 协议](dglab-v4.md)，由另一组设备来源和节点接入，不使用这里的认证或租约。
+
 `RemotePipelineNodes` 提供 GATT 和 control 两种资源节点。GATT 节点导出原始读写／通知，远端使用同一协议工厂运行驱动；control 节点将远端输出缓冲到本地图，再经数值处理、限幅和设备路由提交。两者只允许对应租约。输入设备可由 GATT 导出，或通过 control 读取状态和执行命令。
 
 默认监听 127.0.0.1:9000，路径为 /ws/{资源节点 ID，32 位无连字符}。多个节点可共享相同地址／端口／证书的监听器，各自保持认证与设备范围。非回环监听使用客户端可达地址；PFX 证书须由客户端信任，不跳过证书校验。
@@ -68,6 +70,8 @@
 | `control.subscribe` / `control.unsubscribe` | `deviceId`；按 100 ms 采样，仅在状态变化时推送 `control.status` 通知 `{ lease, status }` |
 
 状态中的 `telemetryClockMilliseconds` 与 `motionClockMilliseconds` 分别表示遥测和运动读数的采集时刻，使用服务端单调时钟，可能因采集早于服务端启动而为负值；缺失表示没有有效采集时间。客户端将其换算为输入年龄，状态刷新不会延长旧读数的有效期，新采样恢复有效输入。`motion.capturedAt` 不用于跨主机的新鲜度判断。
+
+遥测同时携带独立压力或反馈时间时，`pressureClockMilliseconds` / `eventClockMilliseconds` 表达各字段的采集时刻，客户端重建本地时间。这样转发 V4 设备后，反馈和电量更新仍不会延长旧压力数据的有效期。
 
 声控、滑动及运动等有实时输入的图在控制端运行，通过选定的 GATT 或 control 连接发送输出；高层 API 也可由第三方程序消费自己的输入并发送统一帧。高层服务端不远程打开麦克风或读取客户端文件。
 

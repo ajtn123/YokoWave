@@ -27,7 +27,8 @@ public static class RemotePipelineNodes
             builder.Connect(source, port.Id, sink, port.Id);
         return builder.Build();
     });
-    public static NodeTypeRegistry Register(NodeTypeRegistry registry) => registry
+    public static NodeTypeRegistry Register(NodeTypeRegistry registry) => DgLab.V4.DgLabV4Nodes.Register(RegisterYokoWave(registry));
+    private static NodeTypeRegistry RegisterYokoWave(NodeTypeRegistry registry) => registry
         .Register(new NodeRegistration<GattServerNode>(GattServer, "Pipeline.Node.GattServer", [],
             c => c.DeviceIds is { Length: > 0 and <= 32 } && c.DeviceIds.All(id => !string.IsNullOrWhiteSpace(id)) && Valid(c.Settings),
             (_, _) => new EndpointProcessor(), resources: c => c.DeviceIds.Select(id => new DeviceOutputBinding(id, OutputBindingKind.Export)).ToArray(),

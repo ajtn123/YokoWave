@@ -21,6 +21,8 @@ public abstract class NodeRegistration(string type, string nameKey, NodePort[] p
     public virtual IRunParticipant? Participant(NodeRunContext context, object configuration) => null;
     public virtual IReadOnlyList<NodePort> PortsFor(object configuration) => Ports;
     public virtual IEnumerable<Guid> WaveformReferences(object configuration) => [];
+    public virtual bool IsService => false;
+    public virtual bool AcceptsDevice(object configuration, DeviceDescriptor device) => true;
 }
 
 public sealed class NodeRegistration<T>(string type, string nameKey, NodePort[] ports, Func<T, bool> validate,
@@ -29,7 +31,9 @@ public sealed class NodeRegistration<T>(string type, string nameKey, NodePort[] 
     Func<NodeRunContext, T, IRunParticipant?>? participant = null,
     Func<T, IReadOnlyList<NodePort>>? dynamicPorts = null,
     Func<T, IReadOnlyList<DeviceOutputBinding>>? resources = null,
-    Func<T, IEnumerable<Guid>>? waveformReferences = null) : NodeRegistration(type, nameKey, ports) where T : class
+    Func<T, IEnumerable<Guid>>? waveformReferences = null,
+    bool service = false,
+    Func<T, DeviceDescriptor, bool>? acceptsDevice = null) : NodeRegistration(type, nameKey, ports) where T : class
 {
     public override object Read(JsonElement configuration) => configuration.Deserialize<T>(PipelineJson.Options) ?? throw new JsonException();
     public override bool Validate(object configuration) => validate((T)configuration);
@@ -39,6 +43,8 @@ public sealed class NodeRegistration<T>(string type, string nameKey, NodePort[] 
     public override IReadOnlyList<NodePort> PortsFor(object configuration) => dynamicPorts?.Invoke((T)configuration) ?? Ports;
     public override IReadOnlyList<DeviceOutputBinding> Resources(object configuration) => resources?.Invoke((T)configuration) ?? base.Resources(configuration);
     public override IEnumerable<Guid> WaveformReferences(object configuration) => waveformReferences?.Invoke((T)configuration) ?? [];
+    public override bool IsService => service;
+    public override bool AcceptsDevice(object configuration, DeviceDescriptor device) => acceptsDevice?.Invoke((T)configuration, device) ?? true;
 }
 
 public sealed class NodeTypeRegistry

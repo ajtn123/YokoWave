@@ -1,0 +1,11 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:YokoWave.App.ViewModels" xmlns:l="using:YokoWave.App.Localization"
+             x:Class="YokoWave.App.Views.Components.PairingCodeView" x:DataType="vm:PairingCodeViewModel">
+  <StackPanel Classes="field" IsVisible="{Binding HasCode}">
+    <TextBlock Text="{l:Loc DgLab.Pairing}" Classes="field-label" />
+    <Image Source="{Binding Image}" Width="{DynamicResource Size.PairingCode}" Height="{DynamicResource Size.PairingCode}" HorizontalAlignment="Left" />
+    <TextBlock Text="{l:Loc DgLab.ControllerId}" Classes="field-label" />
+    <SelectableTextBlock Text="{Binding ControllerId}" />
+    <SelectableTextBlock Text="{Binding Url}" TextWrapping="Wrap" Classes="caption muted" />
+    <TextBlock Text="{l:Loc DgLab.SourceHelp}" Classes="caption muted help" />
+  </StackPanel>
+</UserControl>

@@ -10,7 +10,7 @@ public sealed class CommandNodeEditorViewModel : DeviceOutputEditorViewModel
     private ProtocolCommandOption? _selected;
     private string _commandJson;
     public IReadOnlyList<ProtocolCommandOption> Commands => ProtocolFeaturesViewModel.AllCommands.Where(c =>
-        Editor.FindDevice(DeviceId)?.Profile is not { } profile || profile.Supports(c.Capability)).ToArray();
+        Editor.FindDevice(DeviceId) is not { } device || device.Supports(c.Capability)).ToArray();
     public IReadOnlyList<ParameterFieldViewModel> CommandParameters { get; private set; } = [];
     public ProtocolCommandOption? SelectedCommand
     {

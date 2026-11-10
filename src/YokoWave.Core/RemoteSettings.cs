@@ -17,9 +17,9 @@ public sealed record RemoteServerSettings(string Address = "127.0.0.1", int Port
 }
 public enum RemoteConnectionKind
 {
-    Gatt, Control
+    Gatt, Control, DgLabV4
 }
-public sealed record RemoteEndpointSettings(Guid Id, string Name, string Url, RemoteConnectionKind Kind = RemoteConnectionKind.Gatt)
+public sealed record RemoteEndpointSettings(Guid Id, string Name, string Url, RemoteConnectionKind Kind = RemoteConnectionKind.Gatt, string? AdvertisedHost = null)
 {
     public void Validate()
     {
@@ -28,5 +28,7 @@ public sealed record RemoteEndpointSettings(Guid Id, string Name, string Url, Re
         {
             throw new LocalizedArgumentException("Error.RemoteSettings");
         }
+        if (AdvertisedHost is { Length: > 0 } host && (host.Length > 253 || Uri.CheckHostName(host) == UriHostNameType.Unknown))
+            throw new LocalizedArgumentException("Error.RemoteSettings");
     }
 }
