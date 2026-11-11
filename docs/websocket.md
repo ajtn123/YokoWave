@@ -1,4 +1,4 @@
-# WebSocket 设备共享
+# WebSocket 设备共享与事件
 
 ## 实现与入口
 
@@ -6,23 +6,23 @@
 
 本文描述 YokoWave 的 `yokowave.v2` 协议。DG-LAB App 使用独立的 [V4 协议](dglab-v4.md)，由另一组设备来源和节点接入，不使用这里的认证或租约。
 
-`RemotePipelineNodes` 提供 GATT 和 control 两种资源节点。GATT 节点导出原始读写／通知，远端使用同一协议工厂运行驱动；control 节点将远端输出缓冲到本地图，再经数值处理、限幅和设备路由提交。两者只允许对应租约。输入设备可由 GATT 导出，或通过 control 读取状态和执行命令。
+`RemotePipelineNodes` 提供 GATT、control 和 event 资源节点。GATT 节点导出原始读写／通知，远端使用同一协议工厂运行驱动；control 节点将远端输出缓冲到本地图，再经数值处理、限幅和设备路由提交；event 节点接收客户端声明的触发和数值事件。每类端点只允许对应租约。输入设备可由 GATT 导出，或通过 control 读取状态和执行命令。事件端点不申请设备，详见[事件契约与示例](websocket-events.md)。
 
 默认监听 127.0.0.1:9000，路径为 /ws/{资源节点 ID，32 位无连字符}。多个节点可共享相同地址／端口／证书的监听器，各自保持认证与设备范围。非回环监听使用客户端可达地址；PFX 证书须由客户端信任，不跳过证书校验。
 
-`WebSocketGattAdapter` / `WebSocketGattConnection` 实现链路抽象，`WebSocketControlTransport` 实现统一设备传输。两类客户端复用 `RemoteClientConnection` 的认证、租约续期、顺序号与服务端单调时钟，经 `RoutedDeviceTransport` 与本地及模拟来源共存。BLE 主机后端为 Windows，控制端可使用其他桌面平台。
+`WebSocketGattAdapter` / `WebSocketGattConnection` 实现链路抽象，`WebSocketControlTransport` 实现统一设备传输，经 `RoutedDeviceTransport` 与本地及模拟来源共存。`RemoteEventClient` 声明并发送事件。三者复用 `RemoteClientConnection` 的认证与 `RemoteLeaseLink` 的租约续期、顺序号和服务端单调时钟。`RemoteServerSession` 为设备导出和事件会话提供共同的监听／认证边界，事件接收不创建另一套玩法执行器。BLE 主机后端为 Windows，控制端可使用其他桌面平台。
 
 图、服务端参数和设备引用保存在 pipelines.json，端点地址／名称／连接种类保存在 settings.json；令牌和证书密码仅在内存。WebSocket 来源需手动接入，已接入来源中的设备可参与自动重连；启动不自动监听或恢复玩法输出。Remote 依赖 .NET 10 的 Microsoft.AspNetCore.App。
 
 ## 协议及租约
 
 - WebSocket 子协议：`yokowave.v2`。文本 JSON-RPC 2.0，UTF-8，可分片，单条最大 1 MiB，深度最大 32，不接收批量 RPC 数组。
-- 请求 `id` 是正整数或十进制正整数字符串，在同一连接上严格递增，不可重复。响应返回原始 `id`。设备控制必须使用请求，服务端不执行没有 `id` 的控制通知。
+- 请求 `id` 是正整数或十进制正整数字符串，在同一连接上严格递增，不可重复。响应返回原始 `id`。设备控制及事件声明／发送必须使用请求，服务端不执行没有 `id` 的通知。
 - 首先调用 `system.authenticate`，参数 `{ "token": "..." }`；10 秒内未认证则关闭连接。随后 `system.hello` 返回版本、服务端玩法 ID、租约超时、消息上限和单调时钟 `clockMilliseconds`。枚举使用 camelCase 字符串，二进制数据使用 Base64。
 - `devices.list` 返回设备数组；`devices.describe` 使用 `deviceId`。设备 ID 是服务端玩法内的匿名标识；客户端将端点 ID、玩法 ID、设备 ID 组合为本地标识。设备包含协议、能力、通道掩码、电量、信号及模拟标记。
-- `lease.acquire` 参数为 `{ "deviceIds": ["..."], "type": "gatt" }` 或 `"control"`。返回 `{ "id", "type", "deviceIds", "leaseMilliseconds" }`。每个租约最多 32 台目标，设备不能出现在其他租约中，两种租约互斥。
+- `lease.acquire` 参数为 `{ "deviceIds": ["..."], "type": "gatt" }`、`"control"`，或事件端点上的 `{ "deviceIds": [], "type": "event" }`。返回 `{ "id", "type", "deviceIds", "leaseMilliseconds" }`。设备租约最多 32 台目标，设备不能出现在其他租约中；事件租约没有设备，同一连接最多一个。
 - `lease.renew` 和 `lease.release` 参数为 `{ "lease": "UUID" }`，只能由取得租约的连接调用。续期返回当前服务端 `clockMilliseconds`。自带客户端按超时的三分之一续期，租约撤销通知为 `lease.revoked`。
-- 每个 `gatt.*` / `control.*` 请求都包含 `lease`、严格递增的 `sequence`，以及服务端单调时钟中的 `deadline`（毫秒）。执行前拒绝过期或超过当前时钟 1 秒的截止时间。客户端用 hello／续期时钟加本地单调经过时间估算，不依赖两台电脑的系统时间；自带客户端使用 500 ms 截止时间。
+- 每个 `gatt.*` / `control.*` / `event.*` 请求都包含 `lease`、严格递增的 `sequence`，以及服务端单调时钟中的 `deadline`（毫秒）。执行前拒绝过期或超过当前时钟 1 秒的截止时间。客户端用 hello／续期时钟加本地单调经过时间估算，不依赖两台电脑的系统时间；自带客户端使用 500 ms 截止时间。
 
 播放与手动输出请求先校验完整参数、波形采样、目标能力及图定义，再修改硬件选项或替换当前播放；参数错误返回 `-32602` 并保留当前播放。顺序／随机播放只接受列表内的实时波形切换，在全部目标校验通过后才提交。传感器可接收统一设备连接流程的零输出请求，非零输出仍被拒绝。
 
@@ -32,7 +32,7 @@
 {"jsonrpc":"2.0","id":"7","method":"control.output","params":{"lease":"00000000-0000-0000-0000-000000000001","sequence":1,"deadline":12500,"frame":{"channelA":0,"channelB":0,"frequency":20,"outputLimit":30}}}
 ```
 
-响应为 `result` 或 `error: { code, message }`；`message` 是应用的本地化键，不发送调用堆栈、请求内容或令牌。`-32600` 无效 RPC／重复请求 ID，`-32601` 未知方法，`-32602` 参数错误；`-32001` 认证失败，`-32002` 设备已占用，`-32003` 租约／序号／截止时间错误，`-32004` 设备不可用，其他执行失败为 `-32000`。
+响应为 `result` 或 `error: { code, message }`；`message` 是应用的本地化键，不发送调用堆栈、请求内容或令牌。`-32600` 无效 RPC／重复请求 ID，`-32601` 未知方法，`-32602` 参数错误；`-32001` 认证失败，`-32002` 设备或事件客户端标识已占用，`-32003` 租约／序号／截止时间错误，`-32004` 设备不可用，`-32005` 事件缓冲已满，其他执行失败为 `-32000`。
 
 ## GATT 接口
 
@@ -175,4 +175,4 @@ try {
 
 断连、租约到期、服务端定时结束、本地停止及全部停止都尝试归零；输入流和原生程序也执行协议停止。每台设备的失败独立收集，原始错误和清理错误均保留，停止未确认时不移交设备。请求超时或取消后关闭连接，不自动重试控制请求。物理设备失联时，软件不能确认硬件实际输出。
 
-自动测试通过真实回环 WebSocket 连接和 GATT 替身验证九种协议的连接／归零／通知、鉴权、两种租约互斥、截止时间、重复 ID、限幅、播放列表、暂停继续、原生程序、泵、输入设备命令、共享端口、定时停止、混合来源以及无凭据持久化。未进行远程非零输出的实机验证。
+自动测试通过真实回环 WebSocket 连接和 GATT 替身验证九种协议的连接／归零／通知、鉴权、租约类型隔离、截止时间、重复 ID、限幅、播放列表、暂停继续、原生程序、泵、输入设备命令、共享端口、定时停止、混合来源以及无凭据持久化。事件测试覆盖声明、跨客户端隔离、触发排队、数值过期、断连归零、暂停清空、模拟来源和子图分流；Headless 验证中英文选择界面、自动保存及模板复用。未进行远程非零输出的实机验证。

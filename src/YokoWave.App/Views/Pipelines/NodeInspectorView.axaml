@@ -59,6 +59,17 @@
       <CheckBox Content="{l:Loc Pipeline.StopWhenComplete}" IsChecked="{Binding StopWhenComplete}" />
     </StackPanel></DataTemplate>
     <DataTemplate DataType="vm:ConfigurationNodeViewModel"><Panel /></DataTemplate>
+    <DataTemplate DataType="vm:EventInputEditorViewModel">
+      <StackPanel Classes="field">
+        <TextBlock Text="{l:Loc Remote.EventSource}" Classes="field-label" />
+        <TextBlock Text="{Binding SourceName}" Classes="caption muted" TextWrapping="Wrap" />
+        <TextBlock Text="{l:Loc Remote.EventSelection}" Classes="field-label" />
+        <ComboBox ItemsSource="{Binding Events}" SelectedItem="{Binding SelectedEvent}"><ComboBox.ItemTemplate><DataTemplate x:DataType="vm:EventOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+        <TextBlock Text="{l:Loc Remote.EventClient}" Classes="field-label" /><TextBox Text="{Binding ClientId}" MaxLength="80" />
+        <TextBlock Text="{l:Loc Remote.EventId}" Classes="field-label" /><TextBox Text="{Binding EventId}" MaxLength="80" />
+        <TextBlock Text="{l:Loc Remote.EventHelp}" Classes="caption muted" TextWrapping="Wrap" />
+      </StackPanel>
+    </DataTemplate>
     <DataTemplate DataType="vm:CommandNodeEditorViewModel">
       <StackPanel Classes="field" IsEnabled="{Binding CanEdit}">
         <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}" ItemTemplate="{DynamicResource Template.DeviceOption}" />
@@ -150,8 +161,8 @@
           <NumericUpDown Value="{Binding Port}" Minimum="0" Maximum="65535" />
           <TextBlock Text="{l:Loc Pipeline.LeaseMilliseconds}" Classes="field-label" />
           <NumericUpDown Value="{Binding LeaseMilliseconds}" Minimum="1000" Maximum="10000" />
-          <TextBlock Text="{l:Loc Remote.ControlLimit}" Classes="field-label" />
-          <Slider Value="{Binding ControlLimit}" Minimum="0" Maximum="100" />
+          <TextBlock Text="{l:Loc Remote.ControlLimit}" Classes="field-label" IsVisible="{Binding HasControlLimit}" />
+          <Slider Value="{Binding ControlLimit}" Minimum="0" Maximum="100" IsVisible="{Binding HasControlLimit}" />
           <TextBlock Text="{l:Loc Remote.Certificate}" Classes="field-label" />
           <TextBox Text="{Binding CertificatePath}" />
           <TextBox Text="{Binding CertificatePassword}" PasswordChar="●" PlaceholderText="{l:Loc Pipeline.CertificatePassword}" />

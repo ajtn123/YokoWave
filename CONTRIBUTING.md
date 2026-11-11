@@ -67,7 +67,7 @@ node --test tests/dinosaur/*.test.js
 | 设备／协议 | 集中定义能力、编码／解析和驱动，由工厂创建；验证发现、确认、失败释放及停止。见[蓝牙](docs/bluetooth.md)。 |
 | 音频／传感器 | 平台层采集，核心只消费有时间与来源的特征；缺失归零，清理可等待。见[输入](docs/inputs.md)。 |
 | 波形 | 修改统一资产和 Schema，不在资产中保存设备包；验证默认库和各驱动转换。见[波形](docs/waveforms.md)。 |
-| 远程 | 同时更新 RPC 契约、服务端、客户端、节点和回环测试；只使用 `gatt` / `control` 租约。见 [WebSocket](docs/websocket.md)。 |
+| 远程 | 同时更新 RPC 契约、服务端、客户端、节点和回环测试；租约与命名空间使用 `gatt` / `control` / `event`，事件租约不占用设备。见 [WebSocket](docs/websocket.md)。 |
 | 界面／文案 | 复用组件、语义样式和资源；同步 en / zh-CN，保留语言切换时的状态。见[界面与本地化](docs/localization.md)。 |
 | 本地文件 | 保持文件所有权、紧凑格式、损坏保护和关闭前写入屏障。开发阶段不增加数据迁移。见[存储](docs/storage.md)。 |
 

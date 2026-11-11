@@ -10,6 +10,7 @@ public sealed class ServerNodeEditorViewModel : NodeEditorViewModel
     private readonly string[] _deviceIds;
     private RemoteServerSettings _settings;
     private readonly bool _gatt;
+    public bool HasControlLimit => Type == RemotePipelineNodes.ControlServer;
     public string Token => Editor.Services.Credentials[Id].Token;
     public string CertificatePassword
     {
@@ -49,11 +50,12 @@ public sealed class ServerNodeEditorViewModel : NodeEditorViewModel
     {
         _gatt = Type == RemotePipelineNodes.GattServer;
         object configuration = editor.Registry.Get(Type).Read(definition.Configuration);
-        _deviceIds = configuration is GattServerNode gatt ? gatt.DeviceIds : [((ControlServerNode)configuration).DeviceId];
-        _settings = configuration is GattServerNode server ? server.Settings : ((ControlServerNode)configuration).Settings;
+        _deviceIds = configuration switch { GattServerNode gatt => gatt.DeviceIds, ControlServerNode control => [control.DeviceId], _ => [] };
+        _settings = configuration switch { GattServerNode gatt => gatt.Settings, ControlServerNode control => control.Settings, EventServerNode events => events.Settings, _ => throw new ArgumentException(nameof(definition)) };
         editor.Services.Credentials.GetOrAdd(Id, _ => new(Convert.ToHexString(RandomNumberGenerator.GetBytes(32))));
     }
-    protected override NodeDefinition BuildDefinition() => _gatt ? NodeDefinition.Create(Type, new GattServerNode(_deviceIds, _settings), Id)
+    protected override NodeDefinition BuildDefinition() => Type == RemoteEventNodes.Server ? NodeDefinition.Create(Type, new EventServerNode(_settings), Id)
+        : _gatt ? NodeDefinition.Create(Type, new GattServerNode(_deviceIds, _settings), Id)
         : NodeDefinition.Create(Type, new ControlServerNode(_deviceIds[0], _settings), Id);
     private void SetSettings(RemoteServerSettings settings, string property)
     {

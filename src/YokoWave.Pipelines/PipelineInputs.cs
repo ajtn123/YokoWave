@@ -44,6 +44,7 @@ public sealed class PipelineInputs
     public Dictionary<Guid, AudioFeatureFrame?> Audio { get; } = [];
     public Dictionary<Guid, SensorSnapshot> Sensors { get; } = [];
     public ConcurrentDictionary<Guid, OutputFrame> Frames { get; } = new();
+    public ConcurrentDictionary<Guid, EventSignal> Events { get; } = new();
     public ConcurrentDictionary<Guid, ConcurrentQueue<NodeControl>> Controls { get; } = new();
     public ConcurrentDictionary<Guid, ConcurrentQueue<NodeControl>> Results { get; } = new();
 }

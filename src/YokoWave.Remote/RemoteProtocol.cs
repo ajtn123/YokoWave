@@ -8,7 +8,7 @@ namespace YokoWave.Remote;
 
 public enum RemoteLeaseType
 {
-    Gatt, Control
+    Gatt, Control, Event
 }
 public sealed record RemoteDevice(string Id, string Name, DeviceKind Kind, string ProtocolId, int ChannelMask,
     DeviceCapability Capabilities, int? Battery, int? Signal, bool Simulated);

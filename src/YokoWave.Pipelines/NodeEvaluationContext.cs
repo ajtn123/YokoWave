@@ -34,6 +34,8 @@ public sealed class NodeEvaluationContext
     public void Output(string port, NumericSignal signal) => _runtime.Values[new(_node.Id, port)] = signal;
     public void IntentOutput(string port, OutputFrame frame) => _runtime.Intents[new(_node.Id, port)] = frame;
     public OutputFrame? IntentInput(string port) => _runtime.IntentInput(new(_node.Id, port));
+    public void EventOutput(string port, EventSignal signal) => _runtime.Events[new(_node.Id, port)] = signal;
+    public EventSignal EventInput(string port) => _runtime.EventInput(new(_node.Id, port));
     public void Status(PipelineNodeStatus status) => _runtime.NodeStatus[_node.Id] = status;
     public void Completion(bool completed, string reason) => _runtime.Completions[_node.Id] = (completed, reason);
     public void Stop(string reason) => _runtime.StopReason = reason;

@@ -11,7 +11,7 @@ public sealed class WebSocketControlTransport : IDeviceTransport, IDeviceStatusS
 {
     private readonly RemoteClientConnection _connection;
     private readonly ConcurrentDictionary<string, RemoteDevice> _devices = new();
-    private readonly ConcurrentDictionary<string, RemoteDeviceLink> _links = new();
+    private readonly ConcurrentDictionary<string, RemoteLeaseLink> _links = new();
     public string DisplayName => L10n.Get("Remote.Control");
     public bool IsSimulation => false;
     public event EventHandler<DeviceStatusUpdate>? StatusChanged;
@@ -46,7 +46,7 @@ public sealed class WebSocketControlTransport : IDeviceTransport, IDeviceStatusS
             deviceIds = new[] { exported.Id },
             type = RemoteLeaseType.Control
         }, cancellationToken).ConfigureAwait(false);
-        var link = new RemoteDeviceLink(_connection.Peer, exported, lease, _connection.Hello.ClockMilliseconds, _connection.HelloAt);
+        var link = new RemoteLeaseLink(_connection.Peer, lease, _connection.Hello.ClockMilliseconds, _connection.HelloAt, exported.Id);
         link.Disconnected += () => Faulted?.Invoke(this, new(device.Id, true, new LocalizedIOException("Error.RemoteDisconnected")));
         if (!_links.TryAdd(device.Id, link))
         {
@@ -134,7 +134,7 @@ public sealed class WebSocketControlTransport : IDeviceTransport, IDeviceStatusS
         if (errors.Count > 0)
             throw new LocalizedAggregateException("Error.Cleanup", errors);
     }
-    private RemoteDeviceLink Link(string id) => _links.TryGetValue(id, out var link) ? link : throw new LocalizedOperationException("Error.NotConnected");
+    private RemoteLeaseLink Link(string id) => _links.TryGetValue(id, out var link) ? link : throw new LocalizedOperationException("Error.NotConnected");
     private void Notification(string method, JsonElement parameters)
     {
         if (method == "lease.revoked")

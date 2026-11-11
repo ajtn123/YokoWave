@@ -17,7 +17,8 @@ public static class SubgraphExpansion
     public static NodeRegistration Registration() => new NodeRegistration<SubgraphNode>(Type, "Pipeline.Node.Subgraph", [],
         ValidConfiguration,
         (_, _) => new NoopProcessor(), dynamicPorts: c =>
-            c.Inputs.Select(p => new NodePort(p.Id, p.NameKey, PortDirection.Input, p.Parameter ?? new("", double.MinValue, double.MaxValue, 0), p.Kind))
+            c.Inputs.Select(p => new NodePort(p.Id, p.NameKey, PortDirection.Input,
+                p.Kind == PortValueKind.Numeric ? p.Parameter ?? new("", double.MinValue, double.MaxValue, 0) : null, p.Kind))
                 .Concat(c.Outputs.Select(p => new NodePort(p.Id, p.NameKey, PortDirection.Output, Kind: p.Kind))).ToArray());
 
     public static NodeDefinition MapDevices(NodeDefinition node, IReadOnlyDictionary<string, string> devices)

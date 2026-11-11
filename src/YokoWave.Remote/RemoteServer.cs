@@ -23,9 +23,9 @@ public sealed class RemoteServer : IAsyncDisposable
     private int _disposed;
     private int _started;
 
-    public RemoteExportSession Session { get; }
+    public RemoteServerSession Session { get; }
     public Uri? Url { get; private set; }
-    public RemoteServer(RemoteExportSession session, string token)
+    public RemoteServer(RemoteServerSession session, string token)
     {
         if (token.Length is < 24 or > 256)
             throw new LocalizedArgumentException("Error.RemoteAuthentication");
@@ -163,7 +163,14 @@ public sealed class RemoteServer : IAsyncDisposable
     }
     private async Task ObserveSessionAsync()
     {
-        await Session.Completion.ConfigureAwait(false);
+        try
+        {
+            await Session.Completion.ConfigureAwait(false);
+        }
+        catch (Exception error)
+        {
+            Session.ReportFault(error);
+        }
         if (Volatile.Read(ref _disposed) != 0)
             return;
         try

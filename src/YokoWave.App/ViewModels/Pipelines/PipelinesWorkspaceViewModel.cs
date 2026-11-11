@@ -84,7 +84,7 @@ public sealed class PipelinesWorkspaceViewModel : ObservableObject, IAsyncDispos
         SaveCommand = new(SaveAsync, onError);
         SaveTemplateCommand = new(SaveTemplateAsync, onError, () => CanEditSelected);
         DeleteTemplateCommand = new(DeleteTemplateAsync, onError, () => SelectedTemplate is { IsBuiltIn: false });
-        foreach (var template in PipelineTemplates.All.Concat([RemotePipelineNodes.GattTemplate, RemotePipelineNodes.ControlTemplate,
+        foreach (var template in PipelineTemplates.All.Concat([RemotePipelineNodes.GattTemplate, RemotePipelineNodes.ControlTemplate, RemoteEventNodes.Template,
             Remote.DgLab.V4.DgLabV4Nodes.AppTemplate, Remote.DgLab.V4.DgLabV4Nodes.SensorTemplate, Remote.DgLab.V4.DgLabV4Nodes.RelayTemplate]))
         {
             Templates.Add(new(template));

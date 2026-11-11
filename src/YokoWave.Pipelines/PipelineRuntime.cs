@@ -21,6 +21,7 @@ public sealed class PipelineRuntime
     internal Dictionary<Guid, double> Constants { get; } = [];
     internal Dictionary<PortAddress, NumericSignal> Values { get; } = [];
     internal Dictionary<PortAddress, OutputFrame> Intents { get; } = [];
+    internal Dictionary<PortAddress, EventSignal> Events { get; } = [];
     internal List<PipelineDiagnostic> Diagnostics { get; } = [];
     internal DeviceOutputCoordinator Outputs { get; }
     internal TimeSpan Elapsed { get; private set; }
@@ -53,6 +54,7 @@ public sealed class PipelineRuntime
         ? Values.GetValueOrDefault(source, NumericSignal.Missing) : NumericSignal.Constant(fallback);
     internal bool IsConnected(PortAddress address) => _plan.Inputs.ContainsKey(address);
     internal OutputFrame? IntentInput(PortAddress address) => _plan.Inputs.TryGetValue(address, out var source) ? Intents.GetValueOrDefault(source) : null;
+    internal EventSignal EventInput(PortAddress address) => _plan.Inputs.TryGetValue(address, out var source) ? Events.GetValueOrDefault(source, EventSignal.Empty) : EventSignal.Empty;
     public bool Update(NodeControl control)
     {
         if (!_processors.Any(p => p.Node.Id == control.Node && p.Processor is IInteractiveProcessor))
@@ -78,6 +80,7 @@ public sealed class PipelineRuntime
             ((IInteractiveProcessor)_processors.Single(p => p.Node.Id == control.Node).Processor).Update(control);
         Values.Clear();
         Intents.Clear();
+        Events.Clear();
         Diagnostics.Clear();
         Commands.Clear();
         Completions.Clear();

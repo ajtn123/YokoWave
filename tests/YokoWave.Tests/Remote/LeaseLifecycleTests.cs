@@ -106,10 +106,14 @@ public sealed class LeaseLifecycleTests
         await using var host = await RemoteTestHost.CreateAsync(BluetoothProtocol.YokonexV1, BluetoothProtocol.CoyoteV3);
         await host.Server.DisposeAsync();
         int port = host.Server.Url!.Port;
-        await using var first = new RemoteServer(new(Guid.NewGuid(), host.Controller, [host.Devices[0].Id], new(Port: port), TimeSpan.FromSeconds(1)), RemoteTestHost.Token);
-        await using var second = new RemoteServer(new(Guid.NewGuid(), host.Controller, [host.Devices[1].Id], new(Port: port)), RemoteTestHost.Token);
+        await using var first = new RemoteServer(new RemoteExportSession(Guid.NewGuid(), host.Controller, [host.Devices[0].Id], new(Port: port), TimeSpan.FromSeconds(1)), RemoteTestHost.Token);
+        await using var second = new RemoteServer(new RemoteExportSession(Guid.NewGuid(), host.Controller, [host.Devices[1].Id], new(Port: port)), RemoteTestHost.Token);
         await first.StartAsync(cancellationToken: Ct);
         await second.StartAsync(cancellationToken: Ct);
+        await using var events = new RemoteServer(new RemoteEventSession(Guid.NewGuid(), new(Port: port), new()), RemoteTestHost.Token);
+        await events.StartAsync(cancellationToken: Ct);
+        await using var eventClient = new RemoteEventClient(events.Url!.ToString(), RemoteTestHost.Token, new("shared", [new("trigger", RemoteEventKind.Trigger)]));
+        await eventClient.ConnectAsync(Ct);
         await using var firstClient = await RemoteTestClient.CreateAsync(first.Url!);
         await using var secondClient = await RemoteTestClient.CreateAsync(second.Url!);
         var firstDevice = Assert.Single(await firstClient.Peer.CallAsync<RemoteDevice[]>("devices.list", cancellationToken: Ct));
@@ -121,6 +125,9 @@ public sealed class LeaseLifecycleTests
         Assert.True(second.Session.IsRunning);
         await secondClient.ExecuteAsync<bool>(lease, "control.output", new { frame = new OutputFrame(15, 10, 20) });
         Assert.Equal(15, host.Controller.Connections[host.Devices[1].Id].Output.ChannelA);
+        await second.DisposeAsync();
+        Assert.True(events.Session.IsRunning);
+        await eventClient.EmitAsync("trigger", cancellationToken: Ct);
     }
 
     [Fact]

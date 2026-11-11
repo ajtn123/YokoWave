@@ -28,7 +28,7 @@ internal sealed class RemoteTestHost : IAsyncDisposable
             var devices = (await controller.ScanAsync(Ct)).ToArray();
             foreach (var device in devices)
                 await controller.ConnectAsync(device, Ct);
-            server = new(new(Guid.NewGuid(), controller, devices.Select(device => device.Id).ToArray(),
+            server = new(new RemoteExportSession(Guid.NewGuid(), controller, devices.Select(device => device.Id).ToArray(),
                 new(Port: 0, LeaseMilliseconds: 1000, ControlLimit: 40)), Token);
             await server.StartAsync(cancellationToken: Ct);
             return new() { Adapter = adapter, Controller = controller, Devices = devices, Server = server };

@@ -20,7 +20,7 @@ public enum PortDirection
 }
 public enum PortValueKind
 {
-    Numeric, Intent
+    Numeric, Intent, Event
 }
 public sealed record NumericParameterSpec(string Unit, double Minimum, double Maximum, double DefaultValue, bool Integer = false)
 {

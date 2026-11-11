@@ -61,6 +61,8 @@ public sealed class PipelineNodeCatalog
         _editors[BuiltInNodes.PumpTimer] = (e, d) => new PumpTimerEditorViewModel(e, d);
         Register(RemotePipelineNodes.GattServer, _ => NodeDefinition.Create(RemotePipelineNodes.GattServer, new GattServerNode(["$device"], new())), (e, d) => new ServerNodeEditorViewModel(e, d));
         Register(RemotePipelineNodes.ControlServer, _ => NodeDefinition.Create(RemotePipelineNodes.ControlServer, new ControlServerNode("$device", new())), (e, d) => new ServerNodeEditorViewModel(e, d));
+        Register(RemoteEventNodes.Server, _ => NodeDefinition.Create(RemoteEventNodes.Server, new EventServerNode(new())), (e, d) => new ServerNodeEditorViewModel(e, d));
+        Register(RemoteEventNodes.Input, _ => NodeDefinition.Create(RemoteEventNodes.Input, new EventInputNode()), (e, d) => new EventInputEditorViewModel(e, d));
         Register(DgLabV4Nodes.App, _ => NodeDefinition.Create(DgLabV4Nodes.App, new DgLabV4AppNode("$device")), (e, d) => new DgLabAppEditorViewModel(e, d));
         Register(DgLabV4Nodes.Relay, _ => NodeDefinition.Create(DgLabV4Nodes.Relay, new DgLabV4RelayNode(new())), (e, d) => new DgLabRelayEditorViewModel(e, d));
     }

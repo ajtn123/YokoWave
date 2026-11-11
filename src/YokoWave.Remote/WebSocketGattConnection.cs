@@ -5,7 +5,7 @@ namespace YokoWave.Remote;
 
 internal sealed class WebSocketGattConnection(WebSocketRpcPeer peer, RemoteDevice device, RemoteLease lease, long serverClock, long clockAt, Action removed) : IBluetoothConnection
 {
-    private readonly RemoteDeviceLink _link = new(peer, device, lease, serverClock, clockAt);
+    private readonly RemoteLeaseLink _link = new(peer, lease, serverClock, clockAt, device.Id);
     private RemoteGattDescription? _description;
     public int MaximumWriteLength => _description?.MaximumWriteLength ?? 20;
     public IReadOnlyList<GattAttribute> Attributes => _description?.Attributes ?? [];

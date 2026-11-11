@@ -7,13 +7,13 @@ namespace YokoWave.Remote;
 
 internal sealed class RemotePeerSession : IAsyncDisposable
 {
-    private readonly RemoteExportSession _exports;
+    private readonly RemoteServerSession _session;
     private readonly byte[] _tokenHash;
     private volatile bool _authenticated;
     public WebSocketRpcPeer Peer { get; }
-    public RemotePeerSession(WebSocket socket, RemoteExportSession exports, string token)
+    public RemotePeerSession(WebSocket socket, RemoteServerSession session, string token)
     {
-        _exports = exports;
+        _session = session;
         _tokenHash = SHA256.HashData(Encoding.UTF8.GetBytes(token));
         Peer = new(socket, HandleAsync);
     }
@@ -29,7 +29,7 @@ internal sealed class RemotePeerSession : IAsyncDisposable
     {
         try
         {
-            await _exports.DisconnectAsync(this).ConfigureAwait(false);
+            await _session.DisconnectAsync(this).ConfigureAwait(false);
         }
         finally
         {
@@ -48,6 +48,6 @@ internal sealed class RemotePeerSession : IAsyncDisposable
         }
         if (!_authenticated)
             throw new RemoteRpcException(-32001, "Error.RemoteAuthentication");
-        return _exports.DispatchAsync(this, method, parameters, cancellationToken);
+        return _session.DispatchAsync(this, method, parameters, cancellationToken);
     }
 }

@@ -9,7 +9,7 @@ using YokoWave.Core.Localization;
 namespace YokoWave.Remote;
 
 /// <summary>A server mode reserves physical devices. Peer leases divide that reservation without transferring it.</summary>
-public sealed class RemoteExportSession : IAsyncDisposable
+public sealed class RemoteExportSession : RemoteServerSession
 {
     private readonly DeviceController _devices;
     private readonly Dictionary<string, string> _exports;
@@ -28,10 +28,10 @@ public sealed class RemoteExportSession : IAsyncDisposable
     private readonly RemoteLeaseType? _allowedLease;
     private bool _paused;
     private RemoteDeviceLease[] _notificationLeases = [];
-    public Guid Id { get; }
-    public RemoteServerSettings Settings { get; }
-    public bool IsRunning => _running;
-    public Task Completion => _loop;
+    public override Guid Id { get; }
+    public override RemoteServerSettings Settings { get; }
+    public override bool IsRunning => _running;
+    public override Task Completion => _loop;
     public TimeSpan Elapsed => _clock.Elapsed;
     public TimeSpan? Duration => _duration;
     public TimeSpan? Remaining => _duration is { } duration ? TimeSpan.FromSeconds(Math.Max(0, (duration - Elapsed).TotalSeconds)) : null;
@@ -52,8 +52,8 @@ public sealed class RemoteExportSession : IAsyncDisposable
         _duration = duration;
         _exports = targets.Distinct().ToDictionary(LocalExportId, value => value);
     }
-    internal void ReportFault(Exception error) => Faulted?.Invoke(error);
-    public async Task StartAsync(CancellationToken cancellationToken = default)
+    internal override void ReportFault(Exception error) => Faulted?.Invoke(error);
+    public override async Task StartAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
         if (Interlocked.Exchange(ref _started, 1) != 0)
@@ -79,7 +79,7 @@ public sealed class RemoteExportSession : IAsyncDisposable
         _running = true;
         _loop = RunAsync();
     }
-    internal async Task<object?> DispatchAsync(RemotePeerSession peer, string method, JsonElement parameters, CancellationToken cancellationToken)
+    internal override async Task<object?> DispatchAsync(RemotePeerSession peer, string method, JsonElement parameters, CancellationToken cancellationToken)
     {
         using var operation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetime.Token);
         operation.CancelAfter(TimeSpan.FromSeconds(5));
@@ -151,7 +151,7 @@ public sealed class RemoteExportSession : IAsyncDisposable
             _gate.Release();
         }
     }
-    internal async Task DisconnectAsync(RemotePeerSession peer)
+    internal override async Task DisconnectAsync(RemotePeerSession peer)
     {
         await _gate.WaitAsync().ConfigureAwait(false);
         try
@@ -173,7 +173,7 @@ public sealed class RemoteExportSession : IAsyncDisposable
             _gate.Release();
         }
     }
-    public async Task StopAsync()
+    public override async Task StopAsync()
     {
         try
         {
@@ -213,7 +213,7 @@ public sealed class RemoteExportSession : IAsyncDisposable
             _gate.Release();
         }
     }
-    public async ValueTask DisposeAsync()
+    public override async ValueTask DisposeAsync()
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0)
             return;
@@ -228,7 +228,7 @@ public sealed class RemoteExportSession : IAsyncDisposable
             _lifetime.Dispose();
         }
     }
-    public async Task SetPausedAsync(bool paused)
+    public override async Task SetPausedAsync(bool paused)
     {
         await _gate.WaitAsync().ConfigureAwait(false);
         try
@@ -258,7 +258,7 @@ public sealed class RemoteExportSession : IAsyncDisposable
     {
         string[] ids = RemoteProtocol.Parameter<string[]>(parameters, "deviceIds");
         var type = RemoteProtocol.Parameter<RemoteLeaseType>(parameters, "type");
-        if (_allowedLease is { } allowed && type != allowed)
+        if (type is not (RemoteLeaseType.Gatt or RemoteLeaseType.Control) || _allowedLease is { } allowed && type != allowed)
             throw new RemoteRpcException(-32003, "Error.RemoteLeaseType");
         if (!Enum.IsDefined(type) || ids.Length is < 1 or > 32 || ids.Distinct().Count() != ids.Length || ids.Any(id => !_exports.ContainsKey(id)))
             throw new RemoteRpcException(-32602, "Error.RemoteRequest");

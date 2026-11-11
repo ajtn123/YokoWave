@@ -9,7 +9,7 @@ src/
     Data/                规范化内置波形
     Localization/        JSON 词典、本地化消息与异常
   YokoWave.Pipelines/     纯 .NET 图定义、编译、处理器和会话
-  YokoWave.Remote/        WebSocket RPC、租约、设备客户端与资源节点
+  YokoWave.Remote/        WebSocket RPC、租约、设备／事件客户端与资源节点
     DgLab/V4/            DG-LAB V4 配对、设备目录、任务处理与中继
   YokoWave.App/           Avalonia 界面
     ViewModels/          设备、设置、波形、历史及共享编辑模型
@@ -52,7 +52,8 @@ scripts/                 风格、验证及覆盖率脚本
 | 图编译、求值和提交 | [PipelineCompiler](../src/YokoWave.Pipelines/PipelineCompiler.cs)、[PipelineRuntime](../src/YokoWave.Pipelines/PipelineRuntime.cs)、[PipelineSession](../src/YokoWave.Pipelines/PipelineSession.cs)、[PipelineOutputDispatcher](../src/YokoWave.Pipelines/PipelineOutputDispatcher.cs) |
 | 内置与网络模板 | [PipelineTemplates](../src/YokoWave.Pipelines/PipelineTemplates.cs)、[RemotePipelineNodes](../src/YokoWave.Remote/RemotePipelineNodes.cs) |
 | 图编辑、分组和历史 | [PipelineEditorViewModel](../src/YokoWave.App/ViewModels/Pipelines/PipelineEditorViewModel.cs)、[PipelineDeviceGroupsViewModel](../src/YokoWave.App/ViewModels/Pipelines/PipelineDeviceGroupsViewModel.cs)、[PipelineEditHistory](../src/YokoWave.App/ViewModels/Pipelines/PipelineEditHistory.cs) |
-| RPC 和租约 | [WebSocketRpcPeer](../src/YokoWave.Remote/WebSocketRpcPeer.cs)、[RemoteExportSession](../src/YokoWave.Remote/RemoteExportSession.cs)、[RemoteClientConnection](../src/YokoWave.Remote/RemoteClientConnection.cs) |
+| RPC 和租约 | [WebSocketRpcPeer](../src/YokoWave.Remote/WebSocketRpcPeer.cs)、[RemoteServerSession](../src/YokoWave.Remote/RemoteServerSession.cs)、[RemoteExportSession](../src/YokoWave.Remote/RemoteExportSession.cs)、[RemoteClientConnection](../src/YokoWave.Remote/RemoteClientConnection.cs)、[RemoteLeaseLink](../src/YokoWave.Remote/RemoteLeaseLink.cs) |
+| 远程事件 | [RemoteEventSession](../src/YokoWave.Remote/RemoteEventSession.cs) 管理租约与声明，[RemoteEventHub](../src/YokoWave.Remote/RemoteEventHub.cs) 缓冲事件与缓存目录，[RemoteEventClient](../src/YokoWave.Remote/RemoteEventClient.cs) 声明并发送，[RemoteEventNodes](../src/YokoWave.Remote/RemoteEventNodes.cs) 注册节点，[RemoteEventProcessor](../src/YokoWave.Remote/RemoteEventProcessor.cs) 同步求值；见[事件契约](websocket-events.md) |
 | DG-LAB V4 | [DgLabV4Controller](../src/YokoWave.Remote/DgLab/V4/DgLabV4Controller.cs)、[DgLabV4Transport](../src/YokoWave.Remote/DgLab/V4/DgLabV4Transport.cs)、[DgLabV4AppRouter](../src/YokoWave.Remote/DgLab/V4/DgLabV4AppRouter.cs)、[DgLabV4Scheduler](../src/YokoWave.Remote/DgLab/V4/DgLabV4Scheduler.cs)、[DgLabV4Relay](../src/YokoWave.Remote/DgLab/V4/DgLabV4Relay.cs)；见 [V4 契约与职责](dglab-v4.md) |
 | 波形资产、生成和交换 | [WaveformAsset](../src/YokoWave.Core/WaveformAsset.cs)、[WaveformGenerator](../src/YokoWave.Core/WaveformGenerator.cs)、[WaveformExchange](../src/YokoWave.Core/WaveformExchange.cs) |
 | 本地数据 | [WorkspaceStore](../src/YokoWave.Core/WorkspaceStore.cs)、[SessionJournal](../src/YokoWave.Core/SessionJournal.cs)、[PipelineStore](../src/YokoWave.Pipelines/PipelineStore.cs) |

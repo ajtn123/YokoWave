@@ -87,6 +87,7 @@
         <TextBlock Text="{l:Loc Help.Remote.Server}" Classes="help" />
         <TextBlock Text="{l:Loc Help.Remote.Kinds}" Classes="help" />
         <TextBlock Text="{l:Loc Help.Remote.Client}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Remote.Events}" Classes="help" />
         <TextBlock Text="{l:Loc Help.Remote.DgLabSource}" Classes="help" />
         <TextBlock Text="{l:Loc Help.Remote.DgLabControlled}" Classes="help" />
         <TextBlock Text="{l:Loc Help.Remote.DgLabRelay}" Classes="help" />
