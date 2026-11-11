@@ -1,5 +1,6 @@
 #if WINDOWS
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Windows.Devices.Bluetooth;
 using Windows.Devices.Bluetooth.GenericAttributeProfile;
 using Windows.Storage.Streams;
@@ -61,9 +62,23 @@ internal sealed class WindowsBluetoothConnection : IBluetoothConnection
             }
             characteristic.ValueChanged += OnValue;
             _notifications.Add((characteristic, OnValue));
-            var result = await characteristic.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.Notify).AsTask(cancellationToken);
-            if (result != GattCommunicationStatus.Success && endpoint.Required)
-                throw new LocalizedOperationException("Error.BluetoothSubscribe");
+            bool subscribed = false;
+            try
+            {
+                var result = await characteristic.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.Notify).AsTask(cancellationToken);
+                subscribed = result == GattCommunicationStatus.Success;
+                if (!subscribed && endpoint.Required)
+                    throw new LocalizedOperationException("Error.BluetoothSubscribe");
+            }
+            catch (Exception error) when (!endpoint.Required && error is UnauthorizedAccessException or COMException)
+            {
+                _diagnostic?.Invoke($"GATT optional notification unavailable: {endpoint.Address.Characteristic}, HRESULT=0x{error.HResult:X8}");
+            }
+            if (!subscribed)
+            {
+                characteristic.ValueChanged -= OnValue;
+                _notifications.RemoveAt(_notifications.Count - 1);
+            }
         }
         if (_device.ConnectionStatus != BluetoothConnectionStatus.Connected)
             throw new LocalizedOperationException("Error.BluetoothConnect");

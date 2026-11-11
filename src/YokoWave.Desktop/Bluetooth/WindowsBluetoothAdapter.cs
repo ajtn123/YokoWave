@@ -1,8 +1,6 @@
 #if WINDOWS
-using System.Collections.Concurrent;
 using System.Globalization;
 using Windows.Devices.Bluetooth;
-using Windows.Devices.Bluetooth.Advertisement;
 using Windows.Devices.Bluetooth.GenericAttributeProfile;
 using Windows.Devices.Radios;
 using YokoWave.Core.Bluetooth;
@@ -12,56 +10,26 @@ namespace YokoWave.Desktop.Bluetooth;
 
 internal sealed class WindowsBluetoothAdapter : IBluetoothAdapter
 {
-    public Action<string>? Diagnostic
-    { get; init; }
+    private readonly WindowsBluetoothNameResolver _names;
+    private readonly SemaphoreSlim _scanGate = new(1, 1);
+    public Action<string>? Diagnostic { get; init; }
+    public WindowsBluetoothAdapter() => _names = new(message => Diagnostic?.Invoke(message));
     public async Task<IReadOnlyList<BluetoothPeripheral>> ScanAsync(CancellationToken cancellationToken)
     {
-        var adapter = await BluetoothAdapter.GetDefaultAsync().AsTask(cancellationToken);
-        if (adapter is null || !adapter.IsLowEnergySupported)
-            throw new LocalizedOperationException("Error.BluetoothUnavailable");
-        var radio = await adapter.GetRadioAsync().AsTask(cancellationToken);
-        if (radio is not null && radio.State != RadioState.On)
-            throw new LocalizedOperationException("Error.BluetoothOff");
-        var found = new ConcurrentDictionary<ulong, BluetoothPeripheral>();
-        int received = 0;
-        var stopped = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var watcher = new BluetoothLEAdvertisementWatcher { ScanningMode = BluetoothLEScanningMode.Active };
-        void OnReceived(BluetoothLEAdvertisementWatcher sender, BluetoothLEAdvertisementReceivedEventArgs e)
-        {
-            Interlocked.Increment(ref received);
-            string name = e.Advertisement.LocalName?.Trim() ?? "";
-            var services = e.Advertisement.ServiceUuids.ToArray();
-            if (BluetoothDeviceProfiles.Identify(name, services) is null)
-                return;
-            found[e.BluetoothAddress] = new($"ble:{e.BluetoothAddress:X12}", name.Length > 0 ? name : $"BLE {e.BluetoothAddress:X12}", e.RawSignalStrengthInDBm, services);
-        }
-        void OnStopped(BluetoothLEAdvertisementWatcher sender, BluetoothLEAdvertisementWatcherStoppedEventArgs e)
-        {
-            if (e.Error == BluetoothError.Success)
-            {
-                stopped.TrySetResult();
-            }
-            else
-            {
-                var error = new LocalizedOperationException("Error.BluetoothScan");
-                error.Data["BluetoothError"] = e.Error;
-                stopped.TrySetException(error);
-            }
-        }
-        watcher.Received += OnReceived;
-        watcher.Stopped += OnStopped;
+        await _scanGate.WaitAsync(cancellationToken);
         try
         {
-            watcher.Start();
-            await await Task.WhenAny(Task.Delay(TimeSpan.FromSeconds(8), cancellationToken), stopped.Task);
-            Diagnostic?.Invoke($"BLE advertisements received: {received}; supported-profile candidates: {found.Count}");
-            return found.Values.OrderByDescending(peripheral => peripheral.Signal).ToArray();
+            var adapter = await BluetoothAdapter.GetDefaultAsync().AsTask(cancellationToken);
+            if (adapter is null || !adapter.IsLowEnergySupported)
+                throw new LocalizedOperationException("Error.BluetoothUnavailable");
+            var radio = await adapter.GetRadioAsync().AsTask(cancellationToken);
+            if (radio is not null && radio.State != RadioState.On)
+                throw new LocalizedOperationException("Error.BluetoothOff");
+            return await new WindowsBluetoothDiscovery(_names, Diagnostic).ScanAsync(adapter.IsExtendedAdvertisingSupported, cancellationToken);
         }
         finally
         {
-            watcher.Received -= OnReceived;
-            watcher.Stopped -= OnStopped;
-            watcher.Stop();
+            _scanGate.Release();
         }
     }
     public async Task<IBluetoothConnection> ConnectAsync(BluetoothPeripheral peripheral, CancellationToken cancellationToken)
@@ -84,7 +52,14 @@ internal sealed class WindowsBluetoothAdapter : IBluetoothAdapter
         WindowsBluetoothConnection? connection = null;
         try
         {
-            device = await BluetoothLEDevice.FromBluetoothAddressAsync(address).AsTask(token) ?? throw new LocalizedOperationException("Error.BluetoothConnect");
+            device = peripheral.AddressKind switch
+            {
+                BluetoothAddressKind.Random => await BluetoothLEDevice.FromBluetoothAddressAsync(address, BluetoothAddressType.Random).AsTask(token),
+                BluetoothAddressKind.Public => await BluetoothLEDevice.FromBluetoothAddressAsync(address, BluetoothAddressType.Public).AsTask(token),
+                _ => await BluetoothLEDevice.FromBluetoothAddressAsync(address).AsTask(token)
+            };
+            if (device is null)
+                throw new LocalizedOperationException("Error.BluetoothConnect");
             session = await GattSession.FromDeviceIdAsync(device.BluetoothDeviceId).AsTask(token);
             if (session is not null)
                 session.MaintainConnection = true;

@@ -22,6 +22,12 @@ Windows BLE / GATT 后端最低支持 Windows 10 2004。Core 的 `IBluetoothAdap
 
 爪印 V1.0 `47L120100` 旧固件没有可用公开指令，显示需升级并禁用连接；未知 DG-LAB 前缀不猜测协议。未公开的升级格式、已废弃 BE 指令及服务端业务接口不在此覆盖范围。负鼠与灵猫的厂商资料要求连按五次电源键进入可发现状态。
 
+## 发现与名称解析
+
+Windows 发现先合并同一地址的广播与扫描响应，保留分包提供的名称、服务与公共／随机地址类型。在适配器支持时接收扩展广播。对可连接但没有名称的候选，先读取系统缓存名称，必要时短暂连接并读取标准 GAP `1800 / 2A00` 名称；不初始化驱动、不发送控制指令，也不因共享 `180C` 服务猜测设备型号。
+
+广播窗口为 8 秒，随后名称解析预算为 8 秒，每个查询最多 4 秒、最多同时查询两个设备；查询结束或取消时释放服务与设备句柄。成功名称缓存 10 分钟，失败缓存 30 秒，最多保留 256 个地址，避免每次扫描反复访问同一匿名设备。真实 V3 可只广播厂商数据而不广播名称，必须在取得 `47L121000` 后才能进入正常协议连接；随机地址类型随后传递到连接 API。
+
 ## 指令与通知
 
 | 协议 | 发送 | 接收／读取 |
@@ -58,7 +64,7 @@ Windows BLE / GATT 后端最低支持 Windows 10 2004。Core 的 `IBluetoothAdap
 
 每条连接的驱动维护独立缓存和确认状态，命令、输出和后台屏幕同步共用同一设备门。辅助马达按本会话的启用请求或设备回报状态关闭，不在连接及每次归零时发送未使用的马达指令；即使马达关闭写入失败，仍尝试电击归零并保留全部错误。初始化收到拒绝时立即失败并清理链接，不将已锁定故障的驱动作为成功连接。拒绝信息保留设备错误码及本地化原因。马达型号回复只确认协议／通道，不保证物理停止；负鼠也不保证零值重复回复。原生写入成功只说明系统接受指令。
 
-Windows 使用 `WriteValueWithResultAsync`，根据实际特征权限选择写入模式并验证容量。异常保留 HRESULT、包长、权限及 ATT 状态。原生写入与释放串行，初始化失败释放链路；同时保留驱动关闭错误与原生释放错误。
+Windows 使用 `WriteValueWithResultAsync`，根据实际特征权限选择写入模式并验证容量。异常保留 HRESULT、包长、权限及 ATT 状态。可选电量通知的 CCCD 被拒绝时撤下该订阅，仍保留电量读取；必需的主通知失败仍阻止连接。原生写入与释放串行，初始化失败释放链路；同时保留驱动关闭错误与原生释放错误。
 
 连接内保留广播元数据，后续扫描消失不影响已有连接和 GATT 导出。GATT 批次先整体校验长度、权限、容量和延时，再串行发送；中途失败不是可回滚事务。
 
@@ -88,6 +94,6 @@ dotnet run --project src/YokoWave.Desktop -- --audio-probe /path/to/audio.wav
 - [负鼠](https://github.com/dungeonlab-open/dglab-bluetooth-protocol/blob/main/opossum-vibrate-controller/README_CN.md)、[爪印](https://github.com/dungeonlab-open/dglab-bluetooth-protocol/blob/main/paw-prints/README_CN.md)、[灵猫](https://github.com/dungeonlab-open/dglab-bluetooth-protocol/blob/main/civet-edging-sensor/README_CN.md)，参考提交 `045720d5`。
 - [DG-LAB-Client](https://github.com/CrimsonSeraph/DG-LAB-Client/blob/main/docs/devices.md)，参考型号限制与协议歧义，提交 `740d490e`；未移入其源码。
 
-九类驱动均有编码、初始化、通知、停止及失败清理的替身测试。Windows 的 YCY-DJ 已验证扫描、连接、电量／接触读数、零输出确认与断开，FF31 为 WriteWithoutResponse、FF32 为 Notify，所测连接 MTU 为 512。其他型号和非零物理输出仍待相应实机验证。自动测试不等于硬件标定，见[测试](testing.md)。
+九类驱动均有编码、初始化、通知、停止及失败清理的替身测试。Windows 的 YCY-DJ 已验证扫描、连接、电量／接触读数、零输出确认与断开，FF31 为 WriteWithoutResponse、FF32 为 Notify，所测连接 MTU 为 512。郊狼 V3 已验证无名称广播的 GAP 识别、随机地址连接、零输出的匹配 B1 确认、电量读取和断开，所测 MTU 为 23；其可选电量通知 CCCD 拒绝写入，读取仍可用。其他型号和非零物理输出仍待相应实机验证。自动测试不等于硬件标定，见[测试](testing.md)。
 
 参考克隆、PDF、APK 与本地分析均留在忽略目录，不随应用发布或提交。

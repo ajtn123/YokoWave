@@ -17,6 +17,7 @@
         <TextBlock Text="{l:Loc Help.Devices.Connect}" Classes="help" />
         <TextBlock Text="{l:Loc Help.Devices.AutoConnect}" Classes="help" />
         <TextBlock Text="{l:Loc Help.Devices.Models}" Classes="help" />
+        <TextBlock Text="{l:Loc Help.Devices.Discovery}" Classes="help" />
         <TextBlock Text="{l:Loc Help.Devices.Hardware}" Classes="help" />
       </StackPanel>
     </Expander>

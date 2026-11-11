@@ -1,7 +1,9 @@
 namespace YokoWave.Core.Bluetooth;
 
+public enum BluetoothAddressKind { Unspecified, Public, Random }
+
 public sealed record BluetoothPeripheral(string Id, string Name, int? Signal, IReadOnlyCollection<Guid>? Services = null,
-    DeviceOrigin Origin = DeviceOrigin.Local, bool? Simulated = null);
+    DeviceOrigin Origin = DeviceOrigin.Local, bool? Simulated = null, BluetoothAddressKind AddressKind = BluetoothAddressKind.Unspecified, bool IsConnectable = true);
 
 public interface IBluetoothAdapter
 {
