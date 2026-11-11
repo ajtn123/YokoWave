@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title description">
+  <title id="title">YokoWave · 波枢</title>
+  <desc id="description">YokoWave 跨平台设备控制，支持 YOKONEX 和 DG-LAB。波形节点通过管线连接两个通道输出。</desc>
+  <defs>
+    <style>
+      text { font-family: "Segoe UI", "Microsoft YaHei UI", Arial, sans-serif; }
+      .background { fill: #101318; }
+      .surface { fill: #191D25; }
+      .border { stroke: #343C49; }
+      .primary { fill: #F2F4F8; }
+      .secondary { fill: #B1BBC9; }
+      .muted { fill: #9AA6B8; }
+      .accent { fill: #958ED9; }
+      .channel-b { fill: #B7A2EF; }
+      .accent-line { stroke: #958ED9; }
+      .channel-b-line { stroke: #B7A2EF; }
+      .signal { fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+      .connection { fill: none; stroke-width: 3; }
+      .node-title { font-size: 18px; font-weight: 600; }
+      .detail { font-size: 17px; }
+    </style>
+    <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="1" r="1" class="muted" opacity="0.18" />
+    </pattern>
+    <linearGradient id="fade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="white" stop-opacity="0" />
+      <stop offset="0.3" stop-color="white" />
+      <stop offset="1" stop-color="white" stop-opacity="0.5" />
+    </linearGradient>
+    <mask id="grid-fade">
+      <rect x="600" y="72" width="640" height="416" fill="url(#fade)" />
+    </mask>
+  </defs>
+
+  <rect width="1280" height="640" class="background" />
+  <rect x="600" y="72" width="640" height="416" fill="url(#grid)" mask="url(#grid-fade)" />
+
+  <!-- Reuses the geometry and colors of src/YokoWave.App/Assets/YokoWave.svg. -->
+  <svg x="72" y="72" width="80" height="80" viewBox="0 0 64 64">
+    <rect width="64" height="64" rx="16" class="accent" />
+    <path d="M14 34 C17 18 26 18 32 33 C38 48 47 48 50 31" fill="none" stroke="#101418" stroke-width="5" stroke-linecap="round" />
+  </svg>
+  <text x="72" y="270" class="primary" font-size="88" font-weight="700" letter-spacing="-3">YokoWave</text>
+  <text x="76" y="322" class="secondary" font-size="28" letter-spacing="4">波枢</text>
+  <text x="76" y="397" class="primary" font-size="28">跨平台设备控制</text>
+  <text x="76" y="438" class="muted" font-size="21">支持 YOKONEX · DG-LAB</text>
+
+  <g aria-label="波形节点连接通道 A 和通道 B">
+    <path d="M900 246 C966 246 962 222 1032 222" class="connection accent-line" />
+    <path d="M900 330 C974 330 958 418 1032 418" class="connection channel-b-line" />
+
+    <rect x="704" y="192" width="196" height="192" rx="16" class="surface border" stroke-width="1.5" />
+    <text x="726" y="229" class="primary node-title">波形</text>
+    <path d="M726 287 C739 287 741 260 752 260 S768 314 780 314 S796 260 808 260 S824 314 836 314 S852 260 864 260 S877 287 878 287" class="signal accent-line" />
+    <path d="M726 340 H878" class="border" stroke-width="1" />
+    <text x="726" y="365" class="muted detail">信号源</text>
+    <circle cx="900" cy="246" r="6" class="accent" />
+    <circle cx="900" cy="330" r="6" class="channel-b" />
+
+    <rect x="1032" y="164" width="176" height="116" rx="16" class="surface border" stroke-width="1.5" />
+    <text x="1054" y="202" class="primary node-title">通道 A</text>
+    <path d="M1054 248 H1068 L1079 224 L1093 252 L1107 230 L1121 245 H1186" class="signal accent-line" />
+    <circle cx="1032" cy="222" r="6" class="accent" />
+
+    <rect x="1032" y="360" width="176" height="116" rx="16" class="surface border" stroke-width="1.5" />
+    <text x="1054" y="398" class="primary node-title">通道 B</text>
+    <path d="M1054 444 H1069 Q1081 418 1093 444 T1117 444 T1141 444 H1186" class="signal channel-b-line" />
+    <circle cx="1032" cy="418" r="6" class="channel-b" />
+  </g>
+
+  <path d="M72 516 H1208" class="border" stroke-width="1" />
+  <text x="76" y="569" class="secondary" font-size="19">节点管线 · 波形 · 蓝牙 · WebSocket</text>
+  <text x="1208" y="569" text-anchor="end" class="muted" font-size="18">ajtn123 / YokoWave</text>
+</svg>

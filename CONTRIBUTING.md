@@ -87,6 +87,8 @@ node --test tests/dinosaur/*.test.js
 
 不要提交 APK、反编译源码、原始参考资料、凭据、研究脚本或构建产物；本地分析留在被忽略目录。代理提交使用自身身份，不修改用户全局 Git 配置。
 
+仓库社交预览使用 [social-preview.png](docs/assets/social-preview.png)，尺寸为 1280×640，可在 GitHub Settings → Social preview 上传。[SVG 源文件](docs/assets/social-preview.svg) 保留可编辑文字、图标和节点示意；修改后按相同尺寸重新导出 PNG。
+
 ## 按需发布
 
 开发验证不需要 publish。GitHub 的 [Release 工作流](.github/workflows/release.yml) 由 `vMAJOR.MINOR.PATCH` 标签触发，也可手动选择已存在的标签。发布前修改 `Directory.Build.props` 的版本并添加 `docs/releases/<版本>.md`，提交后推送 main 和对应标签。标签版本必须与项目版本相同。
