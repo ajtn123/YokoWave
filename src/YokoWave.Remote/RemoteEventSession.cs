@@ -52,15 +52,7 @@ public sealed class RemoteEventSession(Guid id, RemoteServerSettings settings, R
             if (method is not ("lease.acquire" or "lease.release" or "lease.renew" or "event.register" or "event.emit"))
                 throw new RemoteRpcException(-32601, "Error.RemoteMethod");
             if (method == "lease.acquire")
-            {
-                if (_paused || RemoteProtocol.Parameter<RemoteLeaseType>(parameters, "type") != RemoteLeaseType.Event)
-                    throw new RemoteRpcException(-32003, "Error.RemoteLeaseType");
-                if (RemoteProtocol.Parameter<string[]>(parameters, "deviceIds").Length != 0 || _leases.Values.Any(lease => lease.Peer == peer))
-                    throw new RemoteRpcException(-32602, "Error.RemoteEvents");
-                var acquired = new EventLease(peer);
-                _leases.Add(acquired.Id, acquired);
-                return Reply(new RemoteLease(acquired.Id, RemoteLeaseType.Event, [], Settings.LeaseMilliseconds));
-            }
+                return Reply(Acquire(peer, parameters));
             var leaseId = RemoteProtocol.Parameter<Guid>(parameters, "lease");
             if (!_leases.TryGetValue(leaseId, out var lease) || lease.Peer != peer || lease.Age.ElapsedMilliseconds > Settings.LeaseMilliseconds)
                 throw new RemoteRpcException(-32003, "Error.RemoteLease");
@@ -74,43 +66,13 @@ public sealed class RemoteEventSession(Guid id, RemoteServerSettings settings, R
                 lease.Age.Restart();
                 return Reply(new RemoteHeartbeat(_clock.ElapsedMilliseconds));
             }
-            long sequence = RemoteProtocol.Parameter<long>(parameters, "sequence");
-            long deadline = RemoteProtocol.Parameter<long>(parameters, "deadline");
-            if (sequence <= lease.Sequence)
-                throw new RemoteRpcException(-32003, "Error.RemoteSequence");
-            if (deadline < _clock.ElapsedMilliseconds || deadline > _clock.ElapsedMilliseconds + 1000)
-                throw new RemoteRpcException(-32003, "Error.RemoteExpired");
-            lease.Sequence = sequence;
-            lease.Age.Restart();
+            AcceptMessage(lease, parameters);
             if (method == "event.register")
             {
-                var registration = RemoteProtocol.Parameter<RemoteEventRegistration>(parameters, "registration");
-                RemoteEventProtocol.Validate(registration);
-                if (lease.Registration is not null)
-                    throw new RemoteRpcException(-32602, "Error.RemoteEvents");
-                hub.Register(lease.Id, registration);
-                lease.Registration = registration;
+                Register(lease, parameters);
                 return Reply(true);
             }
-            if (method != "event.emit")
-                throw new RemoteRpcException(-32601, "Error.RemoteMethod");
-            if (_paused)
-                throw new RemoteRpcException(-32000, "Error.RemoteStopped");
-            string eventId = RemoteProtocol.Parameter<string>(parameters, "eventId");
-            var declaration = lease.Registration?.Events.FirstOrDefault(item => item.Id == eventId)
-                ?? throw new RemoteRpcException(-32602, "Error.RemoteEvents");
-            double value = 1;
-            if (declaration.Kind == RemoteEventKind.Number)
-            {
-                value = RemoteProtocol.Parameter<double>(parameters, "value");
-                if (!double.IsFinite(value) || value < declaration.Minimum || value > declaration.Maximum)
-                    throw new RemoteRpcException(-32602, "Error.RemoteEvents");
-            }
-            else if (parameters.TryGetProperty("value", out _))
-            {
-                throw new RemoteRpcException(-32602, "Error.RemoteEvents");
-            }
-            return Reply(hub.Emit(lease.Id, lease.Registration!, declaration, value, _time.GetUtcNow()));
+            return Reply(Emit(lease, parameters));
         }
     }
 
@@ -166,6 +128,64 @@ public sealed class RemoteEventSession(Guid id, RemoteServerSettings settings, R
 
     internal override void ReportFault(Exception error) => Faulted?.Invoke(error);
     private static Task<object?> Reply(object value) => Task.FromResult<object?>(value);
+
+    private RemoteLease Acquire(RemotePeerSession peer, JsonElement parameters)
+    {
+        if (_paused)
+            throw new RemoteRpcException(-32000, "Error.RemoteStopped");
+        if (RemoteProtocol.Parameter<RemoteLeaseType>(parameters, "type") != RemoteLeaseType.Event)
+            throw new RemoteRpcException(-32003, "Error.RemoteLeaseType");
+        if (RemoteProtocol.Parameter<string[]>(parameters, "deviceIds").Length != 0 || _leases.Values.Any(lease => lease.Peer == peer))
+            throw new RemoteRpcException(-32602, "Error.RemoteEvents");
+        var acquired = new EventLease(peer);
+        _leases.Add(acquired.Id, acquired);
+        return new(acquired.Id, RemoteLeaseType.Event, [], Settings.LeaseMilliseconds);
+    }
+
+    private void AcceptMessage(EventLease lease, JsonElement parameters)
+    {
+        long sequence = RemoteProtocol.Parameter<long>(parameters, "sequence");
+        long deadline = RemoteProtocol.Parameter<long>(parameters, "deadline");
+        long now = _clock.ElapsedMilliseconds;
+        if (sequence <= lease.Sequence)
+            throw new RemoteRpcException(-32003, "Error.RemoteSequence");
+        if (deadline < now || deadline > now + 1000)
+            throw new RemoteRpcException(-32003, "Error.RemoteExpired");
+        lease.Sequence = sequence;
+        lease.Age.Restart();
+    }
+
+    private void Register(EventLease lease, JsonElement parameters)
+    {
+        var registration = RemoteProtocol.Parameter<RemoteEventRegistration>(parameters, "registration");
+        RemoteEventProtocol.Validate(registration);
+        if (lease.Registration is not null)
+            throw new RemoteRpcException(-32602, "Error.RemoteEvents");
+        hub.Register(lease.Id, registration);
+        lease.Registration = registration;
+    }
+
+    private RemoteEventReceipt Emit(EventLease lease, JsonElement parameters)
+    {
+        if (_paused)
+            throw new RemoteRpcException(-32000, "Error.RemoteStopped");
+        string eventId = RemoteProtocol.Parameter<string>(parameters, "eventId");
+        var declaration = lease.Registration?.Events.FirstOrDefault(item => item.Id == eventId)
+            ?? throw new RemoteRpcException(-32602, "Error.RemoteEvents");
+        double value = 1;
+        if (declaration.Kind == RemoteEventKind.Number)
+        {
+            value = RemoteProtocol.Parameter<double>(parameters, "value");
+            if (!double.IsFinite(value) || value < declaration.Minimum || value > declaration.Maximum)
+                throw new RemoteRpcException(-32602, "Error.RemoteEvents");
+        }
+        else if (parameters.TryGetProperty("value", out _))
+        {
+            throw new RemoteRpcException(-32602, "Error.RemoteEvents");
+        }
+        return hub.Emit(lease.Id, lease.Registration!, declaration, value, _time.GetUtcNow());
+    }
+
     private void Remove(EventLease lease)
     {
         _leases.Remove(lease.Id);

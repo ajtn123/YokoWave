@@ -5,15 +5,17 @@ namespace YokoWave.Remote;
 /// <summary>Per-source bounded fan-out and cached declarations. Catalogs survive listener restarts; input data does not.</summary>
 public sealed class RemoteEventHub
 {
+    private const int MaximumCatalogClients = 128;
     private readonly object _gate = new();
-    private readonly Dictionary<string, RemoteEventDefinition[]> _catalog = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, CatalogEntry> _catalog = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Guid> _active = new(StringComparer.Ordinal);
     private readonly Dictionary<Guid, Queue<EventValue>> _subscriptions = [];
     private long _sequence;
+    private long _catalogSequence;
     public IReadOnlyList<RemoteEventDescriptor> Snapshot()
     {
         lock (_gate)
-            return _catalog.SelectMany(client => client.Value.Select(item => new RemoteEventDescriptor(client.Key, item))).ToArray();
+            return _catalog.SelectMany(client => client.Value.Events.Select(item => new RemoteEventDescriptor(client.Key, item))).ToArray();
     }
 
     internal void Register(Guid registration, RemoteEventRegistration declarations)
@@ -22,8 +24,15 @@ public sealed class RemoteEventHub
         {
             if (_active.ContainsKey(declarations.ClientId))
                 throw new RemoteRpcException(-32002, "Error.RemoteEventClientInUse");
+            if (!_catalog.ContainsKey(declarations.ClientId) && _catalog.Count >= MaximumCatalogClients)
+            {
+                string? oldest = _catalog.Where(pair => !_active.ContainsKey(pair.Key)).OrderBy(pair => pair.Value.Sequence).FirstOrDefault().Key;
+                if (oldest is null)
+                    throw new RemoteRpcException(-32005, "Error.RemoteEventClients");
+                _catalog.Remove(oldest);
+            }
             _active.Add(declarations.ClientId, registration);
-            _catalog[declarations.ClientId] = declarations.Events.ToArray();
+            _catalog[declarations.ClientId] = new(declarations.Events.ToArray(), ++_catalogSequence);
         }
     }
 
@@ -97,6 +106,8 @@ public sealed class RemoteEventHub
         lock (_gate)
             _subscriptions.Remove(id);
     }
+
+    private sealed record CatalogEntry(RemoteEventDefinition[] Events, long Sequence);
 }
 
 internal sealed class RemoteEventSubscription(RemoteEventHub hub, Guid id) : IDisposable

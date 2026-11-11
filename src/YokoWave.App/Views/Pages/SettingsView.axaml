@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:YokoWave.App.ViewModels"
              xmlns:l="using:YokoWave.App.Localization"
+             xmlns:app="using:YokoWave.App"
              x:Class="YokoWave.App.Views.Pages.SettingsView"
              x:DataType="vm:SettingsViewModel">
   <StackPanel Classes="section settings">
@@ -59,6 +60,6 @@
         <Button Content="{l:Loc Settings.ClearData}" Click="ClearLocalData" IsEnabled="{Binding CanClearLocalData}" Classes="small danger" />
       </StackPanel>
     </Border>
-    <TextBlock Text="{l:Loc App.Version}" Margin="{DynamicResource Margin.AllSmall}" Classes="small muted" />
+    <TextBlock Margin="{DynamicResource Margin.AllSmall}" Classes="small muted"><Run Text="{l:Loc App.Title}" /><Run Text="  " /><Run Text="{x:Static app:App.Version}" /></TextBlock>
   </StackPanel>
 </UserControl>

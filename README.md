@@ -5,9 +5,10 @@
 # YokoWave · 波枢
 
 [![Test](https://github.com/ajtn123/YokoWave/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/ajtn123/YokoWave/actions/workflows/build.yml)
+[![Release](https://github.com/ajtn123/YokoWave/actions/workflows/release.yml/badge.svg)](https://github.com/ajtn123/YokoWave/actions/workflows/release.yml)
+[![Latest release](https://img.shields.io/github/v/release/ajtn123/YokoWave)](https://github.com/ajtn123/YokoWave/releases/latest)
 [![.NET 10](https://img.shields.io/badge/.NET-10-512BD4)](global.json)
 [![Avalonia 12](https://img.shields.io/badge/Avalonia-12-8B44AC)](src/YokoWave.App/YokoWave.App.csproj)
-![Status: development](https://img.shields.io/badge/status-development-yellow)
 
 基于 .NET 与 Avalonia 的跨平台设备控制应用，支持 YOKONEX 和 DG-LAB 设备。用节点图组合波形、触控、音频、传感器与设备输出；同一模板可创建多个实例，分别控制不同设备。
 
@@ -29,7 +30,28 @@
 
 已接入 YOKONEX 电击器 V1/V2、震动器、灌肠机，郊狼 V2/V3、负鼠、爪印 V1.1 和灵猫。协议替身测试覆盖全部已接入驱动；实机验证范围与能力限制见[蓝牙实现](docs/bluetooth.md)。跨设备使用同一波形不表示物理输出等价。
 
-## 快速开始
+## 下载与使用
+
+从 [GitHub Releases](https://github.com/ajtn123/YokoWave/releases/latest) 下载对应系统和处理器的便携包。v1.0.0 提供以下版本，均自带 .NET 与 ASP.NET Core 运行时，无需安装 SDK：
+
+| 系统 | x64 | ARM64 |
+| --- | --- | --- |
+| Windows | [ZIP](https://github.com/ajtn123/YokoWave/releases/download/v1.0.0/YokoWave-v1.0.0-win-x64.zip) | [ZIP](https://github.com/ajtn123/YokoWave/releases/download/v1.0.0/YokoWave-v1.0.0-win-arm64.zip) |
+| macOS | [TAR.GZ](https://github.com/ajtn123/YokoWave/releases/download/v1.0.0/YokoWave-v1.0.0-osx-x64.tar.gz) | [TAR.GZ](https://github.com/ajtn123/YokoWave/releases/download/v1.0.0/YokoWave-v1.0.0-osx-arm64.tar.gz) |
+| Linux | [TAR.GZ](https://github.com/ajtn123/YokoWave/releases/download/v1.0.0/YokoWave-v1.0.0-linux-x64.tar.gz) | [TAR.GZ](https://github.com/ajtn123/YokoWave/releases/download/v1.0.0/YokoWave-v1.0.0-linux-arm64.tar.gz) |
+
+Apple 芯片 Mac 使用 ARM64，Intel Mac 使用 x64。完整解压并保留所有文件：Windows 运行 `YokoWave.exe`，macOS 打开 `YokoWave.app`，Linux 运行 `./YokoWave`。发行包没有开发者证书签名，macOS 使用临时签名且未公证，首次打开可能需要在系统安全设置中允许。Linux 仍需系统的图形、字体和音频依赖，见 [Avalonia Linux 运行要求](https://docs.avaloniaui.net/docs/get-started/linux)。
+
+1. 首次启动使用本地模拟。使用实机时，在「偏好设置 → 设备来源」选择蓝牙并保存。
+2. 在「设备工作台」发现并连接设备。
+3. 在「节点玩法」选择模板、添加玩法，将设备加入分组，检查输出节点的设备和通道绑定。
+4. 调整数值输入及各输出节点上限后点击开始。零强度也可开始；「全部停止」或 `Esc` 停止所有玩法。
+
+完整操作、快捷键、远程连接与排查方法位于应用内「帮助」。保存的玩法不会自动运行；重新连接从关闭输出开始。
+
+[恐龙游戏静态包](https://github.com/ajtn123/YokoWave/releases/download/v1.0.0/YokoWave-v1.0.0-dinosaur.zip) 包含 HTML、JS、CSS 和中英文词典，解压后用 Python 内置 HTTP 服务运行，步骤见[模块说明](docs/dinosaur.md)。
+
+## 从源码运行
 
 安装 **.NET 10 SDK** 后执行：
 
@@ -40,12 +62,7 @@ dotnet restore YokoWave.slnx
 dotnet run --project src/YokoWave.Desktop
 ```
 
-1. 首次启动使用本地模拟。使用实机时，在「偏好设置 → 设备来源」选择蓝牙并保存。
-2. 在「设备工作台」发现并连接设备。
-3. 在「节点玩法」选择模板、添加玩法，将设备加入分组，检查输出节点的设备和通道绑定。
-4. 调整数值输入及各输出节点上限后点击开始。零强度也可开始；「全部停止」或 `Esc` 停止所有玩法。
-
-完整操作、快捷键、远程连接与排查方法位于应用内「帮助」。保存的玩法不会自动运行；重新连接从关闭输出开始。
+构建、测试与发布流程见[开发指南](CONTRIBUTING.md)，发行记录见 [v1.0.0](docs/releases/1.0.0.md)。
 
 ## 文档入口
 

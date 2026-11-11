@@ -3,7 +3,7 @@
   "Action.StopAllName": "全部停止",
   "Action.StopAllTip": "所有设备输出归零 · Esc",
   "App.Title": "YokoWave · 波枢",
-  "App.Version": "YokoWave · 波枢  0.1.0",
+  "App.MicrophonePermission": "YokoWave 使用麦克风输入驱动声控节点玩法。",
   "Audio.Browse": "浏览",
   "Audio.Calibrate": "校准环境声",
   "Audio.Calibrating": "正在校准环境声…",
@@ -1060,5 +1060,6 @@
   "Error.RemoteEventClientInUse": "此事件客户端标识已被连接中的客户端使用。",
   "Error.RemoteEventQueue": "事件队列已满。请降低事件发送频率或等待积压事件处理。",
   "Pipeline.Port.Events": "事件流",
-  "Remote.EventConnect": "请连接事件流到此节点。"
+  "Remote.EventConnect": "请连接事件流到此节点。",
+  "Error.RemoteEventClients": "活动事件客户端过多。请断开现有客户端后再注册。"
 }

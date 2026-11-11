@@ -10,6 +10,7 @@ internal sealed class RemoteEventProcessor(EventInputNode configuration) : ISign
     private EventInputNode _selection = configuration;
     private EventValue? _latest;
     private Guid _registration;
+    private long _lastSequence;
     private bool _triggered;
     private bool _numberChanged;
     private bool _simulated;
@@ -32,46 +33,9 @@ internal sealed class RemoteEventProcessor(EventInputNode configuration) : ISign
             Suspend();
             _registration = registration;
         }
-        bool Current(EventValue message) => registration != Guid.Empty && message.Registration == registration && message.ValidUntil >= context.Now;
-        foreach (var message in batch.Messages.Where(message => message.ClientId == _selection.ClientId && message.EventId == _selection.EventId && Current(message)))
-        {
-            _simulated |= message.Simulated;
-            if (!message.IsTrigger)
-            {
-                _latest = message;
-                _numberChanged = true;
-                _count++;
-            }
-            else
-            {
-                if (_pending.Count >= RemoteEventProtocol.Capacity)
-                    throw new LocalizedOperationException("Error.RemoteEventQueue");
-                _pending.Enqueue(message);
-            }
-        }
-        while (_pending.TryPeek(out var pending) && !Current(pending))
-            _pending.Dequeue();
-        if (_latest is not null && !Current(_latest))
-        {
-            _latest = null;
-            _numberChanged = false;
-        }
-        bool trigger = false;
-        if (_triggered)
-        {
-            _triggered = false;
-        }
-        else if (_pending.TryDequeue(out var next))
-        {
-            _latest = next;
-            _count++;
-            trigger = _triggered = true;
-        }
-        else if (_numberChanged)
-        {
-            trigger = _triggered = true;
-            _numberChanged = false;
-        }
+        Expire(context.Now);
+        AcceptEvents(batch, context.Now);
+        bool trigger = NextTrigger();
         long sequence = _latest?.Sequence ?? 0;
         var triggerUntil = context.Now.AddMilliseconds(100);
         if (_latest is not null && _latest.ValidUntil < triggerUntil)
@@ -88,9 +52,69 @@ internal sealed class RemoteEventProcessor(EventInputNode configuration) : ISign
         _pending.Clear();
         _latest = null;
         _registration = Guid.Empty;
+        _lastSequence = 0;
         _triggered = false;
         _numberChanged = false;
         _simulated = false;
         _count = 0;
+    }
+
+    private void AcceptEvents(EventSignal batch, DateTimeOffset now)
+    {
+        foreach (var message in batch.Messages)
+        {
+            if (message.ClientId != _selection.ClientId || message.EventId != _selection.EventId || !IsCurrent(message, now) || message.Sequence <= _lastSequence)
+                continue;
+            _lastSequence = message.Sequence;
+            _simulated |= message.Simulated;
+            if (!message.IsTrigger)
+            {
+                _latest = message;
+                _numberChanged = true;
+                _count++;
+            }
+            else
+            {
+                if (_pending.Count >= RemoteEventProtocol.Capacity)
+                    throw new LocalizedOperationException("Error.RemoteEventQueue");
+                _pending.Enqueue(message);
+            }
+        }
+    }
+
+    private bool IsCurrent(EventValue message, DateTimeOffset now) => _registration != Guid.Empty && message.Registration == _registration && message.ValidUntil >= now;
+
+    private void Expire(DateTimeOffset now)
+    {
+        while (_pending.TryPeek(out var pending) && !IsCurrent(pending, now))
+            _pending.Dequeue();
+        if (_latest is not null && !IsCurrent(_latest, now))
+        {
+            _latest = null;
+            _numberChanged = false;
+        }
+    }
+
+    private bool NextTrigger()
+    {
+        if (_triggered)
+        {
+            _triggered = false;
+            return false;
+        }
+        if (_pending.TryDequeue(out var next))
+        {
+            _latest = next;
+            _count++;
+            _triggered = true;
+            return true;
+        }
+        if (_numberChanged)
+        {
+            _triggered = true;
+            _numberChanged = false;
+            return true;
+        }
+        return false;
     }
 }

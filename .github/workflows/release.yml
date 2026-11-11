@@ -1,0 +1,118 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to publish
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+      commit: ${{ steps.version.outputs.commit }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate version and tag
+        id: version
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tag = $env:RELEASE_TAG
+          if ($tag -notmatch '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') { throw 'Expected a vMAJOR.MINOR.PATCH tag.' }
+          $version = $tag.Substring(1)
+          [xml]$props = Get-Content Directory.Build.props -Raw
+          if ($props.Project.PropertyGroup.Version -ne $version) { throw 'Tag and project version do not match.' }
+          if (!(Test-Path "docs/releases/$version.md")) { throw 'Release notes are missing.' }
+          $commit = git rev-parse "refs/tags/$tag^{commit}"
+          if ($LASTEXITCODE -ne 0) { throw 'The tag must already exist.' }
+          if ((git rev-parse HEAD) -ne $commit) { throw 'Checkout does not match the tag.' }
+          Add-Content $env:GITHUB_OUTPUT "tag=$tag"
+          Add-Content $env:GITHUB_OUTPUT "version=$version"
+          Add-Content $env:GITHUB_OUTPUT "commit=$commit"
+
+  test:
+    needs: version
+    uses: ./.github/workflows/build.yml
+    with:
+      ref: ${{ needs.version.outputs.commit }}
+
+  package:
+    needs: [version, test]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-latest, runtime: win-x64 }
+          - { os: windows-latest, runtime: win-arm64 }
+          - { os: ubuntu-latest, runtime: linux-x64 }
+          - { os: ubuntu-latest, runtime: linux-arm64 }
+          - { os: macos-latest, runtime: osx-x64 }
+          - { os: macos-latest, runtime: osx-arm64 }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.version.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+      - name: Publish and package
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ needs.version.outputs.version }}
+          RELEASE_RUNTIME: ${{ matrix.runtime }}
+        run: ./scripts/package-release.ps1 -Runtime $env:RELEASE_RUNTIME -Version $env:RELEASE_VERSION
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-${{ matrix.runtime }}
+          path: |
+            artifacts/release/*.zip
+            artifacts/release/*.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+
+  release:
+    needs: [version, package]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.version.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: artifacts/release
+      - name: Publish GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.version.outputs.tag }}
+        run: ./scripts/publish-release.ps1 -Tag $env:RELEASE_TAG

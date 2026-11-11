@@ -48,6 +48,38 @@ public sealed class RemoteEventPipelineTests
         Assert.Equal(0, Level(runtime, 0));
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void RepeatedCapturesDoNotReplayConsumedEvents(bool trigger)
+    {
+        string eventId = trigger ? "collision" : "score";
+        var (runtime, source, input) = Runtime(eventId);
+        var registration = Guid.NewGuid();
+        runtime.Inputs.Events[source] = new([new("game", registration)],
+            [new("game", eventId, registration, trigger, trigger ? 1 : .5, 1, EvaluationTime, EvaluationTime.AddSeconds(1), false)]);
+        Assert.Equal(trigger ? 100 : 50, Level(runtime, 0));
+        Assert.Equal(trigger ? 0 : 50, Level(runtime, .1));
+        Assert.Equal(trigger ? 0 : 50, Level(runtime, .2));
+        Assert.Equal(1, runtime.NodeStatus[input].Count);
+    }
+
+    [Fact]
+    public void ExpiredPendingBurstsLeaveRoomForFreshEvents()
+    {
+        var (runtime, source, input) = Runtime("collision");
+        var registration = Guid.NewGuid();
+        EventValue Trigger(int sequence, double captured, double expires) => new("game", "collision", registration, true, 1, sequence,
+            EvaluationTime.AddSeconds(captured), EvaluationTime.AddSeconds(expires), false);
+        runtime.Inputs.Events[source] = new([new("game", registration)], Enumerable.Range(1, 256).Select(index => Trigger(index, 0, 1)).ToArray());
+        Assert.Equal(100, Level(runtime, 0));
+        runtime.Inputs.Events[source] = new([new("game", registration)], [Trigger(257, 2, 3), Trigger(258, 2, 3)]);
+        Assert.Equal(0, Level(runtime, 2));
+        runtime.Inputs.Events[source] = new([new("game", registration)], []);
+        Assert.Equal(100, Level(runtime, 2.1));
+        Assert.Equal(2, runtime.NodeStatus[input].Count);
+    }
+
     [Fact]
     public async Task NetworkEventsReachNormalGraphOutputsWithLimitsPauseAndDisconnectCleanup()
     {

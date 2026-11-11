@@ -3,7 +3,7 @@
   "Action.StopAllName": "Stop all",
   "Action.StopAllTip": "Set every device output to zero · Esc",
   "App.Title": "YokoWave",
-  "App.Version": "YokoWave  0.1.0",
+  "App.MicrophonePermission": "YokoWave uses microphone input for audio-controlled pipelines.",
   "Audio.Browse": "Browse",
   "Audio.Calibrate": "Calibrate ambient sound",
   "Audio.Calibrating": "Calibrating ambient sound…",
@@ -1060,5 +1060,6 @@
   "Error.RemoteEventClientInUse": "This event client ID is already connected.",
   "Error.RemoteEventQueue": "The event queue is full. Reduce the event rate or consume pending events.",
   "Pipeline.Port.Events": "Event stream",
-  "Remote.EventConnect": "Connect an event stream to this node."
+  "Remote.EventConnect": "Connect an event stream to this node.",
+  "Error.RemoteEventClients": "Too many active event clients. Disconnect an existing client before registering another."
 }

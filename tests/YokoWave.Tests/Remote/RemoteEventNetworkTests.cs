@@ -106,6 +106,27 @@ public sealed class RemoteEventNetworkTests
     }
 
     [Fact]
+    public async Task CatalogEvictsOldInactiveClientsWithoutRemovingActiveDeclarations()
+    {
+        await using var host = await RemoteEventTestHost.CreateAsync();
+        await using var active = host.Client("active");
+        await active.ConnectAsync(Ct);
+        await using var changing = await RemoteTestClient.CreateAsync(host.Server.Url!);
+        for (int index = 0; index < 129; index++)
+        {
+            var lease = await changing.Peer.CallAsync<RemoteLease>("lease.acquire", new { type = "event", deviceIds = Array.Empty<string>() }, Ct);
+            await changing.ExecuteAsync<bool>(lease, "event.register", new { registration = new RemoteEventRegistration($"guest{index}", [new("event", RemoteEventKind.Trigger)]) });
+            await changing.ReleaseAsync(lease);
+        }
+        var catalog = host.Hub.Snapshot();
+        Assert.Equal(128, catalog.Select(item => item.ClientId).Distinct().Count());
+        Assert.DoesNotContain(catalog, item => item.ClientId == "guest0");
+        Assert.Contains(catalog, item => item.ClientId == "guest128");
+        Assert.Equal(2, catalog.Count(item => item.ClientId == "active"));
+        await active.EmitAsync("collision", cancellationToken: Ct);
+    }
+
+    [Fact]
     public async Task DeviceEndpointsRejectEventLeases()
     {
         await using var host = await RemoteTestHost.CreateAsync(BluetoothProtocol.CoyoteV3);

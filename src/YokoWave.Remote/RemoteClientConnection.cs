@@ -27,13 +27,15 @@ internal sealed class RemoteClientConnection(RemoteEndpointSettings settings, st
             if (Peer is not null)
                 await Peer.DisposeAsync().ConfigureAwait(false);
             var socket = new ClientWebSocket();
+            WebSocketRpcPeer? connecting = null;
             socket.Options.AddSubProtocol(RemoteProtocol.SubProtocol);
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeout.CancelAfter(TimeSpan.FromSeconds(10));
             try
             {
                 await socket.ConnectAsync(new Uri(settings.Url), timeout.Token).ConfigureAwait(false);
-                Peer = new(socket);
+                connecting = new(socket);
+                Peer = connecting;
                 Peer.Notification += (method, value) => Notification?.Invoke(method, value);
                 Peer.Start();
                 await Peer.CallAsync<bool>("system.authenticate", new
@@ -50,8 +52,8 @@ internal sealed class RemoteClientConnection(RemoteEndpointSettings settings, st
             {
                 try
                 {
-                    if (Peer is not null)
-                        await Peer.DisposeAsync().ConfigureAwait(false);
+                    if (connecting is not null)
+                        await connecting.DisposeAsync().ConfigureAwait(false);
                     else
                         socket.Dispose();
                 }

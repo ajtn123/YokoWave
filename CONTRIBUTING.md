@@ -89,7 +89,19 @@ node --test tests/dinosaur/*.test.js
 
 ## 按需发布
 
-开发验证不需要 publish。需要交付时，从桌面项目发布，保留输出目录中的依赖和原生库：
+开发验证不需要 publish。GitHub 的 [Release 工作流](.github/workflows/release.yml) 由 `vMAJOR.MINOR.PATCH` 标签触发，也可手动选择已存在的标签。发布前修改 `Directory.Build.props` 的版本并添加 `docs/releases/<版本>.md`，提交后推送 main 和对应标签。标签版本必须与项目版本相同。
+
+工作流验证标签对应的提交，在 Windows / Linux 完成风格、构建、xUnit 和浏览器模块测试，再为三个系统的 x64 / ARM64 打包。附件全部上传成功后才公开 release；失败保留草稿，已发布附件不会被覆盖。只在最后发布的 job 授予 `contents: write`，其余 job 使用只读权限。
+
+本地可在目标操作系统上验证同一打包脚本，例如 Windows：
+
+```powershell
+./scripts/package-release.ps1 -Runtime win-x64 -Version 1.0.0
+```
+
+该脚本生成自包含便携包，保留原生依赖，附带许可与运行说明；macOS 脚本构造 `.app`、从现有 ICO 生成图标、写入本地化麦克风权限说明并作临时签名。Windows / macOS 未使用开发者证书，macOS 未公证。没有额外的校验文件，附件信息由 GitHub 提供。标签、权限、目录与重试边界见[发行实现](docs/releases.md)。
+
+只需要发布目录时，也可直接从桌面项目运行：
 
 ```sh
 dotnet publish src/YokoWave.Desktop -c Release -r win-x64 --self-contained false -o artifacts/publish/win-x64

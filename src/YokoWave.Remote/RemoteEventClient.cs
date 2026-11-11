@@ -8,7 +8,7 @@ public sealed class RemoteEventClient : IAsyncDisposable
     private readonly RemoteClientConnection _connection;
     private readonly RemoteEventRegistration _registration;
     private readonly SemaphoreSlim _gate = new(1, 1);
-    private RemoteLeaseLink? _link;
+    private volatile RemoteLeaseLink? _link;
     private bool _disposed;
     public bool IsConnected => _link?.IsConnected == true;
     public event Action? Disconnected;
@@ -42,12 +42,14 @@ public sealed class RemoteEventClient : IAsyncDisposable
             await _connection.ConnectAsync(cancellationToken).ConfigureAwait(false);
             var lease = await _connection.Peer.CallAsync<RemoteLease>("lease.acquire", new { type = RemoteLeaseType.Event, deviceIds = Array.Empty<string>() }, cancellationToken).ConfigureAwait(false);
             var link = new RemoteLeaseLink(_connection.Peer, lease, _connection.Hello.ClockMilliseconds, _connection.HelloAt);
-            _link = link;
             link.Disconnected += () => Disconnected?.Invoke();
             try
             {
                 await link.CallAsync<bool>("event.register", new { registration = _registration }, cancellationToken).ConfigureAwait(false);
+                _link = link;
                 link.Start();
+                if (_connection.Peer.Completion.IsCompleted)
+                    link.Lost();
             }
             catch (Exception error)
             {
