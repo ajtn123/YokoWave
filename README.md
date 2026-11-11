@@ -34,12 +34,6 @@
 
 从 [GitHub Releases](https://github.com/ajtn123/YokoWave/releases/latest) 下载对应系统和处理器的便携包。v1.0.0 提供以下版本，均自带 .NET 与 ASP.NET Core 运行时，无需安装 SDK：
 
-| 系统 | x64 | ARM64 |
-| --- | --- | --- |
-| Windows | [ZIP](https://github.com/ajtn123/YokoWave/releases/download/v1.0.0/YokoWave-v1.0.0-win-x64.zip) | [ZIP](https://github.com/ajtn123/YokoWave/releases/download/v1.0.0/YokoWave-v1.0.0-win-arm64.zip) |
-| macOS | [TAR.GZ](https://github.com/ajtn123/YokoWave/releases/download/v1.0.0/YokoWave-v1.0.0-osx-x64.tar.gz) | [TAR.GZ](https://github.com/ajtn123/YokoWave/releases/download/v1.0.0/YokoWave-v1.0.0-osx-arm64.tar.gz) |
-| Linux | [TAR.GZ](https://github.com/ajtn123/YokoWave/releases/download/v1.0.0/YokoWave-v1.0.0-linux-x64.tar.gz) | [TAR.GZ](https://github.com/ajtn123/YokoWave/releases/download/v1.0.0/YokoWave-v1.0.0-linux-arm64.tar.gz) |
-
 Apple 芯片 Mac 使用 ARM64，Intel Mac 使用 x64。完整解压并保留所有文件：Windows 运行 `YokoWave.exe`，macOS 打开 `YokoWave.app`，Linux 运行 `./YokoWave`。发行包没有开发者证书签名，macOS 使用临时签名且未公证，首次打开可能需要在系统安全设置中允许。Linux 仍需系统的图形、字体和音频依赖，见 [Avalonia Linux 运行要求](https://docs.avaloniaui.net/docs/platform-specific-guides/linux)。
 
 1. 首次启动使用本地模拟。使用实机时，在「偏好设置 → 设备来源」选择蓝牙并保存。
@@ -62,8 +56,6 @@ dotnet restore YokoWave.slnx
 dotnet run --project src/YokoWave.Desktop
 ```
 
-构建、测试与发布流程见[开发指南](CONTRIBUTING.md)，发行记录见 [v1.0.0](docs/releases/1.0.0.md)。
-
 ## 文档入口
 
 | 读者 / 用途 | 入口 |
@@ -73,6 +65,6 @@ dotnet run --project src/YokoWave.Desktop
 | 模块、源码位置与实现细节 | [docs 索引](docs/README.md) |
 | 自动化代理 | [AGENTS.md](AGENTS.md) |
 
-项目处于开发阶段，旧开发数据格式会重置。用户数据路径可在设置页查看；存储和损坏保护规则见[本地存储](docs/storage.md)。
+用户数据路径可在设置页查看；存储和损坏保护规则见[本地存储](docs/storage.md)。
 
 第三方波形数据的来源与许可见[第三方数据声明](THIRD-PARTY-NOTICES.md)。
