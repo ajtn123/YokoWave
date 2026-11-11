@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="referrer" content="no-referrer">
+  <meta name="description" content="YokoWave: cross-platform device control with node pipelines, waveforms, Bluetooth and WebSocket.">
+  <meta property="og:title" content="YokoWave · 波枢">
+  <meta property="og:description" content="跨平台设备控制 · 节点管线 · 波形 · 蓝牙 · WebSocket">
+  <meta property="og:image" content="https://ajtn123.github.io/YokoWave/assets/social-preview.png">
+  <meta property="og:type" content="website">
+  <title>YokoWave · 波枢</title>
+  <link rel="icon" href="assets/YokoWave.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="site/styles.css">
+  <script type="module" src="site/app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main" data-i18n="Site.Skip"></a>
+  <header class="site-header container">
+    <a class="brand" href="./"><img src="assets/YokoWave.svg" width="36" height="36" alt="">YokoWave</a>
+    <nav aria-label="Main" data-i18n-aria="Site.Navigation"><a href="#modules" data-i18n="Site.Modules"></a><a href="https://github.com/ajtn123/YokoWave">GitHub <span aria-hidden="true">↗</span></a></nav>
+    <label class="language"><span data-i18n="Site.Language"></span><select id="language" data-i18n-aria="Site.Language"><option value="en">English</option><option value="zh-CN">简体中文</option><option value="ja">日本語</option><option value="ko">한국어</option></select></label>
+  </header>
+  <main id="main" class="container">
+    <section class="hero" aria-labelledby="headline">
+      <div class="hero-copy">
+        <p class="eyebrow">YOKONEX · DG-LAB</p>
+        <p class="wordmark">YokoWave <span data-i18n="Site.LocalName"></span></p>
+        <h1 id="headline" data-i18n="Site.Headline"></h1>
+        <p class="intro" data-i18n="Site.Intro"></p>
+        <div class="actions"><a class="button primary" href="https://github.com/ajtn123/YokoWave/releases/latest" data-i18n="Site.Download"></a><a class="button" href="#modules" data-i18n="Site.BrowseModules"></a></div>
+        <p class="platforms">Windows · macOS · Linux</p>
+      </div>
+      <div class="pipeline-art" role="img" data-i18n-aria="Site.GraphAlt">
+        <svg class="wires" viewBox="0 0 520 370" aria-hidden="true"><path d="M216 125 C285 125 259 99 326 99"/><path d="M216 179 C280 179 262 277 326 277"/></svg>
+        <div class="diagram-node wave-node"><span data-i18n="Site.Waveform"></span><svg viewBox="0 0 144 72" aria-hidden="true"><path d="M3 36 C15 36 15 8 27 8 S39 64 51 64 S63 8 75 8 S87 64 99 64 S111 8 123 8 S135 36 141 36"/></svg><small data-i18n="Site.Signal"></small><i class="port port-a"></i><i class="port port-b"></i></div>
+        <div class="diagram-node output-node output-a"><span data-i18n="Site.ChannelA"></span><div class="output-track"><span></span></div><small>Bluetooth</small><i class="port"></i></div>
+        <div class="diagram-node output-node output-b"><span data-i18n="Site.ChannelB"></span><div class="output-track"><span></span></div><small>WebSocket</small><i class="port"></i></div>
+      </div>
+    </section>
+    <section class="capabilities" data-i18n-aria="Site.Features" aria-label="Features">
+      <article><span class="section-number">01</span><h2 data-i18n="Site.PipelinesTitle"></h2><p data-i18n="Site.PipelinesText"></p></article>
+      <article><span class="section-number">02</span><h2 data-i18n="Site.WaveformsTitle"></h2><p data-i18n="Site.WaveformsText"></p></article>
+      <article><span class="section-number">03</span><h2 data-i18n="Site.DevicesTitle"></h2><p data-i18n="Site.DevicesText"></p></article>
+    </section>
+    <section id="modules" class="modules-section" aria-labelledby="modules-title">
+      <div class="section-header"><div><p class="eyebrow" data-i18n="Site.InBrowser"></p><h2 id="modules-title" data-i18n="Site.Modules"></h2></div><p data-i18n="Site.ModulesIntro"></p></div>
+      <div id="module-list" class="module-list" aria-live="polite"></div>
+      <p id="module-error" class="load-error" hidden data-i18n="Site.LoadError"></p>
+      <template id="module-template"><a class="module-card"><span class="module-symbol" aria-hidden="true">↗</span><div><h3 class="module-name"></h3><p class="module-description"></p></div><span class="module-open"></span></a></template>
+    </section>
+    <section class="setup" aria-labelledby="setup-title"><div><p class="eyebrow" data-i18n="Site.Optional"></p><h2 id="setup-title" data-i18n="Site.SetupTitle"></h2><p data-i18n="Site.SetupIntro"></p></div><ol><li data-i18n="Site.Setup1"></li><li data-i18n="Site.Setup2"></li><li data-i18n="Site.Setup3"></li></ol></section>
+    <p id="load-error" class="load-error" hidden role="alert" data-i18n="Site.LoadError"></p>
+  </main>
+  <footer class="container site-footer"><span>YokoWave · <span data-i18n="Site.LocalName"></span></span><div><a href="https://github.com/ajtn123/YokoWave#readme" data-i18n="Site.Documentation"></a><a href="https://github.com/ajtn123/YokoWave/blob/main/LICENSE" data-i18n="Site.License"></a><a href="https://github.com/ajtn123/YokoWave" data-i18n="Site.Source"></a></div></footer>
+</body>
+</html>

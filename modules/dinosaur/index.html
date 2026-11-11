@@ -6,15 +6,15 @@
   <meta name="color-scheme" content="light dark">
   <meta name="referrer" content="no-referrer">
   <title>YokoWave · Dinosaur</title>
-  <link rel="icon" href="../../src/YokoWave.App/Assets/YokoWave.svg" type="image/svg+xml">
+  <link rel="icon" href="../../assets/YokoWave.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
   <script type="module" src="app.js"></script>
 </head>
 <body>
   <main>
     <header class="page-header">
-      <a class="brand" href="../../README.md"><img src="../../src/YokoWave.App/Assets/YokoWave.svg" width="32" height="32" alt="">YokoWave</a>
-      <label class="language"><span data-i18n="Dinosaur.Language"></span><select id="language"><option value="en">English</option><option value="zh-CN">简体中文</option><option value="ja">日本語</option><option value="ko">한국어</option></select></label>
+      <a class="brand" href="../../"><img src="../../assets/YokoWave.svg" width="32" height="32" alt="">YokoWave</a>
+      <label class="language"><span data-i18n="Dinosaur.Language"></span><select id="language" data-i18n-aria="Dinosaur.Language"><option value="en">English</option><option value="zh-CN">简体中文</option><option value="ja">日本語</option><option value="ko">한국어</option></select></label>
     </header>
 
     <div class="layout">
@@ -31,6 +31,7 @@
 
       <aside class="card" aria-labelledby="output-title">
         <div class="section-heading"><h2 id="output-title" data-i18n="Dinosaur.Output"></h2><span id="connection-state" class="badge"></span></div>
+        <p class="detail" data-i18n="Dinosaur.HostingHelp"></p>
         <form id="connection-form">
           <label><span data-i18n="Dinosaur.Server"></span><input id="url" type="url" placeholder="ws://127.0.0.1:9000/ws/…" autocomplete="off" spellcheck="false" required></label>
           <label><span data-i18n="Dinosaur.Token"></span><input id="token" type="password" autocomplete="off" spellcheck="false" minlength="24" maxlength="256" required></label>

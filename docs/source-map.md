@@ -60,6 +60,7 @@ scripts/                 风格、验证及覆盖率脚本
 | 本地数据 | [WorkspaceStore](../src/YokoWave.Core/WorkspaceStore.cs)、[SessionJournal](../src/YokoWave.Core/SessionJournal.cs)、[PipelineStore](../src/YokoWave.Pipelines/PipelineStore.cs) |
 | 用户手册 | [HelpView.axaml](../src/YokoWave.App/Views/Pages/HelpView.axaml)，正文在 [en.json](../locales/app/en.json) / [zh-CN.json](../locales/app/zh-CN.json) 的 `Help.*` |
 | 恐龙游戏 | [modules/dinosaur](../modules/dinosaur/)，物理、绘制、输出和界面分别组合；见[运行与接口](dinosaur.md) |
+| 官网与模块发布 | [site](../site/)、[modules/shared](../modules/shared/)、[build-pages.ps1](../scripts/build-pages.ps1)；模块目录由元数据自动发现，见 [GitHub Pages](pages.md) |
 
 ## 界面资源
 

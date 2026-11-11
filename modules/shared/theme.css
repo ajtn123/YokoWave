@@ -1,0 +1,53 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, sans-serif;
+  --page: #f5f6f8;
+  --surface: #fff;
+  --field: #f5f6f8;
+  --ink: #202733;
+  --muted: #647080;
+  --line: #d9dee6;
+  --accent: #6152bc;
+  --accent-ink: #fff;
+  --danger: #b53040;
+  --danger-bg: #fff0f2;
+  --space-xs: .375rem;
+  --space-sm: .75rem;
+  --space: 1.25rem;
+  --space-lg: 2rem;
+  --radius-sm: .5rem;
+  --radius: 1rem;
+  --control-height: 2.75rem;
+  --border: 1px solid var(--line);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #101419;
+    --surface: #191e26;
+    --field: #12171e;
+    --ink: #e9edf5;
+    --muted: #9ca9bc;
+    --line: #343d4b;
+    --accent: #a59ae5;
+    --accent-ink: #171229;
+    --danger: #ffa4ac;
+    --danger-bg: #35232a;
+  }
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink); }
+button, input, select { font: inherit; color: inherit; accent-color: var(--accent); }
+button, select, input:not([type="range"], [type="checkbox"]) { min-height: var(--control-height); border: var(--border); border-radius: var(--radius-sm); background: var(--field); padding: var(--space-xs) var(--space-sm); }
+button { cursor: pointer; font-weight: 600; }
+button:hover:enabled { border-color: var(--accent); }
+button:disabled, fieldset:disabled { opacity: .5; cursor: default; }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button.danger { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+[hidden] { display: none !important; }
+.brand { display: flex; align-items: center; gap: var(--space-sm); text-decoration: none; color: var(--ink); font-size: 1.125rem; font-weight: 700; }
+.language { display: flex; align-items: center; gap: var(--space-sm); }
+.language select { width: auto; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

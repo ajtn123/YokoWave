@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
-import { Localization } from "../../modules/dinosaur/localization.js";
+import { Localization } from "../../modules/shared/localization.js";
 
 const locales = new URL("../../locales/", import.meta.url);
 
@@ -24,7 +24,7 @@ test("each app or module catalog has matching nonempty translations and placehol
 });
 
 test("module language changes preserve formatting and unknown server errors remain readable", async () => {
-  const localization = new Localization();
+  const localization = new Localization("dinosaur", "Dinosaur.Title", "Dinosaur.ServerError");
   for (const language of Localization.languages) {
     localization.catalogs[language] = JSON.parse(await readFile(new URL(`dinosaur/${language}.json`, locales), "utf8"));
   }

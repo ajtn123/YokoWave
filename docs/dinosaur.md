@@ -1,16 +1,17 @@
 # 恐龙游戏
 
-源码位于 [`modules/dinosaur/`](../modules/dinosaur/)，只有 HTML、原生 JS 和 CSS，不需要安装依赖或构建，不附带静态服务器或通用浏览器 SDK。翻译在 [`locales/dinosaur/`](../locales/dinosaur/)，图标复用应用 SVG。
+源码位于 [`modules/dinosaur/`](../modules/dinosaur/)，只有 HTML、原生 JS 和 CSS，不需要 npm 依赖或编译，不附带静态服务器或通用浏览器 SDK。翻译在 [`locales/dinosaur/`](../locales/dinosaur/)，图标复用应用 SVG，主题和词典加载器与官网共用。
 
 ## 运行
 
-在**仓库根目录**运行 Python 自带的 HTTP 服务：
+直接打开[在线游戏](https://ajtn123.github.io/YokoWave/modules/dinosaur/)，或在仓库根目录组装静态站点后运行 Python 自带的 HTTP 服务：
 
 ```sh
-python -m http.server 8000 --bind 127.0.0.1
+pwsh -File scripts/build-pages.ps1
+python -m http.server 8000 --bind 127.0.0.1 --directory artifacts/pages
 ```
 
-Windows 也可用 `py -m http.server 8000 --bind 127.0.0.1`。打开 [http://127.0.0.1:8000/modules/dinosaur/](http://127.0.0.1:8000/modules/dinosaur/)。也可使用已有的静态 HTTP 工具，以仓库根目录作为站点根目录；不要直接通过 `file://` 打开，ES 模块和词典加载需要 HTTP。
+Windows 也可将 `python` 换为 `py`。打开 [http://127.0.0.1:8000/modules/dinosaur/](http://127.0.0.1:8000/modules/dinosaur/)，点击左上角图标返回官网首页。也可使用已有的静态 HTTP 工具，以 `artifacts/pages` 作为站点根目录；不要直接通过 `file://` 打开，ES 模块和词典加载需要 HTTP。静态组装与自动发布见 [GitHub Pages](pages.md)。
 
 空格、上方向键或点按画布跳跃，按住下方向键或下蹲按钮下蹲。P 暂停／继续，Esc 暂停并停止输出。每次碰撞结束一局，可重新开始；只在浏览器本地保存最高分。游戏可在未连接设备时运行。
 
@@ -31,7 +32,7 @@ Windows 也可用 `py -m http.server 8000 --bind 127.0.0.1`。打开 [http://127
 - `renderer.js`：Canvas 像素形状与缩放，颜色来自 `styles.css` 的共享变量。
 - `output.js`：针对游戏的原生 WebSocket 调用，认证、单设备 control 租约、串行控制、续期与单调时钟。
 - `output-panel.js`：连接和脉冲表单、错误及清理入口。
-- `localization.js` / `app.js`：模块词典、输入与页面生命周期。
+- `../shared/localization.js` / `app.js`：共享词典加载器、模块输入与页面生命周期；语言通过链接的 `lang` 参数传递，未指定时跟随浏览器。
 
 碰撞使用 `control.play` 提交统一采样波形，`order: once`、周期为脉冲时长、其他通道为零，并设置至少 1 秒的服务端定时上界。服务端通过既有 PipelineSession 播放与归零，不依靠浏览器定时器发送最终零帧；输出按会话周期更新，实际时长包含调度与协议延迟。控制带递增序号和服务端时钟中的 500 ms 截止时间；请求超时后断开，不重试控制或恢复输出。
 

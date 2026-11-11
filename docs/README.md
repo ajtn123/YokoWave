@@ -13,6 +13,7 @@
 | [WebSocket 事件](websocket-events.md) | 客户端声明、触发／数值事件、节点输入与调用示例 |
 | [DG-LAB V4](dglab-v4.md) | App 配对、设备来源、被控图、中继与任务语义 |
 | [恐龙游戏](dinosaur.md) | 静态浏览器模块、运行步骤及碰撞输出 |
+| [GitHub Pages](pages.md) | 官网、模块发现、共享资源与独立部署工作流 |
 | [波形](waveforms.md) | 统一格式、Schema、默认库与设备转换 |
 | [存储](storage.md) | 文件所有权、写入顺序、损坏保护与重置 |
 | [界面与本地化](localization.md) | JSON 词典、动态文本、系统主题、共享资源及帮助页 |

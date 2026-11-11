@@ -1,6 +1,6 @@
 import { DinosaurGame } from "./game.js";
 import { GameRenderer } from "./renderer.js";
-import { Localization } from "./localization.js";
+import { Localization } from "../shared/localization.js";
 import { OutputPanel } from "./output-panel.js";
 
 class DinosaurApp {
@@ -57,6 +57,7 @@ class DinosaurApp {
 
   localize() {
     this.localization.apply();
+    document.querySelector(".brand").href = `../../?lang=${encodeURIComponent(this.localization.language)}`;
     this.output.localize();
     this.renderState();
   }
@@ -157,7 +158,7 @@ class DinosaurApp {
   }
 }
 
-const localization = new Localization();
+const localization = new Localization("dinosaur", "Dinosaur.Title", "Dinosaur.ServerError");
 try {
   await localization.load();
   new DinosaurApp(localization);

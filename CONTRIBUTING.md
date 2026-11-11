@@ -51,10 +51,10 @@ dotnet run --project src/YokoWave.Desktop -- --smoke-test
 
 蓝牙和音频诊断入口见[蓝牙诊断](docs/bluetooth.md#诊断入口)。这些入口操作真实设备／输入，不属于常规构建步骤。
 
-浏览器模块只使用原生 HTML、JS、CSS。恐龙游戏无需 npm 依赖；在仓库根目录用 Python 内置 HTTP 服务预览，步骤见[模块说明](docs/dinosaur.md)。使用 Node 22 或更新版本运行模块测试：
+官网与浏览器模块只使用原生 HTML、JS、CSS，无 npm 依赖。运行 `./scripts/build-pages.ps1` 后，以 `artifacts/pages` 为根目录用 Python 内置 HTTP 服务预览；构建仅组装静态文件并发现模块。发布与模块接入见 [GitHub Pages](docs/pages.md)，设备连接见[恐龙模块说明](docs/dinosaur.md)。使用 Node 22 或更新版本手动运行浏览器测试：
 
 ```sh
-node --test tests/dinosaur/*.test.js
+node --test tests/dinosaur/*.test.js tests/site/*.test.js
 ```
 
 应用与模块文案位于根目录 `locales/`，每组维护 `en.json` / `zh-CN.json` / `ja.json` / `ko.json`；应用词典由 Core 嵌入，模块词典通过同源 HTTP 加载。修改后运行 `./scripts/sort-locales.ps1`，统一按 Ordinal 键序排序所有本地化 JSON。`check-style.ps1` 检查词典格式，`-Fix` 同时排序。波形名称随资产存入其 JSON 的 `Names`，不使用应用词典键，见[波形格式](docs/waveforms.md)。

@@ -2,7 +2,7 @@
 
 ## 词典与动态文本
 
-根目录 `locales/` 按使用方划分词典：`app/` 属于桌面应用，`dinosaur/` 属于恐龙游戏。每组包含 `en.json`、`zh-CN.json`、`ja.json`、`ko.json`，不把模块文案混入应用词典。
+根目录 `locales/` 按使用方划分词典：`app/` 属于桌面应用，`site/` 属于官网，`dinosaur/` 属于恐龙游戏。每组包含 `en.json`、`zh-CN.json`、`ja.json`、`ko.json`，不把模块文案混入应用词典。官网与模块共用 `modules/shared/localization.js`，模块名与简介从模块自身词典读取。
 
 Core 项目直接将 `locales/app/*.json` 嵌入程序集，通过 `System.Text.Json` 读取，不使用 ResX 或运行时文件复制。`JsonLocalizer` 实现属性通知，`LocExtension` 将 XAML 的资源键绑定到该服务。浏览器模块从同源 `locales/<module>/` 加载自己的词典；已知 RPC 错误使用模块翻译，未知错误显示本地化错误前缀及服务端资源键。
 
