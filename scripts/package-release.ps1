@@ -29,6 +29,11 @@ try {
         -p:Version=$Version -p:ContinuousIntegrationBuild=true -p:PublishTrimmed=false -p:PublishSingleFile=false -p:DebugType=None -p:DebugSymbols=false
     if ($LASTEXITCODE -ne 0) { throw 'Desktop publish failed.' }
 
+    # Dependencies can ship prebuilt symbols despite DebugSymbols=false. Remove them before macOS signing.
+    foreach ($symbols in Get-ChildItem -LiteralPath $applicationPath -Recurse -File -Force | Where-Object { $_.Extension -ieq '.pdb' }) {
+        Remove-Item -LiteralPath $symbols.FullName -Force
+    }
+
     $executable = if ($Runtime.StartsWith('win-')) { 'YokoWave.exe' } else { 'YokoWave' }
     $nativeAudio = if ($Runtime.StartsWith('win-')) { 'miniaudio.dll' } elseif ($Runtime.StartsWith('osx-')) { 'libminiaudio.dylib' } else { 'libminiaudio.so' }
     foreach ($file in @($executable, 'YokoWave.dll', 'System.Private.CoreLib.dll', 'Microsoft.AspNetCore.Server.Kestrel.Core.dll', $nativeAudio)) {

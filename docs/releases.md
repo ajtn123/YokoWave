@@ -12,7 +12,7 @@
 
 ## 包结构
 
-`scripts/package-release.ps1` 运行自包含、不裁剪、非单文件的 `dotnet publish`，验证主程序、.NET 核心、Kestrel 与音频原生库均存在。保留所有运行依赖，附带 `LICENSE`、`THIRD-PARTY-NOTICES.md` 与 `README.txt`，不带研究目录、用户数据或凭据。
+`scripts/package-release.ps1` 运行自包含、不裁剪、非单文件的 `dotnet publish`，验证主程序、.NET 核心、Kestrel 与音频原生库均存在。打包前递归移除所有 `.pdb` 符号文件（包括依赖自带文件，扩展名大小写不敏感）；macOS 在移除后才签名。保留所有运行依赖，附带 `LICENSE`、`THIRD-PARTY-NOTICES.md` 与 `README.txt`，不带研究目录、用户数据或凭据。
 
 - Windows：`YokoWave-v<版本>-win-{x64,arm64}.zip`，目录内运行 `YokoWave.exe`。
 - Linux：`YokoWave-v<版本>-linux-{x64,arm64}.tar.gz`，保留执行权限，运行 `./YokoWave`。
