@@ -103,7 +103,7 @@ public sealed class LayoutConsistencyTests
             UiActions.Click(window, playlistActions[0]);
             Assert.Equal(2, playlist.Playlist.Count);
             string before = editor.ToDocument().Nodes.Single().Configuration.GetRawText();
-            foreach (string? locale in new[] { "en", "zh-CN" })
+            foreach (string locale in JsonLocalizer.SupportedLanguages)
             {
                 foreach (var theme in new[] { ThemeVariant.Light, ThemeVariant.Dark })
                 {
@@ -145,7 +145,7 @@ public sealed class LayoutConsistencyTests
     {
         using var state = new UiTestState();
         using var folder = new TestFolder();
-        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new(folder.Path));
+        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), await folder.CreateSimulationStoreAsync());
         await vm.InitializeAsync();
         var view = new MainView
         {
@@ -161,7 +161,7 @@ public sealed class LayoutConsistencyTests
         window.Show();
         try
         {
-            foreach (string? locale in new[] { "en", "zh-CN" })
+            foreach (string locale in JsonLocalizer.SupportedLanguages)
             {
                 L10n.Current.SetLanguage(locale);
                 await vm.NavigateAsync("waves");

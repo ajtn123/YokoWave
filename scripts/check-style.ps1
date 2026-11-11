@@ -4,6 +4,12 @@ $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 Push-Location $projectRoot
 try {
+    if ($Fix) {
+        & (Join-Path $PSScriptRoot 'sort-locales.ps1')
+    }
+    else {
+        & (Join-Path $PSScriptRoot 'sort-locales.ps1') -Check
+    }
     $formatArguments = @('YokoWave.slnx', '--no-restore')
     if (-not $Fix) {
         $formatArguments += '--verify-no-changes'

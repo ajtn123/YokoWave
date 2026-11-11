@@ -164,5 +164,5 @@ try {
 } catch (error) {
   const element = document.getElementById("load-error");
   element.hidden = false;
-  element.textContent = `${error.message} · locales/dinosaur/{en,zh-CN}.json`;
+  element.textContent = `${error.message} · locales/dinosaur/`;
 }

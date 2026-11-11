@@ -9,6 +9,18 @@ public sealed class WorkspaceStoreTests
     public static TheoryData<int> OlderSchemas => new() { 1, WorkspaceData.CurrentSchema - 1 };
     public static TheoryData<int> UnsupportedSchemas => new() { 0, WorkspaceData.CurrentSchema + 1 };
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task NewWorkspacesUseBluetoothAndKeepExplicitSourceChoices(bool bluetooth)
+    {
+        using var folder = new TestFolder();
+        var store = new WorkspaceStore(folder.Path);
+        Assert.True((await store.LoadAsync()).Settings.UseBluetooth);
+        await store.SaveAsync(WorkspaceData.Empty with { Settings = new(UseBluetooth: bluetooth) });
+        Assert.Equal(bluetooth, (await new WorkspaceStore(folder.Path).LoadAsync()).Settings.UseBluetooth);
+    }
+
     [Fact]
     public async Task WorkspaceRoundTripsAndPreservesCorruptOriginal()
     {

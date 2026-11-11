@@ -23,7 +23,7 @@ public sealed class WaveformOutputTests
         using var folder = new TestFolder();
         var transport = new RecordingTransport();
         var controller = new DeviceController(transport);
-        await using var vm = new MainViewModel(controller, new(folder.Path));
+        await using var vm = new MainViewModel(controller, await folder.CreateSimulationStoreAsync());
         await vm.InitializeAsync();
         var multi = CreateThreeChannelWaveform();
         var mono = CreateSingleChannelWaveform();

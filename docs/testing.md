@@ -18,7 +18,7 @@
 
 `Support` 只存放测试需要的准备和替身，不承载产品规则：
 
-- `TestFolder` 为每个文件测试创建独立目录并在释放时删除；`TestPaths` 统一定位仓库和产物目录。
+- `TestFolder` 为每个文件测试创建独立目录并在释放时删除；模拟 UI 测试使用 `CreateSimulationStoreAsync` 显式选择来源，新工作区的蓝牙默认值单独验证。`TestPaths` 统一定位仓库和产物目录。
 - `AsyncAssert.EventuallyAsync` 使用单调时钟和有上限的等待；`UiActions` 在等待和指针操作时处理 UI 队列。能等待任务、写入完成或事件时直接等待，不加入固定延时。
 - `Support/Pipelines` 提供小型图工厂、通道波形和可阻塞的输出替身。测试仍在自身代码中声明要证明的连线、参数与结果。
 - `Support/Bluetooth` 区分协议 GATT 替身与并发传输替身，不用一个通用替身模拟所有设备生命周期。

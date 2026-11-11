@@ -6,33 +6,35 @@ namespace YokoWave.Core.Localization;
 
 public sealed class JsonLocalizer : INotifyPropertyChanged
 {
-    private readonly IReadOnlyDictionary<string, string> _english;
-    private readonly IReadOnlyDictionary<string, string> _chinese;
+    private readonly IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> _catalogs;
+    public static IReadOnlyList<string> SupportedLanguages { get; } = Array.AsReadOnly(new[] { "en", "zh-CN", "ja", "ko" });
     public static string SystemLanguage { get; } = NormalizeLanguage(CultureInfo.CurrentUICulture.Name);
     public string Language { get; private set; }
     public CultureInfo Culture => CultureInfo.GetCultureInfo(Language);
-    public IReadOnlyDictionary<string, string> English => _english;
-    public IReadOnlyDictionary<string, string> Chinese => _chinese;
+    public IReadOnlyDictionary<string, string> English => _catalogs["en"];
 
     public string this[string key] => Get(key);
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public JsonLocalizer(string? language = null)
-        : this(ReadCatalog("en"), ReadCatalog("zh-CN"), language ?? SystemLanguage) { }
+        : this(SupportedLanguages.ToDictionary(code => code, ReadCatalog, StringComparer.Ordinal), language ?? SystemLanguage) { }
 
-    public JsonLocalizer(IReadOnlyDictionary<string, string> english,
-        IReadOnlyDictionary<string, string> chinese, string language = "en")
+    public JsonLocalizer(IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> catalogs, string language = "en")
     {
-        _english = english;
-        _chinese = chinese;
+        ArgumentNullException.ThrowIfNull(catalogs);
+        if (!catalogs.ContainsKey("en"))
+            throw new ArgumentException("An English fallback catalog is required.", nameof(catalogs));
+        _catalogs = catalogs;
         Language = NormalizeLanguage(language);
     }
+    public IReadOnlyDictionary<string, string> GetCatalog(string language) => _catalogs.GetValueOrDefault(NormalizeLanguage(language), English);
+
     public string Get(string key)
     {
-        var catalog = Language == "zh-CN" ? _chinese : _english;
+        var catalog = GetCatalog(Language);
         if (catalog.TryGetValue(key, out string? value))
             return value;
-        return _english.TryGetValue(key, out value) ? value : $"[{key}]";
+        return English.TryGetValue(key, out value) ? value : $"[{key}]";
     }
     public string Format(string key, params object?[] arguments) => string.Format(Culture, Get(key), arguments);
 
@@ -47,17 +49,20 @@ public sealed class JsonLocalizer : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new("Item[]"));
     }
 
-    // Also displays reason strings written by the original schema in either supported language.
+    // Stored display strings can come from any supported language.
     public string TranslateStored(string value, string prefix)
     {
-        if (value.StartsWith(prefix, StringComparison.Ordinal) && _english.ContainsKey(value))
+        if (value.StartsWith(prefix, StringComparison.Ordinal) && English.ContainsKey(value))
             return Get(value);
-        var match = _english.Concat(_chinese).FirstOrDefault(p => p.Key.StartsWith(prefix, StringComparison.Ordinal) && p.Value == value);
+        var match = _catalogs.Values.SelectMany(catalog => catalog).FirstOrDefault(p => p.Key.StartsWith(prefix, StringComparison.Ordinal) && p.Value == value);
         return match.Key is null ? value : Get(match.Key);
     }
 
-    public static string NormalizeLanguage(string? language) =>
-        language?.StartsWith("zh", StringComparison.OrdinalIgnoreCase) == true ? "zh-CN" : "en";
+    public static string NormalizeLanguage(string? language)
+    {
+        string code = language?.Split('-', '_')[0].ToLowerInvariant() ?? "en";
+        return code switch { "zh" => "zh-CN", "ja" => "ja", "ko" => "ko", _ => "en" };
+    }
 
     private static IReadOnlyDictionary<string, string> ReadCatalog(string language)
     {

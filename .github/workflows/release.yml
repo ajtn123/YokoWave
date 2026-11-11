@@ -43,6 +43,7 @@ jobs:
           [xml]$props = Get-Content Directory.Build.props -Raw
           if ($props.Project.PropertyGroup.Version -ne $version) { throw 'Tag and project version do not match.' }
           if (!(Test-Path "docs/releases/$version.md")) { throw 'Release notes are missing.' }
+          if ((Get-Content "docs/releases/$version.md" -Raw) -match '(?m)^#\s') { throw 'Release notes must not repeat the release title as a level-one heading.' }
           $commit = git rev-parse "refs/tags/$tag^{commit}"
           if ($LASTEXITCODE -ne 0) { throw 'The tag must already exist.' }
           if ((git rev-parse HEAD) -ne $commit) { throw 'Checkout does not match the tag.' }

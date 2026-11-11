@@ -1,12 +1,19 @@
 /** Module-owned JSON catalogs live alongside the app catalogs in the root locales directory. */
 export class Localization {
+  static languages = ["en", "zh-CN", "ja", "ko"];
+
+  static normalizeLanguage(language) {
+    const code = language?.split(/[-_]/)[0].toLowerCase();
+    return code === "zh" ? "zh-CN" : ["ja", "ko"].includes(code) ? code : "en";
+  }
+
   constructor() {
-    this.language = navigator.language.startsWith("zh") ? "zh-CN" : "en";
+    this.language = Localization.normalizeLanguage(navigator.language);
     this.catalogs = {};
   }
 
   async load() {
-    const entries = await Promise.all(["en", "zh-CN"].map(async language => {
+    const entries = await Promise.all(Localization.languages.map(async language => {
       const response = await fetch(new URL(`../../locales/dinosaur/${language}.json`, import.meta.url));
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return [language, await response.json()];

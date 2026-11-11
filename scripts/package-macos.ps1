@@ -32,7 +32,7 @@ foreach ($size in @(16, 32, 128, 256, 512)) {
 if ($LASTEXITCODE -ne 0) { throw 'macOS icon creation failed.' }
 
 $catalogs = @{}
-foreach ($language in @('en', 'zh-CN')) {
+foreach ($language in @('en', 'zh-CN', 'ja', 'ko')) {
     $catalog = Get-Content (Join-Path $projectRoot "locales/app/$language.json") -Raw | ConvertFrom-Json -AsHashtable
     $catalogs[$language] = $catalog
     $directory = Join-Path $resources "$language.lproj"

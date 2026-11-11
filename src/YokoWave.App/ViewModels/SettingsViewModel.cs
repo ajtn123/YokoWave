@@ -16,7 +16,7 @@ public sealed class SettingsViewModel : ObservableObject, IDisposable
     private double _timerLimit = 120;
     private LanguageOption? _language;
     private TransportOption? _transport;
-    public IReadOnlyList<LanguageOption> Languages { get; } = [new("en", L10n.Current.English["Language.en"]), new("zh-CN", L10n.Current.English["Language.zh-CN"])];
+    public IReadOnlyList<LanguageOption> Languages { get; } = JsonLocalizer.SupportedLanguages.Select(code => new LanguageOption(code, L10n.Current.English[$"Language.{code}"])).ToArray();
     public IReadOnlyList<TransportOption> TransportOptions { get; } = [new(false), new(true)];
     public LanguageOption? SelectedLanguage
     {

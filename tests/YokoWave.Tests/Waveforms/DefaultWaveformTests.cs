@@ -88,8 +88,8 @@ public sealed class DefaultWaveformTests
         Assert.Equal("Extrusion", waveform.GetName(CultureInfo.GetCultureInfo("en-US")));
         Assert.Equal("挤压", waveform.GetName(CultureInfo.GetCultureInfo("zh-CN")));
         Assert.Equal(waveform.Name, waveform.GetName(CultureInfo.GetCultureInfo("ja-JP")));
-        Assert.DoesNotContain(L10n.Current.English.Keys, key => key.StartsWith("DefaultWave.", StringComparison.Ordinal));
-        Assert.DoesNotContain(L10n.Current.Chinese.Keys, key => key.StartsWith("DefaultWave.", StringComparison.Ordinal));
+        foreach (string language in JsonLocalizer.SupportedLanguages)
+            Assert.DoesNotContain(L10n.Current.GetCatalog(language).Keys, key => key.StartsWith("DefaultWave.", StringComparison.Ordinal));
         Assert.All(DefaultWaveformCatalog.Waveforms.Where(wave => wave.Source!.Provider == "yokonex"), wave =>
         {
             Assert.Equal(wave.Id.ToString()[24..].TrimStart('0'), wave.Source!.Key);

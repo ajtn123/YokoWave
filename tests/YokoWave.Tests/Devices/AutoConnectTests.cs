@@ -126,7 +126,7 @@ public sealed class AutoConnectTests
         using var state = new UiTestState();
         using var directory = new TestFolder();
         string id;
-        await using (var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new(directory.Path)))
+        await using (var vm = new MainViewModel(new DeviceController(new SimulationTransport()), await directory.CreateSimulationStoreAsync()))
         {
             await vm.InitializeAsync();
             var device = vm.Devices.Devices.First(d => d.Device.Kind == DeviceKind.DualChannel);
@@ -140,7 +140,7 @@ public sealed class AutoConnectTests
         Assert.True(saved.Settings.AutoConnect);
         Assert.Equal(id, Assert.Single(saved.Settings.AutoConnectDevices!));
         var controller = new DeviceController(new SimulationTransport());
-        await using (var vm = new MainViewModel(controller, new(directory.Path)))
+        await using (var vm = new MainViewModel(controller, await directory.CreateSimulationStoreAsync()))
         {
             await vm.InitializeAsync();
             Dispatcher.UIThread.RunJobs();

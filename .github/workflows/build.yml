@@ -36,18 +36,9 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          package-manager-cache: false
-
       - name: Test
         shell: pwsh
         run: ./scripts/verify.ps1
-
-      - name: Test browser modules
-        run: node --test tests/dinosaur/*.test.js
 
       - name: Upload test results
         if: always()

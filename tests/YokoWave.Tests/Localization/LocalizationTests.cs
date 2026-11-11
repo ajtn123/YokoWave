@@ -8,6 +8,8 @@ public sealed class LocalizationTests
     [Theory]
     [InlineData("en")]
     [InlineData("zh-CN")]
+    [InlineData("ja")]
+    [InlineData("ko")]
     public void LocalizedExceptionsKeepTheirCauseAndTranslateWhenLanguageChanges(string language)
     {
         string previous = L10n.Current.Language;
@@ -46,12 +48,16 @@ public sealed class LocalizationTests
     {
         var localizer = new JsonLocalizer("en");
         Assert.NotEmpty(localizer.English);
-        Assert.Equal(localizer.English.Keys.Order(), localizer.Chinese.Keys.Order());
-        foreach (var (key, english) in localizer.English)
+        foreach (string language in JsonLocalizer.SupportedLanguages)
         {
-            Assert.False(string.IsNullOrWhiteSpace(english), key);
-            Assert.False(string.IsNullOrWhiteSpace(localizer.Chinese[key]), key);
-            Assert.Equal(CompositeFormat.Parse(english).MinimumArgumentCount, CompositeFormat.Parse(localizer.Chinese[key]).MinimumArgumentCount);
+            var catalog = localizer.GetCatalog(language);
+            Assert.Equal(localizer.English.Keys.Order(StringComparer.Ordinal), catalog.Keys.Order(StringComparer.Ordinal));
+            Assert.Equal(catalog.Keys.Order(StringComparer.Ordinal), catalog.Keys);
+            foreach (var (key, english) in localizer.English)
+            {
+                Assert.False(string.IsNullOrWhiteSpace(catalog[key]), $"{language}: {key}");
+                Assert.Equal(CompositeFormat.Parse(english).MinimumArgumentCount, CompositeFormat.Parse(catalog[key]).MinimumArgumentCount);
+            }
         }
     }
 
@@ -59,6 +65,10 @@ public sealed class LocalizationTests
     [InlineData("zh-CN", "zh-CN")]
     [InlineData("zh-Hans", "zh-CN")]
     [InlineData("en-US", "en")]
+    [InlineData("ja-JP", "ja")]
+    [InlineData("JA", "ja")]
+    [InlineData("ko-KR", "ko")]
+    [InlineData("ko_KR", "ko")]
     [InlineData("de-DE", "en")]
     [InlineData(null, "en")]
     public void LanguagesResolveToSupportedCatalogs(string? requested, string expected) => Assert.Equal(expected, JsonLocalizer.NormalizeLanguage(requested));
@@ -66,9 +76,25 @@ public sealed class LocalizationTests
     [Fact]
     public void MissingTranslationFallsBackToEnglishAndThenVisibleKey()
     {
-        var localizer = new JsonLocalizer(new Dictionary<string, string> { ["Test.Message"] = "Value {0}" }, new Dictionary<string, string>(), "zh-CN");
+        var localizer = new JsonLocalizer(new Dictionary<string, IReadOnlyDictionary<string, string>>
+        {
+            ["en"] = new Dictionary<string, string> { ["Test.Message"] = "Value {0}" },
+            ["ja"] = new Dictionary<string, string>()
+        }, "ja");
         Assert.Equal("Value 12", localizer.Format("Test.Message", 12));
         Assert.Equal("[Missing.Key]", localizer.Get("Missing.Key"));
+    }
+
+    [Theory]
+    [InlineData("ja", "接続")]
+    [InlineData("ko", "연결")]
+    public void AddedLanguagesTranslateControlsAndStoredReasons(string language, string connect)
+    {
+        var localizer = new JsonLocalizer(language);
+        Assert.Equal(connect, localizer["Device.Connect"]);
+        string reason = localizer["Reason.Timer"];
+        localizer.SetLanguage("en");
+        Assert.Equal(localizer["Reason.Timer"], localizer.TranslateStored(reason, "Reason."));
     }
 
     [Fact]

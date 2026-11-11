@@ -88,7 +88,7 @@ public sealed class PipelineWorkspaceTests
     {
         using var state = new UiTestState();
         using var folder = new TestFolder();
-        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new(folder.Path));
+        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), await folder.CreateSimulationStoreAsync());
         await vm.InitializeAsync();
         var first = vm.Pipelines.Selected!;
         var device = vm.Devices.Devices.First(d => d.Device.Kind == DeviceKind.DualChannel);
@@ -111,7 +111,7 @@ public sealed class PipelineWorkspaceTests
     {
         using var state = new UiTestState();
         using var folder = new TestFolder();
-        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new(folder.Path));
+        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), await folder.CreateSimulationStoreAsync());
         await vm.InitializeAsync();
         string language = L10n.Current.Language;
         using var sink = new BindingLogCapture();
@@ -134,7 +134,7 @@ public sealed class PipelineWorkspaceTests
                 var node = editor.Nodes.FirstOrDefault(n => n.Type == registration.Type) ?? editor.AddNode(registration.Type);
                 editor.SelectedNodes.Clear();
                 editor.SelectedNodes.Add(node);
-                foreach (string? locale in new[] { "en", "zh-CN" })
+                foreach (string locale in JsonLocalizer.SupportedLanguages)
                 {
                     L10n.Current.SetLanguage(locale);
                     Dispatcher.UIThread.RunJobs();
@@ -173,7 +173,7 @@ public sealed class PipelineWorkspaceTests
     {
         using var state = new UiTestState();
         using var folder = new TestFolder();
-        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new(folder.Path));
+        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), await folder.CreateSimulationStoreAsync());
         await vm.InitializeAsync();
         var device = vm.Devices.Devices.First(d => d.Device.Kind == DeviceKind.DualChannel);
         await vm.Devices.ToggleConnectionAsync(device);
@@ -221,7 +221,7 @@ public sealed class PipelineWorkspaceTests
     {
         using var state = new UiTestState();
         using var folder = new TestFolder();
-        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new(folder.Path));
+        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), await folder.CreateSimulationStoreAsync());
         await vm.InitializeAsync();
         vm.Pipelines.SelectedTemplate = vm.Pipelines.Templates.Single(t => t.Name == L10n.Get("Template.NativeProgram"));
         vm.Pipelines.Add();

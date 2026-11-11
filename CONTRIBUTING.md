@@ -15,7 +15,7 @@ dotnet restore YokoWave.slnx
 dotnet run --project src/YokoWave.Desktop
 ```
 
-首次启动默认模拟，不会自动运行保存的图。开发时可隔离数据，避免改动日常工作区：
+首次启动默认蓝牙，不会自动运行保存的图。模拟可在设置中选择；macOS / Linux 当前使用模拟或远程设备。开发时可隔离数据，避免改动日常工作区：
 
 ```powershell
 $env:YOKOWAVE_DATA_DIR = Join-Path $PWD 'artifacts/dev-data'
@@ -57,7 +57,7 @@ dotnet run --project src/YokoWave.Desktop -- --smoke-test
 node --test tests/dinosaur/*.test.js
 ```
 
-应用与模块文案位于根目录 `locales/`，分别维护 `en.json` / `zh-CN.json`；应用词典由 Core 嵌入，模块词典通过同源 HTTP 加载。波形名称随资产存入其 JSON 的 `Names`，不使用应用词典键，见[波形格式](docs/waveforms.md)。
+应用与模块文案位于根目录 `locales/`，每组维护 `en.json` / `zh-CN.json` / `ja.json` / `ko.json`；应用词典由 Core 嵌入，模块词典通过同源 HTTP 加载。修改后运行 `./scripts/sort-locales.ps1`，统一按 Ordinal 键序排序所有本地化 JSON。`check-style.ps1` 检查词典格式，`-Fix` 同时排序。波形名称随资产存入其 JSON 的 `Names`，不使用应用词典键，见[波形格式](docs/waveforms.md)。
 
 ## 修改功能
 
@@ -68,7 +68,7 @@ node --test tests/dinosaur/*.test.js
 | 音频／传感器 | 平台层采集，核心只消费有时间与来源的特征；缺失归零，清理可等待。见[输入](docs/inputs.md)。 |
 | 波形 | 修改统一资产和 Schema，不在资产中保存设备包；验证默认库和各驱动转换。见[波形](docs/waveforms.md)。 |
 | 远程 | 同时更新 RPC 契约、服务端、客户端、节点和回环测试；租约与命名空间使用 `gatt` / `control` / `event`，事件租约不占用设备。见 [WebSocket](docs/websocket.md)。 |
-| 界面／文案 | 复用组件、语义样式和资源；同步 en / zh-CN，保留语言切换时的状态。见[界面与本地化](docs/localization.md)。 |
+| 界面／文案 | 复用组件、语义样式和资源；同步 en / zh-CN / ja / ko，排序所有词典，保留语言切换时的状态。见[界面与本地化](docs/localization.md)。 |
 | 本地文件 | 保持文件所有权、紧凑格式、损坏保护和关闭前写入屏障。开发阶段不增加数据迁移。见[存储](docs/storage.md)。 |
 
 测试验证可观察行为、边界和资源所有权。优先复用 `tests/YokoWave.Tests/Support`，用可等待信号、可控输入和有上限的状态等待；不为每个私有步骤增加镜像测试。硬件与网络新增路径明确区分替身验证、回环验证和实机验证。
@@ -83,7 +83,7 @@ node --test tests/dinosaur/*.test.js
 - `AGENTS.md`：代理必须遵守的工作和设计约束。
 - `CONTRIBUTING.md`：开发、验证、提交和交付流程。
 - `docs/`：当前实现、源码位置、数据与协议契约。
-- 应用内帮助：操作步骤、限制、快捷键和故障排查，中英文同步。
+- 应用内帮助：操作步骤、限制、快捷键和故障排查，四种语言同步。
 
 不要提交 APK、反编译源码、原始参考资料、凭据、研究脚本或构建产物；本地分析留在被忽略目录。代理提交使用自身身份，不修改用户全局 Git 配置。
 
@@ -91,12 +91,12 @@ node --test tests/dinosaur/*.test.js
 
 开发验证不需要 publish。GitHub 的 [Release 工作流](.github/workflows/release.yml) 由 `vMAJOR.MINOR.PATCH` 标签触发，也可手动选择已存在的标签。发布前修改 `Directory.Build.props` 的版本并添加 `docs/releases/<版本>.md`，提交后推送 main 和对应标签。标签版本必须与项目版本相同。
 
-工作流验证标签对应的提交，在 Windows / Linux 完成风格、构建、xUnit 和浏览器模块测试，再为三个系统的 x64 / ARM64 打包。附件全部上传成功后才公开 release；失败保留草稿，已发布附件不会被覆盖。只在最后发布的 job 授予 `contents: write`，其余 job 使用只读权限。
+工作流验证标签对应的提交，在 Windows / Linux 完成风格、构建和 xUnit 测试，再为三个系统的 x64 / ARM64 打包。浏览器模块不在 build / release 工作流中测试或打包，按需手动验证。Release notes 不写与发布标题重复的一级标题，发布脚本会拒绝该格式。六个桌面附件全部上传成功后才公开 release；失败保留草稿，已发布附件不会被覆盖。只在最后发布的 job 授予 `contents: write`，其余 job 使用只读权限。
 
 本地可在目标操作系统上验证同一打包脚本，例如 Windows：
 
 ```powershell
-./scripts/package-release.ps1 -Runtime win-x64 -Version 1.0.0
+./scripts/package-release.ps1 -Runtime win-x64 -Version 1.0.1
 ```
 
 该脚本生成自包含便携包，保留原生依赖，附带许可与运行说明；macOS 脚本构造 `.app`、从现有 ICO 生成图标、写入本地化麦克风权限说明并作临时签名。Windows / macOS 未使用开发者证书，macOS 未公证。没有额外的校验文件，附件信息由 GitHub 提供。标签、权限、目录与重试边界见[发行实现](docs/releases.md)。

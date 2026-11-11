@@ -26,6 +26,9 @@ public sealed class DeviceConfigurationTests
         var controller = new DeviceController(new SimulationTransport());
         await using var vm = new MainViewModel(controller, new(folder.Path), () => new BluetoothDeviceTransport(adapter));
         await vm.InitializeAsync();
+        Assert.True(vm.Devices.UsesLocalBluetooth);
+        Assert.True(vm.Settings.SelectedTransport?.UseBluetooth);
+        Assert.False(vm.IsError);
         await vm.Devices.ChangeTransportAsync(true);
         await vm.Devices.ScanAsync();
         foreach (var device in vm.Devices.Devices)

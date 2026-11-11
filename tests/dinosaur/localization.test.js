@@ -10,20 +10,22 @@ test("each app or module catalog has matching nonempty translations and placehol
   for (const group of groups.filter(entry => entry.isDirectory())) {
     const read = async language => JSON.parse(await readFile(new URL(`${group.name}/${language}.json`, locales), "utf8"));
     const english = await read("en");
-    const chinese = await read("zh-CN");
-    assert.deepEqual(Object.keys(english).sort(), Object.keys(chinese).sort(), group.name);
-    for (const [key, value] of Object.entries(english)) {
-      assert.ok(typeof value === "string" && value.trim(), key);
-      assert.ok(typeof chinese[key] === "string" && chinese[key].trim(), key);
-      const placeholders = text => [...text.matchAll(/\{(\d+)(?:[^}]*)\}/g)].map(match => match[1]).sort();
-      assert.deepEqual(placeholders(value), placeholders(chinese[key]), key);
+    for (const language of Localization.languages) {
+      const catalog = await read(language);
+      assert.deepEqual(Object.keys(english).sort(), Object.keys(catalog).sort(), `${group.name}/${language}`);
+      assert.deepEqual(Object.keys(catalog), Object.keys(catalog).sort(), `${group.name}/${language}: sort order`);
+      for (const [key, value] of Object.entries(english)) {
+        assert.ok(typeof catalog[key] === "string" && catalog[key].trim(), key);
+        const placeholders = text => [...text.matchAll(/\{(\d+)(?:[^}]*)\}/g)].map(match => match[1]).sort();
+        assert.deepEqual(placeholders(value), placeholders(catalog[key]), `${language}: ${key}`);
+      }
     }
   }
 });
 
 test("module language changes preserve formatting and unknown server errors remain readable", async () => {
   const localization = new Localization();
-  for (const language of ["en", "zh-CN"]) {
+  for (const language of Localization.languages) {
     localization.catalogs[language] = JSON.parse(await readFile(new URL(`dinosaur/${language}.json`, locales), "utf8"));
   }
   localization.language = "en";
@@ -32,4 +34,9 @@ test("module language changes preserve formatting and unknown server errors rema
   assert.equal(localization.text("Dinosaur.ChannelName", "C"), "通道 C");
   assert.equal(localization.text("Error.FutureProtocol"), "服务端错误：Error.FutureProtocol");
   assert.equal(localization.text("Error.RemoteAuthentication"), localization.catalogs["zh-CN"]["Error.RemoteAuthentication"]);
+  for (const [requested, language, channel] of [["ja-JP", "ja", "チャンネル C"], ["ko-KR", "ko", "채널 C"]]) {
+    localization.language = Localization.normalizeLanguage(requested);
+    assert.equal(localization.language, language);
+    assert.equal(localization.text("Dinosaur.ChannelName", "C"), channel);
+  }
 });

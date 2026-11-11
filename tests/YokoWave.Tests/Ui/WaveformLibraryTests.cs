@@ -21,7 +21,7 @@ public sealed class WaveformLibraryTests
     {
         using var state = new UiTestState();
         using var folder = new TestFolder();
-        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new WorkspaceStore(folder.Path));
+        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), await folder.CreateSimulationStoreAsync());
         var view = new MainView
         {
             DataContext = vm

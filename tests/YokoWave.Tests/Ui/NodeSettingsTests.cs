@@ -18,7 +18,7 @@ public sealed class NodeSettingsTests
     {
         using var state = new UiTestState();
         using var folder = new TestFolder();
-        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new(folder.Path));
+        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), await folder.CreateSimulationStoreAsync());
         await vm.InitializeAsync();
         var editor = vm.Pipelines.Selected!;
         var automation = editor.Nodes.First(n => n.Type == BuiltInNodes.Automation);
@@ -67,7 +67,7 @@ public sealed class NodeSettingsTests
         }
 
         await vm.Pipelines.SaveAsync();
-        await using var restored = new MainViewModel(new DeviceController(new SimulationTransport()), new(folder.Path));
+        await using var restored = new MainViewModel(new DeviceController(new SimulationTransport()), await folder.CreateSimulationStoreAsync());
         await restored.InitializeAsync();
         var loaded = restored.Pipelines.Selected!;
         Assert.Equal(8, Read<AutomationNode>(loaded, loaded.Nodes.Single(n => n.Id == automation.Id)).Settings.Step);

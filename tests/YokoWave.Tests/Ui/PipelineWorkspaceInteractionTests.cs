@@ -27,7 +27,7 @@ public sealed class PipelineWorkspaceInteractionTests
     {
         using var state = new UiTestState();
         using var directory = new TestFolder();
-        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new(directory.Path));
+        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), await directory.CreateSimulationStoreAsync());
         await vm.InitializeAsync();
         var first = vm.Pipelines.Selected!;
         vm.Pipelines.Add();
@@ -92,7 +92,7 @@ public sealed class PipelineWorkspaceInteractionTests
     {
         using var state = new UiTestState();
         using var directory = new TestFolder();
-        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new(directory.Path));
+        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), await directory.CreateSimulationStoreAsync());
         await vm.InitializeAsync();
         var editor = vm.Pipelines.Selected!;
         Assert.Empty(vm.Pipelines.DeviceGroups.UnassignedDevices);
@@ -170,7 +170,7 @@ public sealed class PipelineWorkspaceInteractionTests
         using var state = new UiTestState();
         using var directory = new TestFolder();
         var controller = new DeviceController(new SimulationTransport());
-        await using var vm = new MainViewModel(controller, new(directory.Path));
+        await using var vm = new MainViewModel(controller, await directory.CreateSimulationStoreAsync());
         await vm.InitializeAsync();
         foreach (var device in vm.Devices.Devices.Where(d => d.Device.Kind == DeviceKind.DualChannel))
             await vm.Devices.ToggleConnectionAsync(device);
@@ -210,7 +210,7 @@ public sealed class PipelineWorkspaceInteractionTests
     {
         using var state = new UiTestState();
         using var directory = new TestFolder();
-        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new(directory.Path));
+        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), await directory.CreateSimulationStoreAsync());
         await vm.InitializeAsync();
         foreach (var device in vm.Devices.Devices.Where(d => d.Device.Kind == DeviceKind.DualChannel))
             await vm.Devices.ToggleConnectionAsync(device);
@@ -236,7 +236,7 @@ public sealed class PipelineWorkspaceInteractionTests
     {
         using var state = new UiTestState();
         using var directory = new TestFolder();
-        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), new(directory.Path));
+        await using var vm = new MainViewModel(new DeviceController(new SimulationTransport()), await directory.CreateSimulationStoreAsync());
         await vm.InitializeAsync();
         var editor = vm.Pipelines.Selected!;
         foreach (var device in vm.Devices.Devices.Where(d => d.Device.Kind == DeviceKind.DualChannel))
