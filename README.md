@@ -40,7 +40,7 @@
 | macOS | [TAR.GZ](https://github.com/ajtn123/YokoWave/releases/download/v1.0.0/YokoWave-v1.0.0-osx-x64.tar.gz) | [TAR.GZ](https://github.com/ajtn123/YokoWave/releases/download/v1.0.0/YokoWave-v1.0.0-osx-arm64.tar.gz) |
 | Linux | [TAR.GZ](https://github.com/ajtn123/YokoWave/releases/download/v1.0.0/YokoWave-v1.0.0-linux-x64.tar.gz) | [TAR.GZ](https://github.com/ajtn123/YokoWave/releases/download/v1.0.0/YokoWave-v1.0.0-linux-arm64.tar.gz) |
 
-Apple 芯片 Mac 使用 ARM64，Intel Mac 使用 x64。完整解压并保留所有文件：Windows 运行 `YokoWave.exe`，macOS 打开 `YokoWave.app`，Linux 运行 `./YokoWave`。发行包没有开发者证书签名，macOS 使用临时签名且未公证，首次打开可能需要在系统安全设置中允许。Linux 仍需系统的图形、字体和音频依赖，见 [Avalonia Linux 运行要求](https://docs.avaloniaui.net/docs/get-started/linux)。
+Apple 芯片 Mac 使用 ARM64，Intel Mac 使用 x64。完整解压并保留所有文件：Windows 运行 `YokoWave.exe`，macOS 打开 `YokoWave.app`，Linux 运行 `./YokoWave`。发行包没有开发者证书签名，macOS 使用临时签名且未公证，首次打开可能需要在系统安全设置中允许。Linux 仍需系统的图形、字体和音频依赖，见 [Avalonia Linux 运行要求](https://docs.avaloniaui.net/docs/platform-specific-guides/linux)。
 
 1. 首次启动使用本地模拟。使用实机时，在「偏好设置 → 设备来源」选择蓝牙并保存。
 2. 在「设备工作台」发现并连接设备。
