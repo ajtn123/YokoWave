@@ -8,7 +8,6 @@
 - 按任务范围完成实现、绑定、调用、测试和文档的全链路更新。项目不是公共库，优先清晰一致的命名，不保留无用途的兼容层或别名。
 - 使用构建、分析器及相关行为测试验证；默认不 publish，不用重复的私有步骤测试或未经测量的性能结论代替验证。
 - 文档只记录当前行为。README 负责介绍与快速开始，CONTRIBUTING 负责开发流程，docs 负责技术细节，应用内帮助负责用户操作；更新对应内容并检查链接。
-- 用自身身份提交，不冒用用户、不修改全局 Git 配置。Codex 示例：`git -c user.name=codex -c user.email=codex@openai.com commit ...`。
 - 不提交凭据、Token、APK、反编译源码、参考 PDF 或本地研究产物。本地参考凭据位于 `.research/credentials/reference-service.dpapi`，仅在用户授权时复用；内置波形使用规范化数据。
 
 ## 代码与职责
