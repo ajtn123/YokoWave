@@ -1,10 +1,9 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
-using Microsoft.AspNetCore.WebUtilities;
 using YokoWave.Core.Localization;
 
-namespace YokoWave.Remote.DgLab.V4;
+namespace YokoWave.Sdk.DgLab.V4;
 
 public sealed class DgLabV4Exception(string code) : Exception, ILocalizedError
 {
@@ -51,8 +50,8 @@ public static class DgLabV4Protocol
 {
     internal static string? TargetController(string query)
     {
-        var parameters = QueryHelpers.ParseQuery(query);
-        return parameters.GetValueOrDefault("targetId").FirstOrDefault() ?? parameters.GetValueOrDefault("tid").FirstOrDefault();
+        var parameters = System.Web.HttpUtility.ParseQueryString(query);
+        return parameters.GetValues("targetId")?.FirstOrDefault() ?? parameters.GetValues("tid")?.FirstOrDefault();
     }
 
     public static string String(JsonElement value, string key) => value.ValueKind == JsonValueKind.Object && value.TryGetProperty(key, out var field) && field.ValueKind == JsonValueKind.String

@@ -1,7 +1,7 @@
 using System.Net.WebSockets;
 using YokoWave.Core.Localization;
 
-namespace YokoWave.Remote;
+namespace YokoWave.Sdk;
 
 /// <summary>Serializes lease operations and maintains the server clock and heartbeat.</summary>
 internal sealed class RemoteLeaseLink(WebSocketRpcPeer peer, RemoteLease lease, long serverClock, long clockAt, string? deviceId = null) : IAsyncDisposable
@@ -61,6 +61,17 @@ internal sealed class RemoteLeaseLink(WebSocketRpcPeer peer, RemoteLease lease, 
     }
     public async ValueTask DisposeAsync()
     {
+        try
+        {
+            await ReleaseAsync().ConfigureAwait(false);
+        }
+        catch (Exception error) when (error is RemoteRpcException or IOException or OperationCanceledException or WebSocketException)
+        {
+            // Transport adapters retain their existing best-effort disconnect behavior.
+        }
+    }
+    public async Task ReleaseAsync()
+    {
         if (Interlocked.Exchange(ref _disposed, 1) != 0)
             return;
         lock (_stateGate)
@@ -76,7 +87,6 @@ internal sealed class RemoteLeaseLink(WebSocketRpcPeer peer, RemoteLease lease, 
                 }).ConfigureAwait(false);
             }
         }
-        catch (Exception error) when (error is RemoteRpcException or IOException or OperationCanceledException or WebSocketException) { }
         finally
         {
             _gate.Release();

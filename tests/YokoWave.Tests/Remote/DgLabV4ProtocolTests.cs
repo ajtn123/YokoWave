@@ -1,7 +1,6 @@
 using System.Text.Json.Nodes;
 using YokoWave.Core;
 using YokoWave.Core.Bluetooth;
-using YokoWave.Remote;
 using YokoWave.Remote.DgLab.V4;
 
 namespace YokoWave.Tests.Remote;

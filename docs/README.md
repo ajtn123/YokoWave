@@ -14,6 +14,7 @@
 | [DG-LAB V4](dglab-v4.md) | App 配对、设备来源、被控图、中继与任务语义 |
 | [恐龙游戏](dinosaur.md) | 静态浏览器模块、运行步骤及碰撞输出 |
 | [Minecraft / Java SDK](minecraft.md) | 加载器边界、游戏事件、输出规则与独立连接库 |
+| [C# SDK](../modules/csharp-sdk/README.md) | 纯客户端依赖、高层控制 API、事件／GATT／V4 和共享 SDK 发布 |
 | [GitHub Pages](pages.md) | 官网、模块发现、共享资源与独立部署工作流 |
 | [波形](waveforms.md) | 统一格式、Schema、默认库与设备转换 |
 | [存储](storage.md) | 文件所有权、写入顺序、损坏保护与重置 |

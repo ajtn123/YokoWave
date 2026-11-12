@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Net.WebSockets;
-using YokoWave.Remote;
 
 namespace YokoWave.Tests.Support.Remote;
 

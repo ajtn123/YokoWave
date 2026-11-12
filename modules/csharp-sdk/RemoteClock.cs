@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace YokoWave.Remote;
+namespace YokoWave.Sdk;
 
 /// <summary>Uses the server's monotonic clock; a slow response only shortens a command's validity.</summary>
 internal sealed class RemoteClock(long milliseconds, long receivedAt)

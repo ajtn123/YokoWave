@@ -1,0 +1,113 @@
+name: SDKs
+
+on:
+  push:
+    branches: [main]
+    tags: ['sdk-v*.*.*']
+    paths: ['modules/java-sdk/**', 'modules/csharp-sdk/**', 'modules/sdk-version.txt', 'src/YokoWave.Core/**', 'src/YokoWave.Remote/**', 'tests/YokoWave.Sdk.Tests/**', 'tests/YokoWave.Tests/Support/**', 'locales/app/**', 'scripts/package-sdk.ps1', 'Directory.Build.props', 'global.json', '.editorconfig', '.github/workflows/sdk.yml']
+  pull_request:
+    branches: [main]
+    paths: ['modules/java-sdk/**', 'modules/csharp-sdk/**', 'modules/sdk-version.txt', 'src/YokoWave.Core/**', 'src/YokoWave.Remote/**', 'tests/YokoWave.Sdk.Tests/**', 'tests/YokoWave.Tests/Support/**', 'locales/app/**', 'scripts/package-sdk.ps1', 'Directory.Build.props', 'global.json', '.editorconfig', '.github/workflows/sdk.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - id: version
+        env:
+          TAG: ${{ github.ref_name }}
+          IS_TAG: ${{ github.ref_type == 'tag' }}
+        run: |
+          version=$(cat modules/sdk-version.txt)
+          [[ "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          if [[ "$IS_TAG" == true ]]; then test "$TAG" = "sdk-v$version"; fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  java:
+    needs: version
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: microsoft
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Build and test Java SDK
+        working-directory: modules/java-sdk
+        run: bash gradlew build --no-daemon
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sdk-package-java
+          path: modules/java-sdk/build/libs/*.jar
+          if-no-files-found: error
+
+  csharp:
+    needs: version
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      MSBuildEnableWorkloadResolver: 'false'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+      - name: Build and test C# SDK
+        run: |
+          dotnet build tests/YokoWave.Sdk.Tests/YokoWave.Sdk.Tests.csproj -c Release -m:1 -p:UseSharedCompilation=false
+          dotnet tests/YokoWave.Sdk.Tests/bin/Release/net10.0/YokoWave.Sdk.Tests.dll
+      - name: Pack and verify isolated NuGet consumer
+        shell: pwsh
+        run: ./scripts/package-sdk.ps1
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sdk-package-csharp
+          path: artifacts/sdk/*.nupkg
+          if-no-files-found: error
+
+  release:
+    needs: [version, java, csharp]
+    if: startsWith(github.ref, 'refs/tags/sdk-v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: sdk-package-*
+          merge-multiple: true
+          path: release
+      - name: Publish SDK release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          for file in "yokowave-sdk-$VERSION.jar" "yokowave-sdk-$VERSION-sources.jar" "yokowave-sdk-$VERSION-javadoc.jar" "YokoWave.Core.$VERSION.nupkg" "YokoWave.Sdk.$VERSION.nupkg"; do test -f "release/$file"; done
+          if gh release view "$TAG" --json isDraft --jq .isDraft > draft.txt 2>/dev/null; then
+            test "$(cat draft.txt)" = true || { echo 'Published SDK releases are immutable.'; exit 1; }
+          else
+            gh release create "$TAG" --verify-tag --draft --title "SDKs v$VERSION" --generate-notes --latest=false
+          fi
+          gh release upload "$TAG" release/*.jar release/*.nupkg --clobber
+          gh release edit "$TAG" --draft=false --latest=false

@@ -4,7 +4,7 @@ using YokoWave.Core;
 using YokoWave.Core.Bluetooth;
 using YokoWave.Core.Localization;
 
-namespace YokoWave.Remote;
+namespace YokoWave.Sdk;
 
 /// <summary>Virtual GATT links feed the existing protocol driver factory on the controlling machine.</summary>
 public sealed class WebSocketGattAdapter : IBluetoothAdapter, IAsyncDisposable

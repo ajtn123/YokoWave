@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace YokoWave.Remote.DgLab.V4;
+namespace YokoWave.Sdk.DgLab.V4;
 
 public sealed record DgLabV4TaskOptions(int Priority = 1, double Duration = 0, bool Immediate = false, TimeSpan? Timeout = null);
 

@@ -4,7 +4,7 @@ using YokoWave.Core;
 using YokoWave.Core.Bluetooth;
 using YokoWave.Core.Localization;
 
-namespace YokoWave.Remote;
+namespace YokoWave.Sdk;
 
 /// <summary>Device transport for high-level control endpoints. Output still passes through the host graph.</summary>
 public sealed class WebSocketControlTransport : IDeviceTransport, IDeviceStatusSource, IDeviceCommandTransport, IElectricalMotionSource, IElectricalDeviceFeatures, IInputDeviceFeatures

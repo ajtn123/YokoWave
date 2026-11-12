@@ -36,7 +36,7 @@ internal sealed class RemotePeerSession : IAsyncDisposable
             await Peer.DisposeAsync().ConfigureAwait(false);
         }
     }
-    private Task<object?> HandleAsync(string method, JsonElement parameters, CancellationToken cancellationToken)
+    private async Task<object?> HandleAsync(string method, JsonElement parameters, CancellationToken cancellationToken)
     {
         if (method == "system.authenticate")
         {
@@ -44,10 +44,17 @@ internal sealed class RemotePeerSession : IAsyncDisposable
             if (token.Length > 256 || !CryptographicOperations.FixedTimeEquals(SHA256.HashData(Encoding.UTF8.GetBytes(token)), _tokenHash))
                 throw new RemoteRpcException(-32001, "Error.RemoteAuthentication");
             _authenticated = true;
-            return Task.FromResult<object?>(true);
+            return true;
         }
         if (!_authenticated)
             throw new RemoteRpcException(-32001, "Error.RemoteAuthentication");
-        return _session.DispatchAsync(this, method, parameters, cancellationToken);
+        try
+        {
+            return await _session.DispatchAsync(this, method, parameters, cancellationToken).ConfigureAwait(false);
+        }
+        catch (YokoWave.Pipelines.PipelineValidationException error)
+        {
+            throw new RemoteRpcException(-32602, "Error.RemoteRequest", error);
+        }
     }
 }

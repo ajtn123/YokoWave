@@ -10,6 +10,8 @@ flowchart TD
     App --> Core[YokoWave.Core]
     Remote --> Pipelines
     Remote --> Core
+    Remote --> Sdk[YokoWave.Sdk]
+    Sdk --> Core
     Pipelines --> Core
 ```
 
@@ -17,7 +19,8 @@ flowchart TD
 | --- | --- | --- |
 | Core | 设备模型、能力、操作锁、协议驱动、统一波形、输入契约与工作区存储 | 不引用 Windows SDK、UI 或节点控件 |
 | Pipelines | 图、注册表、编译、同步处理器、资源参与者、后台会话 | 纯 .NET，不保存 UI 模型；处理器不做 I/O |
-| Remote | RPC、租约、GATT／control 客户端、服务端及网络节点 | 远程播放仍编译为图，复用控制器和会话 |
+| Sdk | RPC、租约、event／GATT／control 客户端与 DG V4 控制方 | 位于 `modules/csharp-sdk`，只引用 Core；可独立打包 |
+| Remote | 服务端、DG V4 中继／被控端及网络节点 | 引用 Sdk，远程播放仍编译为图，复用控制器和会话 |
 | App | Avalonia 页面、编辑器、绑定、交互及显示 | Nodify 只存在于此；不承担协议编码 |
 | Desktop | 入口、原生蓝牙、音频及诊断 | 通过 Core 输入／传输契约注入平台能力 |
 

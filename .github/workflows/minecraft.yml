@@ -4,10 +4,10 @@ on:
   push:
     branches: [main]
     tags: ['minecraft-v*.*.*']
-    paths: ['modules/minecraft/**', 'modules/java-sdk/**', 'locales/minecraft/**', '.github/workflows/minecraft.yml']
+    paths: ['modules/minecraft/**', 'modules/java-sdk/**', 'modules/sdk-version.txt', 'locales/minecraft/**', '.github/workflows/minecraft.yml']
   pull_request:
     branches: [main]
-    paths: ['modules/minecraft/**', 'modules/java-sdk/**', 'locales/minecraft/**', '.github/workflows/minecraft.yml']
+    paths: ['modules/minecraft/**', 'modules/java-sdk/**', 'modules/sdk-version.txt', 'locales/minecraft/**', '.github/workflows/minecraft.yml']
   workflow_dispatch:
 
 permissions:

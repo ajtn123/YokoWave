@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Threading.Channels;
 using YokoWave.Core.Localization;
 
-namespace YokoWave.Remote;
+namespace YokoWave.Sdk;
 
 /// <summary>One receive loop and one bounded send loop per connection. Mutating requests are never retried.</summary>
 public sealed class WebSocketRpcPeer : IAsyncDisposable
@@ -206,10 +206,10 @@ public sealed class WebSocketRpcPeer : IAsyncDisposable
             int code = error switch
             {
                 RemoteRpcException rpc => rpc.Code,
-                JsonException or ArgumentException or Pipelines.PipelineValidationException => -32602,
+                JsonException or ArgumentException => -32602,
                 _ => -32000
             };
-            string key = error switch { RemoteRpcException rpcError => rpcError.Key, ILocalizedError localized => localized.LocalizedMessage.Key, JsonException or ArgumentException or Pipelines.PipelineValidationException => "Error.RemoteRequest", _ => "Error.RemoteOperation" };
+            string key = error switch { RemoteRpcException rpcError => rpcError.Key, ILocalizedError localized => localized.LocalizedMessage.Key, JsonException or ArgumentException => "Error.RemoteRequest", _ => "Error.RemoteOperation" };
             failure = new { code, message = key };
             System.Diagnostics.Trace.TraceWarning("Remote operation {0} failed: {1}", method, error);
         }

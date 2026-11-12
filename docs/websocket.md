@@ -12,7 +12,9 @@
 
 `WebSocketGattAdapter` / `WebSocketGattConnection` 实现链路抽象，`WebSocketControlTransport` 实现统一设备传输，经 `RoutedDeviceTransport` 与本地及模拟来源共存。`RemoteEventClient` 声明并发送事件。三者复用 `RemoteClientConnection` 的认证与 `RemoteLeaseLink` 的租约续期、顺序号和服务端单调时钟。`RemoteServerSession` 为设备导出和事件会话提供共同的监听／认证边界，事件接收不创建另一套玩法执行器。BLE 主机后端为 Windows，控制端可使用其他桌面平台。
 
-图、服务端参数和设备引用保存在 pipelines.json，端点地址／名称／连接种类保存在 settings.json；令牌和证书密码仅在内存。WebSocket 来源需手动接入，已接入来源中的设备可参与自动重连；启动不自动监听或恢复玩法输出。Remote 依赖 .NET 10 的 Microsoft.AspNetCore.App。
+上述客户端及协议契约属于 [C# SDK](../modules/csharp-sdk/README.md)，命名空间为 `YokoWave.Sdk`。`RemoteControlClient` 供外部软件直接调用播放、输出、状态和命令；`YokoWave.Remote` 保留服务端与管线集成。客户端包只依赖 Core，不要求 ASP.NET Core 或管线运行时。
+
+图、服务端参数和设备引用保存在 pipelines.json，端点地址／名称／连接种类保存在 settings.json；令牌和证书密码仅在内存。WebSocket 来源需手动接入，已接入来源中的设备可参与自动重连；启动不自动监听或恢复玩法输出。服务端 Remote 依赖 .NET 10 的 Microsoft.AspNetCore.App；SDK 仅要求 .NET 10 基础运行时。
 
 ## 协议及租约
 

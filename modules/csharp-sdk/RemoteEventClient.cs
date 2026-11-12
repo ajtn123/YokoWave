@@ -1,6 +1,6 @@
 using YokoWave.Core.Localization;
 
-namespace YokoWave.Remote;
+namespace YokoWave.Sdk;
 
 /// <summary>Authenticates, declares the event catalog, then emits declared events through a renewing event lease.</summary>
 public sealed class RemoteEventClient : IAsyncDisposable

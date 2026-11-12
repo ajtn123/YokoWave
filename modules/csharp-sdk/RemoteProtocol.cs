@@ -4,7 +4,7 @@ using YokoWave.Core;
 using YokoWave.Core.Bluetooth;
 using YokoWave.Core.Localization;
 
-namespace YokoWave.Remote;
+namespace YokoWave.Sdk;
 
 public enum RemoteLeaseType
 {
@@ -46,7 +46,7 @@ public sealed record RemotePlaybackSettings(RemotePlaybackKind Kind = RemotePlay
 public sealed record RemoteControlProgram(RemotePlaybackSettings Program, WaveformAsset? Waveform = null,
     double ChannelA = 0, double ChannelB = 0, double ChannelC = 0, double? DurationSeconds = null);
 
-public sealed class RemoteRpcException(int code, string key) : Exception(L10n.Get(key)), ILocalizedError
+public sealed class RemoteRpcException(int code, string key, Exception? innerException = null) : Exception(L10n.Get(key), innerException), ILocalizedError
 {
     public int Code { get; } = code;
     public string Key { get; } = key;

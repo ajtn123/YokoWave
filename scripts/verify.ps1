@@ -18,6 +18,8 @@ try {
     New-Item -ItemType Directory -Force -Path $reportDirectory | Out-Null
     & dotnet tests/YokoWave.Tests/bin/Release/net10.0/YokoWave.Tests.dll -xml (Join-Path $reportDirectory 'test-results.xml')
     if ($LASTEXITCODE -ne 0) { throw 'Tests failed.' }
+    & dotnet tests/YokoWave.Sdk.Tests/bin/Release/net10.0/YokoWave.Sdk.Tests.dll -xml (Join-Path $reportDirectory 'sdk-test-results.xml')
+    if ($LASTEXITCODE -ne 0) { throw 'SDK tests failed.' }
 }
 finally {
     Pop-Location

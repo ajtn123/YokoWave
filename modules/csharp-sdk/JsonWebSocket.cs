@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.Threading.Channels;
 using YokoWave.Core.Localization;
 
-namespace YokoWave.Remote;
+namespace YokoWave.Sdk;
 
 /// <summary>Bounded JSON framing; relay input also accepts binary JSON and ignores invalid JSON. One reader and writer own the socket.</summary>
 internal sealed class JsonWebSocket(WebSocket socket, bool tolerantInput = false) : IAsyncDisposable

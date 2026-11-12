@@ -46,6 +46,8 @@ dotnet tests/YokoWave.Tests/bin/Release/net10.0/YokoWave.Tests.dll -namespace 'Y
 
 截图写入 `artifacts/screenshots/`，完整验证的 xUnit 报告写入 `artifacts/test-results.xml`。截图辅助诊断，布局、绑定、状态和渲染变化仍通过断言检查；大图测试验证全部节点和连线被呈现，不将单次运行的时间或内存快照当作性能基准。
 
+`tests/YokoWave.Sdk.Tests` 独立于 UI 测试，复用 `Support/Remote`、GATT 替身和有界等待，验证直接 SDK 调用及依赖边界；`verify.ps1` 同时运行，报告为 `artifacts/sdk-test-results.xml`。`package-sdk.ps1` 还从实际 NuGet 包构建独立消费者，验证包闭包和仅需基础 .NET 运行时。
+
 浏览器模块使用 Node 内置测试运行器，独立于 .NET 检查，不安装 npm 包：
 
 ```sh

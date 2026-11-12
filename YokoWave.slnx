@@ -8,5 +8,9 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/YokoWave.Tests/YokoWave.Tests.csproj" />
+    <Project Path="tests/YokoWave.Sdk.Tests/YokoWave.Sdk.Tests.csproj" />
+  </Folder>
+  <Folder Name="/modules/">
+    <Project Path="modules/csharp-sdk/YokoWave.Sdk.csproj" />
   </Folder>
 </Solution>

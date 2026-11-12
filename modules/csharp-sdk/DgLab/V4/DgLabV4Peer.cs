@@ -3,7 +3,7 @@ using System.Net.WebSockets;
 using System.Text.Json;
 using YokoWave.Core.Localization;
 
-namespace YokoWave.Remote.DgLab.V4;
+namespace YokoWave.Sdk.DgLab.V4;
 
 public sealed record DgLabV4Request(string SourceId, string Id, string Method, JsonElement Data);
 

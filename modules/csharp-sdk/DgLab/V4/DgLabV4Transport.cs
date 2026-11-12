@@ -4,7 +4,7 @@ using YokoWave.Core;
 using YokoWave.Core.Bluetooth;
 using YokoWave.Core.Localization;
 
-namespace YokoWave.Remote.DgLab.V4;
+namespace YokoWave.Sdk.DgLab.V4;
 
 /// <summary>App slots participate in the ordinary device router. Short tasks bound output if a controller disappears.</summary>
 public sealed class DgLabV4Transport : IDeviceTransport, IDeviceStatusSource, IDeviceCommandTransport

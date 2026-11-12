@@ -2,8 +2,6 @@ using System.Collections.ObjectModel;
 using YokoWave.Core;
 using YokoWave.Core.Bluetooth;
 using YokoWave.Core.Localization;
-using YokoWave.Remote;
-using YokoWave.Remote.DgLab.V4;
 
 namespace YokoWave.App.ViewModels;
 

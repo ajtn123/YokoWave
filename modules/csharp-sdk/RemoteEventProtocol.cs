@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace YokoWave.Remote;
+namespace YokoWave.Sdk;
 
 public enum RemoteEventKind { Trigger, Number }
 

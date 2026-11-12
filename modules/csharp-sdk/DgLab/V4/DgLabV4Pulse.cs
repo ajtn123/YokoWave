@@ -2,7 +2,7 @@ using System.Text.Json;
 using YokoWave.Core;
 using YokoWave.Core.Bluetooth;
 
-namespace YokoWave.Remote.DgLab.V4;
+namespace YokoWave.Sdk.DgLab.V4;
 
 /// <summary>Each wire frame represents 100 ms; normalized samples remain independent of the wire version.</summary>
 public static class DgLabV4Pulse

@@ -1,5 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <PackageLicenseExpression>MIT AND GPL-3.0-only</PackageLicenseExpression>
+    <PackageReadmeFile>THIRD-PARTY-NOTICES.md</PackageReadmeFile>
+    <Description>Shared device contracts, waveform assets and protocol models for YokoWave.</Description>
+  </PropertyGroup>
   <ItemGroup>
+    <None Include="../../LICENSE" Pack="true" PackagePath="/" />
+    <None Include="../../THIRD-PARTY-NOTICES.md" Pack="true" PackagePath="/" />
+    <None Include="../../licenses/dglab-kit-GPL-3.0.txt" Pack="true" PackagePath="licenses/" />
     <EmbeddedResource Include="Data/yokonex-waveforms.json" LogicalName="YokoWave.Core.Data.yokonex-waveforms.json" />
     <EmbeddedResource Include="Data/coyote-waveforms.json" LogicalName="YokoWave.Core.Data.coyote-waveforms.json" />
     <EmbeddedResource Include="Data/ovc-waveforms.json" LogicalName="YokoWave.Core.Data.ovc-waveforms.json" />

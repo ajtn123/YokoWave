@@ -1,7 +1,6 @@
 using Avalonia.Threading;
 using YokoWave.Core;
 using YokoWave.Core.Localization;
-using YokoWave.Remote.DgLab.V4;
 
 namespace YokoWave.App.ViewModels;
 

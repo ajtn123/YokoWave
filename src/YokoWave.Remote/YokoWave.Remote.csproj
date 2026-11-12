@@ -2,6 +2,7 @@
   <ItemGroup>
     <ProjectReference Include="../YokoWave.Core/YokoWave.Core.csproj" />
     <ProjectReference Include="../YokoWave.Pipelines/YokoWave.Pipelines.csproj" />
+    <ProjectReference Include="../../modules/csharp-sdk/YokoWave.Sdk.csproj" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 </Project>

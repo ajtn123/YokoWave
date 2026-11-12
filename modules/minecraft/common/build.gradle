@@ -1,5 +1,6 @@
+def sdkVersion = rootProject.file('../sdk-version.txt').text.trim()
 dependencies {
-    api 'io.github.ajtn123.yokowave:yokowave-sdk:1.0.0'
+    api "io.github.ajtn123.yokowave:yokowave-sdk:${sdkVersion}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.13.4'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }

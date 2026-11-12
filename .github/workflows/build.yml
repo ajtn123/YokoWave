@@ -45,6 +45,8 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: tests-${{ matrix.os }}
-          path: artifacts/test-results.xml
+          path: |
+            artifacts/test-results.xml
+            artifacts/sdk-test-results.xml
           if-no-files-found: ignore
           retention-days: 7

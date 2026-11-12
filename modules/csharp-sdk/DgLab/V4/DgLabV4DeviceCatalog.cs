@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace YokoWave.Remote.DgLab.V4;
+namespace YokoWave.Sdk.DgLab.V4;
 
 /// <summary>Connection-scoped identities, atomic device events and revision-checked query responses.</summary>
 public sealed class DgLabV4DeviceCatalog(Guid endpoint, TimeProvider? clock = null)

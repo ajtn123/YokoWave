@@ -9,8 +9,8 @@ src/
     Data/                规范化内置波形
     Localization/        JSON 词典、本地化消息与异常
   YokoWave.Pipelines/     纯 .NET 图定义、编译、处理器和会话
-  YokoWave.Remote/        WebSocket RPC、租约、设备／事件客户端与资源节点
-    DgLab/V4/            DG-LAB V4 配对、设备目录、任务处理与中继
+  YokoWave.Remote/        WebSocket 服务端、图资源节点与事件输入
+    DgLab/V4/            DG-LAB V4 被控端、任务处理与中继
   YokoWave.App/           Avalonia 界面
     ViewModels/          设备、设置、波形、历史及共享编辑模型
       Pipelines/         图工作区、节点编辑器、历史与设备分组
@@ -28,8 +28,10 @@ src/
 tests/YokoWave.Tests/    按领域组织的 xUnit 和 Headless 测试
   Support/               图工厂、传输替身、隔离目录及 UI 操作
 tests/dinosaur/          Node 内置测试运行器验证浏览器模块
+tests/YokoWave.Sdk.Tests/ 独立 SDK 回环与依赖边界，复用既有网络准备
 modules/dinosaur/        HTML、JS、CSS 恐龙游戏，调用现有 control 服务端
 modules/java-sdk/        独立 Java 25 WebSocket SDK，不依赖 Minecraft 或 .NET
+modules/csharp-sdk/      .NET 10 客户端 SDK；RPC、租约、GATT、事件与 DG V4 控制方
 modules/minecraft/       共用游戏逻辑／界面与 Fabric、Forge、NeoForge 薄适配
 locales/
   app/                   应用的 en.json / zh-CN.json，嵌入 Core
@@ -55,14 +57,15 @@ scripts/                 风格、验证及覆盖率脚本
 | 图编译、求值和提交 | [PipelineCompiler](../src/YokoWave.Pipelines/PipelineCompiler.cs)、[PipelineRuntime](../src/YokoWave.Pipelines/PipelineRuntime.cs)、[PipelineSession](../src/YokoWave.Pipelines/PipelineSession.cs)、[PipelineOutputDispatcher](../src/YokoWave.Pipelines/PipelineOutputDispatcher.cs) |
 | 内置与网络模板 | [PipelineTemplates](../src/YokoWave.Pipelines/PipelineTemplates.cs)、[RemotePipelineNodes](../src/YokoWave.Remote/RemotePipelineNodes.cs) |
 | 图编辑、分组和历史 | [PipelineEditorViewModel](../src/YokoWave.App/ViewModels/Pipelines/PipelineEditorViewModel.cs)、[PipelineDeviceGroupsViewModel](../src/YokoWave.App/ViewModels/Pipelines/PipelineDeviceGroupsViewModel.cs)、[PipelineEditHistory](../src/YokoWave.App/ViewModels/Pipelines/PipelineEditHistory.cs) |
-| RPC 和租约 | [WebSocketRpcPeer](../src/YokoWave.Remote/WebSocketRpcPeer.cs)、[RemoteServerSession](../src/YokoWave.Remote/RemoteServerSession.cs)、[RemoteExportSession](../src/YokoWave.Remote/RemoteExportSession.cs)、[RemoteClientConnection](../src/YokoWave.Remote/RemoteClientConnection.cs)、[RemoteLeaseLink](../src/YokoWave.Remote/RemoteLeaseLink.cs) |
-| 远程事件 | [RemoteEventSession](../src/YokoWave.Remote/RemoteEventSession.cs) 管理租约与声明，[RemoteEventHub](../src/YokoWave.Remote/RemoteEventHub.cs) 缓冲事件与缓存目录，[RemoteEventClient](../src/YokoWave.Remote/RemoteEventClient.cs) 声明并发送，[RemoteEventNodes](../src/YokoWave.Remote/RemoteEventNodes.cs) 注册节点，[RemoteEventProcessor](../src/YokoWave.Remote/RemoteEventProcessor.cs) 同步求值；见[事件契约](websocket-events.md) |
-| DG-LAB V4 | [DgLabV4Controller](../src/YokoWave.Remote/DgLab/V4/DgLabV4Controller.cs)、[DgLabV4Transport](../src/YokoWave.Remote/DgLab/V4/DgLabV4Transport.cs)、[DgLabV4AppRouter](../src/YokoWave.Remote/DgLab/V4/DgLabV4AppRouter.cs)、[DgLabV4Scheduler](../src/YokoWave.Remote/DgLab/V4/DgLabV4Scheduler.cs)、[DgLabV4Relay](../src/YokoWave.Remote/DgLab/V4/DgLabV4Relay.cs)；见 [V4 契约与职责](dglab-v4.md) |
+| RPC 和租约 | [WebSocketRpcPeer](../modules/csharp-sdk/WebSocketRpcPeer.cs)、[RemoteServerSession](../src/YokoWave.Remote/RemoteServerSession.cs)、[RemoteExportSession](../src/YokoWave.Remote/RemoteExportSession.cs)、[RemoteClientConnection](../modules/csharp-sdk/RemoteClientConnection.cs)、[RemoteLeaseLink](../modules/csharp-sdk/RemoteLeaseLink.cs) |
+| 远程事件 | [RemoteEventSession](../src/YokoWave.Remote/RemoteEventSession.cs) 管理租约与声明，[RemoteEventHub](../src/YokoWave.Remote/RemoteEventHub.cs) 缓冲事件与缓存目录，[RemoteEventClient](../modules/csharp-sdk/RemoteEventClient.cs) 声明并发送，[RemoteEventNodes](../src/YokoWave.Remote/RemoteEventNodes.cs) 注册节点，[RemoteEventProcessor](../src/YokoWave.Remote/RemoteEventProcessor.cs) 同步求值；见[事件契约](websocket-events.md) |
+| DG-LAB V4 | [DgLabV4Controller](../modules/csharp-sdk/DgLab/V4/DgLabV4Controller.cs)、[DgLabV4Transport](../modules/csharp-sdk/DgLab/V4/DgLabV4Transport.cs)、[DgLabV4AppRouter](../src/YokoWave.Remote/DgLab/V4/DgLabV4AppRouter.cs)、[DgLabV4Scheduler](../src/YokoWave.Remote/DgLab/V4/DgLabV4Scheduler.cs)、[DgLabV4Relay](../src/YokoWave.Remote/DgLab/V4/DgLabV4Relay.cs)；见 [V4 契约与职责](dglab-v4.md) |
 | 波形资产、生成和交换 | [WaveformAsset](../src/YokoWave.Core/WaveformAsset.cs)、[WaveformGenerator](../src/YokoWave.Core/WaveformGenerator.cs)、[WaveformExchange](../src/YokoWave.Core/WaveformExchange.cs) |
 | 本地数据 | [WorkspaceStore](../src/YokoWave.Core/WorkspaceStore.cs)、[SessionJournal](../src/YokoWave.Core/SessionJournal.cs)、[PipelineStore](../src/YokoWave.Pipelines/PipelineStore.cs) |
 | 用户手册 | [HelpView.axaml](../src/YokoWave.App/Views/Pages/HelpView.axaml)，正文在 [en.json](../locales/app/en.json) / [zh-CN.json](../locales/app/zh-CN.json) 的 `Help.*` |
 | 恐龙游戏 | [modules/dinosaur](../modules/dinosaur/)，物理、绘制、输出和界面分别组合；见[运行与接口](dinosaur.md) |
 | Minecraft / Java SDK | [Minecraft 模块](../modules/minecraft/) 与 [SDK](../modules/java-sdk/) 各自 Gradle 构建；见[职责与事件](minecraft.md) |
+| C# SDK | [modules/csharp-sdk](../modules/csharp-sdk/)，`RemoteControlClient` 提供直接高层控制，其余客户端供应用与外部软件共用 |
 | 官网与模块发布 | [site](../site/)、[modules/shared](../modules/shared/)、[build-pages.ps1](../scripts/build-pages.ps1)；模块目录由元数据自动发现，见 [GitHub Pages](pages.md) |
 
 ## 界面资源

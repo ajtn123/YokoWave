@@ -1,7 +1,7 @@
 using YokoWave.Core;
 using YokoWave.Core.Bluetooth;
 
-namespace YokoWave.Remote.DgLab.V4;
+namespace YokoWave.Sdk.DgLab.V4;
 
 internal static class DgLabV4Models
 {

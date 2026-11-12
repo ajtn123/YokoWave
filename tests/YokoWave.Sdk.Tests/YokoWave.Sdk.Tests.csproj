@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../modules/csharp-sdk/YokoWave.Sdk.csproj" />
+    <ProjectReference Include="../../src/YokoWave.Remote/YokoWave.Remote.csproj" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageReference Include="xunit.v3" Version="3.2.2" />
+    <Compile Include="../YokoWave.Tests/Support/AsyncAssert.cs" Link="Support/AsyncAssert.cs" />
+    <Compile Include="../YokoWave.Tests/Support/Bluetooth/HardwareGattAdapter.cs" Link="Support/HardwareGattAdapter.cs" />
+    <Compile Include="../YokoWave.Tests/Support/Bluetooth/HardwareGattLink.cs" Link="Support/HardwareGattLink.cs" />
+    <Compile Include="../YokoWave.Tests/Support/Remote/RemoteTestHost.cs" Link="Support/RemoteTestHost.cs" />
+  </ItemGroup>
+</Project>

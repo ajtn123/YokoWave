@@ -1,7 +1,7 @@
 using System.Text.Json;
 using YokoWave.Core.Bluetooth;
 
-namespace YokoWave.Remote;
+namespace YokoWave.Sdk;
 
 internal sealed class WebSocketGattConnection(WebSocketRpcPeer peer, RemoteDevice device, RemoteLease lease, long serverClock, long clockAt, Action removed) : IBluetoothConnection
 {

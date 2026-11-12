@@ -4,7 +4,7 @@ using System.Text.Json.Nodes;
 using YokoWave.Core;
 using YokoWave.Core.Bluetooth;
 
-namespace YokoWave.Remote.DgLab.V4;
+namespace YokoWave.Sdk.DgLab.V4;
 
 public sealed record DgLabV4Slot(string Id, string AppId, DgLabV4Device Device, DateTimeOffset CapturedAt)
 {

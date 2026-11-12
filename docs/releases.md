@@ -10,6 +10,8 @@
 
 版本源为 `Directory.Build.props`；程序集、应用侧栏／设置、包名和 macOS 元数据从同一版本生成，界面词典不保存版本号。
 
+Java／C# SDK 由独立 `.github/workflows/sdk.yml` 共用发布流程：版本源为 `modules/sdk-version.txt`，标签为 `sdk-vMAJOR.MINOR.PATCH`。Java 测试／JAR 和 C# 回环测试／NuGet／独立消费验证全部成功后，创建草稿、上传三个 JAR 与 `YokoWave.Sdk`／`YokoWave.Core` 两个 NuGet 包，再公开；不覆盖已公开 release，不替换桌面版 latest。尚未自动推送 Maven／NuGet 注册表。Minecraft 保持独立 `minecraft-v*` 工作流。
+
 ## 包结构
 
 `scripts/package-release.ps1` 运行自包含、不裁剪、非单文件的 `dotnet publish`，验证主程序、.NET 核心、Kestrel 与音频原生库均存在。打包前递归移除所有 `.pdb` 符号文件（包括依赖自带文件，扩展名大小写不敏感）；macOS 在移除后才签名。保留所有运行依赖，附带 `LICENSE`、`THIRD-PARTY-NOTICES.md` 与 `README.txt`，不带研究目录、用户数据或凭据。

@@ -3,7 +3,7 @@ plugins {
     id 'maven-publish'
 }
 group = 'io.github.ajtn123.yokowave'
-version = providers.gradleProperty('sdk_version').get()
+version = providers.fileContents(layout.projectDirectory.file('../sdk-version.txt')).asText.get().trim()
 repositories { mavenCentral() }
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(25)

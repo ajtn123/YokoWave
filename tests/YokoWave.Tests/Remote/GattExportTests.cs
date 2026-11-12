@@ -1,7 +1,6 @@
 using YokoWave.Core;
 using YokoWave.Core.Bluetooth;
 using YokoWave.Pipelines;
-using YokoWave.Remote;
 using YokoWave.Tests.Support.Remote;
 
 namespace YokoWave.Tests.Remote;
