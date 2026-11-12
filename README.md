@@ -20,6 +20,7 @@
 - **远程设备**：WebSocket GATT 透传、高层控制与 [DG-LAB V4](docs/dglab-v4.md) App 配对；支持被控节点及内置 V4 中继，可与本地设备同时使用。
 - **远程事件**：[WebSocket 事件](docs/websocket-events.md)客户端声明并发送触发／数值事件，节点图选择事件后连接波形、数值处理和设备输出。
 - **浏览器模块**：[在线恐龙游戏](https://ajtn123.github.io/YokoWave/modules/dinosaur/)，可独立游玩，也可在碰撞时通过现有 WebSocket 服务端输出短脉冲；见[连接说明](docs/dinosaur.md)。
+- **Minecraft**：[客户端 Mod](modules/minecraft/)，提供 Fabric／Forge／NeoForge 构建目标，可发送游戏事件、调用 control 或与 DG-LAB 4 App 配对；连接层为独立 [Java SDK](modules/java-sdk/)。
 - **界面**：English / 简体中文 / 日本語 / 한국어，跟随系统字体、明暗主题及可用的强调色。
 
 ## 当前支持

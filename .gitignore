@@ -21,3 +21,6 @@ artifacts/
 *.log
 .DS_Store
 local.settings.json
+**/.gradle/
+**/build/
+/modules/minecraft/**/run/

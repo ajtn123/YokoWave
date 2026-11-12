@@ -1,0 +1,14 @@
+plugins { id 'net.neoforged.moddev.legacyforge' version '2.0.148' }
+if (providers.gradleProperty('minecraft_version').get() != '1.20.1') throw new GradleException('Forge target: 1.20.1')
+legacyForge {
+    enable { forgeVersion = '1.20.1-47.4.29'; disableRecompilation = true }
+    runs { client { client() } }
+    mods { yokowave { sourceSet sourceSets.main } }
+}
+apply from: rootProject.file('loader.gradle')
+// The plugin's default ART 2.0.17 predates Java 25 class files.
+tasks.named('reobfJar') {
+    def remapper = configurations.detachedConfiguration(dependencies.create('net.neoforged:AutoRenamingTool:2.0.18:all'))
+    remapper.transitive = false
+    remapOperation.toolClasspath.setFrom(remapper)
+}

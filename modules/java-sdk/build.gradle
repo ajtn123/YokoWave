@@ -1,0 +1,28 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+}
+group = 'io.github.ajtn123.yokowave'
+version = providers.gradleProperty('sdk_version').get()
+repositories { mavenCentral() }
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(25)
+    withSourcesJar()
+    withJavadocJar()
+}
+dependencies {
+    api 'com.google.code.gson:gson:2.10.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.13.4'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'org.java-websocket:Java-WebSocket:1.6.0'
+    testRuntimeOnly 'org.slf4j:slf4j-simple:2.0.17'
+}
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8'; options.release = 25 }
+tasks.withType(Jar).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+    from '../../LICENSE'
+}
+tasks.withType(Javadoc).configureEach { options.encoding = 'UTF-8'; options.addBooleanOption('Xdoclint:none', true) }
+test { useJUnitPlatform() }
+publishing { publications { sdk(MavenPublication) { from components.java } } }

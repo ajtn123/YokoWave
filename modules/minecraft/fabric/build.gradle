@@ -1,0 +1,11 @@
+plugins { id 'net.fabricmc.fabric-loom-remap' version '1.14.10' }
+def mc = providers.gradleProperty('minecraft_version').get()
+def api = ['1.20.1':'0.92.12+1.20.1', '1.21.1':'0.116.18+1.21.1'][mc]
+if (api == null) throw new GradleException('Fabric targets: 1.20.1, 1.21.1')
+dependencies {
+    minecraft "com.mojang:minecraft:${mc}"
+    mappings loom.officialMojangMappings()
+    modImplementation 'net.fabricmc:fabric-loader:0.20.1'
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${api}"
+}
+apply from: rootProject.file('loader.gradle')

@@ -57,7 +57,9 @@ dotnet run --project src/YokoWave.Desktop -- --smoke-test
 node --test tests/dinosaur/*.test.js tests/site/*.test.js
 ```
 
-应用与模块文案位于根目录 `locales/`，每组维护 `en.json` / `zh-CN.json` / `ja.json` / `ko.json`；应用词典由 Core 嵌入，模块词典通过同源 HTTP 加载。修改后运行 `./scripts/sort-locales.ps1`，统一按 Ordinal 键序排序所有本地化 JSON。`check-style.ps1` 检查词典格式，`-Fix` 同时排序。波形名称随资产存入其 JSON 的 `Names`，不使用应用词典键，见[波形格式](docs/waveforms.md)。
+应用与模块文案位于根目录 `locales/`，每组维护 `en.json` / `zh-CN.json` / `ja.json` / `ko.json`；应用词典由 Core 嵌入，浏览器模块词典通过同源 HTTP 加载，Minecraft 词典打包为原生语言资源。修改后运行 `./scripts/sort-locales.ps1`，统一按 Ordinal 键序排序所有本地化 JSON。`check-style.ps1` 检查词典格式，`-Fix` 同时排序。波形名称随资产存入其 JSON 的 `Names`，不使用应用词典键，见[波形格式](docs/waveforms.md)。
+
+Minecraft 与 Java SDK 使用独立 Gradle 工程，需要 JDK 25；运行各目录中的 `gradlew build`。加载器目标与命令见 [Minecraft 模块](modules/minecraft/README.md)，库引用见 [Java SDK](modules/java-sdk/README.md)。发布使用各自的 `minecraft-v*`／`java-sdk-v*` 标签与独立 workflow，不纳入 .NET 验证、打包或发行。
 
 ## 修改功能
 

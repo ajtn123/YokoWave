@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "yokowave",
+  "version": "${version}",
+  "name": "YokoWave Minecraft",
+  "environment": "client",
+  "entrypoints": { "client": ["io.github.ajtn123.yokowave.fabric.FabricClient"] },
+  "depends": { "fabricloader": ">=0.20.1", "fabric-api": "*", "minecraft": "${minecraft}", "java": ">=25" },
+  "license": "MIT"
+}

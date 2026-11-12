@@ -1,0 +1,32 @@
+def mc = providers.gradleProperty('minecraft_version').get()
+base.archivesName = "yokowave-minecraft-${project.name}-${mc}"
+sourceSets.main.java.srcDir rootProject.file('client/src/main/java')
+dependencies {
+    implementation project(':common')
+    implementation 'com.google.zxing:core:3.5.3'
+}
+configurations { embedded }
+dependencies { embedded 'com.google.zxing:core:3.5.3' }
+tasks.named('jar') {
+    dependsOn configurations.runtimeClasspath
+    from project(':common').sourceSets.main.output
+    from({ zipTree(configurations.runtimeClasspath.find { it.name.startsWith('yokowave-sdk-') }) }) { exclude 'META-INF/**', 'LICENSE' }
+    from({ configurations.embedded.collect { zipTree(it) } }) { exclude 'META-INF/**' }
+    from(rootProject.file('../../LICENSE'))
+    from(rootProject.files('NOTICE', 'LICENSE-APACHE-2.0'))
+}
+tasks.named('processResources') {
+    from(rootProject.file('../../locales/minecraft')) {
+        into 'assets/yokowave/lang'
+        rename { ['en.json':'en_us.json', 'zh-CN.json':'zh_cn.json', 'ja.json':'ja_jp.json', 'ko.json':'ko_kr.json'][it] }
+    }
+    inputs.property 'version', project.version
+    inputs.property 'minecraft', mc
+    filesMatching(['fabric.mod.json', 'META-INF/*.toml']) { expand(version: project.version, minecraft: mc) }
+}
+if (project.name != 'fabric') {
+    tasks.named('createMinecraftArtifacts') {
+        javaExecutable = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(25) }.map { it.executablePath.asFile.absolutePath }
+        toolsJavaExecutable = javaExecutable
+    }
+}

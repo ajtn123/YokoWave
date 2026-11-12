@@ -1,0 +1,8 @@
+plugins { id 'net.neoforged.moddev' version '2.0.148' }
+if (providers.gradleProperty('minecraft_version').get() != '1.21.1') throw new GradleException('NeoForge target: 1.21.1')
+neoForge {
+    enable { version = '21.1.265'; disableRecompilation = true }
+    runs { client { client() } }
+    mods { yokowave { sourceSet sourceSets.main } }
+}
+apply from: rootProject.file('loader.gradle')

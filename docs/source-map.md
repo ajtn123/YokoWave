@@ -29,6 +29,8 @@ tests/YokoWave.Tests/    按领域组织的 xUnit 和 Headless 测试
   Support/               图工厂、传输替身、隔离目录及 UI 操作
 tests/dinosaur/          Node 内置测试运行器验证浏览器模块
 modules/dinosaur/        HTML、JS、CSS 恐龙游戏，调用现有 control 服务端
+modules/java-sdk/        独立 Java 25 WebSocket SDK，不依赖 Minecraft 或 .NET
+modules/minecraft/       共用游戏逻辑／界面与 Fabric、Forge、NeoForge 薄适配
 locales/
   app/                   应用的 en.json / zh-CN.json，嵌入 Core
   dinosaur/              恐龙游戏的 en.json / zh-CN.json，同源加载
@@ -60,6 +62,7 @@ scripts/                 风格、验证及覆盖率脚本
 | 本地数据 | [WorkspaceStore](../src/YokoWave.Core/WorkspaceStore.cs)、[SessionJournal](../src/YokoWave.Core/SessionJournal.cs)、[PipelineStore](../src/YokoWave.Pipelines/PipelineStore.cs) |
 | 用户手册 | [HelpView.axaml](../src/YokoWave.App/Views/Pages/HelpView.axaml)，正文在 [en.json](../locales/app/en.json) / [zh-CN.json](../locales/app/zh-CN.json) 的 `Help.*` |
 | 恐龙游戏 | [modules/dinosaur](../modules/dinosaur/)，物理、绘制、输出和界面分别组合；见[运行与接口](dinosaur.md) |
+| Minecraft / Java SDK | [Minecraft 模块](../modules/minecraft/) 与 [SDK](../modules/java-sdk/) 各自 Gradle 构建；见[职责与事件](minecraft.md) |
 | 官网与模块发布 | [site](../site/)、[modules/shared](../modules/shared/)、[build-pages.ps1](../scripts/build-pages.ps1)；模块目录由元数据自动发现，见 [GitHub Pages](pages.md) |
 
 ## 界面资源
