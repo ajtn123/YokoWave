@@ -31,7 +31,7 @@ jobs:
       - name: Assemble static site and module catalog
         shell: pwsh
         run: ./scripts/build-pages.ps1
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: artifacts/pages
 
