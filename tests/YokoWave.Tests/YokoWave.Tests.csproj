@@ -5,7 +5,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="JsonSchema.Net" Version="9.6.0" />
+    <PackageReference Include="JsonSchema.Net" Version="9.7.0" />
     <ProjectReference Include="../../src/YokoWave.App/YokoWave.App.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
     <!-- Avalonia.Headless.XUnit 12.1.5 uses the xUnit 3.x extensibility API. -->
