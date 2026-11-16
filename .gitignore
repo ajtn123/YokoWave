@@ -1,14 +1,4 @@
-# Reference packages and all local analysis stay outside source control.
-/.research/
-**/decompiled/
-**/extracted/
-*.apk
-*.aab
-*.dex
-*.jadx
-*.jks
-*.keystore
-
+.research/
 **/bin/
 **/obj/
 .vs/
