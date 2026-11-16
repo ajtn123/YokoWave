@@ -5,8 +5,7 @@ $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $artifactRoot = [IO.Path]::GetFullPath((Join-Path $projectRoot 'artifacts')) + [IO.Path]::DirectorySeparatorChar
 $outputPath = [IO.Path]::GetFullPath((Join-Path $projectRoot $OutputDirectory))
 if (!$outputPath.StartsWith($artifactRoot, [StringComparison]::OrdinalIgnoreCase)) { throw 'SDK output must be inside artifacts/.' }
-$version = [IO.File]::ReadAllText((Join-Path $projectRoot 'modules/sdk-version.txt')).Trim()
-if ($version -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') { throw 'Expected a stable SDK version.' }
+$version = (& (Join-Path $PSScriptRoot 'get-release-version.ps1') -Product Sdk).version
 New-Item -ItemType Directory -Force -Path $outputPath | Out-Null
 Push-Location $projectRoot
 try {

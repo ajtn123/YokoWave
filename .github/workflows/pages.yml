@@ -11,7 +11,6 @@ on:
       - 'docs/assets/social-preview.png'
       - 'scripts/build-pages.ps1'
       - '.github/workflows/pages.yml'
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -26,9 +25,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-      - name: Assemble static site and module catalog
+      - name: Build
         shell: pwsh
         run: ./scripts/build-pages.ps1
       - uses: actions/upload-pages-artifact@v5

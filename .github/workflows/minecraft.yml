@@ -4,10 +4,10 @@ on:
   push:
     branches: [main]
     tags: ['minecraft-v*.*.*']
-    paths: ['modules/minecraft/**', 'modules/java-sdk/**', 'modules/sdk-version.txt', 'locales/minecraft/**', '.github/workflows/minecraft.yml']
+    paths: ['modules/minecraft/**', 'modules/java-sdk/**', 'modules/sdk-version.txt', 'locales/minecraft/**', 'scripts/get-release-version.ps1', '.github/workflows/minecraft.yml']
   pull_request:
     branches: [main]
-    paths: ['modules/minecraft/**', 'modules/java-sdk/**', 'modules/sdk-version.txt', 'locales/minecraft/**', '.github/workflows/minecraft.yml']
+    paths: ['modules/minecraft/**', 'modules/java-sdk/**', 'modules/sdk-version.txt', 'locales/minecraft/**', 'scripts/get-release-version.ps1', '.github/workflows/minecraft.yml']
   workflow_dispatch:
 
 permissions:
@@ -27,20 +27,11 @@ jobs:
           - { loader: neoforge, minecraft: '1.21.1' }
     steps:
       - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-      - uses: actions/setup-java@v6
-        with:
-          distribution: microsoft
-          java-version: '25'
-      - uses: gradle/actions/setup-gradle@v6
       - name: Validate independent release version
-        if: startsWith(github.ref, 'refs/tags/minecraft-v')
+        shell: pwsh
         env:
-          TAG: ${{ github.ref_name }}
-        run: |
-          version=$(sed -n 's/^mod_version=//p' modules/minecraft/gradle.properties)
-          test "$TAG" = "minecraft-v$version"
+          RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+        run: ./scripts/get-release-version.ps1 -Product Minecraft -Tag $env:RELEASE_TAG
       - name: Build and test
         working-directory: modules/minecraft
         env:

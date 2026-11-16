@@ -37,7 +37,7 @@ PowerShell 7 下运行完整检查：
 ./scripts/verify.ps1 -Offline
 ```
 
-该脚本依次还原、检查代码风格、构建和运行测试，不执行 publish。已有 Release 构建时可直接运行或按领域筛选：
+该脚本先运行版本脚本回归，再依次还原、检查代码风格、构建和运行测试，不执行 publish。`tests/scripts/release-version.tests.ps1` 使用 `artifacts/` 下独立的临时 Git 仓库，验证三种产品的版本、标签、发行说明与 GitHub 输出；不修改当前仓库的提交或标签。已有 Release 构建时可直接运行或按领域筛选：
 
 ```powershell
 dotnet tests/YokoWave.Tests/bin/Release/net10.0/YokoWave.Tests.dll -nocolor

@@ -4,7 +4,7 @@
 
 ## 环境与运行
 
-- .NET 10 SDK；`global.json` 允许同一主版本内滚动到较新的 feature band。
+- .NET 10 或更新的 SDK；`global.json` 不固定 SDK 版本，应用目标为 .NET 10，运行时允许跨主版本滚动。
 - PowerShell 7 用于仓库检查脚本；直接使用 dotnet 命令不需要 PowerShell。
 - Windows 原生 BLE 目标最低为 Windows 10 2004。macOS / Linux 构建通用桌面目标，可使用模拟与 WebSocket 设备；音频边界见[输入实现](docs/inputs.md#平台后端)。
 
@@ -32,7 +32,7 @@ dotnet run --project src/YokoWave.Desktop
 ./scripts/verify.ps1 -Offline
 ```
 
-该脚本依次还原、检查风格、构建 Release 并运行 xUnit，不执行 publish。日常修改也可分别执行：
+该脚本先验证发行版本脚本，再依次还原、检查风格、构建 Release 并运行 xUnit，不执行 publish。日常修改也可分别执行：
 
 ```sh
 dotnet build YokoWave.slnx -c Release
@@ -93,7 +93,7 @@ Minecraft 与 Java SDK 使用独立 Gradle 工程，需要 JDK 25；运行各目
 
 ## 按需发布
 
-开发验证不需要 publish。GitHub 的 [Release 工作流](.github/workflows/release.yml) 由 `vMAJOR.MINOR.PATCH` 标签触发，也可手动选择已存在的标签。发布前修改 `Directory.Build.props` 的版本并添加 `docs/releases/<版本>.md`，提交后推送 main 和对应标签。标签版本必须与项目版本相同。
+开发验证不需要 publish。GitHub 的 [Release 工作流](.github/workflows/release.yml) 由 `vMAJOR.MINOR.PATCH` 标签触发。发布前修改 `Directory.Build.props` 的版本并添加 `docs/releases/<版本>.md`，提交后推送 main 和对应标签。标签版本必须与项目版本相同；统一的 `scripts/get-release-version.ps1` 验证版本、发行说明及标签提交。
 
 工作流验证标签对应的提交，在 Windows / Linux 完成风格、构建和 xUnit 测试，再为三个系统的 x64 / ARM64 打包。浏览器模块不在 build / release 工作流中测试或打包，按需手动验证。Release notes 不写与发布标题重复的一级标题，发布脚本会拒绝该格式。六个桌面附件全部上传成功后才公开 release；失败保留草稿，已发布附件不会被覆盖。只在最后发布的 job 授予 `contents: write`，其余 job 使用只读权限。
 

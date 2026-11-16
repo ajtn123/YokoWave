@@ -4,6 +4,8 @@ $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 Push-Location $projectRoot
 try {
+    & (Join-Path $projectRoot 'tests/scripts/release-version.tests.ps1')
+
     $restoreArgs = @('restore', 'YokoWave.slnx', '--nologo', '-m:1')
     if ($Offline) { $restoreArgs += @('--ignore-failed-sources', '-p:NuGetAudit=false') }
     & dotnet @restoreArgs

@@ -4,13 +4,15 @@
 
 ## 工作流与版本
 
-`.github/workflows/release.yml` 只接受已存在的稳定版本标签 `vMAJOR.MINOR.PATCH`。版本检查要求 `Directory.Build.props` 与标签一致，且对应的 `docs/releases/<版本>.md` 存在；检验、测试、打包与发布均使用标签解析到的同一提交。手动运行也必须提供现有标签。
+`.github/workflows/release.yml` 由稳定版本标签 `vMAJOR.MINOR.PATCH` 触发。`scripts/get-release-version.ps1 -Product Desktop` 要求 `Directory.Build.props` 与标签一致，且对应的 `docs/releases/<版本>.md` 存在；检验、测试、打包与发布均使用标签解析到的同一提交，不提供手动发布入口。
 
-测试复用 `.github/workflows/build.yml`，在 Windows 和 Linux 安装 .NET 10，执行风格检查（包括所有本地化 JSON 的排序）、构建和 xUnit 测试。build / release 不安装 Node、不运行浏览器模块测试，也不制作模块静态包。普通 push / PR 不 publish。打包矩阵的六个 job 分别运行在 Windows、Linux、macOS 宿主，允许同系统跨架构构建。
+测试复用 `.github/workflows/build.yml`，在 Windows 和 Linux 使用镜像预装的 .NET SDK，执行版本脚本回归、风格检查（包括所有本地化 JSON 的排序）、构建和 xUnit 测试。SDK 不固定版本，应用目标为 .NET 10，运行时允许跨主版本滚动。Java 构建使用 Ubuntu 26.04 镜像默认的 JDK 25 和仓库 Gradle wrapper，不另行安装工具链。build / release 不安装 Node、不运行浏览器模块测试，也不制作模块静态包。普通 push / PR 不 publish。打包矩阵的六个 job 分别运行在 Windows、Linux、macOS 宿主，允许同系统跨架构构建。
 
 版本源为 `Directory.Build.props`；程序集、应用侧栏／设置、包名和 macOS 元数据从同一版本生成，界面词典不保存版本号。
 
 Java／C# SDK 由独立 `.github/workflows/sdk.yml` 共用发布流程：版本源为 `modules/sdk-version.txt`，标签为 `sdk-vMAJOR.MINOR.PATCH`。Java 测试／JAR 和 C# 回环测试／NuGet／独立消费验证全部成功后，创建草稿、上传三个 JAR 与 `YokoWave.Sdk`／`YokoWave.Core` 两个 NuGet 包，再公开；不覆盖已公开 release，不替换桌面版 latest。尚未自动推送 Maven／NuGet 注册表。Minecraft 保持独立 `minecraft-v*` 工作流。
+
+SDK 与 Minecraft 同样调用 `scripts/get-release-version.ps1`，分别指定 `-Product Sdk` / `Minecraft`，读取共享 SDK 版本或 `mod_version`。所有产品均要求无前导零的稳定三段版本；传入 `-Tag` 时检查产品前缀、版本及标签与当前提交的一致性，支持附注标签。`-OutputFile` 写入 GitHub job output；本地直接调用返回版本、标签和提交信息。测试命令为 `./tests/scripts/release-version.tests.ps1`，不发布或改动主仓库标签。
 
 ## 包结构
 
